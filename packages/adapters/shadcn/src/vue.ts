@@ -1,8 +1,8 @@
 /**
- * Vue composable for the shadcn/ui adapter (`@theme-kit/shadcn/vue`).
+ * Vue composable for the shadcn/ui adapter (`@themvora/shadcn/vue`).
  *
  * `useShadcnTheme(runtime, options?)` installs the shadcn adapter onto an
- * explicitly provided Theme Kit runtime and disposes it on unmount.
+ * explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createShadcnAdapter } from "./adapter";
 
@@ -29,20 +29,20 @@ export interface UseAdapterOptions {
 }
 
 /**
- * Vue composable that installs the shadcn/ui adapter onto the given Theme Kit
+ * Vue composable that installs the shadcn/ui adapter onto the given Themvora
  * runtime. Maintains a tagged `:root` style element with concrete `--*`
  * variables, kept in sync as the active theme changes.
  *
  * Must be called in a component's `setup` scope, passing the runtime from your
- * Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/vue`):
+ * Themvora provider (e.g. `useThemeRuntime()` from `@themvora/vue`):
  *
  * ```ts
- * import { useShadcnTheme } from "@theme-kit/shadcn/vue";
+ * import { useShadcnTheme } from "@themvora/shadcn/vue";
  *
  * useShadcnTheme(runtime);
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

@@ -1,8 +1,8 @@
 import {
   toBootstrapConfig,
   type ThemeDefinition,
-  type ThemeKitThemeConfig,
-} from "@theme-kit/core";
+  type ThemvoraThemeConfig,
+} from "@themvora/core";
 
 /**
  * The last configuration published by {@link publishTransportedConfig}.
@@ -22,8 +22,8 @@ let published: unknown = null;
  * @param config - The application configuration (`theme.config.ts`).
  *
  * @remarks
- * `themeKit()` transports this configuration to the *browser* by injecting
- * `window.__THEME_KIT_CONFIG__` into `<head>`. That does nothing for the
+ * `themvora()` transports this configuration to the *browser* by injecting
+ * `window.__THEMVORA_CONFIG__` into `<head>`. That does nothing for the
  * server: `injectScript` emits a `<script>` tag, so during SSR the global is
  * unset and an island falls back to the built-in themes. The island's server
  * markup is then built from one registry and its hydrated markup from another,
@@ -46,7 +46,7 @@ let published: unknown = null;
  * @see {@link getInitialThemeState}
  */
 export function publishTransportedConfig<T extends ThemeDefinition>(
-  config: ThemeKitThemeConfig<T>,
+  config: ThemvoraThemeConfig<T>,
 ): void {
   // Identity comparison, not deep equality: `theme.config.ts` is a module
   // singleton, so the same object arrives on every request. Comparing identity
@@ -56,7 +56,7 @@ export function publishTransportedConfig<T extends ThemeDefinition>(
   if (published === config) return;
   published = config;
 
-  (globalThis as unknown as Record<string, unknown>).__THEME_KIT_CONFIG__ =
+  (globalThis as unknown as Record<string, unknown>).__THEMVORA_CONFIG__ =
     toBootstrapConfig(config);
 }
 
@@ -71,5 +71,5 @@ export function publishTransportedConfig<T extends ThemeDefinition>(
  */
 export function __resetTransportedConfig(): void {
   published = null;
-  delete (globalThis as unknown as Record<string, unknown>).__THEME_KIT_CONFIG__;
+  delete (globalThis as unknown as Record<string, unknown>).__THEMVORA_CONFIG__;
 }

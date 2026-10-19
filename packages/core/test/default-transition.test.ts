@@ -30,11 +30,11 @@ function flushAnimationFrames(count = 4) {
 
 describe("default transition behavior (no transition option)", () => {
   afterEach(() => {
-    document.head.querySelectorAll("style[data-theme-kit-transition]").forEach((n) => n.remove());
+    document.head.querySelectorAll("style[data-themvora-transition]").forEach((n) => n.remove());
     document.head
-      .querySelectorAll("style[data-theme-kit-animating-style]")
+      .querySelectorAll("style[data-themvora-animating-style]")
       .forEach((n) => n.remove());
-    document.documentElement.removeAttribute("data-theme-kit-animating");
+    document.documentElement.removeAttribute("data-themvora-animating");
     document.documentElement.removeAttribute("style");
     document.documentElement.removeAttribute("data-theme");
   });
@@ -58,8 +58,8 @@ describe("default transition behavior (no transition option)", () => {
     // First frame runs the swap; by then the transition rule should be present.
     await flushAnimationFrames();
 
-    const transitionStyle = document.head.querySelector("style[data-theme-kit-transition]");
-    const animatingAttr = el.hasAttribute("data-theme-kit-animating");
+    const transitionStyle = document.head.querySelector("style[data-themvora-transition]");
+    const animatingAttr = el.hasAttribute("data-themvora-animating");
 
     // The coordinator removes the attribute after the animation finishes, but
     // the persistent :root transition rule stays installed for future runs.

@@ -1,6 +1,6 @@
 /**
  * Cookie contract shared between the server resolver, the client persistence
- * adapter and the blocking bootstrap script. Same names as `@theme-kit/next`:
+ * adapter and the blocking bootstrap script. Same names as `@themvora/next`:
  *
  *   theme-name       → exact resolved theme
  *   theme-family     → selected family
@@ -9,15 +9,15 @@
  *
  * @see {@link parseCookieHeader}
  */
-export const themeKitCookieNames = {
+export const themvoraCookieNames = {
   name: "theme-name",
   family: "theme-family",
   mode: "theme-mode",
   fingerprint: "theme-fingerprint",
 } as const;
 
-export type ThemeKitCookieName =
-  (typeof themeKitCookieNames)[keyof typeof themeKitCookieNames];
+export type ThemvoraCookieName =
+  (typeof themvoraCookieNames)[keyof typeof themvoraCookieNames];
 
 export interface ParsedCookies {
   [name: string]: string | undefined;
@@ -25,7 +25,7 @@ export interface ParsedCookies {
 
 /** Minimal RFC 6265 header parser — enough for the four theme cookies.
  *
- * @see {@link themeKitCookieNames}
+ * @see {@link themvoraCookieNames}
  * @see {@link resolveThemeFromCookies}
  */
 export function parseCookieHeader(header: string): ParsedCookies {

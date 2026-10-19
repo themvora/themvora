@@ -1,10 +1,10 @@
 import React from "react";
 
-interface ThemeKitLogoProps {
+interface ThemvoraLogoProps {
   size?: number; // controls icon height + scales wordmark font-size proportionally
 }
 
-const ThemeKitLogo = ({ size = 42 }: ThemeKitLogoProps) => {
+const ThemvoraLogo = ({ size = 42 }: ThemvoraLogoProps) => {
   return (
     <div
       className="flex items-center gap-2.5 no-underline shrink-0"
@@ -55,6 +55,13 @@ const ThemeKitLogo = ({ size = 42 }: ThemeKitLogoProps) => {
           Font family cascades from the <html> CSS variable (`--font-outfit`,
           declared in the server layout) so the class hash is never duplicated
           across the server and client bundles. */}
+      {/* The wordmark is `foreground`, not the brand colour.
+          A wordmark is text: people read it. Painting it in `primary` asks the
+          brand colour to be a reading colour, which it is not — in Slack dark
+          `primary` on the canvas is 1.42:1, so the product's own name is the
+          least legible thing in its header. The brand survives in the mark
+          beside it, which is where it belongs: a logo is decoration, a name is
+          reading. */}
       <span
         className="block leading-none select-none"
         style={{
@@ -62,18 +69,13 @@ const ThemeKitLogo = ({ size = 42 }: ThemeKitLogoProps) => {
           fontWeight: 700,
           fontFamily: "var(--font-outfit), ui-sans-serif, system-ui, sans-serif",
           letterSpacing: "0.02em",
-          backgroundImage:
-            "linear-gradient(90deg, var(--theme-color-primary), var(--theme-color-primary-light, var(--theme-color-primary)), var(--theme-color-primary))",
-          backgroundClip: "text",
-          WebkitBackgroundClip: "text",
-          color: "transparent",
-          WebkitTextFillColor: "transparent",
+          color: "var(--theme-color-foreground)",
         }}
       >
-        theme-kit
+        themvora
       </span>
     </div>
   );
 };
 
-export default ThemeKitLogo;
+export default ThemvoraLogo;

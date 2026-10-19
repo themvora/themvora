@@ -6,7 +6,7 @@
  * point of the page is that you can run and copy them. So nothing here is
  * authored: the 21 concept examples come from their own `example.meta.json`
  * files, and the 11 framework starter apps from their `package.json`
- * (`@theme-kit/*` dependencies + the `dev` script), which live under
+ * (`@themvora/*` dependencies + the `dev` script), which live under
  * `examples/apps/`.
  *
  *   node scripts/generate-examples.mjs           # write
@@ -77,7 +77,7 @@ function collectStarters() {
       dir: `apps/${entry.name}`,
       framework: entry.name,
       name: pkg.name ?? `example-${entry.name}`,
-      packages: deps.filter((d) => d.startsWith("@theme-kit/")).sort(),
+      packages: deps.filter((d) => d.startsWith("@themvora/")).sort(),
       devCommand: `pnpm --filter ${pkg.name} dev`,
       hasBuild: !!pkg.scripts?.build,
     });
@@ -131,24 +131,24 @@ function render(concepts, starters) {
  * Produced by \`apps/docs/scripts/generate-examples.mjs\` from the real
  * \`examples/\` workspace: the 21 concept examples' own \`example.meta.json\`
  * files and the 10 framework starter apps' \`package.json\`. Regenerate with
- * \`pnpm --filter @theme-kit/docs examples:generate\`; \`examples:check\` fails
+ * \`pnpm --filter @themvora/docs examples:generate\`; \`examples:check\` fails
  * when this drifts.
  *
  * Consumed by \`/examples\` and merged with the editorial layer in
  * \`lib/examples.ts\`.
  */
 
-/** A focused, framework-specific implementation of one Theme Kit feature. */
+/** A focused, framework-specific implementation of one Themvora feature. */
 export type ConceptExample = {
   kind: "concept";
   id: string;
   /** Path under \`examples/\`, e.g. \`persistence/react\`. */
   dir: string;
-  /** The Theme Kit feature being demonstrated, e.g. \`persistence\`. */
+  /** The Themvora feature being demonstrated, e.g. \`persistence\`. */
   feature: string;
   /** \`core\` or a framework name. */
   framework: string;
-  /** @theme-kit packages the example uses. */
+  /** @themvora packages the example uses. */
   packages: string[];
   peerDependencies: string[];
   /** Source files, relative to \`dir\`. */
@@ -167,7 +167,7 @@ export type StarterExample = {
   /** Path under \`examples/\`, e.g. \`react\`. */
   dir: string;
   framework: string;
-  /** Workspace package name, e.g. \`@theme-kit/example-react\`. */
+  /** Workspace package name, e.g. \`@themvora/example-react\`. */
   name: string;
   packages: string[];
   devCommand: string;
@@ -209,7 +209,7 @@ function main() {
   if (check) {
     if (current !== next) {
       console.error(
-        "lib/generated/examples.ts is out of date. Run: pnpm --filter @theme-kit/docs examples:generate",
+        "lib/generated/examples.ts is out of date. Run: pnpm --filter @themvora/docs examples:generate",
       );
       process.exit(1);
     }

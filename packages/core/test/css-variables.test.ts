@@ -93,4 +93,27 @@ store.set(dark);
 
     binding.destroy();
   });
+
+  it("clears a pre-existing inline variable the mounted theme does not define", () => {
+    // The SSR shell writes the default theme's variables inline. When the theme
+    // a runtime mounts with defines fewer groups (a preset with no `code`
+    // group), the binding must clear the stale ones instead of leaving them to
+    // shadow a `var(--theme-code-*, fallback)` rule.
+    const style = document.documentElement.style;
+    style.setProperty("--theme-code-background", "#f6f7fc");
+
+    const preset = defineTheme({
+      name: "mint-light",
+      tokens: { colors: { background: "#e9f3ee" } },
+    });
+    const store = createThemeStore({ initialTheme: preset });
+
+    const binding = createCSSVariablesBinding(store);
+
+    expect(style.getPropertyValue("--theme-code-background")).toBe("");
+    expect(style.getPropertyValue("--theme-color-background")).toBe("#e9f3ee");
+
+    binding.destroy();
+    document.documentElement.removeAttribute("style");
+  });
 });

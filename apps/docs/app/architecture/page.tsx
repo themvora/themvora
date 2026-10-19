@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/architecture") },
   title: "Architecture",
   description:
-    "Inside Theme Kit: the runtime, store, transition pipeline, persistence, adapters, and how the pieces stay framework-agnostic.",
+    "Inside Themvora: the runtime, store, transition pipeline, persistence, adapters, and how the pieces stay framework-agnostic.",
 };
 
 function snippet(code: string, lang = "ts") {
@@ -33,7 +33,7 @@ function snippet(code: string, lang = "ts") {
 /*  Snippet data                                                       */
 /* ------------------------------------------------------------------ */
 
-const createRuntimeCode = `import { createThemeRuntime } from "@theme-kit/core";
+const createRuntimeCode = `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   themes,            // default: built-in themes
@@ -135,7 +135,7 @@ off(); // unsubscribe`;
 
 const destroyCode = `runtime.destroy();`;
 
-const bootstrapCode = `import { createThemeBootstrapScript, buildThemeCssMap } from "@theme-kit/core";
+const bootstrapCode = `import { createThemeBootstrapScript, buildThemeCssMap } from "@themvora/core";
 
 const cssMap = buildThemeCssMap(themes);         // name + family:mode → variables
 const script = createThemeBootstrapScript({
@@ -235,10 +235,10 @@ const runtimeSections = [
 ];
 
 const configFileCode = `// theme.config.ts — at the project root
-import { defineThemeKitConfig } from "@theme-kit/core";
+import { defineThemvoraConfig } from "@themvora/core";
 import { themes } from "./src/themes";
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "mint-light",
   initialMode: "system",
@@ -246,21 +246,21 @@ export default defineThemeKitConfig({
 });`;
 
 const configProviderCode = `// main.tsx — the runtime, through your framework provider
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 
 <ThemeProvider>
   <App />
 </ThemeProvider>`;
 
 const configPluginCode = `// vite.config.ts — the pre-paint bootstrap, through a build integration
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [react(), themeKitVitePlugin()],
+  plugins: [react(), themvoraVitePlugin()],
 });`;
 
 const configAntiPatternCode = `// Declared twice — the plugin's copy and the provider's copy drift apart
-themeKitVitePlugin({
+themvoraVitePlugin({
   themes,
   defaultTheme: "mint-light",
   initialMode: "system",
@@ -273,7 +273,7 @@ themeKitVitePlugin({
 />`;
 
 const configDeclaredOnceCode = `// Declared once — both consumers read it
-themeKitVitePlugin();
+themvoraVitePlugin();
 
 <ThemeProvider>
   <App />
@@ -283,7 +283,7 @@ themeKitVitePlugin();
  * Which configuration keys each consumer reads.
  *
  * Derived from the shipped type rather than invented: `ThemeBootstrapConfig` is
- * `Pick<ThemeKitConfig, "themes" | "defaultTheme" | "initialMode" |
+ * `Pick<ThemvoraConfig, "themes" | "defaultTheme" | "initialMode" |
  * "initialFamily" | "storageKey" | "prefix">`, and both integrations transport
  * exactly that projection (`toBootstrapConfig`) to the runtime. Everything
  * outside the pick is runtime-only, and `plugins` / `adapters` additionally
@@ -339,10 +339,10 @@ export default function ArchitecturePage() {
             </svg>
           }
           title="Architecture"
-          subtitle="@theme-kit/core — runtime, layers & data flow"
+          subtitle="@themvora/core — runtime, layers & data flow"
           description={
             <>
-              Theme Kit&apos;s heart is a single framework-agnostic runtime that
+              Themvora&apos;s heart is a single framework-agnostic runtime that
               wires the store, registry, selection, persistence, broadcast, DOM
               bindings, history, lifecycle, and plugins together into one cohesive
               system.
@@ -359,7 +359,7 @@ export default function ArchitecturePage() {
             },
             {
               label: "Package",
-              value: "@theme-kit/core or framework package",
+              value: "@themvora/core or framework package",
               href: "/packages/core",
             },
             {
@@ -426,10 +426,10 @@ export default function ArchitecturePage() {
             Configuration
           </SectionHeading>
           <p className="text-sm opacity-70 leading-relaxed mb-4">
-            The application&apos;s Theme Kit configuration is a single object at
+            The application&apos;s Themvora configuration is a single object at
             the project root, <code className="mono text-[0.9em]">theme.config.ts</code>,
             declared through{" "}
-            <code className="mono text-[0.9em]">defineThemeKitConfig</code>. It is
+            <code className="mono text-[0.9em]">defineThemvoraConfig</code>. It is
             consumed by two things, and neither of them is a second declaration:
             the <strong>runtime</strong> (through your framework provider) and the{" "}
             <strong>pre-paint bootstrap</strong> (through a build integration such
@@ -465,7 +465,7 @@ export default function ArchitecturePage() {
             The split is not arbitrary — it follows the shipped type.{" "}
             <code className="mono text-[0.9em]">ThemeBootstrapConfig</code> is a{" "}
             <code className="mono text-[0.9em]">Pick</code> of{" "}
-            <code className="mono text-[0.9em]">ThemeKitConfig</code>, and both
+            <code className="mono text-[0.9em]">ThemvoraConfig</code>, and both
             integrations transport exactly that projection to the runtime:
           </p>
           <div className="rounded-xl border border-border overflow-hidden mb-4">
@@ -589,7 +589,7 @@ export default function ArchitecturePage() {
           </p>
           {snippet(bootstrapCode)}
           <p className="text-sm opacity-70 leading-relaxed mt-4">
-            The <code className="mono text-[0.9em]">@theme-kit/next</code> provider
+            The <code className="mono text-[0.9em]">@themvora/next</code> provider
             does all of this automatically — it reads cookies on the server, renders
             the resolved theme, and emits the blocking script.
           </p>

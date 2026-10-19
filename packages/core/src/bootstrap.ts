@@ -207,7 +207,7 @@ export interface ThemeBootstrapPlan<T extends ThemeDefinition = ThemeDefinition>
    * The inline script validates a persisted family against this list. Without
    * it a stale cookie or `localStorage` entry — one written before the registry
    * changed its family set — survives into `data-theme-selection-family` and
-   * into every `data-tk-readout="family"`, naming a family that is not applied
+   * into every `data-tv-readout="family"`, naming a family that is not applied
    * while the resolved theme falls back to `__default-*`. The server, which
    * normalises through `resolveSelection`, then disagrees with the browser about
    * the same page, and the readout visibly corrects on load.
@@ -304,7 +304,7 @@ export interface ThemeBootstrapState<T extends ThemeDefinition> {
  * `data-theme` (resolved theme), `data-theme-selection-mode` /
  * `data-theme-selection-family` (the selection, which is not recoverable from
  * the resolved theme), `data-theme-ready`, and a
- * `window.__THEME_KIT_BOOTSTRAP__` payload.
+ * `window.__THEMVORA_BOOTSTRAP__` payload.
  *
  * It exists so a client runtime can **adopt** what was already painted instead
  * of re-deriving it: by the time a client renders, `<html>` is the authority on
@@ -365,8 +365,8 @@ export function readBootstrapState<T extends ThemeDefinition>(
  *   elements it patches exist.
  *
  * @remarks
- * A readout opts in with `data-tk-readout="theme" | "mode" | "family"`, or
- * `data-tk-readout="var:--theme-color-primary"` to display a resolved CSS
+ * A readout opts in with `data-tv-readout="theme" | "mode" | "family"`, or
+ * `data-tv-readout="var:--theme-color-primary"` to display a resolved CSS
  * variable. The script reads the payload the blocking bootstrap published (see
  * {@link readBootstrapState}) — or, for `var:`, the variable the bootstrap
  * already applied to `<html>` — and writes the value into each element's
@@ -396,10 +396,10 @@ export function readBootstrapState<T extends ThemeDefinition>(
 export function createThemeReadoutScript(): string {
   return (
     "(function(){try{" +
-    "var b=window.__THEME_KIT_BOOTSTRAP__;if(!b)return;" +
-    "var els=document.querySelectorAll('[data-tk-readout]');" +
+    "var b=window.__THEMVORA_BOOTSTRAP__;if(!b)return;" +
+    "var els=document.querySelectorAll('[data-tv-readout]');" +
     "for(var i=0;i<els.length;i++){" +
-    "var f=els[i].getAttribute('data-tk-readout');" +
+    "var f=els[i].getAttribute('data-tv-readout');" +
     "var v=f==='theme'?b.theme:" +
     "(f==='mode'?(b.selection&&b.selection.mode):" +
     "(f==='family'?(b.selection&&b.selection.family):null));" +
@@ -530,7 +530,7 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
  * `fam0` is whatever the visitor persisted — a cookie or `localStorage` entry,
  * possibly written before the registry changed its family set. Trusting it
  * verbatim would leave `data-theme-selection-family` (and therefore every
- * `data-tk-readout="family"`) naming a family the CSS map has no variables for,
+ * `data-tv-readout="family"`) naming a family the CSS map has no variables for,
  * while the theme itself resolves to `__default-*`. That is a readout which
  * contradicts the page, and it makes the browser disagree with the server, which
  * normalises through `resolveSelection` — so the text visibly corrects on load.
@@ -604,6 +604,17 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
       ? readStorageSelection(plan, source)
       : readCookieSelection(plan, source, fingerprint);
 
+  // Every CSS variable name any theme in the plan can produce. The pre-paint
+  // script is the authority for the inline `--theme-*` set: an SSR shell paints
+  // the *default* theme's variables, and the persisted theme may define fewer
+  // token groups (e.g. a preset with no `code` group), so the groups it omits
+  // must be cleared. Leaving them set lets them shadow a
+  // `var(--theme-code-*, fallback)` rule — the code block would keep the
+  // default theme's syntax colours after a reload.
+  const allVarNames = Array.from(
+    new Set(Object.values(plan.map).flatMap((vars) => Object.keys(vars))),
+  );
+
   const app =
     "var sysDark=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);" +
     "var eff=mode==='dark'||(mode==='system'&&sysDark)?'dark':'light';" +
@@ -616,6 +627,7 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     "var vars=map[key]||map['__default-light'];" +
     "var name=names[key]||names['__default-'+eff]||null;" +
     "var el=document.documentElement;" +
+    "var __all=" + JSON.stringify(allVarNames) + ";" +
     "if(eff==='dark'){el.classList.add('dark');}else{el.classList.remove('dark');}" +
     "el.style.colorScheme=eff;" +
     "el.setAttribute('data-theme-mode',eff);" +
@@ -631,7 +643,7 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     "el.setAttribute('data-theme-selection-mode',mode);" +
     "if(family||fam){el.setAttribute('data-theme-selection-family',family||fam);}" +
     "el.setAttribute('data-theme-ready','true');" +
-    "try{window.__THEME_KIT_BOOTSTRAP__={theme:name,mode:eff,family:fam,selection:{mode:mode,family:family||fam}};}catch(e2){}" +
+    "try{window.__THEMVORA_BOOTSTRAP__={theme:name,mode:eff,family:fam,selection:{mode:mode,family:family||fam}};}catch(e2){}" +
     // Readouts are patched from HERE, not only from the end-of-body script.
     // A body-end script is too late: the browser is free to paint while the
     // parser is still working through a large body, so a prerendered readout can
@@ -639,22 +651,28 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     // "fluctuating" on reload. This script runs in <head>, before the body is
     // parsed, so instead of querying once it watches for readouts appearing and
     // patches each one in the same task it is inserted in.
-    "var __tkPatch=function(){" +
-    "try{var els=document.querySelectorAll('[data-tk-readout]');" +
+    "var __tvPatch=function(){" +
+    "try{var els=document.querySelectorAll('[data-tv-readout]');" +
     "for(var q=0;q<els.length;q++){" +
-    "if(els[q].getAttribute('data-tk-patched')==='1'){continue;}" +
-    "var f2=els[q].getAttribute('data-tk-readout');" +
+    "if(els[q].getAttribute('data-tv-patched')==='1'){continue;}" +
+    "var f2=els[q].getAttribute('data-tv-readout');" +
     "var v2=f2==='theme'?name:(f2==='mode'?mode:(f2==='family'?(family||fam):null));" +
     "if(v2==null&&f2&&f2.slice(0,4)==='var:'){" +
     "try{v2=getComputedStyle(el).getPropertyValue(f2.slice(4)).trim()||null;}catch(e3){v2=null;}" +
     "}" +
-    "if(v2!=null){els[q].textContent=v2;els[q].setAttribute('data-tk-patched','1');}" +
+    "if(v2!=null){els[q].textContent=v2;els[q].setAttribute('data-tv-patched','1');}" +
     "}}catch(e4){}};" +
-    "try{__tkPatch();" +
+    "try{__tvPatch();" +
     "if(window.MutationObserver&&el){" +
-    "new MutationObserver(function(){__tkPatch();}).observe(el,{childList:true,subtree:true});" +
+    "new MutationObserver(function(){__tvPatch();}).observe(el,{childList:true,subtree:true});" +
     "}}catch(e5){}" +
-    "if(vars){for(var p in vars){el.style.setProperty(p,vars[p]);}}";
+    // Apply the resolved theme's variables, then clear any inline variable the
+    // theme does not define. The SSR shell only knows the default theme, so it
+    // may have written a group the persisted theme omits (a `code` group, say);
+    // those must be removed here, before first paint, or they shadow the CSS
+    // fallback and the page keeps the default theme's values.
+    "if(vars){for(var p in vars){el.style.setProperty(p,vars[p]);}" +
+    "for(var a=0;a<__all.length;a++){var an=__all[a];if(!(an in vars)){el.style.removeProperty(an);}}}";
 
   return "(function(){try{" + read + app + "}catch(e){}})()";
 }

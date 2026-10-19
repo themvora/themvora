@@ -3,7 +3,7 @@
  * verify-breaking-contract — pins the 2.0.0 public-API contract.
  *
  * 2.0.0 removed 93 public exports across 12 packages and deleted the
- * `@theme-kit/astro/adapters` subpath, because adapter framework bindings moved
+ * `@themvora/astro/adapters` subpath, because adapter framework bindings moved
  * out of the framework packages and off the adapter root entries. See
  * `CHANGELOG.md` §2.0.0 and the "Migrating from 1.x to 2.0" docs page.
  *
@@ -42,25 +42,25 @@ const fail = (where, what, detail) => failures.push({ where, what, detail });
  */
 const CONTRACT = [
   {
-    pkg: "@theme-kit/shadcn",
+    pkg: "@themvora/shadcn",
     removedFrom: ["useShadcnTheme"],
     requiredSubpaths: ["./react", "./vue", "./svelte", "./solid", "./angular"],
     hook: { subpath: "./react", name: "useShadcnTheme" },
   },
   {
-    pkg: "@theme-kit/bootstrap",
+    pkg: "@themvora/bootstrap",
     removedFrom: ["useBootstrapTheme"],
     requiredSubpaths: ["./react", "./vue", "./svelte", "./solid", "./angular"],
     hook: { subpath: "./react", name: "useBootstrapTheme" },
   },
   {
-    pkg: "@theme-kit/daisyui",
+    pkg: "@themvora/daisyui",
     removedFrom: ["useDaisyTheme"],
     requiredSubpaths: ["./react", "./vue", "./svelte", "./solid", "./angular"],
     hook: { subpath: "./react", name: "useDaisyTheme" },
   },
   {
-    pkg: "@theme-kit/open-props",
+    pkg: "@themvora/open-props",
     removedFrom: ["useOpenPropsTheme"],
     requiredSubpaths: ["./react", "./vue", "./svelte", "./solid", "./angular"],
     hook: { subpath: "./react", name: "useOpenPropsTheme" },
@@ -70,8 +70,8 @@ const CONTRACT = [
     // each adapter's own `./angular` subpath — the same break vue/svelte/solid
     // carry. The replacement lives in another package, so `hook` (which asserts
     // within one package) cannot express it; the bindings' presence on
-    // `@theme-kit/<adapter>/angular` is covered by export-inventory.
-    pkg: "@theme-kit/angular",
+    // `@themvora/<adapter>/angular` is covered by export-inventory.
+    pkg: "@themvora/angular",
     removedFrom: [
       "injectShadcnTheme",
       "injectBootstrapTheme",
@@ -82,7 +82,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/vue",
+    pkg: "@themvora/vue",
     removedFrom: [
       "useShadcnTheme",
       "useBootstrapTheme",
@@ -93,7 +93,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/svelte",
+    pkg: "@themvora/svelte",
     removedFrom: [
       "useShadcnTheme",
       "useBootstrapTheme",
@@ -104,7 +104,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/solid",
+    pkg: "@themvora/solid",
     removedFrom: [
       "useShadcnTheme",
       "useBootstrapTheme",
@@ -115,7 +115,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/nuxt",
+    pkg: "@themvora/nuxt",
     removedFrom: [
       "useShadcnTheme",
       "useBootstrapTheme",
@@ -125,7 +125,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/remix",
+    pkg: "@themvora/remix",
     removedFrom: [
       "AntdThemeProvider",
       "AntdThemeProviderProps",
@@ -139,7 +139,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/next",
+    pkg: "@themvora/next",
     entry: "./client",
     removedFrom: [
       "AntdThemeProvider",
@@ -162,7 +162,7 @@ const CONTRACT = [
     requiredSubpaths: [],
   },
   {
-    pkg: "@theme-kit/astro",
+    pkg: "@themvora/astro",
     removedFrom: [
       "ThemeProviderClient",
       "ThemeProviderClientProps",
@@ -197,7 +197,7 @@ const CONTRACT = [
   {
     // `./client` kept the React surface but lost the adapter bindings, which
     // moved to each adapter package's own framework subpath.
-    pkg: "@theme-kit/astro",
+    pkg: "@themvora/astro",
     entry: "./client",
     removedFrom: [
       "AntdThemeProvider",
@@ -223,12 +223,12 @@ const CONTRACT = [
 ];
 
 /**
- * The React surface that must live on `@theme-kit/astro/client` after the split.
+ * The React surface that must live on `@themvora/astro/client` after the split.
  *
  * Note `ThemeScrollbar` / `ThemeInspector` are deliberately NOT here: the React
  * components were not re-exported onto `/client`. Astro's root now exports the
- * web-component equivalents (`ThemeKitScrollbar` / `ThemeKitInspector`, from
- * `@theme-kit/web`) plus the `.astro` subpaths, which is what a non-React Astro
+ * web-component equivalents (`ThemvoraScrollbar` / `ThemvoraInspector`, from
+ * `@themvora/web`) plus the `.astro` subpaths, which is what a non-React Astro
  * page should use.
  */
 const ASTRO_CLIENT_SURFACE = [
@@ -241,7 +241,7 @@ const ASTRO_CLIENT_SURFACE = [
 ];
 
 /** The framework-neutral replacements that must be on astro's root. */
-const ASTRO_ROOT_GAINS = ["ThemeKitScrollbar", "ThemeKitInspector", "getThemeController"];
+const ASTRO_ROOT_GAINS = ["ThemvoraScrollbar", "ThemvoraInspector", "getThemeController"];
 
 // ---------------------------------------------------------------------------
 // Load the authorities
@@ -277,7 +277,7 @@ const declaredSubpaths = (name) => new Set(manifest[name]?.exports?.subpaths ?? 
 
 /** Map a subpath to its shipped .d.ts, via the package's own exports map. */
 function dtsForSubpath(pkgName, subpath) {
-  const dirName = pkgName.replace("@theme-kit/", "");
+  const dirName = pkgName.replace("@themvora/", "");
   const candidates = [
     join(repoRoot, "packages", dirName, "package.json"),
     join(repoRoot, "packages", "adapters", dirName, "package.json"),
@@ -354,14 +354,14 @@ for (const row of CONTRACT) {
 //    gained the framework-neutral replacements.
 
 {
-  const client = entrypointSurface("@theme-kit/astro", "./client");
+  const client = entrypointSurface("@themvora/astro", "./client");
   if (!client) {
-    fail("@theme-kit/astro", "missing ./client entry", "");
+    fail("@themvora/astro", "missing ./client entry", "");
   } else {
     for (const symbol of ASTRO_CLIENT_SURFACE) {
       if (!client.has(symbol)) {
         fail(
-          "@theme-kit/astro",
+          "@themvora/astro",
           `./client does not export ${symbol}`,
           "the React surface moved here and must be reachable",
         );
@@ -369,14 +369,14 @@ for (const row of CONTRACT) {
     }
   }
 
-  const root = rootSurface("@theme-kit/astro");
+  const root = rootSurface("@themvora/astro");
   if (!root) {
-    fail("@theme-kit/astro", "root entry missing from the manifest", "");
+    fail("@themvora/astro", "root entry missing from the manifest", "");
   } else {
     for (const symbol of ASTRO_ROOT_GAINS) {
       if (!root.has(symbol)) {
         fail(
-          "@theme-kit/astro",
+          "@themvora/astro",
           `root does not export ${symbol}`,
           "the framework-neutral replacement must be on the root",
         );
@@ -389,10 +389,10 @@ for (const row of CONTRACT) {
 // 4. The runtime parameter must still be required
 
 const REQUIRED_RUNTIME = [
-  ["@theme-kit/shadcn", "./react", "useShadcnTheme"],
-  ["@theme-kit/bootstrap", "./react", "useBootstrapTheme"],
-  ["@theme-kit/daisyui", "./react", "useDaisyTheme"],
-  ["@theme-kit/open-props", "./react", "useOpenPropsTheme"],
+  ["@themvora/shadcn", "./react", "useShadcnTheme"],
+  ["@themvora/bootstrap", "./react", "useBootstrapTheme"],
+  ["@themvora/daisyui", "./react", "useDaisyTheme"],
+  ["@themvora/open-props", "./react", "useOpenPropsTheme"],
 ];
 
 for (const [pkg, subpath, hook] of REQUIRED_RUNTIME) {

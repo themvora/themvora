@@ -1,5 +1,5 @@
 /**
- * The canonical Theme Kit application configuration.
+ * The canonical Themvora application configuration.
  *
  * @packageDocumentation
  */
@@ -8,7 +8,7 @@ import { getBuiltInThemes } from "./built-in-themes";
 import type { ThemeRuntimeOptions } from "./runtime";
 
 /**
- * The application's Theme Kit configuration: one declaration, consumed by both
+ * The application's Themvora configuration: one declaration, consumed by both
  * the runtime and the pre-paint bootstrap.
  *
  * @typeParam T - The theme definition type used by the application.
@@ -28,9 +28,9 @@ import type { ThemeRuntimeOptions } from "./runtime";
  * - the **bootstrap projection** — {@link toBootstrapConfig}, the subset the
  *   pre-paint script can act on.
  *
- * @see {@link defineThemeKitConfig}
+ * @see {@link defineThemvoraConfig}
  */
-export interface ThemeKitConfig<T extends ThemeDefinition> {
+export interface ThemvoraConfig<T extends ThemeDefinition> {
   /** The theme definitions registered with the runtime. */
   themes: readonly T[];
   /** Theme name to fall back to when no selection is persisted. */
@@ -66,7 +66,7 @@ export interface ThemeKitConfig<T extends ThemeDefinition> {
 }
 
 /**
- * The subset of {@link ThemeKitConfig} the pre-paint bootstrap can act on.
+ * The subset of {@link ThemvoraConfig} the pre-paint bootstrap can act on.
  *
  * @typeParam T - The theme definition type used by the application.
  *
@@ -80,12 +80,12 @@ export interface ThemeKitConfig<T extends ThemeDefinition> {
  * @see {@link toBootstrapConfig}
  */
 export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
-  ThemeKitConfig<T>,
+  ThemvoraConfig<T>,
   "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix"
 >;
 
 /**
- * Declares the application's Theme Kit configuration.
+ * Declares the application's Themvora configuration.
  *
  * @typeParam T - The theme definition type used by the application.
  * @param config - The configuration.
@@ -94,7 +94,7 @@ export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
  * @example
  * ```ts
  * // theme.config.ts — at the project root
- * import { defineTheme, defineThemeKitConfig } from "@theme-kit/core";
+ * import { defineTheme, defineThemvoraConfig } from "@themvora/core";
  *
  * const themes = [
  *   defineTheme({
@@ -109,7 +109,7 @@ export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
  *   }),
  * ];
  *
- * export default defineThemeKitConfig({
+ * export default defineThemvoraConfig({
  *   themes,
  *   defaultTheme: "brand-light",
  *   initialMode: "system",
@@ -121,14 +121,14 @@ export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
  * a validation point, so the Vite plugin can discover it by convention and the
  * provider can consume the same object rather than a copy of it.
  *
- * @see {@link ThemeKitConfig}
+ * @see {@link ThemvoraConfig}
  */
-export function defineThemeKitConfig<T extends ThemeDefinition>(
-  config: ThemeKitConfig<T>,
-): ThemeKitConfig<T> {
+export function defineThemvoraConfig<T extends ThemeDefinition>(
+  config: ThemvoraConfig<T>,
+): ThemvoraConfig<T> {
   if (!config?.themes?.length) {
     throw new Error(
-      "[theme-kit] defineThemeKitConfig needs a non-empty `themes` registry — " +
+      "[themvora] defineThemvoraConfig needs a non-empty `themes` registry — " +
         "it is what the pre-paint script resolves the initial theme from.",
     );
   }
@@ -136,7 +136,7 @@ export function defineThemeKitConfig<T extends ThemeDefinition>(
 }
 
 /**
- * Projects a {@link ThemeKitConfig} down to what the pre-paint bootstrap needs.
+ * Projects a {@link ThemvoraConfig} down to what the pre-paint bootstrap needs.
  *
  * @typeParam T - The theme definition type used by the application.
  * @param config - The full application configuration.
@@ -145,7 +145,7 @@ export function defineThemeKitConfig<T extends ThemeDefinition>(
  * @see {@link ThemeBootstrapConfig}
  */
 export function toBootstrapConfig<T extends ThemeDefinition>(
-  config: ThemeKitConfig<T>,
+  config: ThemvoraConfig<T>,
 ): ThemeBootstrapConfig<T> {
   return {
     themes: config.themes,
@@ -183,7 +183,7 @@ export function toBootstrapConfig<T extends ThemeDefinition>(
  */
 export function readTransportedConfig<T extends ThemeDefinition>(): ThemeBootstrapConfig<T> | null {
   const scope = globalThis as unknown as Record<string, unknown>;
-  const transported = scope.__THEME_KIT_CONFIG__;
+  const transported = scope.__THEMVORA_CONFIG__;
   return transported && typeof transported === "object"
     ? (transported as ThemeBootstrapConfig<T>)
     : null;
@@ -239,19 +239,20 @@ export function resolveRuntimeOptions<T extends ThemeDefinition>(
   }
 
   const explicit = defined.themes as readonly T[] | undefined;
-  // An explicit array wins only when it is non-empty. An empty one means "not
-  // set" rather than "no themes": the Web Components provider parses an absent
-  // `themes` attribute into `[]`, and treating that as an override would shadow
-  // the transported registry with nothing.
-  const explicitOrTransported = explicit?.length
-    ? explicit
-    : (transported?.themes as readonly T[] | undefined);
+
+  // An explicitly supplied array — including an empty one — is the caller's
+  // intent and is passed through unchanged; `createThemeRuntime`/`configure`
+  // normalize it (an empty or all-invalid collection resolves to the canonical
+  // neutral fallback). Only an *omitted* `themes` falls back to the transported
+  // config, then to the built-in set.
+  const resolvedThemes: readonly T[] =
+    explicit !== undefined
+      ? explicit
+      : ((transported?.themes?.length ? transported.themes : getBuiltInThemes()) as readonly T[]);
 
   return {
     ...(transported ?? {}),
     ...defined,
-    themes: explicitOrTransported?.length
-      ? explicitOrTransported
-      : (getBuiltInThemes() as unknown as readonly T[]),
+    themes: resolvedThemes,
   } as Partial<ThemeRuntimeOptions<T>>;
 }

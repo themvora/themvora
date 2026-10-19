@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ThemeInspector as VueThemeInspector } from "@theme-kit/vue";
-import type { ThemeInspectorProps } from "@theme-kit/vue";
+import { ThemeInspector as VueThemeInspector } from "@themvora/vue";
+import type { ThemeInspectorProps } from "@themvora/vue";
 
 const props = defineProps<ThemeInspectorProps>();
 </script>

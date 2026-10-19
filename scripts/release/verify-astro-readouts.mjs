@@ -2,8 +2,8 @@
 /**
  * Bootstrap-readout regression gate for the Astro example.
  *
- * Guards the contract `data-tk-readout` encodes: the pre-paint bootstrap
- * resolves the selection from `<head>`, patches `[data-tk-readout]` from a
+ * Guards the contract `data-tv-readout` encodes: the pre-paint bootstrap
+ * resolves the selection from `<head>`, patches `[data-tv-readout]` from a
  * MutationObserver as the body is parsed, and nothing on the page may settle
  * afterwards. A visitor must never see a value they are not looking at — no
  * `—` placeholder surviving a paint, no stale value correcting itself on load.
@@ -54,7 +54,7 @@
  *   node scripts/release/verify-astro-readouts.mjs              # build + verify
  *   node scripts/release/verify-astro-readouts.mjs --skip-build # reuse dist/
  *
- * Requires: headless Chromium (Playwright's, or `THEME_KIT_CHROME`) and `ws`.
+ * Requires: headless Chromium (Playwright's, or `THEMVORA_CHROME`) and `ws`.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync } from "node:fs";
@@ -106,8 +106,8 @@ async function shutdown() {
 }
 
 function findChrome() {
-  if (process.env.THEME_KIT_CHROME && existsSync(process.env.THEME_KIT_CHROME))
-    return process.env.THEME_KIT_CHROME;
+  if (process.env.THEMVORA_CHROME && existsSync(process.env.THEMVORA_CHROME))
+    return process.env.THEMVORA_CHROME;
   const pwRoot = process.env.LOCALAPPDATA
     ? join(process.env.LOCALAPPDATA, "ms-playwright")
     : join(os.homedir(), "AppData", "Local", "ms-playwright");
@@ -158,10 +158,10 @@ function literal(source, re, label) {
 }
 
 const RECORDER = `(function(){
-  window.__tkFrames = [];
+  window.__tvFrames = [];
   var last = null;
   function txt(kind){
-    var el = document.querySelector('[data-tk-readout="' + kind + '"]');
+    var el = document.querySelector('[data-tv-readout="' + kind + '"]');
     return el ? (el.textContent || "").trim() : null;
   }
   function snap(){
@@ -169,7 +169,7 @@ const RECORDER = `(function(){
     var f = {
       t: Math.round(performance.now()),
       theme: txt("theme"), mode: txt("mode"), family: txt("family"),
-      count: document.querySelectorAll("[data-tk-readout]").length,
+      count: document.querySelectorAll("[data-tv-readout]").length,
       dt: de.getAttribute("data-theme"),
       dm: de.getAttribute("data-theme-mode"),
       df: de.getAttribute("data-theme-family"),
@@ -180,7 +180,7 @@ const RECORDER = `(function(){
     };
     var sig = JSON.stringify([f.theme, f.mode, f.family, f.count,
       f.dt, f.dm, f.df, f.dsm, f.dsf, f.ready, f.dark]);
-    if (sig !== last) { last = sig; window.__tkFrames.push(f); }
+    if (sig !== last) { last = sig; window.__tvFrames.push(f); }
   }
   var n = 0;
   function loop(){ snap(); if (++n < 900) requestAnimationFrame(loop); }
@@ -236,10 +236,10 @@ async function main() {
   }
 
   const indexHtml = await readFile(indexPath, "utf8");
-  const readoutElements = (indexHtml.match(/data-tk-readout/g) ?? []).length;
+  const readoutElements = (indexHtml.match(/data-tv-readout/g) ?? []).length;
   if (readoutElements < 3) {
     fail(
-      `dist/index.html has ${readoutElements} [data-tk-readout] element(s), expected at least 3`,
+      `dist/index.html has ${readoutElements} [data-tv-readout] element(s), expected at least 3`,
       "The matrix asserts the theme/mode/family readouts. If the example " +
         "stopped rendering them, the gate has nothing to verify.",
     );
@@ -298,7 +298,7 @@ async function main() {
   if (!chromePath) {
     fail(
       "headless Chromium not found",
-      "Install Playwright's Chromium, or point THEME_KIT_CHROME at a chrome.exe.",
+      "Install Playwright's Chromium, or point THEMVORA_CHROME at a chrome.exe.",
     );
   }
   const wsPath = findWs();
@@ -342,7 +342,7 @@ async function main() {
   console.log(`  serve:   astro preview on ${base}`);
 
   // --- 5. CDP --------------------------------------------------------------
-  const profile = mkdtempSync(join(os.tmpdir(), "tk-readout-"));
+  const profile = mkdtempSync(join(os.tmpdir(), "tv-readout-"));
   browserChild = spawn(
     chromePath,
     ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
@@ -503,7 +503,7 @@ async function main() {
       await loaded;
       await new Promise((r) => setTimeout(r, 1500));
 
-      const frames = JSON.parse((await evaluate("JSON.stringify(window.__tkFrames)")) || "[]");
+      const frames = JSON.parse((await evaluate("JSON.stringify(window.__tvFrames)")) || "[]");
       const problems = [];
       const present = (v) => v !== null && v !== undefined;
       const complete = frames.filter(

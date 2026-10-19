@@ -45,11 +45,11 @@ App`;
 
 const SSR_DIAGRAM = `framework root / hydration
    ↓
-Theme Kit integration  (@theme-kit/next | @theme-kit/remix)
+Themvora integration  (@themvora/next | @themvora/remix)
    ↓
 App`;
 
-const RUNTIME_COMPOSITION = `Theme Kit runtime (runtime)
+const RUNTIME_COMPOSITION = `Themvora runtime (runtime)
    ↓
 MUI theme            (createMuiTheme(runtime))
    ↓
@@ -114,8 +114,8 @@ export function WhichReactSetupPanel() {
  */
 export function OptimizedCsrBootstrap(framework: FrameworkItem): ReactElement {
   const multiProvider = `// main.tsx — composition stays fully in your hands
-import { createThemeRoot } from "@theme-kit/react";
-import { MuiThemeProvider } from "@theme-kit/mui";
+import { createThemeRoot } from "@themvora/react";
+import { MuiThemeProvider } from "@themvora/mui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { themes } from "./themes";
 import App from "./App";
@@ -146,7 +146,7 @@ createThemeRoot({
         React&apos;s{" "}
         <code className="mono text-[0.9em]">createRoot().render()</code> may
         schedule the initial commit concurrently. In client-only applications
-        where a delayed first commit creates a visible startup jerk, Theme Kit
+        where a delayed first commit creates a visible startup jerk, Themvora
         provides <code className="mono text-[0.9em]">createThemeRoot()</code> as
         an opt-in root bootstrap. Most applications should continue using{" "}
         <code className="mono text-[0.9em]">&lt;ThemeProvider&gt;</code>{" "}
@@ -170,7 +170,7 @@ createThemeRoot({
       <p className="text-sm leading-relaxed opacity-80 mb-3">
         Use it when you have measured a visible first-render scheduling gap in a
         client-only React application. It is an opt-in behavior, not a
-        requirement for ordinary Theme Kit usage.
+        requirement for ordinary Themvora usage.
       </p>
 
       <h3 className="text-sm font-semibold">Architecture</h3>
@@ -194,7 +194,7 @@ createThemeRoot({
         <code className="mono text-[0.9em]">render({"{ runtime }"})</code>{" "}
         callback owns the tree, so arbitrary providers (MUI, Chakra, React
         Query, Redux, Router, …) compose freely and can derive their
-        configuration from the Theme Kit runtime:
+        configuration from the Themvora runtime:
       </p>
       {pre({ children: RUNTIME_COMPOSITION })}
       <div className="mt-2">
@@ -219,7 +219,7 @@ createThemeRoot({
         <code className="mono text-[0.9em]">createThemeRoot()</code> is intended
         for client-rendered React applications. Framework integrations such as
         Next.js and Remix own their application root/hydration lifecycle and
-        should use their framework-specific Theme Kit integration instead.
+        should use their framework-specific Themvora integration instead.
       </Callout>
     </section>
   );

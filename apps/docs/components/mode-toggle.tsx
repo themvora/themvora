@@ -1,6 +1,6 @@
 "use client";
 
-import { useThemeMode, useSetThemeMode } from "@theme-kit/next/client";
+import { useThemeMode, useSetThemeMode } from "@themvora/next/client";
 
 const icons = {
   light: (

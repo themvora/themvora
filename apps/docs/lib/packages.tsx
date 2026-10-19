@@ -45,9 +45,9 @@ export const rawPackages: RawPackage[] = [
     slug: "core",
     name: "Core",
     icon: icons.core,
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     tagline:
-      "The framework-agnostic heart of Theme Kit: store, model, registry, runtime, adapters, generation, validation and more.",
+      "The framework-agnostic heart of Themvora: store, model, registry, runtime, adapters, generation, validation and more.",
     tags: ["Vanilla JS", "Runtime", "SSR-safe"],
     groups: [
       {
@@ -94,9 +94,9 @@ export const rawPackages: RawPackage[] = [
     snippet: {
       title: "vanilla.ts",
       lang: "ts",
-      code: `import { ThemeKit } from "@theme-kit/core/vanilla";
+      code: `import { Themvora } from "@themvora/core/vanilla";
 
-const kit = new ThemeKit();
+const kit = new Themvora();
 kit.setMode("dark");
 kit.setFamily("plum");
 kit.toggleTheme();
@@ -109,7 +109,7 @@ kit.destroy();`,
     snippet2: {
       title: "generate.ts",
       lang: "ts",
-      code: `import { generateTheme } from "@theme-kit/core";
+      code: `import { generateTheme } from "@themvora/core";
 
 const { light, dark } = generateTheme({ seed: "#6366f1", family: "indigo" });
 
@@ -122,7 +122,7 @@ const result = validateTheme(dark, { themes: [light, dark] });
     slug: "react",
     name: "React",
     icon: icons.react,
-    pkg: "@theme-kit/react",
+    pkg: "@themvora/react",
     tagline:
       "Provider + hooks for React 18/19. The reference integration, and the base that Next.js and Remix re-export.",
     tags: ["SPA", "Vite", "Context"],
@@ -157,7 +157,7 @@ const result = validateTheme(dark, { themes: [light, dark] });
     snippet: {
       title: "App.tsx",
       lang: "tsx",
-      code: `import { ThemeProvider, useTheme } from "@theme-kit/react";
+      code: `import { ThemeProvider, useTheme } from "@themvora/react";
 
 export function App() {
   return (
@@ -179,8 +179,8 @@ function ThemeSwitcher() {
     snippet2: {
       title: "Scoped.tsx",
       lang: "tsx",
-      code: `import { ThemeScope } from "@theme-kit/react";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+      code: `import { ThemeScope } from "@themvora/react";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const scopeTransition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
@@ -194,7 +194,7 @@ const scopeTransition: ThemeTransitionOptions = { duration: 300, easing: "ease" 
     slug: "next",
     name: "Next.js",
     icon: icons.next,
-    pkg: "@theme-kit/next",
+    pkg: "@themvora/next",
     tagline:
       "App Router integration: SSR-safe hydration, cookie persistence and zero-flash.",
     tags: ["App Router", "RSC", "Zero-flash"],
@@ -211,7 +211,7 @@ const scopeTransition: ThemeTransitionOptions = { duration: 300, easing: "ease" 
         label: "Client",
         features: [
           { name: "ClientThemeProvider", desc: "Cookie + localStorage persistence, fingerprint, `.dark` class sync." },
-          { name: "@theme-kit/next/client", desc: "Re-exports every React hook plus ThemeScope, ThemeInspector, ThemeModeButton." },
+          { name: "@themvora/next/client", desc: "Re-exports every React hook plus ThemeScope, ThemeInspector, ThemeModeButton." },
           { name: "ThemeBootstrap", desc: "Injects SSR dark-mode CSS via useServerInsertedHTML." },
         ],
       },
@@ -220,7 +220,7 @@ const scopeTransition: ThemeTransitionOptions = { duration: 300, easing: "ease" 
       title: "app/layout.tsx",
       lang: "tsx",
       code: `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -239,7 +239,7 @@ export default function RootLayout({ children }) {
       lang: "tsx",
       code: `// components/ThemeSwitcher.tsx
 "use client";
-import { useTheme } from "@theme-kit/next/client";
+import { useTheme } from "@themvora/next/client";
 
 export function ThemeSwitcher() {
   const { theme, mode, setMode, toggleTheme } = useTheme();
@@ -259,7 +259,7 @@ export function ThemeSwitcher() {
     slug: "vue",
     name: "Vue 3",
     icon: icons.vue,
-    pkg: "@theme-kit/vue",
+    pkg: "@themvora/vue",
     tagline: "Vue 3 provider, composables and scopes over the shared runtime.",
     tags: ["Vue 3", "Composables"],
     groups: [
@@ -288,7 +288,7 @@ export function ThemeSwitcher() {
       title: "main.ts",
       lang: "ts",
       code: `import { createApp } from "vue";
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 
 const app = createApp(App);
 app.use(ThemeProvider, {
@@ -301,7 +301,7 @@ app.mount("#app");`,
       title: "App.vue",
       lang: "vue",
       code: `<script setup lang="ts">
-import { useTheme } from "@theme-kit/vue";
+import { useTheme } from "@themvora/vue";
 
 const { theme, mode, setMode, toggleTheme } = useTheme();
 </script>
@@ -317,7 +317,7 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     slug: "svelte",
     name: "Svelte 5",
     icon: icons.svelte,
-    pkg: "@theme-kit/svelte",
+    pkg: "@themvora/svelte",
     tagline: "Svelte 5 provider, context stores and runes-based reactivity.",
     tags: ["Svelte 5", "Stores"],
     groups: [
@@ -346,7 +346,7 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
       title: "app.svelte",
       lang: "svelte",
       code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <ThemeProvider defaultTheme="light">
@@ -358,7 +358,7 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     slug: "solid",
     name: "Solid",
     icon: icons.solid,
-    pkg: "@theme-kit/solid",
+    pkg: "@themvora/solid",
     tagline: "Solid provider, signals and scopes with fine-grained reactivity.",
     tags: ["Solid", "Signals"],
     groups: [
@@ -385,7 +385,7 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     snippet: {
       title: "App.tsx",
       lang: "tsx",
-      code: `import { ThemeProvider, useTheme } from "@theme-kit/solid";
+      code: `import { ThemeProvider, useTheme } from "@themvora/solid";
 
 function App() {
   return (
@@ -409,15 +409,15 @@ function Switcher() {
     slug: "angular",
     name: "Angular",
     icon: icons.angular,
-    pkg: "@theme-kit/angular",
+    pkg: "@themvora/angular",
     tagline: "Angular providers, injectables and an element-scoped directive.",
     tags: ["Angular", "DI"],
     groups: [
       {
         label: "Providers",
         features: [
-          { name: "provideThemeKit(options)", desc: "App provider that wires the runtime." },
-          { name: "provideThemeKitRuntime(runtime)", desc: "Share an existing runtime." },
+          { name: "provideTheme(options)", desc: "App provider that wires the runtime." },
+          { name: "provideThemeRuntime(runtime)", desc: "Share an existing runtime." },
         ],
       },
       {
@@ -437,11 +437,11 @@ function Switcher() {
     snippet: {
       title: "app.config.ts",
       lang: "ts",
-      code: `import { provideThemeKit } from "@theme-kit/angular";
+      code: `import { provideTheme } from "@themvora/angular";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({
+    provideTheme({
       defaultTheme: "light",
     }),
   ],
@@ -450,7 +450,7 @@ export const appConfig: ApplicationConfig = {
     snippet2: {
       title: "app.ts",
       lang: "ts",
-      code: `import { injectTheme } from "@theme-kit/angular";
+      code: `import { injectTheme } from "@themvora/angular";
 
 @Component({ ... })
 export class AppComponent {
@@ -466,17 +466,17 @@ export class AppComponent {
     slug: "web",
     name: "Web Components",
     icon: icons.web,
-    pkg: "@theme-kit/web",
+    pkg: "@themvora/web",
     tagline: "Framework-free theming for any HTML page via custom elements.",
     tags: ["Custom Elements", "No framework"],
     groups: [
       {
         label: "Elements",
         features: [
-          { name: "<theme-kit-provider>", desc: "Root runtime provider." },
-          { name: "<theme-kit-scope theme>", desc: "Scoped theming." },
-          { name: "<theme-kit-toggle>", desc: "Light / dark toggle button." },
-          { name: "<theme-kit-select>", desc: "Family / mode selector." },
+          { name: "<themvora-provider>", desc: "Root runtime provider." },
+          { name: "<themvora-scope theme>", desc: "Scoped theming." },
+          { name: "<themvora-toggle>", desc: "Light / dark toggle button." },
+          { name: "<themvora-select>", desc: "Family / mode selector." },
           { name: "getProviderRuntime()", desc: "Imperative access to the runtime." },
         ],
       },
@@ -484,20 +484,20 @@ export class AppComponent {
     snippet: {
       title: "index.html",
       lang: "html",
-      code: `import { defineCustomElements } from "@theme-kit/web";
+      code: `import { defineCustomElements } from "@themvora/web";
 defineCustomElements();
 
-<theme-kit-provider themes="...">
-  <theme-kit-toggle></theme-kit-toggle>
-  <theme-kit-select></theme-kit-select>
-</theme-kit-provider>`,
+<themvora-provider themes="...">
+  <themvora-toggle></themvora-toggle>
+  <themvora-select></themvora-select>
+</themvora-provider>`,
     },
   },
   {
     slug: "tailwind",
     name: "Tailwind CSS",
     icon: icons.tailwind,
-    pkg: "@theme-kit/tailwind",
+    pkg: "@themvora/tailwind",
     tagline: "Tailwind CSS v4 mappings from theme tokens to utility variables.",
     tags: ["Tailwind v4", "Tokens"],
     groups: [
@@ -518,21 +518,21 @@ defineCustomElements();
       title: "globals.css",
       lang: "css",
       code: `@import "tailwindcss";
-@import "@theme-kit/tailwind";`,
+@import "@themvora/tailwind";`,
     },
   },
   {
     slug: "astro",
     name: "Astro",
     icon: icons.astro,
-    pkg: "@theme-kit/astro",
+    pkg: "@themvora/astro",
     tagline: "Astro-native theming: integration bootstrap, a React-free <html> layout, and opt-in client islands.",
     tags: ["Integration", "Islands", "Zero-flash"],
     groups: [
       {
         label: "Integration",
         features: [
-          { name: "themeKit() in astro.config.ts", desc: "Injects the pre-paint bootstrap into every page's <head>." },
+          { name: "themvora() in astro.config.ts", desc: "Injects the pre-paint bootstrap into every page's <head>." },
           { name: "No React required", desc: "The root entry and every server helper are framework-neutral." },
         ],
       },
@@ -541,13 +541,13 @@ defineCustomElements();
         features: [
           { name: "provider.astro", desc: "SSR-resolves the selection and paints the themed <html data-theme>." },
           { name: "getInitialThemeState()", desc: "Resolve the initial state from `Astro.request` for island hydration." },
-          { name: "computeFingerprint", desc: "Cookie / config fingerprinting. Shared from `@theme-kit/core` so every integration writes a byte-identical value." },
+          { name: "computeFingerprint", desc: "Cookie / config fingerprinting. Shared from `@themvora/core` so every integration writes a byte-identical value." },
         ],
       },
       {
         label: "Client islands (opt-in)",
         features: [
-          { name: "@theme-kit/astro/client", desc: "ThemeProviderClient, hooks and ThemeScope — the only React entry." },
+          { name: "@themvora/astro/client", desc: "ThemeProviderClient, hooks and ThemeScope — the only React entry." },
           { name: "getGlobalRuntime / setGlobalRuntime", desc: "Shared runtime across islands." },
         ],
       },
@@ -556,10 +556,10 @@ defineCustomElements();
       title: "astro.config.ts",
       lang: "ts",
       code: `import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });`,
     },
   },
@@ -567,7 +567,7 @@ export default defineConfig({
     slug: "nuxt",
     name: "Nuxt",
     icon: icons.nuxt,
-    pkg: "@theme-kit/nuxt",
+    pkg: "@themvora/nuxt",
     tagline:
       "Nuxt 3 module: SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar.",
     tags: ["Nuxt 3", "Module", "SSR", "Zero-flash"],
@@ -594,8 +594,8 @@ export default defineConfig({
       lang: "ts",
       code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "mint-light",
     initialMode: "system",
     transition: { duration: 360, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
@@ -626,23 +626,23 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     slug: "remix",
     name: "Remix",
     icon: icons.remix,
-    pkg: "@theme-kit/remix",
+    pkg: "@themvora/remix",
     tagline: "Remix owns the server/client boundary: loader SSR resolution, a blocking head script, and React hydration.",
     tags: ["Remix", "SSR", "Hydration"],
     groups: [
       {
         label: "Server",
         features: [
-          { name: "Loader theming", desc: "getInitialThemeState from `@theme-kit/remix/server` reads the theme cookies off the request." },
+          { name: "Loader theming", desc: "getInitialThemeState from `@themvora/remix/server` reads the theme cookies off the request." },
           { name: "Blocking script", desc: "ThemeHead emits the pre-paint bootstrap in the document <head>." },
-          { name: "createRemixThemePersistence / computeFingerprint", desc: "Persistence, plus the fingerprint shared from `@theme-kit/core`." },
+          { name: "createRemixThemePersistence / computeFingerprint", desc: "Persistence, plus the fingerprint shared from `@themvora/core`." },
         ],
       },
       {
         label: "Client",
         features: [
           { name: "ThemeProvider", desc: "Hydrates against the loader-resolved initial state; full hook set + ThemeScope." },
-          { name: "Intentional React dependency", desc: "Depends on @theme-kit/core + @theme-kit/react directly." },
+          { name: "Intentional React dependency", desc: "Depends on @themvora/core + @themvora/react directly." },
         ],
       },
     ],
@@ -651,9 +651,9 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
       lang: "tsx",
       code: `// app/root.tsx
 import { useLoaderData } from "@remix-run/react";
-import { ThemeProvider } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { ThemeProvider } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
 
 // getInitialThemeState takes the registry as a required option; the built-in
 // set is a valid registry, so no theme file is needed.
@@ -677,7 +677,7 @@ export default function App() {
     slug: "cli",
     name: "CLI",
     icon: icons.cli,
-    pkg: "@theme-kit/cli",
+    pkg: "@themvora/cli",
     tagline: "Generate, validate, migrate, inspect and export themes from the command line.",
     tags: ["CLI", "Tooling"],
     groups: [
@@ -695,16 +695,16 @@ export default function App() {
     snippet: {
       title: "terminal",
       lang: "bash",
-      code: `theme-kit generate --seed "#6366f1" --family indigo --output theme.json
-theme-kit validate theme.json
-theme-kit export theme.json --format css`,
+      code: `themvora generate --seed "#6366f1" --family indigo --output theme.json
+themvora validate theme.json
+themvora export theme.json --format css`,
     },
   },
   {
     slug: "devtools",
     name: "DevTools",
     icon: icons.devtools,
-    pkg: "@theme-kit/devtools",
+    pkg: "@themvora/devtools",
     tagline: "Runtime inspector, plugin and panel for debugging theme changes.",
     tags: ["Inspector", "Debugging"],
     groups: [
@@ -714,15 +714,15 @@ theme-kit export theme.json --format css`,
           { name: "createDevToolsPlugin(options)", desc: "Theme-kit plugin exposing an inspector." },
           { name: "createDevToolsInspector(options)", desc: "Records theme-change entries, lifecycle performance events and state snapshots." },
           { name: "createDevToolsPanel()", desc: "UI panel." },
-          { name: "window.__THEME_KIT_DEVTOOLS__", desc: "Exposed inspectors for extension debugging." },
+          { name: "window.__THEMVORA_DEVTOOLS__", desc: "Exposed inspectors for extension debugging." },
         ],
       },
     ],
     snippet: {
       title: "plugin.ts",
       lang: "ts",
-      code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createDevToolsPlugin } from "@theme-kit/devtools";
+      code: `import { createThemeRuntime } from "@themvora/core";
+import { createDevToolsPlugin } from "@themvora/devtools";
 
 const runtime = createThemeRuntime({
   plugins: [createDevToolsPlugin()],

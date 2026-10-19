@@ -4,8 +4,8 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveAdapterSource } from "@themvora/adapters";
 import { generateShadcnVariables } from "./generator";
 import { injectCSS, removeCSS, toCSS } from "./inject";
 import {
@@ -33,7 +33,7 @@ export interface CreateShadcnAdapterOptions extends ShadcnAdapterOptions {
  * Creates a shadcn/ui adapter.
  *
  * The adapter is a DOM-only, framework-free adapter: it depends only on
- * `@theme-kit/core` and the DOM. On install it injects the shadcn/ui
+ * `@themvora/core` and the DOM. On install it injects the shadcn/ui
  * compatibility stylesheet (when enabled) and a `<style>` element of CSS
  * variables derived from the active theme, then subscribes to the runtime
  * store and rewrites the variables whenever the theme selection changes. It
@@ -46,7 +46,7 @@ export interface CreateShadcnAdapterOptions extends ShadcnAdapterOptions {
  *
  * @example
  * ```ts
- * import { createShadcnAdapter } from "@theme-kit/shadcn";
+ * import { createShadcnAdapter } from "@themvora/shadcn";
  *
  * runtime.installAdapter(createShadcnAdapter());
  * ```
@@ -94,7 +94,7 @@ export function createShadcnAdapter<T extends ThemeDefinition>(
         }),
       ),
     );
-    styleEl.setAttribute("data-theme-kit", "shadcn");
+    styleEl.setAttribute("data-themvora", "shadcn");
 
     unsubscribe = runtime.store.subscribe(() => {
       apply(runtime.store.get());
@@ -114,6 +114,50 @@ export function createShadcnAdapter<T extends ThemeDefinition>(
 
   return {
     id: "shadcn",
+    /**
+     * shadcn's own variable set, expressed as the Themvora semantic roles this
+     * adapter translates into it.
+     *
+     * Note the shape: these are **Themvora role names**, not shadcn token
+     * names. The translation to `--primary`, `--card-foreground` and the rest
+     * happens in `generator.ts`. Declaring them here makes the requirement
+     * checkable — a theme missing `primaryForeground` is a resolvable error
+     * rather than a silently empty CSS variable and an unreadable button.
+     */
+    requires: {
+      colors: [
+        "background",
+        "foreground",
+        "card",
+        "cardForeground",
+        "popover",
+        "popoverForeground",
+        "primary",
+        "primaryForeground",
+        "secondary",
+        "secondaryForeground",
+        "muted",
+        "mutedForeground",
+        "accent",
+        "accentForeground",
+        "destructive",
+        "destructiveForeground",
+        "border",
+        "input",
+        "ring",
+      ],
+    },
+    /**
+     * Capabilities, not requirements.
+     *
+     * shadcn has no `success` / `warning` / `info` ramp — `destructive` is its
+     * only status role — so this adapter consumes them only if a theme declares
+     * them, and never fabricates a shadcn variable for a role shadcn does not
+     * have. See the status-token policy in `shadcn.css`.
+     */
+    optional: {
+      colors: ["success", "successForeground", "warning", "warningForeground", "info", "infoForeground"],
+    },
     supports: () => true,
     install,
     uninstall,

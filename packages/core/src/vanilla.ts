@@ -1,10 +1,10 @@
 /**
- * Theme Kit vanilla runtime — a thin imperative wrapper over the core
+ * Themvora vanilla runtime — a thin imperative wrapper over the core
  * runtime for plain-JavaScript applications.
  *
- * Imported from the `@theme-kit/core/vanilla` subpath. Avoids React
+ * Imported from the `@themvora/core/vanilla` subpath. Avoids React
  * dependency entirely and exposes the same runtime, DOM, CSS-variable, and
- * transition machinery through a `ThemeKit` facade.
+ * transition machinery through a `Themvora` facade.
  *
  * @packageDocumentation
  */
@@ -27,9 +27,9 @@ export type { GenerateThemeOptions, GeneratedThemePair } from "./generate-theme"
 export type { ThemePack, ThemeRegistry } from "./registry";
 
 /**
- * Options for creating a {@link ThemeKit} instance.
+ * Options for creating a {@link Themvora} instance.
  */
-export interface ThemeKitOptions {
+export interface ThemvoraOptions {
   /** Custom set of themes. Defaults to all built-in themes. */
   themes?: readonly ThemeDefinition[];
   /** Default theme name when no persisted selection exists. */
@@ -55,18 +55,18 @@ type EventMap = {
 type Listener<T = unknown> = (data: T) => void;
 
 /**
- * Framework-free drop-in theming with `@theme-kit/core`.
+ * Framework-free drop-in theming with `@themvora/core`.
  *
  * ```js
- * import { ThemeKit } from "@theme-kit/core/vanilla";
+ * import { Themvora } from "@themvora/core/vanilla";
  *
- * const kit = new ThemeKit();
+ * const kit = new Themvora();
  * kit.setMode("dark");
  * kit.setFamily("plum");
  * kit.on("themeChange", (theme) => console.log(theme.name));
  * ```
  */
-export class ThemeKit {
+export class Themvora {
   private _runtime: ThemeRuntime<ThemeDefinition> | null = null;
   private events: Map<string, Set<Listener>> = new Map();
   private domBinding: ReturnType<typeof createDOMBinding> | null = null;
@@ -76,9 +76,9 @@ export class ThemeKit {
    * @param options - Configuration options. Persisted state in localStorage
    *                  takes precedence over `initialMode`/`initialFamily`.
    */
-  constructor(options: ThemeKitOptions = {}) {
+  constructor(options: ThemvoraOptions = {}) {
     // A build integration transports the application's `theme.config.ts` to the
-    // runtime, so a `ThemeKit` constructed with no theme data still has a
+    // runtime, so a `Themvora` constructed with no theme data still has a
     // registry. Explicit options win, which keeps a local override possible.
     // `target` is a DOM concern, not a runtime option, so it is not merged.
     const { target: _target, ...runtimeInput } = options;
@@ -133,9 +133,9 @@ export class ThemeKit {
     });
   }
 
-  /** Create a ThemeKit instance. Shorthand for `new ThemeKit(options)`. */
-  static init(options: ThemeKitOptions = {}): ThemeKit {
-    return new ThemeKit(options);
+  /** Create a Themvora instance. Shorthand for `new Themvora(options)`. */
+  static init(options: ThemvoraOptions = {}): Themvora {
+    return new Themvora(options);
   }
 
   /** Access the underlying runtime for advanced use (history, direct store access). */

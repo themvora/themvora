@@ -1,5 +1,5 @@
 /**
- * Theme Kit Remix integration.
+ * Themvora Remix integration.
  *
  * Provides the SSR-safe `ThemeProvider`, the `ThemeHead` blocking script
  * for zero-flash bootstrapping, and the cookie-backed
@@ -14,6 +14,6 @@ export { ThemeHead } from "./blocking-script";
 export type { ThemeHeadProps } from "./blocking-script";
 export { createRemixThemePersistence } from "./persistence";
 export type { RemixThemePersistenceOptions } from "./persistence";
-export { ThemeScope, ThemeScrollbar, ThemeInspector } from "@theme-kit/react";
-export type { ThemeScrollbarProps, ThemeInspectorProps } from "@theme-kit/react";
+export { ThemeScope, ThemeScrollbar, ThemeInspector } from "@themvora/react";
+export type { ThemeScrollbarProps, ThemeInspectorProps } from "@themvora/react";
 export * from "./hooks";

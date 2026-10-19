@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
-import { createDOMBinding, createCSSVariablesBinding } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
+import { createDOMBinding, createCSSVariablesBinding } from "@themvora/core";
 
 const themes = [
   defineTheme({
@@ -39,14 +39,14 @@ describe("core DOM + CSS bindings", () => {
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.removeAttribute("data-theme-mode");
     document.documentElement.removeAttribute("data-theme-family");
-    document.documentElement.removeAttribute("data-theme-kit-animating");
+    document.documentElement.removeAttribute("data-themvora-animating");
     document.documentElement.classList.remove("dark");
     // Clean up any transition stylesheets left in <head> by the coordinator.
     document.head
-      .querySelectorAll("style[data-theme-kit-transition]")
+      .querySelectorAll("style[data-themvora-transition]")
       .forEach((n) => n.remove());
     document.head
-      .querySelectorAll("style[data-theme-kit-animating-style]")
+      .querySelectorAll("style[data-themvora-animating-style]")
       .forEach((n) => n.remove());
   });
 
@@ -93,7 +93,7 @@ describe("core DOM + CSS bindings", () => {
 
     expect(el.getAttribute("data-theme")).toBe("mint-dark");
     // No transition stylesheet should be present when transitions are disabled.
-    expect(document.head.querySelector("style[data-theme-kit-transition]")).toBeNull();
+    expect(document.head.querySelector("style[data-themvora-transition]")).toBeNull();
 
     dom?.destroy();
     css?.destroy();
@@ -120,7 +120,7 @@ describe("core DOM + CSS bindings", () => {
     runtime.selection.toggleTheme();
 
     expect(el.getAttribute("data-theme")).toBe("mint-dark");
-    expect(document.head.querySelector("style[data-theme-kit-transition]")).toBeNull();
+    expect(document.head.querySelector("style[data-themvora-transition]")).toBeNull();
 
     dom?.destroy();
     css?.destroy();

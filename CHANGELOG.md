@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased — Theme Kit has been renamed to Themvora
+
+**Theme Kit has been renamed to Themvora.** This is a product rename, not a
+release: no package version is changed by it and nothing has been published. It
+is recorded here as the first entry because it changes how every later entry in
+this file should be read.
+
+What changed:
+
+- **Product name** — Theme Kit → **Themvora**.
+- **npm scope** — `@theme-kit/*` → **`@themvora/*`**. The old packages are a
+  **separate registry identity** and are not modified by this rename. Versions
+  listed in the entries below belong to `@theme-kit/*` and remain accurate as
+  history; they do not describe `@themvora/*`.
+- **CLI executable** — `theme-kit` → **`themvora`**. No legacy alias is shipped.
+- **Internal namespace** — `tk-*` / `--tk-*` / `data-tk-*` → **`tv-*` / `--tv-*` / `data-tv-*`**.
+- **Product DOM markers** — `data-theme-kit-*` → `data-themvora-*`; custom
+  elements `<theme-kit-*>` → `<themvora-*>`.
+- **Product-specific APIs** — e.g. `defineThemeKitConfig` → `defineThemvoraConfig`,
+  `themeKitVitePlugin` → `themvoraVitePlugin`, `presetThemeKit` → `presetThemvora`.
+
+Deliberately **unchanged**: the generic theming vocabulary. `ThemeProvider`,
+`ThemeScope`, `ThemeScrollbar`, `ThemeInspector`, `ThemeToken`, `ThemeFamily`,
+`useTheme()` and their siblings keep their names. The framework packages expose
+that generic API; only the globally-registered Web Components layer keeps a
+product-branded namespace (`ThemvoraProvider`), where collision resistance
+matters.
+
+`@theme-kit/*` will be deprecated on npm with a migration message pointing at
+`@themvora/*`. See `product-migration.md` for the rename map, the classified
+exceptions, and the external migration checklist.
+
 ## 2.0.0 — 2026-09-24
 
 Theme Kit 2.0.0 enforces the **dependency-isolation contract** that the ecosystem was always
@@ -7,7 +39,7 @@ supposed to obey, adds a first-class **diagnostics system**, and gives Astro a n
 runtime. Enforcing that contract removed public exports, so this is a **breaking release** —
 read [Breaking changes](#breaking-changes) before upgrading.
 
-Available on [npm](https://www.npmjs.com/org/theme-kit) · [GitHub](https://github.com/themekit-dev/theme-kit) · [Documentation](https://theme-kit-dev.vercel.app)
+Available on [npm](https://www.npmjs.com/org/theme-kit) · [GitHub](https://github.com/themvora/themvora) · [Documentation](https://theme-kit-dev.vercel.app)
 
 > **Versioning model change.** Releases are no longer lockstep. Packages are organised into
 > release groups (`.changeset/config.json` → `fixed`); only `@theme-kit/core` + `@theme-kit/web`
@@ -238,7 +270,7 @@ example is copy-pasteable).
 The initial public release of Theme Kit — a framework-agnostic theming runtime with semantic tokens,
 theme families, SSR-safe hydration, smooth transitions, scoped themes, and ecosystem adapters.
 
-Available on [npm](https://www.npmjs.com/org/theme-kit) · [GitHub](https://github.com/themekit-dev/theme-kit) · [Documentation](https://theme-kit-dev.vercel.app)
+Available on [npm](https://www.npmjs.com/org/theme-kit) · [GitHub](https://github.com/themvora/themvora) · [Documentation](https://theme-kit-dev.vercel.app)
 
 ### Highlights
 

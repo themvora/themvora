@@ -1,10 +1,10 @@
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
 
 let globalRuntime: ThemeRuntime<ThemeDefinition> | null = null;
 
 /**
  * Installs the given runtime as the app-wide global runtime and, in the
- * browser, publishes it where the rest of Theme Kit looks for it.
+ * browser, publishes it where the rest of Themvora looks for it.
  *
  * @param runtime - The theme runtime to install globally.
  *
@@ -12,13 +12,13 @@ let globalRuntime: ThemeRuntime<ThemeDefinition> | null = null;
  * Three publications, all of them the same runtime:
  *
  * 1. the module-level `globalRuntime` — what this package's hooks read;
- * 2. `window.__themeKitRuntime` — the documented escape hatch;
- * 3. `document.documentElement.__themeKitRuntime` plus a `theme-ready` event —
- *    which is how `@theme-kit/web`'s custom elements (`<theme-kit-scrollbar>`,
- *    `<theme-kit-inspector>`, `<theme-kit-toggle>`, …) find a runtime. They
+ * 2. `window.__themvoraRuntime` — the documented escape hatch;
+ * 3. `document.documentElement.__themvoraRuntime` plus a `theme-ready` event —
+ *    which is how `@themvora/web`'s custom elements (`<themvora-scrollbar>`,
+ *    `<themvora-inspector>`, `<themvora-toggle>`, …) find a runtime. They
  *    resolve it by walking **DOM ancestors** for that property, and they only
  *    fall back to waiting for `theme-ready`, which until now was dispatched
- *    solely by `<theme-kit-provider>`. Without these two lines an Astro app
+ *    solely by `<themvora-provider>`. Without these two lines an Astro app
  *    that installs its runtime from a React island had no way to use the
  *    framework-neutral elements at all — the runtime existed, but nothing in
  *    the element tree could see it.
@@ -29,10 +29,10 @@ export function setGlobalRuntime(runtime: ThemeRuntime<ThemeDefinition>) {
   globalRuntime = runtime;
   if (typeof window === "undefined") return;
 
-  (window as unknown as Record<string, unknown>).__themeKitRuntime = runtime;
+  (window as unknown as Record<string, unknown>).__themvoraRuntime = runtime;
 
   const root = document.documentElement as unknown as Record<string, unknown> | null;
-  if (root) root.__themeKitRuntime = runtime;
+  if (root) root.__themvoraRuntime = runtime;
 
   // Elements that mounted before the runtime existed are parked on this event.
   document.dispatchEvent(new CustomEvent("theme-ready", { detail: { runtime } }));

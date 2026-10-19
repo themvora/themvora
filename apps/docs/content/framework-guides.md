@@ -23,7 +23,7 @@ components, not the data, so they are not mirrored here.
 
 ---
 
-## React (`@theme-kit/react`)
+## React (`@themvora/react`)
 
 Provider and hooks for React, with scoped themes, transitions, and an optional build-time bootstrap.
 
@@ -39,7 +39,7 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 **Root bootstrap**
 
-- **createThemeRoot()** — Optional client-only root bootstrap that lets Theme Kit control the initial React root commit when synchronous first-commit behavior is required.
+- **createThemeRoot()** — Optional client-only root bootstrap that lets Themvora control the initial React root commit when synchronous first-commit behavior is required.
 - **Standard createRoot()** — Use the normal React root API when no special first-commit optimization is needed.
 
 **Hooks**
@@ -68,9 +68,9 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 **Library adapters**
 
-- **createMuiAdapter() / createChakraAdapter()** — Maps Theme Kit semantic tokens into native generated themes while preserving the framework-neutral runtime contract.
-- **createAntdAdapter() / createMuiAdapter() / createChakraAdapter()** — Rebuilds the library theme from the active Theme Kit theme and exposes a reactive snapshot/subscribe bridge for React providers.
-- **MantineThemeProvider + createMantineTheme()** — Mantine's generated-theme bridge: `createMantineTheme(runtime)` rebuilds the native Mantine theme from Theme Kit tokens, and `MantineThemeProvider` forces the color scheme to match the active mode.
+- **createMuiAdapter() / createChakraAdapter()** — Maps Themvora semantic tokens into native generated themes while preserving the framework-neutral runtime contract.
+- **createAntdAdapter() / createMuiAdapter() / createChakraAdapter()** — Rebuilds the library theme from the active Themvora theme and exposes a reactive snapshot/subscribe bridge for React providers.
+- **MantineThemeProvider + createMantineTheme()** — Mantine's generated-theme bridge: `createMantineTheme(runtime)` rebuilds the native Mantine theme from Themvora tokens, and `MantineThemeProvider` forces the color scheme to match the active mode.
 - **CSS-variable adapters** — Shadcn, Bootstrap, DaisyUI, and Open Props adapters can be registered directly with the runtime; their factories do not require React.
 
 **Transition**
@@ -82,7 +82,7 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 - **Zero-flash:** Included. `ThemeProvider` injects a blocking script into `<head>` before the first paint, so a returning visitor sees their saved theme immediately. For an SSR app, inline it yourself with `createThemeBootstrapScript()`.
 - **Starting mode:** `defaultTheme` chooses the starting theme. Add `initialMode="system"` to follow the visitor's OS on the first visit.
-- **Configuration:** Themes and the starting mode come from the provider props. That is the whole setup, with or without a build tool. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themeKitVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
+- **Configuration:** Themes and the starting mode come from the provider props. That is the whole setup, with or without a build tool. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themvoraVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
 
 ### Quick Start
 
@@ -90,7 +90,7 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 ```tsx title="src/App.tsx"
 // src/App.tsx
-import { ThemeProvider, useTheme } from "@theme-kit/react";
+import { ThemeProvider, useTheme } from "@themvora/react";
 
 function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -111,7 +111,7 @@ export function App() {
 ```tsx title="src/main.tsx"
 // src/main.tsx
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(
@@ -124,7 +124,7 @@ createRoot(document.getElementById("root")!).render(
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -153,6 +153,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -175,7 +179,7 @@ h1 {
 
 ```tsx title="src/ThemeSwitcher.tsx"
 // src/ThemeSwitcher.tsx
-import { useTheme } from "@theme-kit/react";
+import { useTheme } from "@themvora/react";
 
 const page = {
   background: "var(--theme-color-background)",
@@ -189,7 +193,7 @@ export function ThemeSwitcher() {
 
   return (
     <main style={page}>
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>Current theme: {theme.name} ({mode})</p>
 
       <button
@@ -230,7 +234,7 @@ export function ThemeSwitcher() {
 
 ```tsx title="src/theme-scope.tsx"
 // src/theme-scope.tsx
-import { ThemeProvider, ThemeScope, useThemeHistory } from "@theme-kit/react";
+import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/react";
 
 function HistoryControls() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -259,8 +263,8 @@ export function App() {
 
 ```tsx title="src/main.tsx — optimized CSR bootstrap"
 // src/main.tsx — optimized CSR bootstrap
-import { createThemeRoot } from "@theme-kit/react";
-import "@theme-kit/core/scrollbar.css";
+import { createThemeRoot } from "@themvora/react";
+import "@themvora/core/scrollbar.css";
 import { App } from "./App";
 
 createThemeRoot({
@@ -275,7 +279,7 @@ createThemeRoot({
 
 ---
 
-## Next.js (`@theme-kit/next`)
+## Next.js (`@themvora/next`)
 
 App Router theming with server-resolved themes, cookie persistence, and zero-flash.
 
@@ -292,7 +296,7 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 
 **Client**
 
-- **@theme-kit/next/client** — The client entry point. Exports ClientThemeProvider, ThemeBootstrap, createNextThemePersistence, every React hook, and ThemeScope / ThemeInspector / ThemeModeButton.
+- **@themvora/next/client** — The client entry point. Exports ClientThemeProvider, ThemeBootstrap, createNextThemePersistence, every React hook, and ThemeScope / ThemeInspector / ThemeModeButton.
 - **ClientThemeProvider** — Runtime for client components that need theme state. Mounts the runtime, syncs the `.dark` class, and persists the selection.
 - **ThemeBootstrap** — Injects the SSR dark-mode CSS via `useServerInsertedHTML`.
 - **createNextThemePersistence()** — Builds the adapter `ClientThemeProvider` uses: localStorage plus the `theme-mode`, `theme-family` and `theme-fingerprint` cookies the server reads on the next request.
@@ -300,12 +304,12 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 
 **Transition**
 
-- **transition prop** — Built-in runtime transition support. Configure duration/easing once on the provider; Theme Kit generates the transition styles at runtime, so applications do not need to maintain theme-transition rules in global CSS.
-- **runtime.store.set(theme, { suppressTransition: true })** — Per-update escape hatch from `@theme-kit/next/client`: call `runtime.store.set(theme, { suppressTransition: true })` when a switch must be instantaneous.
+- **transition prop** — Built-in runtime transition support. Configure duration/easing once on the provider; Themvora generates the transition styles at runtime, so applications do not need to maintain theme-transition rules in global CSS.
+- **runtime.store.set(theme, { suppressTransition: true })** — Per-update escape hatch from `@themvora/next/client`: call `runtime.store.set(theme, { suppressTransition: true })` when a switch must be instantaneous.
 
 **Scrollbar**
 
-- **scrollbar prop** — Enables Theme Kit's custom overlay scrollbar. The SSR bootstrap hides the native scrollbar before first paint, then the overlay engine synchronizes with browser scrolling without replacing native scroll behavior.
+- **scrollbar prop** — Enables Themvora's custom overlay scrollbar. The SSR bootstrap hides the native scrollbar before first paint, then the overlay engine synchronizes with browser scrolling without replacing native scroll behavior.
 - **scrollbar option** — Configure the overlay appearance from semantic tokens, including an explicit color token when needed. The overlay remains theme-aware and updates with runtime theme changes.
 
 ### Notes
@@ -321,7 +325,7 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 ```tsx title="app/layout.tsx"
 // app/layout.tsx
 import type { ReactNode } from "react";
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   // ThemeProvider renders <html>, <head> and <body> itself.
@@ -337,9 +341,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ```tsx title="app/layout.tsx"
 // app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@themvora/next";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="light">
       {children}
@@ -351,7 +356,7 @@ export default function RootLayout({ children }) {
 #### styles
 
 ```css title="app/globals.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -380,6 +385,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -403,7 +412,7 @@ h1 {
 ```tsx title="app/theme-switcher.tsx"
 // app/theme-switcher.tsx
 "use client";
-import { useTheme } from "@theme-kit/next/client";
+import { useTheme } from "@themvora/next/client";
 
 export function ThemeSwitcher() {
   const { theme, mode, toggleTheme } = useTheme();
@@ -417,7 +426,7 @@ export function ThemeSwitcher() {
         padding: "2rem",
       }}
     >
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>Current theme: {theme.name} ({mode})</p>
 
       <button
@@ -459,7 +468,7 @@ export function ThemeSwitcher() {
 ```tsx title="app/dashboard.tsx"
 // app/dashboard.tsx — scoped theming + history controls
 "use client";
-import { ThemeScope, useThemeHistory } from "@theme-kit/next/client";
+import { ThemeScope, useThemeHistory } from "@themvora/next/client";
 
 export function Dashboard() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -482,7 +491,7 @@ export function Dashboard() {
 
 ---
 
-## Vue 3 (`@theme-kit/vue`)
+## Vue 3 (`@themvora/vue`)
 
 Provider and composables for Vue 3, with scoped themes.
 
@@ -510,12 +519,12 @@ Provider and composables for Vue 3, with scoped themes.
 - **Adapter framework subpaths** — CSS-variable adapters own their framework wrappers behind subpaths (`/react`, `/vue`, `/svelte`, `/solid`, `/angular`) with optional peers — they are not re-exported by the framework package.
 - **useShadcnTheme(runtime) / useBootstrapTheme(runtime)** — Composables on each adapter's framework subpath install the React-free CSS-variable factory and dispose the returned handle with the component lifecycle. Pass the runtime from this framework's runtime getter.
 - **useDaisyTheme(runtime) / useOpenPropsTheme(runtime)** — Same contract for DaisyUI and Open Props. The adapter subpath supplies lifecycle wiring while the factory stays framework-neutral.
-- **adapter factory subpaths** — Use `@theme-kit/shadcn/factory`, `@theme-kit/bootstrap/factory`, `@theme-kit/daisyui/factory`, or `@theme-kit/open-props/factory` when you need the adapter without any framework.
+- **adapter factory subpaths** — Use `@themvora/shadcn/factory`, `@themvora/bootstrap/factory`, `@themvora/daisyui/factory`, or `@themvora/open-props/factory` when you need the adapter without any framework.
 
 **Transition**
 
 - **transition prop** — Pass `transition` to ThemeProvider to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch — `transition` is fixed at runtime creation. Compose the core diff/plan/runner APIs for custom animation.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
 
 **Components**
 
@@ -525,7 +534,7 @@ Provider and composables for Vue 3, with scoped themes.
 
 - **Zero-flash:** Included. `<ThemeProvider>` injects a blocking script into `<head>` before the first paint. For an SSR app, inline it with `createThemeBootstrapScript()` instead.
 - **Starting mode:** `default-theme` chooses the starting theme. Add `initial-mode="system"` to follow the visitor's OS on the first visit.
-- **Configuration:** Themes and the starting mode come from the provider props. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themeKitVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
+- **Configuration:** Themes and the starting mode come from the provider props. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themvoraVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
 
 ### Quick Start
 
@@ -534,7 +543,7 @@ Provider and composables for Vue 3, with scoped themes.
 ```vue title="src/App.vue"
 <!-- src/App.vue -->
 <script setup lang="ts">
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 </script>
 
 <template>
@@ -551,7 +560,7 @@ import { ThemeProvider } from "@theme-kit/vue";
 ```vue title="src/App.vue"
 <!-- src/App.vue — no theme definition needed -->
 <script setup lang="ts">
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 </script>
 
 <!-- No `themes` prop → built-in neutral theme.
@@ -568,7 +577,7 @@ import { ThemeProvider } from "@theme-kit/vue";
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -597,6 +606,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -620,13 +633,13 @@ h1 {
 ```vue title="src/ThemeSwitcher.vue"
 <!-- src/ThemeSwitcher.vue -->
 <script setup lang="ts">
-import { useTheme } from "@theme-kit/vue";
+import { useTheme } from "@themvora/vue";
 const { theme, mode, toggleTheme } = useTheme();
 </script>
 
 <template>
   <main class="page">
-    <h1>Theme Kit</h1>
+    <h1>Themvora</h1>
     <p>Current theme: {{ theme.name }} ({{ mode }})</p>
 
     <button class="primary" @click="toggleTheme">Toggle theme</button>
@@ -674,7 +687,7 @@ const { theme, mode, toggleTheme } = useTheme();
 <script setup lang="ts">
 // Import both explicitly — `ThemeScope` is only globally registered if your
 // entry does `app.use(ThemeScope)`.
-import { ThemeScope, useThemeHistory } from "@theme-kit/vue";
+import { ThemeScope, useThemeHistory } from "@themvora/vue";
 const { undo, redo, canUndo, canRedo } = useThemeHistory();
 </script>
 
@@ -692,7 +705,7 @@ const { undo, redo, canUndo, canRedo } = useThemeHistory();
 
 ---
 
-## Svelte 5 (`@theme-kit/svelte`)
+## Svelte 5 (`@themvora/svelte`)
 
 Provider and readable stores for Svelte 5, with scoped themes and transitions.
 
@@ -720,12 +733,12 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 - **Adapter framework subpaths** — CSS-variable adapters own their framework wrappers behind subpaths (`/react`, `/vue`, `/svelte`, `/solid`, `/angular`) with optional peers — they are not re-exported by the framework package.
 - **useShadcnTheme(runtime) / useBootstrapTheme(runtime)** — Composables on each adapter's framework subpath install the React-free CSS-variable factory and dispose the returned handle with the component lifecycle. Pass the runtime from this framework's runtime getter.
 - **useDaisyTheme(runtime) / useOpenPropsTheme(runtime)** — Same contract for DaisyUI and Open Props. The adapter subpath supplies lifecycle wiring while the factory stays framework-neutral.
-- **adapter factory subpaths** — Use `@theme-kit/shadcn/factory`, `@theme-kit/bootstrap/factory`, `@theme-kit/daisyui/factory`, or `@theme-kit/open-props/factory` when you need the adapter without any framework.
+- **adapter factory subpaths** — Use `@themvora/shadcn/factory`, `@themvora/bootstrap/factory`, `@themvora/daisyui/factory`, or `@themvora/open-props/factory` when you need the adapter without any framework.
 
 **Transition**
 
 - **transition prop** — Pass `transition` to ThemeProvider to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch — `transition` is fixed at runtime creation. Compose the core diff/plan/runner APIs for custom animation.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
 
 **Components**
 
@@ -735,7 +748,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 
 - **Zero-flash:** Included. `<ThemeProvider>` injects a blocking script into `<head>` before the first paint. For an SSR app, inline it with `createThemeBootstrapScript()` instead.
 - **Starting mode:** `defaultTheme` chooses the starting theme. Add `initialMode="system"` to follow the visitor's OS on the first visit.
-- **Configuration:** Themes and the starting mode come from the provider props. SvelteKit is Vite-based, so you can declare them once in `theme.config.ts` and let `themeKitVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
+- **Configuration:** Themes and the starting mode come from the provider props. SvelteKit is Vite-based, so you can declare them once in `theme.config.ts` and let `themvoraVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
 
 ### Quick Start
 
@@ -744,7 +757,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 ```svelte title="src/App.svelte"
 <!-- src/App.svelte -->
 <script lang="ts">
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
   import ThemeSwitcher from "./ThemeSwitcher.svelte";
 </script>
 
@@ -760,7 +773,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 ```svelte title="src/App.svelte"
 <!-- src/App.svelte — no theme definition needed -->
 <script lang="ts">
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <!-- No `themes` prop → built-in neutral theme.
@@ -775,7 +788,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -804,6 +817,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -827,12 +844,12 @@ h1 {
 ```svelte title="src/ThemeSwitcher.svelte"
 <!-- src/ThemeSwitcher.svelte -->
 <script lang="ts">
-  import { useTheme } from "@theme-kit/svelte";
+  import { useTheme } from "@themvora/svelte";
   const { theme, mode, toggleTheme } = useTheme();
 </script>
 
 <main class="page">
-  <h1>Theme Kit</h1>
+  <h1>Themvora</h1>
   <p>Current theme: {$theme.name} ({$mode})</p>
 
   <button class="primary" onclick={toggleTheme}>Toggle theme</button>
@@ -877,7 +894,7 @@ h1 {
 ```svelte title="src/App.svelte — history + scope"
 <!-- src/App.svelte -->
 <script lang="ts">
-  import { ThemeProvider, ThemeScope, useThemeHistory } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/svelte";
   import ThemeSwitcher from "./ThemeSwitcher.svelte";
 
   // `undo` / `redo` are functions; `canUndo` / `canRedo` are readable stores,
@@ -899,7 +916,7 @@ h1 {
 
 ---
 
-## Solid (`@theme-kit/solid`)
+## Solid (`@themvora/solid`)
 
 Signals-first theming with a context provider and scoped subtrees.
 
@@ -926,12 +943,12 @@ Signals-first theming with a context provider and scoped subtrees.
 - **Adapter framework subpaths** — CSS-variable adapters own their framework wrappers behind subpaths (`/react`, `/vue`, `/svelte`, `/solid`, `/angular`) with optional peers — they are not re-exported by the framework package.
 - **useShadcnTheme(runtime) / useBootstrapTheme(runtime)** — Composables on each adapter's framework subpath install the React-free CSS-variable factory and dispose the returned handle with the component lifecycle. Pass the runtime from this framework's runtime getter.
 - **useDaisyTheme(runtime) / useOpenPropsTheme(runtime)** — Same contract for DaisyUI and Open Props. The adapter subpath supplies lifecycle wiring while the factory stays framework-neutral.
-- **adapter factory subpaths** — Use `@theme-kit/shadcn/factory`, `@theme-kit/bootstrap/factory`, `@theme-kit/daisyui/factory`, or `@theme-kit/open-props/factory` when you need the adapter without any framework.
+- **adapter factory subpaths** — Use `@themvora/shadcn/factory`, `@themvora/bootstrap/factory`, `@themvora/daisyui/factory`, or `@themvora/open-props/factory` when you need the adapter without any framework.
 
 **Transition**
 
 - **transition prop** — Pass `transition` to ThemeProvider to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch — `transition` is fixed at runtime creation. Compose the core diff/plan/runner APIs for custom animation.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
 
 **Components**
 
@@ -941,7 +958,7 @@ Signals-first theming with a context provider and scoped subtrees.
 
 - **Zero-flash:** Included. `<ThemeProvider>` injects a blocking script into `<head>` before the first paint. For an SSR app, inline it with `createThemeBootstrapScript()` instead.
 - **Starting mode:** `defaultTheme` chooses the starting theme. Add `initialMode="system"` to follow the visitor's OS on the first visit.
-- **Configuration:** Themes and the starting mode come from the provider props. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themeKitVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
+- **Configuration:** Themes and the starting mode come from the provider props. If you do build with Vite, you can declare them once in `theme.config.ts` instead and let `themvoraVitePlugin()` derive the pre-paint bootstrap from the same file — the provider then takes no theme props. The plugin is optional either way.
 
 ### Quick Start
 
@@ -950,7 +967,7 @@ Signals-first theming with a context provider and scoped subtrees.
 ```tsx title="src/main.tsx"
 // src/main.tsx
 import { render } from "solid-js/web";
-import { ThemeProvider } from "@theme-kit/solid";
+import { ThemeProvider } from "@themvora/solid";
 import { App } from "./App";
 
 render(
@@ -968,7 +985,7 @@ render(
 ```tsx title="src/main.tsx"
 // src/main.tsx
 import { render } from "solid-js/web";
-import { ThemeProvider } from "@theme-kit/solid";
+import { ThemeProvider } from "@themvora/solid";
 import { App } from "./App";
 
 render(
@@ -984,7 +1001,7 @@ render(
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -1013,6 +1030,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -1035,7 +1056,7 @@ h1 {
 
 ```tsx title="src/App.tsx"
 // src/App.tsx
-import { useTheme } from "@theme-kit/solid";
+import { useTheme } from "@themvora/solid";
 
 const page = {
   background: "var(--theme-color-background)",
@@ -1050,7 +1071,7 @@ export function App() {
 
   return (
     <main style={page}>
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>
         Current theme: {theme().name} ({mode()})
       </p>
@@ -1093,7 +1114,7 @@ export function App() {
 
 ```tsx title="src/App.tsx — history + scope"
 // src/App.tsx
-import { ThemeProvider, ThemeScope, useThemeHistory } from "@theme-kit/solid";
+import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/solid";
 
 function HistoryControls() {
   // `canUndo` / `canRedo` are getters — read them off the object in JSX.
@@ -1121,7 +1142,7 @@ export function App() {
 
 ---
 
-## Angular (`@theme-kit/angular`)
+## Angular (`@themvora/angular`)
 
 Standalone-API theming with DI providers, reactive injectables, and a scoping directive.
 
@@ -1131,8 +1152,8 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 
 **Setup**
 
-- **provideThemeKit(options)** — App-level providers from a ThemeRuntimeOptions config.
-- **provideThemeKitRuntime(runtime)** — Provide an existing shared runtime instance.
+- **provideTheme(options)** — App-level providers from a ThemeRuntimeOptions config.
+- **provideThemeRuntime(runtime)** — Provide an existing shared runtime instance.
 
 **Injectables**
 
@@ -1144,12 +1165,12 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 - **injectThemeTimeTravel()** — `{ history, jump }` — indexed time travel.
 - **injectThemeLifecycle()** — Subscribe to lifecycle events.
 - **injectThemePacks()** — Install theme packs at runtime.
-- **injectThemeSchedule()** — Reactive sunrise/sunset controller: `state()` is a Signal of `enabled`, `status`, `sunrise`, `sunset`, `nextTransition`; plus `enable()`/`disable()`/`set()`. Configure via `scheduled` in `provideThemeKit()`.
+- **injectThemeSchedule()** — Reactive sunrise/sunset controller: `state()` is a Signal of `enabled`, `status`, `sunrise`, `sunset`, `nextTransition`; plus `enable()`/`disable()`/`set()`. Configure via `scheduled` in `provideTheme()`.
 
 **Transition**
 
-- **transition in provideThemeKit()** — Pass `transition` config to `provideThemeKit()` to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch — `transition` is fixed at runtime creation. Compose the core diff/plan/runner APIs for custom animation.
+- **transition in provideTheme()** — Pass `transition` config to `provideTheme()` to enable CSS transitions on theme changes.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
 
 **Directives**
 
@@ -1163,8 +1184,8 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 ### Notes
 
 - **Zero-flash:** Not automatic. Render `createBlockingScriptContent()` into `index.html`’s `<head>` to paint the persisted theme before the bundle loads — without it the first frame is the default theme.
-- **Starting mode:** `provideThemeKit({ defaultTheme, initialMode })` chooses the starting theme. `initialMode: "system"` follows the visitor's OS.
-- **Configuration:** Themes and the starting mode are passed to `provideThemeKit()` when the app bootstraps. Angular does not use Vite, so there is no bundler plugin to add: the provider emits the pre-paint script.
+- **Starting mode:** `provideTheme({ defaultTheme, initialMode })` chooses the starting theme. `initialMode: "system"` follows the visitor's OS.
+- **Configuration:** Themes and the starting mode are passed to `provideTheme()` when the app bootstraps. Angular does not use Vite, so there is no bundler plugin to add: the provider emits the pre-paint script.
 
 ### Quick Start
 
@@ -1173,11 +1194,11 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 ```ts title="src/main.ts"
 // src/main.ts
 import { bootstrapApplication } from "@angular/platform-browser";
-import { provideThemeKit } from "@theme-kit/angular";
+import { provideTheme } from "@themvora/angular";
 import { AppComponent } from "./app/app.component";
 
 bootstrapApplication(AppComponent, {
-  providers: [provideThemeKit({ defaultTheme: "mint-light" })],
+  providers: [provideTheme({ defaultTheme: "mint-light" })],
 });
 ```
 
@@ -1186,18 +1207,18 @@ bootstrapApplication(AppComponent, {
 ```ts title="src/main.ts"
 // src/main.ts
 import { bootstrapApplication } from "@angular/platform-browser";
-import { provideThemeKit } from "@theme-kit/angular";
+import { provideTheme } from "@themvora/angular";
 import { AppComponent } from "./app/app.component";
 
 bootstrapApplication(AppComponent, {
-  providers: [provideThemeKit({ defaultTheme: "light", initialMode: "system" })],
+  providers: [provideTheme({ defaultTheme: "light", initialMode: "system" })],
 });
 ```
 
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -1226,6 +1247,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -1249,14 +1274,14 @@ h1 {
 ```ts title="src/app/theme-switcher.component.ts"
 // src/app/theme-switcher.component.ts
 import { Component } from "@angular/core";
-import { injectTheme } from "@theme-kit/angular";
+import { injectTheme } from "@themvora/angular";
 
 @Component({
   selector: "theme-switcher",
   standalone: true,
   template: `
     <main class="page">
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>Current theme: {{ state().theme.name }} ({{ state().mode }})</p>
 
       <button class="primary" (click)="toggle()">Toggle theme</button>
@@ -1310,18 +1335,18 @@ export class ThemeSwitcherComponent {
 ```ts title="src/app/history-controls.component.ts"
 // src/app/history-controls.component.ts
 import { Component } from "@angular/core";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import type { ThemeTransitionOptions } from "@themvora/core";
 import {
   injectThemeHistory,
   ThemeScopeDirective,
-} from "@theme-kit/angular";
+} from "@themvora/angular";
 
 @Component({
   selector: "history-controls",
   standalone: true,
   imports: [ThemeScopeDirective],
   template: `
-    <div [themeKitScope]="'plum-dark'" [themeKitScopeTransition]="transition">
+    <div [themvoraScope]="'plum-dark'" [themvoraScopeTransition]="transition">
       Scoped to plum-dark
     </div>
     <button (click)="undo()" [disabled]="!canUndo()">Undo</button>
@@ -1363,45 +1388,57 @@ export class AppComponent {}
 
 ---
 
-## Web Components (`@theme-kit/web`)
+## Web Components (`@themvora/web`)
 
-Framework-free theming for any HTML page, through custom elements and CSS variables.
+HTML-first theming for any page: import the package once, then write custom elements and CSS variables.
 
-**Tags:** No framework · Custom elements
+**Tags:** No framework · Custom elements · HTML-first
 
 ### Feature map
 
 **Setup**
 
-- **defineCustomElements()** — Registers every `<theme-kit-*>` custom element.
+- **import "@themvora/web"** — One side-effect import registers `<themvora-provider>`, `<themvora-scope>`, `<themvora-toggle>`, `<themvora-select>`, `<themvora-scrollbar>` and `<themvora-inspector>`, and injects their stylesheet once. No manual registration step.
+- **defineCustomElements()** — The explicit form, kept for advanced cases: call it yourself, or register a single element under your own tag with `ThemvoraProvider.define("my-provider")`. Idempotent, and a no-op on the server.
+- **themvoraVitePlugin()** — Zero flash on Vite, with no `<script>` tag of your own. Add the plugin from `@themvora/core/vite` to `vite.config.ts`, declare the catalog once in `theme.config.ts`, and the blocking pre-paint script is injected into the served HTML. The provider adopts what that script painted. Pass `scrollbar: true` as well when the page uses `<themvora-scrollbar>` — the same pre-paint pass then hides the native bar. Keep `theme.config.ts` and the `themes` attribute listing the same catalog.
+- **VS Code IntelliSense** — The package ships `html-data.json`, an HTML custom-data file covering every element and attribute. Point VS Code at it with `"html.customData": ["./node_modules/@themvora/web/html-data.json"]` for tag completion, attribute suggestions and hover documentation. VS Code does not load it automatically.
+
+**Configuration**
+
+- **themes** — Two syntaxes. Names: `themes="light dark plum-dark"` resolves each identifier against the registered catalog. Definitions: `themes='[{"name":"brand","tokens":{…}}]'` registers your own. An unknown name is reported and skipped; nothing is constructed from a bare name.
+- **default-theme** — The theme used when nothing is persisted. Changing it re-resolves the selection; removing it does not disturb the live selection.
+- **initial-mode** — `"light"`, `"dark"` or `"system"` (case-insensitive). Any other value is reported and ignored, and the mode falls back to the one derived from `default-theme`.
+- **initial-family** — The family used when nothing is persisted. An unregistered family is reported by the runtime (`TV_THEME_FAMILY_UNKNOWN`) and normalised.
+- **transition** — JSON: `true`, `false`, or `{"enabled":true,"duration":250,"easing":"ease-in-out"}`. Changing it reconfigures the live bindings; removing it returns to no configured transition.
+- **scheduled** — JSON sunrise/sunset options, e.g. `{"latitude":27.7,"longitude":85.3}`. Removing the attribute tears the schedule down.
 
 **Elements**
 
-- **<theme-kit-provider>** — Root runtime provider for a page or subtree.
-- **<theme-kit-scope>** — Scoped theming via the `theme` attribute.
-- **<theme-kit-toggle>** — Light/dark toggle button.
-- **<theme-kit-select>** — Family / mode selector.
+- **<themvora-provider>** — Owns the runtime for a page or subtree and applies the active theme to the document. Reacts to every configuration attribute without a reload.
+- **<themvora-scope>** — Applies a theme to its subtree via the `theme` attribute, in the light DOM. Accepts an exact theme name or a family name — a family follows the provider's mode, an exact name pins its own. Re-resolves when the provider's catalog changes, and falls back to the catalog's first theme (reported) when the name is unknown. Removing the attribute destroys the binding, so the subtree inherits the surrounding theme.
+- **<themvora-toggle>** — A native button with built-in sun, moon and monitor icons. It reports three states, not two: `data-mode` is `light`, `dark` or `system`, and `aria-pressed` is `true`, `false` or `mixed` — so a page following the OS reads as `system` rather than pretending to be light or dark. Activating it pins an explicit mode. No icon package, stylesheet or script required.
+- **<themvora-select>** — A native `<select>` for `type="mode"` or `type="family"`. Options come from the runtime, so a catalog change updates them; `label` sets the accessible name.
+- **<themvora-scrollbar>** — Overlay scrollbar bound to the provider runtime. Every option is an attribute; changing one rebuilds the overlay. It needs the pre-paint class: pass `scrollbar: true` to `themvoraVitePlugin()`, or load the pre-paint script yourself. Without it the browser paints a native scrollbar for a frame before the overlay mounts.
+- **<themvora-inspector>** — Floating theme inspector: identity, selection, tokens and resolved CSS variables, live.
 
-**Adapters**
+**Events**
 
-- **Framework-neutral adapter factories** — Use Theme Kit adapter factories directly with the web runtime; no React, Vue, Svelte, Solid, or Angular layer is required.
-- **CSS-variable ecosystem** — CSS-variable adapters update the document's variables/styles from the active runtime theme, making them suitable for framework-free pages and custom elements.
-
-**Transition**
-
-- **transition attribute** — Set `transition` attribute on `<theme-kit-provider>` to enable CSS transitions.
-- **getProviderRuntime()** — Reads the runtime off a `<theme-kit-provider>` element once it has upgraded — `getProviderRuntime(providerEl)`. Returns `undefined` before then, and `undefined` if you pass an element that is not a provider.
+- **theme-ready** — Dispatched once by `<themvora-provider>` after its runtime exists and the first theme is applied. Bubbles and is composed, so a `document` listener sees it.
+- **themes-change** — Dispatched when the runtime's catalog changed — a `themes` attribute, `runtime.use(pack)` or `runtime.restore()` — with `detail.themes` naming the new catalog. A catalog change can leave the active theme untouched, so `store.subscribe()` alone cannot report it. Dispatched on a microtask, after the change has been applied, so a listener may safely write back to `themes`.
+- **runtime.store.subscribe()** — The canonical subscription for the active theme. Re-read state inside the callback; the runtime's helpers are getters, not subscriptions.
+- **runtime.selection.subscribe()** — Fires for a selection change that resolves to the same theme (`system` following the OS, for example), which the store subscription does not report.
 
 **Imperative**
 
-- **getProviderRuntime()** — Imperative access to the runtime: `getProviderRuntime(providerEl)`. From there `runtime.selection.setMode("dark")`, `setFamily()` and `toggleTheme()` change the theme without a custom element.
-- **Reading the current theme** — Read the nearest provider's current state from plain JavaScript — the vanilla equivalent of the framework hooks. They are getters, not subscriptions: re-read them inside a `runtime.store.subscribe()` callback.
+- **getProviderRuntime(providerEl)** — The runtime attached to a specific provider. Returns `undefined` before that element has upgraded — use it whenever more than one provider exists.
+- **useThemeRuntime()** — Page-level convenience: the runtime of the first initialized provider in document order. Throws when none has initialized.
+- **Mode and family control** — From the runtime: `selection.setMode("dark")`, `setFamily("plum")` and `toggleTheme()`. The built-in controls call exactly these, so a custom control needs no other API.
 
 ### Notes
 
-- **Zero-flash:** You supply the script. `createThemeBootstrapScript()` writes it — see Quick Start for the generator — and it must load in `<head>` before the module script. Without it the page paints the default theme and corrects on load.
-- **Starting mode:** `default-theme` chooses the starting theme. `initial-mode="system"` follows the visitor's OS.
-- **Configuration:** Themes and the starting mode are attributes on `<theme-kit-provider>`. The pre-paint script you generate is built from the same values, and there is nothing else to configure.
+- **Zero-flash:** Two ways, one outcome. On Vite, `themvoraVitePlugin()` from `@themvora/core/vite` injects the blocking pre-paint script for you: declare the catalog once in `theme.config.ts` and add the plugin to `vite.config.ts` — no `<script>` tag, no build step of your own. Everywhere else, generate the script with `createThemeBootstrapScript()` and load it in `<head>` before the module script (see More Examples). Either way the provider adopts the selection the script painted instead of replacing it with a different default. Loading the package from a CDN with no pre-paint script has no zero-flash guarantee.
+- **Starting mode:** `default-theme` chooses the starting theme and `initial-mode="system"` follows the visitor's OS instead of the theme's own mode. Give the pre-paint script the same `defaultTheme` and `initialMode`, or the script and the runtime resolve different themes and the page flashes.
+- **Configuration:** Every provider option is an attribute, and every attribute is live: changing one reconciles the running runtime, so controls, scopes, variables and displayed text update without a reload. `themes` accepts either a list of registered names (`themes="light dark plum-dark"`) or a JSON array of theme definitions. Removing `themes`, `default-theme`, `initial-mode` or `initial-family` stops that attribute contributing without resetting the live selection; `transition` and `scheduled` are the exception, where removing the attribute turns the feature off. Invalid values are reported once through the standard diagnostic pipeline and ignored, never thrown.
 
 ### Quick Start
 
@@ -1411,52 +1448,55 @@ Framework-free theming for any HTML page, through custom elements and CSS variab
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>My app</title>
-
-    <!-- Written by scripts/write-bootstrap.mjs, so the page paints themed. -->
-    <script src="/bootstrap.js"></script>
-
-    <script type="importmap">
-      {
-        "imports": {
-          "@theme-kit/core": "/node_modules/@theme-kit/core/dist/index.js",
-          "@theme-kit/web": "/node_modules/@theme-kit/web/dist/index.js"
-        }
-      }
-    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <theme-kit-provider default-theme="light" initial-mode="system">
-      <theme-kit-toggle></theme-kit-toggle>
-      <theme-kit-select type="mode"></theme-kit-select>
-      <theme-kit-select type="family"></theme-kit-select>
-    </theme-kit-provider>
+    <!-- The provider owns the runtime. Every option is an attribute: a theme
+         list, the starting theme, and the starting mode. -->
+    <themvora-provider themes="light dark plum-light plum-dark" default-theme="light" initial-mode="system">
+      <!-- src/main.ts renders the active theme here. Keep the id when you
+           replace this markup: that module throws without it. -->
+      <p>Current theme: <strong id="theme-name"></strong></p>
 
-    <script type="module">
-      import { defineCustomElements } from "@theme-kit/web";
-      defineCustomElements();
-    </script>
+      <themvora-toggle></themvora-toggle>
+      <themvora-select type="mode"></themvora-select>
+      <themvora-select type="family"></themvora-select>
+    </themvora-provider>
+
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
 ```
 
 #### setupExtra
 
-```js title="scripts/write-bootstrap.mjs"
-// Generates the pre-paint script index.html loads. Run it before serving:
-//   node scripts/write-bootstrap.mjs
-import { writeFileSync } from "node:fs";
-import { createThemeBootstrapScript, getBuiltInThemes } from "@theme-kit/core";
+```ts title="src/main.ts"
+// The whole setup. This one import registers the elements and injects their
+// stylesheet, so the markup in index.html upgrades on its own. The page's own
+// stylesheet is a <link> in index.html, not an import here — see the comment
+// in that file.
+import "@themvora/web";
 
-writeFileSync(
-  "bootstrap.js",
-  createThemeBootstrapScript({
-    themes: getBuiltInThemes(),
-    defaultTheme: "light",
-    initialMode: "system",
-  }),
-);
+// Optional: read the current theme in application code. The runtime's helpers
+// are getters, so subscribe and re-read.
+import { useThemeRuntime } from "@themvora/web";
+
+const runtime = useThemeRuntime();
+const readout = document.querySelector<HTMLElement>("#theme-name");
+
+if (!readout) {
+  throw new Error("index.html must contain a #theme-name element.");
+}
+
+const render = () => {
+  readout.textContent = runtime.store.get().name;
+};
+
+runtime.store.subscribe(render);
+render();
 ```
 
 #### noTheme
@@ -1465,39 +1505,32 @@ writeFileSync(
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>My app</title>
-
-    <!-- Written by scripts/write-bootstrap.mjs, so the page paints themed. -->
-    <script src="/bootstrap.js"></script>
-
-    <!-- Bare specifiers need a map when no bundler rewrites them. -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@theme-kit/core": "/node_modules/@theme-kit/core/dist/index.js",
-          "@theme-kit/web": "/node_modules/@theme-kit/web/dist/index.js"
-        }
-      }
-    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <!-- Render-blocking on purpose: a CSS file imported from main.ts is
+         injected by JavaScript, so in dev the first paint happens before it
+         exists and the page flashes unstyled. -->
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <theme-kit-provider default-theme="light" initial-mode="system">
-      <my-app></my-app>
-    </theme-kit-provider>
+    <!-- No controls, no script beyond the module import: the provider applies
+         the theme and ordinary HTML reads the variables. -->
+    <themvora-provider default-theme="light" initial-mode="system">
+      <h1>Hello, themed world</h1>
+      <p>Current theme: <strong id="theme-name"></strong></p>
+    </themvora-provider>
 
-    <script type="module">
-      import { defineCustomElements } from "@theme-kit/web";
-      defineCustomElements();
-    </script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
 ```
 
 #### styles
 
-```css title="styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+```css title="src/style.css"
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -1526,6 +1559,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -1546,71 +1583,44 @@ h1 {
 
 #### snippet
 
-```html title="index.html — a themed page with a toggle"
+```html title="index.html"
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <link rel="stylesheet" href="/src/style.css" />
     <style>
-      .page {
-        background: var(--theme-color-background);
-        color: var(--theme-color-foreground);
-        min-height: 100vh;
-        padding: 2rem;
-      }
-      .primary {
-        background: var(--theme-color-primary);
-        color: var(--theme-color-primaryForeground);
-        border: 0;
-        border-radius: 0.5rem;
-        padding: 0.5rem 1rem;
-      }
-      .card {
+      /* Theme variables are ordinary custom properties: read them from a
+         stylesheet and every theme, including one registered later, renders
+         without per-theme CSS. */
+      .surface {
         background: var(--theme-color-card);
+        color: var(--theme-color-cardForeground);
         border: 1px solid var(--theme-color-border);
-        border-radius: 0.75rem;
-        margin-top: 1.5rem;
-        padding: 1rem;
-      }
-      .muted {
-        color: var(--theme-color-mutedForeground);
+        border-radius: var(--theme-radius-lg);
+        padding: var(--theme-spacing-6);
       }
     </style>
   </head>
   <body>
-    <theme-kit-provider default-theme="light" initial-mode="system">
-      <main class="page">
-        <h1>Theme Kit</h1>
-        <p>Current theme: <span id="current">light</span></p>
+    <themvora-provider default-theme="light" initial-mode="system">
+      <h1>Themvora</h1>
+      <p>Current theme: <strong id="theme-name"></strong></p>
 
-        <theme-kit-toggle></theme-kit-toggle>
+      <p>
+        <themvora-toggle></themvora-toggle>
+        <themvora-select type="family"></themvora-select>
+      </p>
 
-        <section class="card">
-          <h2>Themed card</h2>
-          <p class="muted">Surface, border and text follow the theme.</p>
-        </section>
-      </main>
-    </theme-kit-provider>
+      <section class="surface">
+        <h2>Themed card</h2>
+        <p>Surface, border and text follow the active theme.</p>
+      </section>
+    </themvora-provider>
 
-    <script type="module">
-      import {
-        defineCustomElements,
-        getProviderRuntime,
-        useThemeValue,
-      } from "@theme-kit/web";
-
-      defineCustomElements();
-
-      // The helpers are getters, so re-read them when the store changes.
-      const runtime = getProviderRuntime(
-        document.querySelector("theme-kit-provider"),
-      );
-      const label = document.getElementById("current");
-
-      runtime.store.subscribe(() => {
-        label.textContent = useThemeValue().name;
-      });
-    </script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
 ```
@@ -1619,51 +1629,92 @@ h1 {
 
 #### snippet2
 
-```html title="index.html — scope + selects"
-<script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-  defineCustomElements();
-</script>
+```html title="index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <themvora-provider default-theme="light" initial-mode="system">
+      <p>Current theme: <strong id="theme-name"></strong></p>
 
-<theme-kit-provider default-theme="light">
-  <theme-kit-select type="mode"></theme-kit-select>
-  <theme-kit-select type="family"></theme-kit-select>
+      <themvora-select type="mode"></themvora-select>
 
-  <theme-kit-scope theme="plum">
-    <p>This region is always themed "plum".</p>
-  </theme-kit-scope>
-</theme-kit-provider>
+      <!-- theme="cocoa-dark" names one registered theme, so this subtree keeps
+           that theme whatever the rest of the page selects. A bare family name
+           ("cocoa") also resolves, to that family's theme for the current mode.
+           Nested scopes override their ancestor, never the reverse. -->
+      <themvora-scope theme="cocoa-dark">
+        <section class="surface">
+          <h2>Scoped section</h2>
+          <p>This subtree is always themed "cocoa-dark".</p>
+        </section>
+
+        <themvora-scope theme="berry-light">
+          <p>And this one is always "berry-light".</p>
+        </themvora-scope>
+      </themvora-scope>
+    </themvora-provider>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+```
+
+#### snippet3
+
+```js title="scripts/write-pre-paint.mjs"
+// Zero flash without the Vite plugin — for any other server or bundler.
+// Writes a classic script that applies the saved theme before the first
+// paint. Run it before you build, then load the output from <head> in
+// index.html, above the main.ts module script:
+//
+//   <script src="/theme-bootstrap.js"></script>
+import { writeFileSync } from "node:fs";
+import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
+
+writeFileSync(
+  "public/theme-bootstrap.js",
+  createThemeBootstrapScript({
+    themes: getBuiltInThemes(),
+    defaultTheme: "light",
+    initialMode: "system",
+  }),
+);
 ```
 
 ---
 
-## Tailwind CSS v4 (`@theme-kit/tailwind`)
+## Tailwind CSS v4 (`@themvora/tailwind`)
 
 Map every semantic token to Tailwind v4 utilities and theme variables.
 
 **Tags:** CSS · Design tokens · v4
 
-**Also installs:** `@theme-kit/react`
-
 ### Feature map
 
 **Integration**
 
-- **@import "@theme-kit/tailwind"** — One import maps tokens to `@theme` variables: `--color-*`, `--radius-*`, `--spacing-*`, `--font-*`, `--shadow-*`.
-- **Dark-mode variant** — `@custom-variant dark (&:where(.dark, .dark *))` — scoped to the `.dark` class Theme Kit maintains.
+- **@import "@themvora/tailwind"** — One import maps tokens to `@theme` variables: `--color-*`, `--radius-*`, `--spacing-*`, `--font-*`, `--shadow-*`.
+- **Dark-mode variant** — `@custom-variant dark (&:where(.dark, .dark *))` — scoped to the `.dark` class Themvora maintains.
 - **synchronizeDarkClass(theme)** — Keeps the `.dark` class in sync with the active theme.
 - **CSS layers** — Ships `theme.css`, `dark.css` and `preflight.css` layers.
 
 **Transition**
 
-- **CSS transition variables** — Theme Kit exposes transition variables for Tailwind-aware styling, while the runtime owns the actual theme-change orchestration; you do not need to hand-author a global transition block just to get smooth theme changes.
-- **themeCSS** — Tailwind-compatible `@theme` variable block generated from your Theme Kit tokens, imported via the package's CSS entry.
+- **CSS transition variables** — Themvora exposes transition variables for Tailwind-aware styling, while the runtime owns the actual theme-change orchestration; you do not need to hand-author a global transition block just to get smooth theme changes.
+- **createTailwindPlugin({ themes, defaultTheme })** — Registers Themvora tokens with Tailwind from a JS config, for projects that configure Tailwind in JavaScript rather than CSS.
+- **themeCSS** — Tailwind-compatible `@theme` variable block generated from your Themvora tokens, imported via the package's CSS entry.
 
 ### Notes
 
-- **Zero-flash:** Tailwind is build-time only — it maps tokens to utilities and never runs. Zero-flash comes from the runtime you mount, which here is `@theme-kit/react`, and that injects the script itself.
+- **Zero-flash:** Tailwind is build-time only — it maps tokens to utilities and never runs. Zero-flash comes from whichever Themvora runtime you mount (`@themvora/react`, `-vue`, `-svelte`, `-solid`, `-angular` or `-web`); Tailwind does not choose one for you.
 - **Starting mode:** Tailwind maps tokens to utilities — it has no runtime of its own, so the starting mode comes from the adapter you install alongside it.
-- **Configuration:** This CSS import is the whole Tailwind integration — Tailwind maps tokens to utilities at build time and never runs in the browser. The runtime that switches themes is a separate package, installed in step 1.
+- **Configuration:** This CSS import is the whole Tailwind integration — Tailwind maps tokens to utilities at build time and never runs in the browser. Switching themes needs a Themvora runtime, a separate package of your choosing.
 
 ### Quick Start
 
@@ -1671,7 +1722,7 @@ Map every semantic token to Tailwind v4 utilities and theme variables.
 
 ```css title="src/globals.css"
 @import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 
 body {
   @apply bg-background text-foreground;
@@ -1682,7 +1733,7 @@ body {
 
 ```css title="src/globals.css"
 @import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 
 /* No custom themes? The built-in neutral light/dark set
    maps straight to utilities — bg-background, text-foreground,
@@ -1695,7 +1746,7 @@ body {
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -1724,6 +1775,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -1744,54 +1799,55 @@ h1 {
 
 #### snippet
 
-```tsx title="src/components/Card.tsx — semantic utilities"
-// src/components/Card.tsx
-export function Card() {
-  return (
-    <section className="bg-card text-card-foreground border border-border rounded-lg p-4">
-      <h2 className="text-lg font-semibold">Your plan</h2>
-      <p className="text-muted-foreground text-sm">
-        Everything below inherits the active theme.
-      </p>
-      <button className="bg-primary text-primary-foreground rounded-lg px-4 py-2">
-        Upgrade
-      </button>
-    </section>
-  );
-}
+```html title="index.html"
+<!-- Plain HTML — no framework, no component library. Every class here is a
+     Tailwind utility that resolves to a Themvora token, so a theme switch
+     repaints all of it. -->
+<main class="min-h-screen bg-background text-foreground p-8">
+  <h1 class="text-2xl font-semibold">Themvora + Tailwind</h1>
+  <p class="mt-1 text-sm text-muted-foreground">
+    Switch the theme and everything below follows.
+  </p>
+
+  <section class="mt-6 max-w-sm rounded-xl border border-border bg-card p-4">
+    <h2 class="font-semibold text-card-foreground">Your plan</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      `bg-card`, `text-card-foreground` and `border-border` — all token-backed.
+    </p>
+    <button
+      type="button"
+      data-theme-toggle
+      class="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
+    >
+      Toggle theme
+    </button>
+  </section>
+</main>
 ```
 
 #### switchSnippet
 
-```tsx title="src/ThemeSwitcher.tsx"
-// src/ThemeSwitcher.tsx — the runtime here is @theme-kit/react
-import { useTheme } from "@theme-kit/react";
+```ts title="src/theme.ts — keep Tailwind's dark class in sync"
+import { synchronizeDarkClass } from "@themvora/tailwind";
+import { createThemeRuntime, getBuiltInThemes } from "@themvora/core";
 
-export function ThemeSwitcher() {
-  const { theme, mode, toggleTheme } = useTheme();
+// Tailwind is build-time only, so it has no provider and no hook. Create the
+// runtime yourself and let Tailwind's own helper mirror it onto the `.dark`
+// class, which is what the `dark:` variant keys off.
+const runtime = createThemeRuntime({
+  themes: getBuiltInThemes(),
+  defaultTheme: "plum-light",
+});
 
-  return (
-    <main className="min-h-screen bg-background text-foreground p-8">
-      <h1 className="text-2xl font-semibold">Theme Kit</h1>
-      <p className="text-muted-foreground">
-        Current theme: {theme.name} ({mode})
-      </p>
+runtime.store.subscribe((theme) => synchronizeDarkClass(theme));
 
-      <button
-        onClick={toggleTheme}
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-      >
-        Toggle theme
-      </button>
+// Switching is the runtime's, not Tailwind's.
+export function setMode(mode: "light" | "dark" | "system") {
+  runtime.selection.setMode(mode);
+}
 
-      <section className="mt-6 rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold">Themed card</h2>
-        <p className="text-sm text-muted-foreground">
-          Every utility here resolves to a Theme Kit token.
-        </p>
-      </section>
-    </main>
-  );
+export function toggleTheme() {
+  runtime.selection.toggleTheme();
 }
 ```
 
@@ -1800,7 +1856,7 @@ export function ThemeSwitcher() {
 #### snippet2
 
 ```css title="src/globals.css — token → utility map"
-/* @theme-kit/tailwind maps every semantic token onto a Tailwind v4 utility.
+/* @themvora/tailwind maps every semantic token onto a Tailwind v4 utility.
    The ones you will reach for most:
 
      .bg-background          .text-foreground
@@ -1828,7 +1884,7 @@ export function ThemeSwitcher() {
 
 ---
 
-## Astro (`@theme-kit/astro`)
+## Astro (`@themvora/astro`)
 
 Astro-native theming: an integration for the pre-paint bootstrap, a React-free <html> layout, a native <ThemeToggle />, and opt-in client islands.
 
@@ -1838,50 +1894,50 @@ Astro-native theming: an integration for the pre-paint bootstrap, a React-free <
 
 **Astro integration**
 
-- **theme.config.ts discovery** — `themeKit()` finds `theme.config.ts` at the project root and derives everything from it — the pre-paint bootstrap and the runtime's configuration. Nothing is repeated in `astro.config.mjs`.
-- **Configuration transport** — Injects the bootstrap projection as `window.__THEME_KIT_CONFIG__` from `<head>`. The island reads it instead of taking theme props, so its server-rendered and hydrated markup come from the same registry.
-- **themeKit() in astro.config.mjs** — Registers the integration and injects the pre-paint bootstrap into every page's <head> with `injectScript("head-inline")`.
+- **theme.config.ts discovery** — `themvora()` finds `theme.config.ts` at the project root and derives everything from it — the pre-paint bootstrap and the runtime's configuration. Nothing is repeated in `astro.config.mjs`.
+- **Configuration transport** — Injects the bootstrap projection as `window.__THEMVORA_CONFIG__` from `<head>`. The island reads it instead of taking theme props, so its server-rendered and hydrated markup come from the same registry.
+- **themvora() in astro.config.mjs** — Registers the integration and injects the pre-paint bootstrap into every page's <head> with `injectScript("head-inline")`.
 - **Zero-flash bootstrap** — Reads the persisted cookies, resolves the effective mode against `prefers-color-scheme`, and applies the CSS variables plus `data-theme` before first paint.
 - **navigation: true (default)** — Keeps the resolved theme across `<ClientRouter />` navigations — Astro otherwise copies each incoming page's `<html>` attributes over the live root. Inert without `<ClientRouter />`.
-- **No client framework required** — `@theme-kit/astro` imports no React — the integration, the server helpers, the `<ThemeToggle />` component and the browser runtime are all framework-neutral. React is an optional peer, pulled in only by an island.
+- **No client framework required** — `@themvora/astro` imports no React — the integration, the server helpers, the `<ThemeToggle />` component and the browser runtime are all framework-neutral. React is an optional peer, pulled in only by an island.
 
 **Astro components (no React)**
 
 - **provider.astro** — Server-renders the themed `<html data-theme>` from the request cookies. A concrete mode inlines that theme's variables; `system` emits both schemes as media blocks instead, since an inline variable would outrank the dark block.
 - **ThemeToggle.astro** — A native Astro toggle: a real `<button>`, so keyboard and focus behaviour come from the platform. No island, no `client:load`, and no per-page `initialMode` / `initialFamily`. `showMode` makes its text the live mode.
-- **getThemeController()** — The framework-neutral browser API, from `@theme-kit/astro/runtime`. Not a hook: a plain object with `getMode()`, `setMode()`, `setFamily()`, `toggleTheme()` and `subscribe()`, valid in any `<script>`. Idempotent — one runtime per document, shared with every other consumer.
-- **data-tk-readout** — Marks an element whose text Theme Kit owns. The pre-paint bootstrap patches it from `<head>`, before the body is parsed, and the controller keeps it in sync afterwards — so a server-rendered label is never painted and then corrected.
+- **getThemeController()** — The framework-neutral browser API, from `@themvora/astro/runtime`. Not a hook: a plain object with `getMode()`, `setMode()`, `setFamily()`, `toggleTheme()` and `subscribe()`, valid in any `<script>`. Idempotent — one runtime per document, shared with every other consumer.
+- **data-tv-readout** — Marks an element whose text Themvora owns. The pre-paint bootstrap patches it from `<head>`, before the body is parsed, and the controller keeps it in sync afterwards — so a server-rendered label is never painted and then corrected.
 - **getInitialThemeState()** — Resolves the initial state from `Astro.request` so a client island hydrates against exactly what the document rendered. Needs the registry (`config` or `themes`) and a request, so it belongs on a server-rendered page.
 - **createAstroThemePersistence() / computeFingerprint()** — Cookie + localStorage persistence adapter, plus config fingerprinting to reject stale cookies.
 
 **Client islands (opt-in)**
 
-- **@theme-kit/astro/client** — The only entry that depends on React. Exports the `ThemeProviderClient` island, the `useTheme*` hooks, the React `ThemeScope`, and `ThemeReadout`.
+- **@themvora/astro/client** — The only entry that depends on React. Exports the `ThemeProviderClient` island, the `useTheme*` hooks, the React `ThemeScope`, and `ThemeReadout`.
 - **No theme props needed** — The registry, default theme and initial mode/family come from the transported `theme.config.ts`. Restating `initialMode` / `initialFamily` is a second source of truth: when it drifts from the config, the island's server markup disagrees with its hydrated markup (React error #418) and the text fluctuates on every load.
 - **client:load, not client:only** — Astro server-renders the island and hydrates it in place, so the panel is in the first paint and hydration only attaches handlers. `client:only` renders nothing on the server, which is the flash the integration exists to prevent.
 - **One island, not several** — Astro hydrates islands in an unspecified order, so two separate islands would race. Write one island whose tree contains both the provider and its consumers — `ThemeProviderClient` renders nothing itself; it is the provider half of that tree.
 - **One runtime, shared** — `ThemeProviderClient` adopts a runtime that already exists — one a `<ThemeToggle />` or `getThemeController()` script created — instead of making a second one, and leaves its destruction to the owner. Islands and native controls can share a page.
 - **Framework renderers stay optional** — React is an optional peer dependency. Astro-only projects never install it — choosing a React island is what pulls it in.
-- **Adding the renderer** — Opting in is one explicit step: install `@astrojs/react` and `react`, then add `react()` next to `themeKit()` in `astro.config.mjs`. The Astro + React path shows that config; the Astro-only path never registers a renderer.
-- **Client bundle cost** — `<ThemeToggle />` and `getThemeController()` pull in the theme runtime — persistence, cross-tab sync and the DOM contract all come from `@theme-kit/core` rather than a second implementation. A page that only needs the *themed* document, with no interactive control, ships no client JavaScript at all: `provider.astro` and the inline bootstrap do that work on the server.
+- **Adding the renderer** — Opting in is one explicit step: install `@astrojs/react` and `react`, then add `react()` next to `themvora()` in `astro.config.mjs`. The Astro + React path shows that config; the Astro-only path never registers a renderer.
+- **Client bundle cost** — `<ThemeToggle />` and `getThemeController()` pull in the theme runtime — persistence, cross-tab sync and the DOM contract all come from `@themvora/core` rather than a second implementation. A page that only needs the *themed* document, with no interactive control, ships no client JavaScript at all: `provider.astro` and the inline bootstrap do that work on the server.
 
 **Transition**
 
-- **transition prop** — Pass `transition` to the island provider (`@theme-kit/astro/client`) to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch — `transition` is fixed at runtime creation. Compose the core diff/plan/runner APIs for custom animation.
+- **transition prop** — Pass `transition` to the island provider (`@themvora/astro/client`) to enable CSS transitions on theme changes.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
 
 ### Notes
 
-- **Zero-flash:** Included. `themeKit()` injects the pre-paint bootstrap and `provider.astro` server-renders the themed `<html>`, so the first paint is already correct.
+- **Zero-flash:** Included. `themvora()` injects the pre-paint bootstrap and `provider.astro` server-renders the themed `<html>`, so the first paint is already correct.
 - **Starting mode:** `theme.config.ts` declares the starting theme and mode once, and both the integration and the provider read it.
-- **Configuration:** Declared in `theme.config.ts` at the project root. `themeKit()` in `astro.config.mjs` discovers it and injects the pre-paint bootstrap, and `provider.astro` reads the same file — so nothing is repeated.
+- **Configuration:** Declared in `theme.config.ts` at the project root. `themvora()` in `astro.config.mjs` discovers it and injects the pre-paint bootstrap, and `provider.astro` reads the same file — so nothing is repeated.
 
 ### Quick Start
 
 #### quickStart
 
 ```ts title="theme.config.ts"
-import { defineTheme, defineThemeKitConfig } from "@theme-kit/core";
+import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
   defineTheme({
@@ -1896,7 +1952,7 @@ const themes = [
   }),
 ];
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "mint-light",
   initialMode: "system",
@@ -1909,17 +1965,17 @@ export default defineThemeKitConfig({
 ```js title="astro.config.mjs"
 // astro.config.mjs
 import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });
 ```
 
 #### styles
 
 ```css title="src/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -1948,6 +2004,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -1971,7 +2031,7 @@ h1 {
 ```astro title="src/layouts/BaseLayout.astro"
 ---
 // src/layouts/BaseLayout.astro — the one place the provider is mounted.
-import Provider from "@theme-kit/astro/provider.astro";
+import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 import "../styles.css";
 ---
@@ -1985,7 +2045,7 @@ import "../styles.css";
 
 ```tsx title="src/components/ThemeIsland.tsx"
 // src/components/ThemeIsland.tsx
-import { ThemeProviderClient, useTheme } from "@theme-kit/astro/client";
+import { ThemeProviderClient, useTheme } from "@themvora/astro/client";
 
 function Panel() {
   const { theme, mode, setMode, toggleTheme } = useTheme();
@@ -1999,7 +2059,7 @@ function Panel() {
         padding: "2rem",
       }}
     >
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>Current theme: {theme.name} ({mode})</p>
 
       <button
@@ -2061,7 +2121,7 @@ export default function ThemeIsland() {
 ```astro title="src/pages/index.astro"
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 ---
 
 <BaseLayout>
@@ -2082,7 +2142,7 @@ import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
 ```astro title="src/pages/index.astro"
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 ---
 
 <BaseLayout>
@@ -2105,7 +2165,7 @@ import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
       mode:
       <span
         style="font-family: var(--theme-typography-font-family-mono)"
-        data-tk-readout="mode">—</span>
+        data-tv-readout="mode">—</span>
     </p>
   </main>
 </BaseLayout>
@@ -2115,7 +2175,7 @@ import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
 
 ```ts title="getThemeController()"
 // The one runtime the provider, <ThemeToggle /> and any island share.
-import { getThemeController } from "@theme-kit/astro/runtime";
+import { getThemeController } from "@themvora/astro/runtime";
 
 const theme = getThemeController();
 
@@ -2145,7 +2205,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <script>
     // The same runtime <ThemeToggle /> drives, reached directly. No component
     // import, no client framework, no hydration.
-    import { getThemeController } from "@theme-kit/astro/runtime";
+    import { getThemeController } from "@themvora/astro/runtime";
 
     const theme = getThemeController();
 
@@ -2162,16 +2222,16 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 // astro.config.mjs — the only addition is the React renderer.
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit(), react()],
+  integrations: [themvora(), react()],
 });
 ```
 
 ---
 
-## Nuxt 3 (`@theme-kit/nuxt`)
+## Nuxt 3 (`@themvora/nuxt`)
 
 Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composables, and config-driven options.
 
@@ -2184,30 +2244,30 @@ Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composabl
 - **SSR-first theme resolution** — Reads `theme-name`, `theme-mode`, `theme-family`, `theme-fingerprint` cookies, validates the fingerprint, resolves the initial theme, and renders `<html data-theme>` with inline CSS variables before hydration.
 - **Blocking bootstrap script** — Emits a blocking script in `<head>` that applies the persisted theme before first paint.
 - **Dark-mode CSS fallback** — Emits `@media (prefers-color-scheme: dark)` styles when the persisted mode is `system`.
-- **Cookie + localStorage sync** — The client mirrors selection back to cookies so the server renders the right theme on the next request — same contract as `@theme-kit/next`.
+- **Cookie + localStorage sync** — The client mirrors selection back to cookies so the server renders the right theme on the next request — same contract as `@themvora/next`.
 
 **Client**
 
 - **Runtime plugin** — A Nuxt plugin installs one app-wide runtime, provided to `useTheme()`, `useThemeRuntime()` and every auto-imported composable.
-- **Auto-imports** — Composables (`useTheme`, `useThemeMode`, `useThemeHistory`, …) and components (`ThemeScope`, `ThemeScrollbar`) are auto-imported — no manual imports. They are also re-exported from `@theme-kit/nuxt` if you prefer being explicit.
-- **configKey: "themeKit"** — Configure `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar`, `storageKey` and `scheduled` in `nuxt.config.ts`.
+- **Auto-imports** — Composables (`useTheme`, `useThemeMode`, `useThemeHistory`, …) and components (`ThemeScope`, `ThemeScrollbar`) are auto-imported — no manual imports. They are also re-exported from `@themvora/nuxt` if you prefer being explicit.
+- **configKey: "themvora"** — Configure `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar`, `storageKey` and `scheduled` in `nuxt.config.ts`.
 - **useThemeSchedule()** — Auto-imported composable exposing the sunrise/sunset schedule: reactive `state` (`enabled`, `status`, `sunrise`, `sunset`, `nextTransition`) plus `enable()`/`disable()`/`set()`. Configure via `scheduled` in the module config.
 
 **Transition**
 
-- **transition in nuxt.config.ts** — Configure `transition` in the `themeKit` config object to enable CSS transitions on theme changes. Duration/easing are set once; Theme Kit generates the transition styles at runtime.
+- **transition in nuxt.config.ts** — Configure `transition` in the `themvora` config object to enable CSS transitions on theme changes. Duration/easing are set once; Themvora generates the transition styles at runtime.
 - **runtime.store.set(theme, { suppressTransition: true })** — Per-update escape hatch: `runtime.store.set(theme, { suppressTransition: true })` skips the configured animation. For custom animation orchestration, compose the core diff/plan/runner APIs.
 
 **Scrollbar**
 
-- **scrollbar: true** — Enables Theme Kit's custom overlay scrollbar. The SSR bootstrap hides the native scrollbar before first paint, then the overlay engine synchronizes with browser scrolling without replacing native scroll behavior.
-- **scrollbar option** — Configure the overlay appearance (thickness, radius, colors, auto-hide, …) from the `themeKit` config; the overlay stays theme-aware and updates with runtime theme changes.
+- **scrollbar: true** — Enables Themvora's custom overlay scrollbar. The SSR bootstrap hides the native scrollbar before first paint, then the overlay engine synchronizes with browser scrolling without replacing native scroll behavior.
+- **scrollbar option** — Configure the overlay appearance (thickness, radius, colors, auto-hide, …) from the `themvora` config; the overlay stays theme-aware and updates with runtime theme changes.
 
 ### Notes
 
 - **Zero-flash:** Included. The module emits the pre-paint bootstrap and server-renders the themed `<html>`.
-- **Starting mode:** `themeKit.initialMode` in `nuxt.config.ts` decides the starting mode, and `themeKit.defaultTheme` picks the theme.
-- **Configuration:** Declared in `nuxt.config.ts` under the `themeKit` key. The module reads it and emits the pre-paint bootstrap, so nothing is repeated elsewhere.
+- **Starting mode:** `themvora.initialMode` in `nuxt.config.ts` decides the starting mode, and `themvora.defaultTheme` picks the theme.
+- **Configuration:** Declared in `nuxt.config.ts` under the `themvora` key. The module reads it and emits the pre-paint bootstrap, so nothing is repeated elsewhere.
 
 ### Quick Start
 
@@ -2216,10 +2276,10 @@ Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composabl
 ```ts title="nuxt.config.ts"
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
+  modules: ["@themvora/nuxt"],
   // Required when scrollbar: true — the styles ship with core, not the module.
-  css: ["@theme-kit/core/scrollbar.css"],
-  themeKit: {
+  css: ["@themvora/core/scrollbar.css"],
+  themvora: {
     defaultTheme: "mint-light",
     initialMode: "system",
     transition: { duration: 360, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
@@ -2233,8 +2293,8 @@ export default defineNuxtConfig({
 ```ts title="nuxt.config.ts"
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "light",
   },
 });
@@ -2243,7 +2303,7 @@ export default defineNuxtConfig({
 #### styles
 
 ```css title="assets/css/main.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -2270,6 +2330,10 @@ h1 {
   border: var(--theme-border-width-1) solid var(--theme-color-border);
   border-radius: var(--theme-radius-lg);
   box-shadow: var(--theme-shadow-md);
+}
+
+.muted {
+  color: var(--theme-color-mutedForeground);
 }
 
 .btn {
@@ -2300,7 +2364,7 @@ const { theme, mode, toggleTheme } = useTheme();
 
 <template>
   <main class="page">
-    <h1>Theme Kit</h1>
+    <h1>Themvora</h1>
     <p>Current theme: {{ theme.name }} ({{ mode }})</p>
 
     <button class="primary" @click="toggleTheme">Toggle theme</button>
@@ -2366,7 +2430,7 @@ const { theme, setFamily } = useTheme();
 
 ---
 
-## Remix (`@theme-kit/remix`)
+## Remix (`@themvora/remix`)
 
 Resolve the theme in a loader, paint it before first paint, then hydrate a matching runtime.
 
@@ -2376,7 +2440,7 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 **Server**
 
-- **getInitialThemeState()** — Reads the `theme-mode` / `theme-family` cookies off the request and resolves the initial state. Imported from `@theme-kit/remix/server`.
+- **getInitialThemeState()** — Reads the `theme-mode` / `theme-family` cookies off the request and resolves the initial state. Imported from `@themvora/remix/server`.
 - **ThemeHead** — Emits the blocking bootstrap in the document <head> so the page paints already themed, plus the `prefers-color-scheme` dark fallback.
 - **SSR-first resolution** — Request → loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.
 
@@ -2384,8 +2448,8 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 - **ThemeProvider** — Hydrates against the loader-resolved `initial` state and mirrors the selection back to cookies on change.
 - **createRemixThemePersistence()** — Builds the adapter `ThemeProvider` uses: localStorage plus the `theme-mode`, `theme-family` and `theme-fingerprint` cookies the loader reads on the next request.
-- **Full hook set + ThemeScope** — Every React hook plus scoped subtrees — re-exported from `@theme-kit/react`.
-- **Intentional React dependency** — Remix is a React framework, so `@theme-kit/remix` depends on `@theme-kit/core` + `@theme-kit/react` directly. No other framework or adapter package is pulled in.
+- **Full hook set + ThemeScope** — Every React hook plus scoped subtrees — re-exported from `@themvora/react`.
+- **Intentional React dependency** — Remix is a React framework, so `@themvora/remix` depends on `@themvora/core` + `@themvora/react` directly. No other framework or adapter package is pulled in.
 
 **Routing**
 
@@ -2399,8 +2463,8 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 **Scrollbar**
 
-- **scrollbar prop** — Pass `scrollbar` to `ThemeHead` to hide the native scrollbar from the very first paint and hand over to Theme Kit's overlay engine once the runtime hydrates.
-- **Import the pre-paint styles** — Needs `import "@theme-kit/core/scrollbar.css"` plus the `tk-scrollbar` class on `<html>`, which the snippet above sets. Without both, the native bar hides before the overlay exists.
+- **scrollbar prop** — Pass `scrollbar` to `ThemeHead` to hide the native scrollbar from the very first paint and hand over to Themvora's overlay engine once the runtime hydrates.
+- **Import the pre-paint styles** — Needs `import "@themvora/core/scrollbar.css"` plus the `tv-scrollbar` class on `<html>`, which the snippet above sets. Without both, the native bar hides before the overlay exists.
 
 ### Notes
 
@@ -2423,9 +2487,9 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "@remix-run/react";
-import { getBuiltInThemes } from "@theme-kit/core";
-import { ThemeHead, ThemeProvider } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
+import { ThemeHead, ThemeProvider } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
 
 const themes = getBuiltInThemes();
 
@@ -2498,9 +2562,9 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "@remix-run/react";
-import { getBuiltInThemes } from "@theme-kit/core";
-import { ThemeHead, ThemeProvider } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
+import { ThemeHead, ThemeProvider } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
 
 const themes = getBuiltInThemes();
 
@@ -2558,7 +2622,7 @@ export default function App() {
 #### styles
 
 ```css title="app/styles.css"
-/* Theme Kit emits its design tokens as CSS custom properties on the root
+/* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
@@ -2587,6 +2651,10 @@ h1 {
   box-shadow: var(--theme-shadow-md);
 }
 
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
 .btn {
   font: inherit;
   padding: var(--theme-spacing-2) var(--theme-spacing-4);
@@ -2609,7 +2677,7 @@ h1 {
 
 ```tsx title="app/routes/_index.tsx"
 // The provider in app/root.tsx supplies the runtime, so a route just reads it.
-import { useTheme } from "@theme-kit/remix";
+import { useTheme } from "@themvora/remix";
 
 export default function Index() {
   const { theme, mode, toggleTheme } = useTheme();
@@ -2623,7 +2691,7 @@ export default function Index() {
         padding: "2rem",
       }}
     >
-      <h1>Theme Kit</h1>
+      <h1>Themvora</h1>
       <p>
         Current theme: {theme.name} ({mode})
       </p>
@@ -2666,7 +2734,7 @@ export default function Index() {
 
 ```ts title="app/themes.ts"
 // Imported as `./themes` from app/root.tsx.
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 export const themes = [
   defineTheme({
@@ -2684,7 +2752,7 @@ export const themes = [
 ```tsx title="app/components/history-scope.tsx"
 // app/components/history-scope.tsx — used inside the root provider, so it
 // does NOT create a second runtime of its own.
-import { ThemeScope, useThemeHistory } from "@theme-kit/remix";
+import { ThemeScope, useThemeHistory } from "@themvora/remix";
 
 export function HistoryScope() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();

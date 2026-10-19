@@ -12,79 +12,79 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/choose-package") },
   title: "Which package should I install?",
   description:
-    "A decision guide for the Theme Kit packages: the core runtime, framework integrations, and library adapters — plus the combinations that work together.",
+    "A decision guide for the Themvora packages: the core runtime, framework integrations, and library adapters — plus the combinations that work together.",
 };
 
 const decisions: { when: string; pkg: string; href: string; note: string }[] = [
   {
     when: "You need the runtime",
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     href: "/packages/core",
     note: "The framework-agnostic heart — store, registry, runtime, transitions, persistence, adapters.",
   },
   {
     when: "You're using React",
-    pkg: "@theme-kit/react",
+    pkg: "@themvora/react",
     href: "/packages/react",
     note: "Provider, hooks and ThemeScope. The base that Next and Remix re-export.",
   },
   {
     when: "You're using Next.js",
-    pkg: "@theme-kit/next",
+    pkg: "@themvora/next",
     href: "/packages/next",
     note: "App Router SSR: cookie persistence, zero-flash bootstrap, blocking script.",
   },
   {
     when: "You're using Vue 3",
-    pkg: "@theme-kit/vue",
+    pkg: "@themvora/vue",
     href: "/packages/vue",
     note: "Provider component, composables and scoped theming.",
   },
   {
     when: "You're using Nuxt 3",
-    pkg: "@theme-kit/nuxt",
+    pkg: "@themvora/nuxt",
     href: "/packages/nuxt",
     note: "A Nuxt module — configure in nuxt.config.ts, composables auto-import.",
   },
   {
     when: "You're using Svelte 5",
-    pkg: "@theme-kit/svelte",
+    pkg: "@themvora/svelte",
     href: "/packages/svelte",
     note: "Context-based provider with reactive readable stores.",
   },
   {
     when: "You're using Solid",
-    pkg: "@theme-kit/solid",
+    pkg: "@themvora/solid",
     href: "/packages/solid",
     note: "Signals-first provider, getters and scoped subtrees.",
   },
   {
     when: "You're using Angular",
-    pkg: "@theme-kit/angular",
+    pkg: "@themvora/angular",
     href: "/packages/angular",
     note: "DI providers, reactive injectables and an element-scoped directive.",
   },
   {
     when: "You're using Astro",
-    pkg: "@theme-kit/astro",
+    pkg: "@themvora/astro",
     href: "/packages/astro",
     note: "Islands-friendly with a shared global runtime and zero-flash bootstrap.",
   },
   {
     when: "You're using Remix",
-    pkg: "@theme-kit/remix",
+    pkg: "@themvora/remix",
     href: "/packages/remix",
     note: "Loader-based SSR theming with a blocking head script.",
   },
   {
     when: "No framework, or Web Components",
-    pkg: "@theme-kit/web",
+    pkg: "@themvora/web",
     href: "/packages/web",
     note: "Custom elements and imperative APIs for any HTML page.",
   },
   {
     when: "You use Tailwind CSS v4",
-    pkg: "@theme-kit/tailwind",
+    pkg: "@themvora/tailwind",
     href: "/packages/tailwind",
     note: "Maps semantic tokens to @theme variables and utilities.",
   },
@@ -93,37 +93,37 @@ const decisions: { when: string; pkg: string; href: string; note: string }[] = [
 const combos: { name: string; packages: string[]; href: string }[] = [
   {
     name: "Next.js + MUI",
-    packages: ["@theme-kit/core", "@theme-kit/next", "@theme-kit/mui"],
+    packages: ["@themvora/core", "@themvora/next", "@themvora/mui"],
     href: "/libraries/mui",
   },
   {
     name: "Next.js + shadcn/ui",
-    packages: ["@theme-kit/core", "@theme-kit/next", "@theme-kit/shadcn"],
+    packages: ["@themvora/core", "@themvora/next", "@themvora/shadcn"],
     href: "/libraries/shadcn",
   },
   {
     name: "React + Chakra UI",
-    packages: ["@theme-kit/core", "@theme-kit/react", "@theme-kit/chakra"],
+    packages: ["@themvora/core", "@themvora/react", "@themvora/chakra"],
     href: "/libraries/chakra",
   },
   {
     name: "Vue + Bootstrap",
-    packages: ["@theme-kit/core", "@theme-kit/vue", "@theme-kit/bootstrap"],
+    packages: ["@themvora/core", "@themvora/vue", "@themvora/bootstrap"],
     href: "/libraries/bootstrap",
   },
   {
     name: "Nuxt + daisyUI",
-    packages: ["@theme-kit/core", "@theme-kit/nuxt", "@theme-kit/daisyui"],
+    packages: ["@themvora/core", "@themvora/nuxt", "@themvora/daisyui"],
     href: "/libraries/daisyui",
   },
   {
     name: "React + Mantine",
-    packages: ["@theme-kit/core", "@theme-kit/react", "@theme-kit/mantine"],
+    packages: ["@themvora/core", "@themvora/react", "@themvora/mantine"],
     href: "/libraries/mantine",
   },
 ];
 
-const installCode = `npm install @theme-kit/core @theme-kit/next @theme-kit/mui`;
+const installCode = `npm install @themvora/core @themvora/next @themvora/mui`;
 
 export default function ChoosePackagePage() {
   return (

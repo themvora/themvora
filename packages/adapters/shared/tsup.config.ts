@@ -7,5 +7,5 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   outDir: "dist",
-  external: ["react", "react-dom", "@theme-kit/core"],
+  external: ["react", "react-dom", "@themvora/core"],
 });

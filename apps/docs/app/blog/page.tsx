@@ -8,7 +8,7 @@ export const metadata = {
   alternates: { canonical: docsUrl("/blog") },
   title: "Blog",
   description:
-    "Theme Kit blog — release notes, deep dives on theming architecture, multi-window sync, scheduling and accessibility.",
+    "Themvora blog — release notes, deep dives on theming architecture, multi-window sync, scheduling and accessibility.",
 };
 
 export default function BlogIndexPage() {
@@ -34,7 +34,7 @@ export default function BlogIndexPage() {
           }
           eyebrow="Blog"
           title="Notes from the theming front line"
-          description="Release notes, architecture deep dives and guides — all written while building Theme Kit, and all dogfooding it. Search, or filter by tag."
+          description="Release notes, architecture deep dives and guides — all written while building Themvora, and all dogfooding it. Search, or filter by tag."
           badges={[{ label: `${posts.length} post${posts.length === 1 ? "" : "s"}` }]}
         />
 

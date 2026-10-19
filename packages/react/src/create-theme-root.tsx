@@ -8,7 +8,7 @@ import {
   createThemeBootstrapScript,
   type ThemeDefinition,
   type ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { ThemeProvider, type ThemeProviderProps } from "./provider";
 
 /**
@@ -18,7 +18,7 @@ import { ThemeProvider, type ThemeProviderProps } from "./provider";
  * this helper manages), plus:
  *
  * - `container` — the DOM node the root mounts into.
- * - `render` — the application's full composition. Receives the Theme Kit
+ * - `render` — the application's full composition. Receives the Themvora
  *   runtime so dependent library configuration can be derived from it:
  *
  *   ```tsx
@@ -36,7 +36,7 @@ import { ThemeProvider, type ThemeProviderProps } from "./provider";
  *
  *   Composition belongs in JSX, so arbitrary provider trees (MUI, Chakra,
  *   React Query, Redux, Router, …) are fully under the application's control.
- *   `MuiThemeProvider` above is the `@theme-kit/mui` adapter provider, which
+ *   `MuiThemeProvider` above is the `@themvora/mui` adapter provider, which
  *   takes the runtime directly. `render` is the primary (and only) composition
  *   mechanism — there is no separate `children` option.
  */
@@ -45,7 +45,7 @@ export interface CreateThemeRootOptions<T extends ThemeDefinition>
   /** The DOM node this root mounts into. */
   container: Element | DocumentFragment;
   /**
-   * Render the application tree. Called with the Theme Kit runtime so other
+   * Render the application tree. Called with the Themvora runtime so other
    * library providers can derive their configuration from it.
    */
   render: (context: { runtime: ThemeRuntime<T> }) => ReactNode;
@@ -55,16 +55,16 @@ export interface CreateThemeRootOptions<T extends ThemeDefinition>
 export interface ThemeRootHandle<T extends ThemeDefinition> {
   /** The underlying React root (for manual re-renders if needed). */
   root: Root;
-  /** The Theme Kit runtime created for this root. */
+  /** The Themvora runtime created for this root. */
   runtime: ThemeRuntime<T>;
   /** Unmount the tree and destroy the runtime. */
   unmount(): void;
 }
 
 /**
- * Create a Theme Kit-owned React root for client-rendered (CSR) applications.
+ * Create a Themvora-owned React root for client-rendered (CSR) applications.
  *
- * Theme Kit owns the root boundary: the runtime is created once, and the
+ * Themvora owns the root boundary: the runtime is created once, and the
  * initial commit is flushed synchronously so the browser's very first frame is
  * already the themed UI. Without it, React's concurrent root can schedule the
  * initial commit after the browser paints an empty/partial frame — visible as
@@ -82,12 +82,12 @@ export interface ThemeRootHandle<T extends ThemeDefinition> {
  * );
  * ```
  *
- * Reach for `createThemeRoot` when you want Theme Kit to own the root
+ * Reach for `createThemeRoot` when you want Themvora to own the root
  * initialization boundary — for example a reload-sensitive demo, or an app
- * whose providers need the Theme Kit runtime at composition time:
+ * whose providers need the Themvora runtime at composition time:
  *
  * ```tsx
- * import { createThemeRoot } from "@theme-kit/react";
+ * import { createThemeRoot } from "@themvora/react";
  *
  * const handle = createThemeRoot({
  *   container: document.getElementById("root")!,
@@ -111,7 +111,7 @@ export interface ThemeRootHandle<T extends ThemeDefinition> {
  *
  * Do **not** use this helper for SSR/SSG applications — server-rendered HTML
  * must be hydrated with `hydrateRoot()` (or a framework integration such as
- * `@theme-kit/next`), not replaced by a fresh `createRoot`.
+ * `@themvora/next`), not replaced by a fresh `createRoot`.
  *
  * @see {@link ThemeProvider}
  */
@@ -176,7 +176,7 @@ export function createThemeRoot<T extends ThemeDefinition>(
     document.head &&
     coreOptions.persistence !== null &&
     coreOptions.themes?.length &&
-    !document.getElementById("theme-kit-bootstrap")
+    !document.getElementById("themvora-bootstrap")
   ) {
     const bootstrap = createThemeBootstrapScript({
       themes: coreOptions.themes,
@@ -192,7 +192,7 @@ export function createThemeRoot<T extends ThemeDefinition>(
     });
     if (bootstrap) {
       const script = document.createElement("script");
-      script.id = "theme-kit-bootstrap";
+      script.id = "themvora-bootstrap";
       script.text = bootstrap;
       document.head.appendChild(script);
     }

@@ -8,7 +8,7 @@
  *     `docs/reference/capabilities.ts` must be a symbol the shipped package
  *     actually exports. A registry entry for a symbol that does not exist is an
  *     invented capability.
- *  2. Docs membership: every symbol the docs import from a `@theme-kit/*`
+ *  2. Docs membership: every symbol the docs import from a `@themvora/*`
  *     package must be listed in the registry (brief §4: "No feature page,
  *     framework page, or adapter page may reference an exported symbol that is
  *     not listed here").
@@ -63,8 +63,8 @@ for (const [key, cap] of Object.entries(capabilities)) {
 
 // --- 2. registry integrity: listed symbols must be shipped -----------------
 /**
- * A registry key may be a base package (`@theme-kit/core`) or a base package
- * plus one of its declared entrypoints (`@theme-kit/core/vanilla`), because
+ * A registry key may be a base package (`@themvora/core`) or a base package
+ * plus one of its declared entrypoints (`@themvora/core/vanilla`), because
  * that is how the docs import the symbols. Both must resolve to a shipped
  * entrypoint, and the symbol must be exported by it.
  */
@@ -146,7 +146,7 @@ for (const ref of refs) {
   }
   checked += 1;
   // The registry may key a symbol by base package or by an explicit
-  // entrypoint (`@theme-kit/astro/client`), matching how the docs import it.
+  // entrypoint (`@themvora/astro/client`), matching how the docs import it.
   const listed =
     registryLists(index, ref.specifier, ref.symbol) ?? registryLists(index, resolved.pkg, ref.symbol);
   if (!listed) {

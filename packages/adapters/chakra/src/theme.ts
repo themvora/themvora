@@ -8,7 +8,7 @@ import {
   readColor,
   readFontFamily,
   readRadius,
-} from "@theme-kit/adapters";
+} from "@themvora/adapters";
 
 const CHAKRA_SCALE = [
   "50",
@@ -32,8 +32,18 @@ function value(v: string): TokenValue {
   return { value: v };
 }
 
+/**
+ * Build the 50-950 scale with the theme's primary at the shade Chakra reads for
+ * `colorPalette.solid` — which is `500`, the colour a filled `colorPalette`
+ * button renders.
+ *
+ * The base index must match that shade. Placing the primary anywhere else (it
+ * used to sit at `600`) makes the filled button a *tint* of the primary rather
+ * than the primary itself, so the component never shows the colour the theme
+ * actually declared.
+ */
 function toScale(baseColor: string): Record<string, TokenValue> {
-  const shades = generateShades(baseColor, CHAKRA_SCALE.length, 6);
+  const shades = generateShades(baseColor, CHAKRA_SCALE.length, 5);
   const scale: Record<string, TokenValue> = {};
   CHAKRA_SCALE.forEach((step, i) => {
     scale[step] = value(shades[i] ?? baseColor);
@@ -44,9 +54,17 @@ function toScale(baseColor: string): Record<string, TokenValue> {
 /**
  * Chakra v3 requires custom colors used with `colorPalette` to also expose
  * these semantic keys so the semantic aliases resolve against the palette.
+ *
+ * `contrast` is the content colour on a `solid` surface — the text and icons
+ * inside a filled `colorPalette` button. It is passed in explicitly from the
+ * theme's own `<role>Foreground` token rather than derived from the generated
+ * scale: deriving it (this used to be shade `100`, a pale tint) meant a palette
+ * whose declared foreground is *dark* still rendered light content — the
+ * unreadable-content failure this adapter exists to prevent.
  */
 function paletteSemantics(
   name: string,
+  contrast: string,
 ): Record<string, {
   solid: TokenValue;
   contrast: TokenValue;
@@ -59,7 +77,7 @@ function paletteSemantics(
   return {
     [name]: {
       solid: value(`{colors.${name}.500}`),
-      contrast: value(`{colors.${name}.100}`),
+      contrast: value(contrast),
       fg: value(`{colors.${name}.700}`),
       muted: value(`{colors.${name}.100}`),
       subtle: value(`{colors.${name}.200}`),
@@ -70,7 +88,7 @@ function paletteSemantics(
 }
 
 /**
- * Builds the Chakra UI (v3) theme config from Theme Kit semantic tokens.
+ * Builds the Chakra UI (v3) theme config from Themvora semantic tokens.
  *
  * @see {@link ChakraThemeProvider}
  */
@@ -124,10 +142,13 @@ const semanticTokens = {
       // these semantic keys (solid/contrast/fg/…). Without them, `colorPalette`
       // maps the color *scale* but the semantic aliases (solid/fg/muted/…) still
       // resolve to the default palette, leaving recipes zinc/gray.
-      ...paletteSemantics("primary"),
-      ...paletteSemantics("secondary"),
-      ...paletteSemantics("accent"),
-      ...paletteSemantics("destructive"),
+      ...paletteSemantics("primary", c("primaryForeground", "#ffffff") ?? "#ffffff"),
+      ...paletteSemantics("secondary", c("secondaryForeground", c("foreground")) ?? "#0f172a"),
+      ...paletteSemantics("accent", c("accentForeground", c("foreground")) ?? "#0f172a"),
+      ...paletteSemantics(
+        "destructive",
+        c("destructiveForeground", "#ffffff") ?? "#ffffff",
+      ),
     },
   };
 
@@ -142,10 +163,10 @@ const semanticTokens = {
 }
 
 /**
- * Creates a Chakra UI system from a Theme Kit source.
+ * Creates a Chakra UI system from a Themvora source.
  *
  * ```ts
- * import { createChakraTheme } from "@theme-kit/chakra";
+ * import { createChakraTheme } from "@themvora/chakra";
  * const system = createChakraTheme(runtime);
  * ```
  */

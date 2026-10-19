@@ -29,7 +29,7 @@
  * the other:
  *
  *   "zero import drift" (snippet audit + baseline) — every documented
- *   `@theme-kit/*` import exists in the shipped API manifest. It catches
+ *   `@themvora/*` import exists in the shipped API manifest. It catches
  *   *drift*. It says nothing about whether the example is usable.
  *
  *   "examples complete" (check-examples) — the example around that import is
@@ -55,7 +55,7 @@
  *                          rendered with react-dom/server — no network)
  *     Docs build works?  → `next build` in apps/docs
  *     Browser docs work? → audits/audit-browser-smoke.mjs --strict (Audit H)
- *   Needs a headless Chromium (Playwright cache or THEME_KIT_CHROME) and `ws`.
+ *   Needs a headless Chromium (Playwright cache or THEMVORA_CHROME) and `ws`.
  *   Audit H runs with `--strict` so a missing toolchain fails rather than
  *   silently skipping.
  *
@@ -108,7 +108,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -163,6 +163,16 @@ const staticSteps = [
   // A stale mirror means the snippet audits below are reading guide content that
   // no longer exists on the site, so this runs before them.
   { name: "framework-guide mirror current (generated file is current)", cmd: "apps/docs/scripts/generate-framework-guides.mjs", args: ["--check"] },
+  // The quick-start snippets are strings, so `tsc` never sees them. This checks
+  // the properties a reader depends on: every import is covered by the printed
+  // install command, every token the stylesheet reads is one the runtime emits,
+  // and every `index.html` the guide offers keeps the `#theme-name` element that
+  // `src/main.ts` throws without. It existed but was wired to nothing, which is
+  // how two of those files shipped broken.
+  { name: "quick-start snippets (copy-paste contract)", cmd: "apps/docs/scripts/check-quickstart-snippets.mjs", args: [] },
+  // A `<themvora-*>` attribute the element does not observe is silently ignored
+  // at runtime and invisible to every other check, because it lives in a string.
+  { name: "web element attributes (docs vs observedAttributes)", cmd: "apps/docs/scripts/check-web-element-attributes.mjs", args: [] },
   // `lib/generated/package-graph.ts` drives the package map. Its `--check` mode
   // existed but was wired to nothing, so it silently rotted — the same failure
   // mode as the TOC manifest. Both generated `lib/generated/*` files are now
@@ -176,11 +186,41 @@ const staticSteps = [
   { name: "CLI reference current (generated file is current)", cmd: "apps/docs/scripts/generate-cli-reference.mjs", args: ["--check"] },
   { name: "audit B — package → docs destinations", cmd: "scripts/docs/audits/audit-b-package-to-docs.mjs", args: ["--coverage=fail"] },
   { name: "audit C — canonical examples (static)", cmd: "scripts/docs/audits/audit-c-examples.mjs", args: [] },
+  // The authoritative preset quality gate: 8 semantic checks per shipped theme
+  // (structural, semantic, text contrast, UI contrast, surface hierarchy, muted
+  // hierarchy, accent collision, CVD) plus a snapshot-drift check, over 30 gated
+  // themes. It reads `packages/core/dist`, which the export-inventory step above
+  // has already verified matches source, and it fails on any regression rather
+  // than warning. `--strict-ui` additionally treats CVD warnings as failures; it
+  // is kept as a manual diagnostic, not wired here, so the release path stays on
+  // the normal contract.
+  { name: "preset quality audit (9/9 semantic contract)", cmd: "scripts/audit-presets.mjs", args: [] },
+  // Provenance is a *prior* question to quality: a preset can pass every contrast
+  // check while quietly shipping a brand colour nobody chose. This gate asserts
+  // that every brand value is classified, cited, and either preserved exactly or
+  // explicitly reported as normalized.
+  { name: "brand reference audit (provenance + anchor outcome)", cmd: "scripts/audit-brand-references.mjs", args: [] },
+  // The consumer half of the context contract: `contexts.ts` declares which
+  // roles are supported where; this checks the docs site agrees. Ratcheted
+  // against a frozen baseline so the migration can be burned down.
+  { name: "token context audit (consumer usage vs context contract)", cmd: "scripts/docs/audits/audit-token-contexts.mjs", args: [] },
+  // The docs' hand-authored theme snippets must name the roles the package
+  // actually exports. They had drifted five roles behind: every `defineTheme()`
+  // example was missing `card`, `cardForeground`, `popover`, `popoverForeground`
+  // and `input`, and one page named two roles that do not exist at all.
+  { name: "theme snippet audit (docs vs shipped token set)", cmd: "scripts/docs/audits/audit-theme-snippets.mjs", args: [] },
+  // The primitive half of the semantic contract: does each shared component use
+  // only the roles its declared intent allows? Not ratcheted — these are the 27
+  // files every page depends on.
+  { name: "semantic usage audit (shared primitives)", cmd: "scripts/docs/audits/audit-semantic-usage.mjs", args: [] },
+  // Correctness lint over the release scripts. Scoped to the `.mjs` surface
+  // because a TS parser is not installed — see eslint.config.mjs.
+  { name: "lint (release scripts, correctness rules)", cmd: "scripts/lint.mjs", args: [] },
   { name: "audit D — dependency isolation", cmd: "scripts/release/audit-dependencies.mjs", args: [] },
   // `verify-package-apis.mjs` existed but was wired only to `apps/docs`
   // (`apis:check`), so it silently rotted — the same failure mode as the TOC
   // manifest and the package graph above. It had resolved a package's surface
-  // from `dist/index.*` alone, so `@theme-kit/remix`'s `getInitialThemeState`,
+  // from `dist/index.*` alone, so `@themvora/remix`'s `getInitialThemeState`,
   // a `./server` subpath export, was reported as invented. It guards the same
   // class of factual error as audit E below: a name the docs claim exists.
   { name: "package-map APIs are real exports", cmd: "apps/docs/scripts/verify-package-apis.mjs", args: [] },
@@ -294,6 +334,17 @@ const browserSteps = [];
     {
       name: "Astro readout matrix (browser, frame-0)",
       cmd: "scripts/release/verify-astro-readouts.mjs",
+      args: [],
+    },
+    // The hero's 3D field. A canvas has no DOM to query and no ratio to assert,
+    // so the scene publishes a development-only diagnostic and this drives a real
+    // browser to check what actually matters: the loop runs and draws, the palette
+    // follows the theme, `prefers-reduced-motion` freezes it, the CSS poster
+    // carries the hero without WebGL, and the canvas arrives without a layout
+    // shift. Skips cleanly when no browser is installed.
+    {
+      name: "hero scene (browser, canvas + progressive enhancement)",
+      cmd: "apps/docs/scripts/probe-hero-scene.mjs",
       args: [],
     },
     ...reactSteps,

@@ -8,8 +8,8 @@ import {
   getBrowserTimeZone,
   getLocationForTimeZone,
   getTimeZoneList,
-} from "@theme-kit/core";
-import { useTheme, useThemeSchedule } from "@theme-kit/next/client";
+} from "@themvora/core";
+import { useTheme, useThemeSchedule } from "@themvora/next/client";
 
 const AUTO = "__auto__";
 
@@ -541,7 +541,7 @@ export function ScheduledDemo() {
       </div>
 
       <p className="m-0 text-sm opacity-70 leading-relaxed">
-        Theme Kit computes NOAA-style solar times via{" "}
+        Themvora computes NOAA-style solar times via{" "}
         <code className="mono text-[0.9em]">calculateSunTimes(date, lat, lon)</code>{" "}
         — with no coordinates it auto-detects the visitor&apos;s timezone — and
         can auto-switch between light and dark at sunrise/sunset with the{" "}

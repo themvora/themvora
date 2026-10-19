@@ -4,7 +4,7 @@ import {
   renderOgCard,
 } from "../../components/og/card";
 
-export const alt = "Theme Kit — Accessibility Lab";
+export const alt = "Themvora — Accessibility Lab";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

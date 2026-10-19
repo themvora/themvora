@@ -80,7 +80,7 @@ export default function ApiReferencePage({
 
   const pkgMeta = apiPackages.find((p) => p.slug === pkg);
   const pageTitle = page
-    ? `${pkgMeta?.name ?? `@theme-kit/${pkg}`} · ${page
+    ? `${pkgMeta?.name ?? `@themvora/${pkg}`} · ${page
         .replace(/[-_]/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase())}`
     : (pkgMeta?.name ?? pkg);

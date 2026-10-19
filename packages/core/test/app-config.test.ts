@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  defineThemeKitConfig,
+  defineThemvoraConfig,
   getBuiltInThemes,
   readTransportedConfig,
   resolveRuntimeOptions,
@@ -12,7 +12,7 @@ import { defineTheme } from "../src/model";
  * The runtime half of the single-configuration contract.
  *
  * A build integration publishes `toBootstrapConfig(theme.config.ts)` as
- * `globalThis.__THEME_KIT_CONFIG__` before any application code runs, and every
+ * `globalThis.__THEMVORA_CONFIG__` before any application code runs, and every
  * framework provider merges it under its own options through
  * {@link resolveRuntimeOptions}. These tests pin the merge order and the
  * fallbacks, because getting either wrong produces the same symptom — a runtime
@@ -35,7 +35,7 @@ const appThemes = [
 const scope = globalThis as unknown as Record<string, unknown>;
 
 afterEach(() => {
-  delete scope.__THEME_KIT_CONFIG__;
+  delete scope.__THEMVORA_CONFIG__;
 });
 
 describe("readTransportedConfig", () => {
@@ -44,8 +44,8 @@ describe("readTransportedConfig", () => {
   });
 
   it("returns the transported configuration", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({ themes: appThemes, defaultTheme: "app-dark" }),
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({ themes: appThemes, defaultTheme: "app-dark" }),
     );
 
     const read = readTransportedConfig<typeof appThemes[number]>();
@@ -54,15 +54,15 @@ describe("readTransportedConfig", () => {
   });
 
   it("ignores a non-object global", () => {
-    scope.__THEME_KIT_CONFIG__ = "nope";
+    scope.__THEMVORA_CONFIG__ = "nope";
     expect(readTransportedConfig()).toBeNull();
   });
 });
 
 describe("resolveRuntimeOptions", () => {
   it("uses the transported registry when the provider passes nothing", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({
         themes: appThemes,
         defaultTheme: "app-dark",
         initialMode: "system",
@@ -77,8 +77,8 @@ describe("resolveRuntimeOptions", () => {
   });
 
   it("lets an explicit prop win over the transported value", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({ themes: appThemes, defaultTheme: "app-dark" }),
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({ themes: appThemes, defaultTheme: "app-dark" }),
     );
 
     const resolved = resolveRuntimeOptions<typeof appThemes[number]>({
@@ -92,8 +92,8 @@ describe("resolveRuntimeOptions", () => {
   });
 
   it("drops undefined provider options instead of letting them clobber the transport", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({
         themes: appThemes,
         defaultTheme: "app-dark",
         initialMode: "system",
@@ -117,15 +117,19 @@ describe("resolveRuntimeOptions", () => {
     expect(resolved.themes?.map((t) => t.name)).toEqual(["app-light", "app-dark"]);
   });
 
-  it("treats an explicit empty registry as not set, falling back to the transport", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({ themes: appThemes }),
+  it("passes an explicit empty registry through so the runtime can apply the neutral fallback", () => {
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({ themes: appThemes }),
     );
 
-    // The Web Components provider parses an absent `themes` attribute into `[]`.
+    // An explicitly empty collection is the caller's intent — the runtime
+    // resolves it to the canonical neutral fallback — so it is *not* silently
+    // replaced by the transported registry. (An *absent* `themes` still falls
+    // back to the transport; the Web Components provider only sends `themes`
+    // when the attribute is actually present.)
     const resolved = resolveRuntimeOptions<typeof appThemes[number]>({ themes: [] });
 
-    expect(resolved.themes?.map((t) => t.name)).toEqual(["app-light", "app-dark"]);
+    expect(resolved.themes).toEqual([]);
   });
 
   it("falls back to the built-in themes with no transport and no props", () => {
@@ -138,8 +142,8 @@ describe("resolveRuntimeOptions", () => {
   });
 
   it("prefers a non-empty explicit registry over the transport", () => {
-    scope.__THEME_KIT_CONFIG__ = toBootstrapConfig(
-      defineThemeKitConfig({ themes: appThemes }),
+    scope.__THEMVORA_CONFIG__ = toBootstrapConfig(
+      defineThemvoraConfig({ themes: appThemes }),
     );
 
     const localThemes = [

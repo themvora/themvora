@@ -188,7 +188,7 @@ export function SaasSettingsComposition({ chrome = true }: CompositionProps = {}
                 <Card>
                   <CardHead
                     title="Team"
-                    right={<span className="text-[10px] text-primary">Invite</span>}
+                    right={<span className="text-[10px] text-foreground">Invite</span>}
                   />
                   <AvatarStack labels={["A", "M", "D", "K", "S", "R"]} max={5} />
                   <div className="text-[10px] text-muted-foreground mt-2">

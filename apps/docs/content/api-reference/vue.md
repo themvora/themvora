@@ -1,12 +1,12 @@
-## @theme-kit/vue
-Theme Kit Vue integration.
+## @themvora/vue
+Themvora Vue integration.
 
 Provides the `ThemeProvider`, `ThemeScope`, `ThemeScrollbar` and
 `ThemeInspector` components, the `provideThemeRuntime` helper, the
 `ThemeScheduleController`, the `useTheme*` composables, and the SSR
 bootstrap-script helper.
 
-> Generated from `packages/vue/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/vue/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -31,7 +31,7 @@ blocking `<script>` inside `<head>`.
 
 
 ### `provideThemeRuntime<T extends ThemeDefinition<string>>(runtime): void`
-Provides a Theme Kit runtime to the current Vue component subtree.
+Provides a Themvora runtime to the current Vue component subtree.
 
 Call inside a component's `setup` scope (typically the app root) so
 descendant composables can resolve it via useThemeRuntime.
@@ -43,6 +43,32 @@ descendant composables can resolve it via useThemeRuntime.
 | `runtime` | `ThemeRuntime<T>` | The runtime to make available to the subtree. |
 
 **Returns** `void`
+
+---
+
+
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): Ref<T>`
+Reactive ref of the theme produced by `generateTheme()` and registered with
+the provider.
+
+Resolves the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`); shipped presets never qualify. When
+both halves of one `generateTheme()` call are registered, the ref tracks the
+theme the active selection resolves to and updates on selection changes.
+
+Call inside a Vue `setup` scope within a `<ThemeProvider>`.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+reactive read rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `Ref<T>` — A `Ref` holding the registered generated theme.
 
 ---
 
@@ -157,7 +183,7 @@ Call inside Vue `setup` scope within a `<ThemeProvider>`.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Resolves the active Theme Kit runtime from the Vue injection context.
+Resolves the active Themvora runtime from the Vue injection context.
 
 Call inside Vue `setup` scope, within a component that is a descendant of a
 `<ThemeProvider>` (or after provideThemeRuntime).
@@ -311,47 +337,18 @@ Props accepted by the Vue `<ThemeScope>` component.
 
 ### `ThemeScrollbarProps`
 
-**Extends** `OverlayScrollbarOptions`
+**Extends** `ScrollbarGroupedOptions`
 Props accepted by the Vue `<ThemeScrollbar>` component.
 
 Extends OverlayScrollbarOptions with an optional custom element tag.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Custom thumb color while the user is dragging it. When set, overrides the theme-derived active color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
-| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. |
-| `arrowIconRenderer` (optional) | `__type(button: HTMLDivElement, dir: ScrollbarArrowDir): void` | Framework hook: invoked for every arrow button that has custom content, so framework wrappers (React/Vue/Svelte/...) can render framework-owned elements (JSX/VNodes/...) into the button. When set it replaces the `innerHTML`/node injection for `arrowIcon`-style options. |
-| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
-| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Fade the thumb/track out while idle. Default `true` (macOS-style). |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Which axes to render. Defaults to both. |
-| `clickToJump` (optional) | `boolean` | Clicking the empty track scrolls smoothly to that position. Default `true`. |
-| `dir` (optional) | `"ltr" \| "rtl" \| "auto"` | Text direction. Defaults to the resolved `dir` / CSS `direction`. |
-| `draggable` (optional) | `boolean` | Allow dragging the thumb to scroll. Default `true`. |
-| `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
-| `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
-| `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
-| `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
-| `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
-| `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
-| `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
-| `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
+| `appearance` (optional) | `ScrollbarAppearanceOptions` | — |
+| `behavior` (optional) | `ScrollbarBehaviorOptions` | — |
+| `icons` (optional) | `ScrollbarIconOptions<string>` | Arrow button icons: the arrow entry covers all four directions (per-direction entries win), plus the shared glyph size in CSS px. |
+| `scope` (optional) | `ScrollbarScopeOptions` | — |
 | `tag` (optional) | `string` | The element tag to apply the overlay scrollbar to. Defaults to the provider's scroll container. |
-| `thickness` (optional) | `number` | Resting thumb thickness (width for vertical, height for horizontal). Default `8`. |
-| `thumbColor` (optional) | `string` | Custom thumb color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `thumbHoverColor` (optional) | `string` | Custom thumb color while hovered. When set, overrides the theme-derived hover color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `thumbOpacity` (optional) | `number` | Thumb opacity while visible. Default `0.7`. |
-| `touch` (optional) | `boolean` | Native (touch) devices: keep native scrollbars by default. Pass `true` to force the overlay on coarse-pointer devices. Default `false`. |
-| `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
 
 ---
 
@@ -360,30 +357,20 @@ Extends OverlayScrollbarOptions with an optional custom element tag.
 ### `ThemeInspector`
 Vue component that renders the framework-agnostic Theme Inspector.
 
-Renders a `<theme-kit-inspector>` custom element (defined on mount) that
+Renders a `<themvora-inspector>` custom element (defined on mount) that
 shows a floating toggle opening a panel inspecting the active theme —
 identity, selection, tokens, and resolved CSS variables. Can be registered
 globally via `app.use(ThemeInspector)`.
 
 **See also:** `ThemeInspectorProps`, `useTheme`
 
-`Component & { install: void }`
-
----
-
-
-### `ThemeKitSymbol`
-Vue `InjectionKey` used to provide and inject the active Theme Kit runtime.
-
-**See also:** `provideThemeRuntime`, `useThemeRuntime`
-
-`InjectionKey<ThemeRuntime<any>>`
+`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<ExtractPropTypes<{ bottom: { default: undefined; required: false; type: NumberConstructor }; right: { default: undefined; required: false; type: NumberConstructor }; size: { default: undefined; required: false; type: NumberConstructor }; zIndex: { default: undefined; required: false; type: NumberConstructor } }>, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { bottom: number; right: number; size: number; zIndex: number }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<ExtractPropTypes<{ bottom: { default: undefined; required: false; type: NumberConstructor }; right: { default: undefined; required: false; type: NumberConstructor }; size: { default: undefined; required: false; type: NumberConstructor }; zIndex: { default: undefined; required: false; type: NumberConstructor } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, { bottom: number; right: number; size: number; zIndex: number }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<ExtractPropTypes<{ bottom: { default: undefined; required: false; type: NumberConstructor }; right: { default: undefined; required: false; type: NumberConstructor }; size: { default: undefined; required: false; type: NumberConstructor }; zIndex: { default: undefined; required: false; type: NumberConstructor } }>, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { bottom: number; right: number; size: number; zIndex: number }, object, string, object, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
 
 ### `ThemeProvider`
-Vue component that provides a Theme Kit runtime to its subtree and applies
+Vue component that provides a Themvora runtime to its subtree and applies
 the active theme to the DOM.
 
 Renders only its default slot (no wrapper element). When no `runtime` prop
@@ -394,7 +381,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 
 **See also:** `ThemeProviderProps`, `useThemeRuntime`, `ThemeScope`
 
-`Component & { install: void }`
+`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, object, string, object, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -402,7 +389,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 ### `ThemeScope`
 Vue component that applies a scoped theme to its subtree.
 
-Renders a `div` wrapper carrying a `data-v-tk-scope` attribute and applies
+Renders a `div` wrapper carrying a `data-v-tv-scope` attribute and applies
 the resolved theme's CSS variables to that element, overriding the
 provider's selection for the subtree. Supports an exact theme, a theme
 family, local theme definitions, and per-scope transitions. Can be
@@ -410,7 +397,7 @@ registered globally via `app.use(ThemeScope)`.
 
 **See also:** `ThemeScopeProps`, `useTheme`
 
-`Component & { install: void }`
+`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<ExtractPropTypes<{ family: { default: undefined; required: false; type: StringConstructor }; mode: { default: undefined; required: false; type: PropType<ThemeMode> }; theme: { default: undefined; required: false; type: StringConstructor }; themes: { default: undefined; required: false; type: PropType<readonly ThemeDefinition<string>[]> }; transition: { default: undefined; type: PropType<boolean | ThemeTransitionOptions> } }>, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { family: string; mode: ThemeMode; theme: string; themes: readonly ThemeDefinition<string>[]; transition: boolean | ThemeTransitionOptions }, true, object, any, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<ExtractPropTypes<{ family: { default: undefined; required: false; type: StringConstructor }; mode: { default: undefined; required: false; type: PropType<ThemeMode> }; theme: { default: undefined; required: false; type: StringConstructor }; themes: { default: undefined; required: false; type: PropType<readonly ThemeDefinition<...>[]> }; transition: { default: undefined; type: PropType<boolean | ThemeTransitionOptions> } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, { family: string; mode: ThemeMode; theme: string; themes: readonly ThemeDefinition<string>[]; transition: boolean | ThemeTransitionOptions }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<ExtractPropTypes<{ family: { default: undefined; required: false; type: StringConstructor }; mode: { default: undefined; required: false; type: PropType<ThemeMode> }; theme: { default: undefined; required: false; type: StringConstructor }; themes: { default: undefined; required: false; type: PropType<readonly ThemeDefinition<string>[]> }; transition: { default: undefined; type: PropType<boolean | ThemeTransitionOptions> } }>, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { family: string; mode: ThemeMode; theme: string; themes: readonly ThemeDefinition<string>[]; transition: boolean | ThemeTransitionOptions }, object, string, any, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -426,7 +413,17 @@ bar never flashes. Can be registered globally via `app.use(ThemeScrollbar)`.
 
 **See also:** `ThemeScrollbarProps`, `ThemeProvider`
 
-`Component & { install: void }`
+`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }, object>, __type(): null, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }> & Readonly<object>, __type(): null, object, object, object, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }, object>, __type(): null, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }, object, string, object, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
+
+---
+
+
+### `ThemeSymbol`
+Vue `InjectionKey` used to provide and inject the active Themvora runtime.
+
+**See also:** `provideThemeRuntime`, `useThemeRuntime`
+
+`InjectionKey<ThemeRuntime<any>>`
 
 ---
 

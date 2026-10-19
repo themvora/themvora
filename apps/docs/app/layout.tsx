@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { type Metadata } from "next";
 
-import { ThemeProvider, ThemeScrollbar } from "@theme-kit/next";
+import { ThemeProvider, ThemeScrollbar } from "@themvora/next";
 
 import { SiteHeader } from "../components/site-header";
 import { SiteFooter } from "../components/site-footer";
@@ -19,6 +19,7 @@ import {
   scrollbarConfig,
   scheduleConfig,
   transitionConfig,
+  DEFAULT_THEME,
 } from "./theme/theme-config";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "../lib/site";
 
@@ -58,7 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <ThemeProvider
       lang="en"
       themes={themes}
-      defaultTheme="theme-kit-default-light"
+      defaultTheme={DEFAULT_THEME}
       transition={transitionConfig}
       scrollbar
       scheduled={scheduleConfig}

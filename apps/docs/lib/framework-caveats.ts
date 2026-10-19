@@ -22,7 +22,7 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
   react: {
     title: "Provider placement decides whether state survives navigation",
     specific:
-      "Mount `ThemeProvider` above your router. A provider inside a route component is destroyed and re-created on navigation, so it re-reads storage and can flicker. In Next.js it belongs in the App Router root layout. You do not need `createThemeRoot()` for the empty-root frame in a Vite app: `themeKitVitePlugin()` commits the first render synchronously by default, so `<ThemeProvider>` alone is blink-free. `createThemeRoot()` stays available as a client-only optimization when you have measured a gap.",
+      "Mount `ThemeProvider` above your router. A provider inside a route component is destroyed and re-created on navigation, so it re-reads storage and can flicker. In Next.js it belongs in the App Router root layout. You do not need `createThemeRoot()` for the empty-root frame in a Vite app: `themvoraVitePlugin()` commits the first render synchronously by default, so `<ThemeProvider>` alone is blink-free. `createThemeRoot()` stays available as a client-only optimization when you have measured a gap.",
     universal:
       "Hooks (`useTheme`, `useThemeMode`, `useThemeValue`, `useThemeTokens`) read from the same runtime context in every framework.",
     href: "/vite-plugin",
@@ -30,7 +30,7 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
   next: {
     title: "Server and client theme resolution must agree",
     specific:
-      "The server resolves the theme from cookies; the blocking bootstrap script resolves it independently in the browser, where `prefers-color-scheme` is visible. The App Router `ThemeProvider` handles the whole contract: it resolves once, passes the result as `initial`, emits the same `data-theme` / `data-theme-mode` / `data-theme-family` trio the script writes, and keeps `<html>` out of React's hydration diff. Mount it once in `app/layout.tsx` — it renders `<html>`, `<head>` and `<body>` itself, so your layout must not. `ClientThemeProvider` from `@theme-kit/next/client` is for the other shape: a client component that needs theme state when you render the document shell yourself. Server components cannot call the client hooks.",
+      "The server resolves the theme from cookies; the blocking bootstrap script resolves it independently in the browser, where `prefers-color-scheme` is visible. The App Router `ThemeProvider` handles the whole contract: it resolves once, passes the result as `initial`, emits the same `data-theme` / `data-theme-mode` / `data-theme-family` trio the script writes, and keeps `<html>` out of React's hydration diff. Mount it once in `app/layout.tsx` — it renders `<html>`, `<head>` and `<body>` itself, so your layout must not. `ClientThemeProvider` from `@themvora/next/client` is for the other shape: a client component that needs theme state when you render the document shell yourself. Server components cannot call the client hooks.",
     universal:
       "The blocking bootstrap script and CSS-variable output are produced by the same core function in every SSR framework.",
     href: "/zero-flash",
@@ -67,7 +67,7 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
   web: {
     title: "No framework, no provider — just the DOM contract",
     specific:
-      "Web Components consume Theme Kit through DOM attributes and CSS variables. There is no provider tree, so apply the runtime explicitly and keep the bootstrap script in `<head>` for first-paint correctness.",
+      "Web Components consume Themvora through DOM attributes and CSS variables. There is no provider tree, so apply the runtime explicitly and keep the bootstrap script in `<head>` for first-paint correctness.",
     universal:
       "The CSS-variable contract and token names are identical to every framework integration, so components are portable between them.",
     href: "/vanilla",
@@ -75,9 +75,9 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
   tailwind: {
     title: "The runtime and the utility layer are separate things",
     specific:
-      "`@theme-kit/tailwind` maps Theme Kit semantic tokens to Tailwind theme variables at build time — it does not replace the runtime. You still mount the runtime (or the framework provider) to switch themes; Tailwind utilities then read the CSS variables the runtime writes.",
+      "`@themvora/tailwind` maps Themvora semantic tokens to Tailwind theme variables at build time — it does not replace the runtime. You still mount the runtime (or the framework provider) to switch themes; Tailwind utilities then read the CSS variables the runtime writes.",
     universal:
-      "Token names and the CSS-variable contract match the rest of Theme Kit, so the same theme works under any framework.",
+      "Token names and the CSS-variable contract match the rest of Themvora, so the same theme works under any framework.",
   },
   astro: {
     title: "Islands are the theme boundary",

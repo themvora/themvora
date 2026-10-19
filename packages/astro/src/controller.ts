@@ -6,7 +6,7 @@ import {
   type ThemeMode,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { THEME_READOUT_ATTRIBUTE } from "./attributes";
 import { createAstroThemePersistence } from "./persistence";
 import { getGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
@@ -30,7 +30,7 @@ export interface ThemeControllerState<T extends ThemeDefinition> {
 }
 
 /**
- * A framework-neutral controller over the app-wide Theme Kit runtime.
+ * A framework-neutral controller over the app-wide Themvora runtime.
  *
  * @typeParam T - The theme definition type used by the application.
  *
@@ -126,8 +126,8 @@ export interface ThemeController<T extends ThemeDefinition> {
  *
  * @remarks
  * Every field is optional, and every field is an *override*. The application
- * configuration is already in the browser — `themeKit()` transports
- * `theme.config.ts` as `window.__THEME_KIT_CONFIG__` from `<head>` — so the
+ * configuration is already in the browser — `themvora()` transports
+ * `theme.config.ts` as `window.__THEMVORA_CONFIG__` from `<head>` — so the
  * runtime is built from that. Passing `themes` / `defaultTheme` /
  * `initialMode` / `initialFamily` here is for a test, a storybook, or an
  * island that deliberately wants a different registry.
@@ -138,7 +138,7 @@ export type ThemeControllerOptions<T extends ThemeDefinition> = Partial<
   Omit<ThemeRuntimeOptions<T>, "persistence" | "readPersistenceOnInit">
 > & {
   /**
-   * Keep every `[data-tk-readout]` element in the document in sync with the
+   * Keep every `[data-tv-readout]` element in the document in sync with the
    * live state. Defaults to `true`.
    *
    * @remarks
@@ -161,7 +161,7 @@ export type ThemeControllerOptions<T extends ThemeDefinition> = Partial<
 /**
  * Resolves the text a readout element should display.
  *
- * @param kind - The element's `data-tk-readout` value.
+ * @param kind - The element's `data-tv-readout` value.
  * @param theme - The resolved theme.
  * @param mode - The visitor's mode selection.
  * @param family - The visitor's family selection.
@@ -182,7 +182,7 @@ function readoutValue<T extends ThemeDefinition>(
 }
 
 /**
- * Writes the live state into every `[data-tk-readout]` element.
+ * Writes the live state into every `[data-tv-readout]` element.
  *
  * @internal
  */
@@ -214,7 +214,7 @@ function patchReadouts<T extends ThemeDefinition>(
  * Builds a controller around an existing runtime.
  *
  * @param runtime - The runtime to wrap.
- * @param readouts - Whether to keep `[data-tk-readout]` elements in sync.
+ * @param readouts - Whether to keep `[data-tv-readout]` elements in sync.
  * @param owns - Whether {@link ThemeController.destroy} may destroy the runtime.
  *
  * @internal
@@ -307,7 +307,7 @@ function wrapRuntime<T extends ThemeDefinition>(
  *
  * @example
  * ```ts
- * import { createThemeController } from "@theme-kit/astro";
+ * import { createThemeController } from "@themvora/astro";
  *
  * const theme = createThemeController({ themes: myTestThemes });
  * theme.setMode("dark");
@@ -372,7 +372,7 @@ export function createThemeController<T extends ThemeDefinition>(
  * <button id="theme-toggle">Toggle theme</button>
  *
  * <script>
- *   import { getThemeController } from "@theme-kit/astro";
+ *   import { getThemeController } from "@themvora/astro";
  *
  *   const theme = getThemeController();
  *

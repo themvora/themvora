@@ -1,41 +1,64 @@
-# `theme-kit migrate`
+# `themvora migrate`
 
 ## Prerequisites
 - Node.js 22+
 - Theme file(s) with legacy versions to migrate
-- Project with @theme-kit/cli installed or npx access
+- Project with @themvora/cli installed or npx access
 
-Migrate a legacy theme to the current Theme Kit format. Theme schemas evolve;
+Migrate a legacy theme to the current Themvora format. Theme schemas evolve;
 `migrate` (via `migrateTheme`) applies the registered version migrations so a
 theme from an older format still loads today.
 
 <!-- cli-command:generated:start -->
-## Synopsis
-
-Migrates a legacy theme file to the current Theme Kit format.
+## Synopsis — Migrate a theme to the latest format
 
 ```text
 Usage:
-  theme-kit migrate <file> [options]
+  themvora migrate <file> [options]
 ```
 
-## Options
+| Argument | Description |
+| -------- | ----------- |
+| `<file>` | Legacy theme file to migrate. |
+
+### Options
 
 | Option | Description | Default |
 | ------ | ----------- | ------- |
-| `--file <path>` | Legacy theme file to migrate (or pass positionally) | — |
-| `--output <file>` | Write the migrated theme to a file | — |
+| `-f, --file <path>` | Legacy theme file to migrate (or pass it positionally). | — |
+| `-o, --output <file>` | Write the migrated theme to a file. | — |
+| `--write` | Migrate the file in place. This flag is the confirmation; without it the input is never overwritten. | — |
+| `--dry-run` | Report what would change and write nothing. | — |
+| `--json` | Emit the migration report as JSON on stdout. Add --write or --output to persist the result. | — |
 
-> Generated from `packages/cli/src/cli.ts` — the same text `theme-kit migrate --help` prints.
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | success |
+| `1` | command/runtime error |
+| `2` | usage/argument error |
+
+### Examples
+
+```bash
+themvora migrate legacy.json
+themvora migrate legacy.json --dry-run
+themvora migrate legacy.json --write
+themvora migrate legacy.json --output theme.json
+themvora migrate legacy.json --dry-run --json
+```
+
+> Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders.
 <!-- cli-command:generated:end -->
 ## Examples
 
 ```bash
 # Migrate a single legacy theme
-theme-kit migrate themes/legacy.json
+themvora migrate themes/legacy.json
 
 # Migrate and write the current format to a new file
-theme-kit migrate \
+themvora migrate \
   themes/legacy.json \
   --output themes/current.json
 ```
@@ -64,7 +87,7 @@ themes before a bulk migration.
 - [CLI reference](./reference)
 
 ## Related
-- [Theme Kit Quick Start](../quickstart)
+- [Themvora Quick Start](../quickstart)
 - [Migration Docs](../../migration)
 - [API Reference](../../api-reference)
 

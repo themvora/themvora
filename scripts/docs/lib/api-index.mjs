@@ -27,7 +27,7 @@ export function assetEntrypointsOf(classification) {
 }
 
 /**
- * Splits a module specifier (`@theme-kit/astro/client`) into base package plus
+ * Splits a module specifier (`@themvora/astro/client`) into base package plus
  * entrypoint key. Returns null when the package/entrypoint is not shipped, so
  * the caller can report an invented import.
  */
@@ -50,7 +50,7 @@ export function resolveSpecifier(classification, specifier) {
 /**
  * Registry lookup: `pkg|symbol` -> keys that list it. `integrations[*].mirrors`
  * expands coverage to the packages an integration re-exports (e.g.
- * `@theme-kit/nuxt` re-exports core + vue), so the registry does not have to
+ * `@themvora/nuxt` re-exports core + vue), so the registry does not have to
  * enumerate hundreds of mirrored names.
  */
 export function registryIndex({ capabilities, integrations }) {
@@ -78,7 +78,7 @@ export function registryIndex({ capabilities, integrations }) {
     const mirrored = integration.mirrors ?? [];
     if (!mirrored.length) continue;
     const own = Object.keys(integration.packages ?? {});
-    const target = own.length ? own[0] : `@theme-kit/${key}`;
+    const target = own.length ? own[0] : `@themvora/${key}`;
     for (const source of mirrored) {
       const symbols = byPkg.get(source);
       if (!symbols) continue;

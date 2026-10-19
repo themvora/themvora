@@ -1,8 +1,8 @@
 {
-  "name": "theme-kit-release-test",
+  "name": "themvora-release-test",
   "private": true,
   "version": "0.0.0",
-  "description": "External consumer fixture for Theme Kit 1.0.0. Installs packages from real tarballs, not workspace resolution.",
+  "description": "External consumer fixture for Themvora 1.0.0. Installs packages from real tarballs, not workspace resolution.",
   "scripts": {
     "pack": "node ../scripts/release/pack-verify.mjs",
     "install:all": "node install.mjs",

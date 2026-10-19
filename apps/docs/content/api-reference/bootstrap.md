@@ -1,14 +1,14 @@
-## @theme-kit/bootstrap
-Theme Kit Bootstrap adapter — framework-neutral entry.
+## @themvora/bootstrap
+Themvora Bootstrap adapter — framework-neutral entry.
 
 Exports the React-free `createBootstrapAdapter` factory (also available from
-`@theme-kit/bootstrap/factory`), the `createBootstrapVariables` generator,
+`@themvora/bootstrap/factory`), the `createBootstrapVariables` generator,
 and the `injectBootstrapCSS` helper. Framework wrappers live on their own
-subpaths: `useBootstrapTheme(runtime)` on `@theme-kit/bootstrap/react`, and
+subpaths: `useBootstrapTheme(runtime)` on `@themvora/bootstrap/react`, and
 equivalent composables/injectables on `/vue`, `/svelte`, `/solid`, and
 `/angular`.
 
-> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -16,7 +16,7 @@ equivalent composables/injectables on `/vue`, `/svelte`, `/solid`, and
 Creates a Bootstrap adapter.
 
 The adapter is a DOM-only, framework-free adapter: it depends only on
-`@theme-kit/core` and the DOM. On install it injects the Bootstrap
+`@themvora/core` and the DOM. On install it injects the Bootstrap
 compatibility stylesheet (when enabled) and a `<style>` element of CSS
 variables derived from the active theme, then subscribes to the runtime
 store and rewrites the variables whenever the theme selection changes. It
@@ -33,7 +33,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 **Returns** `ThemeAdapter<T>` — A `ThemeAdapter` for Bootstrap.
 
 ```ts
-import { createBootstrapAdapter } from "@theme-kit/bootstrap";
+import { createBootstrapAdapter } from "@themvora/bootstrap";
 
 runtime.installAdapter(createBootstrapAdapter());
 ```

@@ -1,7 +1,7 @@
 /**
  * Clean-project user test (item 25).
  *
- * A brand-new user with a clean project, pretending they've never seen Theme Kit.
+ * A brand-new user with a clean project, pretending they've never seen Themvora.
  * Each scenario is written the way the docs tell you to do it and typechecked
  * against the published packages. If any scenario doesn't compile, the docs and
  * the shipped API have drifted.
@@ -15,13 +15,13 @@ import {
   useThemeRuntime,
   useThemeSchedule,
   ThemeScope,
-} from "@theme-kit/react";
+} from "@themvora/react";
 import {
   createThemeStore,
   createThemeRuntime,
   type ThemeDefinition,
-} from "@theme-kit/core";
-import { useShadcnTheme } from "@theme-kit/shadcn/react";
+} from "@themvora/core";
+import { useShadcnTheme } from "@themvora/shadcn/react";
 
 // ---------------------------------------------------------------- scenario 1
 // "I want dark mode."
@@ -63,7 +63,7 @@ void FamilySwitcher;
 
 // ---------------------------------------------------------------- scenario 3
 // "I use Next.js." — app/layout.tsx (typecheck only; next is a peer of the app)
-import { ThemeProvider as NextThemeProvider } from "@theme-kit/next";
+import { ThemeProvider as NextThemeProvider } from "@themvora/next";
 function NextRootLayout({ children }: { children: React.ReactNode }) {
   return createElement(
     NextThemeProvider,

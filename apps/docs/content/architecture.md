@@ -3,7 +3,7 @@
 The heart of the library is a single framework-agnostic runtime that wires the store, registry, selection, persistence, broadcast, DOM bindings, history, lifecycle, and plugins together.
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
+import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   themes: getBuiltInThemes(),   // default: built-in themes
@@ -220,7 +220,7 @@ import {
   createThemeBootstrapScript,
   buildThemeCssMap,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // buildThemeCssMap/createThemeBootstrapScript take the registry explicitly;
 // the built-in set is a valid registry, so no theme file is needed.
@@ -237,18 +237,18 @@ const script = createThemeBootstrapScript({
 // inject `script` into <head> before first paint
 ```
 
-The `@theme-kit/next` provider does all of this automatically — it reads cookies on the server, renders the resolved theme, and emits the blocking script.
+The `@themvora/next` provider does all of this automatically — it reads cookies on the server, renders the resolved theme, and emits the blocking script.
 
 ## Independent packages
 
-Theme Kit is a set of independently installable packages, not a single bundle:
+Themvora is a set of independently installable packages, not a single bundle:
 
-- Installing a framework integration (`@theme-kit/react`, `@theme-kit/vue`,
-  `@theme-kit/svelte`, `@theme-kit/solid`, `@theme-kit/angular`,
-  `@theme-kit/next`, `@theme-kit/nuxt`, `@theme-kit/astro`,
-  `@theme-kit/remix`) installs that framework and nothing else — no unrelated
+- Installing a framework integration (`@themvora/react`, `@themvora/vue`,
+  `@themvora/svelte`, `@themvora/solid`, `@themvora/angular`,
+  `@themvora/next`, `@themvora/nuxt`, `@themvora/astro`,
+  `@themvora/remix`) installs that framework and nothing else — no unrelated
   framework packages and no component-library adapters.
 - Adapters are separate packages, installed only when explicitly wanted. Their
   framework wrappers live behind subpaths (`/react`, `/vue`, `/svelte`,
   `/solid`, `/angular`) with optional peers.
-- `@theme-kit/core` has zero runtime dependencies.
+- `@themvora/core` has zero runtime dependencies.

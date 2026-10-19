@@ -242,11 +242,11 @@ export function extractMarkdownEntries(content) {
   return entries;
 }
 
-/** Parse `@theme-kit/*` import statements from a snippet (drift-audit contract). */
+/** Parse `@themvora/*` import statements from a snippet (drift-audit contract). */
 export function parseImports(snippet) {
   const imports = [];
-  // import { A, type B, C as D } from "@theme-kit/pkg" / "@theme-kit/pkg/subpath"
-  const named = /import\s*\{([^}]+)\}\s*from\s*["'](@theme-kit\/[^"']+)["']/g;
+  // import { A, type B, C as D } from "@themvora/pkg" / "@themvora/pkg/subpath"
+  const named = /import\s*\{([^}]+)\}\s*from\s*["'](@themvora\/[^"']+)["']/g;
   let m;
   while ((m = named.exec(snippet))) {
     const pkg = m[2];
@@ -258,8 +258,8 @@ export function parseImports(snippet) {
       if (name) imports.push({ pkg, name });
     }
   }
-  // import type { ... } from "@theme-kit/..."
-  const typeNamed = /import\s+type\s*\{([^}]+)\}\s*from\s*["'](@theme-kit\/[^"']+)["']/g;
+  // import type { ... } from "@themvora/..."
+  const typeNamed = /import\s+type\s*\{([^}]+)\}\s*from\s*["'](@themvora\/[^"']+)["']/g;
   while ((m = typeNamed.exec(snippet))) {
     const pkg = m[2];
     for (const part of m[1].split(",")) {
@@ -268,12 +268,12 @@ export function parseImports(snippet) {
     }
   }
   // import def from / import def, { named } from
-  const defaultRe = /import\s+(type\s+)?(\w+)(?:\s*,\s*\{[^}]+\})?\s*from\s*["'](@theme-kit\/[^"']+)["']/g;
+  const defaultRe = /import\s+(type\s+)?(\w+)(?:\s*,\s*\{[^}]+\})?\s*from\s*["'](@themvora\/[^"']+)["']/g;
   while ((m = defaultRe.exec(snippet))) {
     if (m[2] !== "{") imports.push({ pkg: m[3], name: m[2] });
   }
-  // dynamic import("@theme-kit/...")
-  const dyn = /import\(["'](@theme-kit\/[^"']+)["']\)/g;
+  // dynamic import("@themvora/...")
+  const dyn = /import\(["'](@themvora\/[^"']+)["']\)/g;
   while ((m = dyn.exec(snippet))) {
     imports.push({ pkg: m[1], name: null, dynamic: true });
   }
@@ -281,9 +281,9 @@ export function parseImports(snippet) {
 }
 
 /**
- * Every module specifier a snippet reaches for — relative, bare, or Theme Kit.
+ * Every module specifier a snippet reaches for — relative, bare, or Themvora.
  * Used by the completeness checks, which care about *all* dependencies (the
- * drift audit only cares about `@theme-kit/*`).
+ * drift audit only cares about `@themvora/*`).
  *
  * Returns `[{ specifier, kind }]` where kind is one of
  * "static" | "side-effect" | "dynamic" | "require" | "export-from".
@@ -409,7 +409,7 @@ export function scanRoots(repoRoot) {
     { dir: join(repoRoot, "apps", "docs", "lib"), exts: [".tsx", ".ts"], astro: false, completeness: true },
     // Rendered guide panels live here, not under app/ or lib/. Leaving this root
     // out of the *drift* audit hid a subpath that does not exist
-    // (`@theme-kit/mui/factory`) in components/framework-guides.
+    // (`@themvora/mui/factory`) in components/framework-guides.
     { dir: join(repoRoot, "apps", "docs", "components"), exts: [".tsx", ".ts"], astro: false, completeness: false },
     { dir: join(repoRoot, "apps", "docs", "content"), exts: [".md", ".mdx"], astro: true, completeness: true },
   ];

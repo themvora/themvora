@@ -5,7 +5,7 @@ import { docsUrl } from "../../../lib/site";
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/cli/export") },
   title: "CLI export",
-  description: "Export a theme to CSS variables or JSON with the theme-kit CLI.",
+  description: "Export a theme to CSS variables or JSON with the themvora CLI.",
 };
 
 export default function Page() {

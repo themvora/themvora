@@ -60,7 +60,7 @@ export interface ScheduledPluginOptions<T extends ThemeDefinition> {
  *
  * @remarks
  * When the light/dark pair cannot be resolved, the plugin emits a
- * `TK_SCHEDULE_THEME_UNRESOLVED` diagnostic and does not install a binding.
+ * `TV_SCHEDULE_THEME_UNRESOLVED` diagnostic and does not install a binding.
  * `onDestroy` destroys the binding, unsubscribes from the store, and clears all
  * internal state.
  *
@@ -85,7 +85,7 @@ export function createScheduledPlugin<T extends ThemeDefinition>(
     if (!lightTheme || !darkTheme) {
       emitDiagnostic(
         createDiagnostic({
-          code: "TK_SCHEDULE_THEME_UNRESOLVED",
+          code: "TV_SCHEDULE_THEME_UNRESOLVED",
           level: "warning",
           message:
             "The scheduled plugin could not resolve its light/dark theme pair, " +

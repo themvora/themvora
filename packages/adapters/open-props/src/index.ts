@@ -1,10 +1,10 @@
 /**
- * Theme Kit Open Props adapter — framework-neutral entry.
+ * Themvora Open Props adapter — framework-neutral entry.
  *
  * Exports the React-free `createOpenPropsAdapter` factory (also available from
- * `@theme-kit/open-props/factory`), the `createOpenPropsVariables` generator,
+ * `@themvora/open-props/factory`), the `createOpenPropsVariables` generator,
  * and the `injectOpenPropsCSS` helper. Framework wrappers live on their own
- * subpaths: `useOpenPropsTheme(runtime)` on `@theme-kit/open-props/react`, and
+ * subpaths: `useOpenPropsTheme(runtime)` on `@themvora/open-props/react`, and
  * equivalent composables/injectables on `/vue`, `/svelte`, `/solid`, and
  * `/angular`.
  *
@@ -19,7 +19,7 @@ export { createOpenPropsAdapter, createOpenPropsVariables };
 export type { CreateOpenPropsAdapterOptions } from "./adapter";
 export type { OpenPropsAdapterOptions } from "./defaults";
 
-const STYLE_ID = "@theme-kit/open-props";
+const STYLE_ID = "@themvora/open-props";
 
 /**
  * Injects the Open Props compatibility CSS (idempotent, SSR-safe). Called

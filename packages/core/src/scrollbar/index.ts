@@ -12,9 +12,22 @@ export type {
   RenderState,
   ScrollbarArrowDir,
   ScrollbarAxis,
+  ScrollbarInsets,
+  ScrollbarOffset,
+  ScrollbarOffsetSides,
   ScrollbarOptionsResolved,
 } from "./types";
 export { observeScrollbarSizing } from "./observers";
+export {
+  resolveIconOptions,
+  resolveScrollbarOptions,
+  type ScrollbarAppearanceOptions,
+  type ScrollbarBehaviorOptions,
+  type ScrollbarFlatOptions,
+  type ScrollbarGroupedOptions,
+  type ScrollbarIconOptions,
+  type ScrollbarScopeOptions,
+} from "./props";
 export {
   createPrePaintScrollbarCSS,
   createPrePaintScrollbarScript,

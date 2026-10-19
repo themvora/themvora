@@ -137,6 +137,7 @@ export function SearchProvider({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  const [dialogText, setDialogText] = useState("esc");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -194,7 +195,10 @@ export function SearchProvider({
   // Group the flat (score-ordered) results by content type while keeping each
   // item's original index so keyboard navigation stays consistent.
   const groups = useMemo(() => {
-    const map = new Map<SearchEntryType, { entry: SearchEntry; index: number }[]>();
+    const map = new Map<
+      SearchEntryType,
+      { entry: SearchEntry; index: number }[]
+    >();
     results.forEach((entry, index) => {
       const type = entry.type;
       if (!map.has(type)) map.set(type, []);
@@ -362,8 +366,13 @@ export function SearchProvider({
             />
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <kbd className="mono hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-foreground/50 md:inline">
-                esc
+              <kbd
+                className="mono hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-foreground/50 md:inline hover:cursor-pointer"
+                onMouseOver={() => setDialogText("close")}
+                onMouseLeave={() => setDialogText("esc")}
+                onClick={() => setOpen(false)}
+              >
+                {dialogText}
               </kbd>
 
               <button
@@ -423,7 +432,7 @@ export function SearchProvider({
                       key={link.href}
                       href={link.href}
                       onClick={() => setOpen(false)}
-                      className="rounded-full border border-border px-3 py-1 font-medium no-underline transition-colors hover:border-ring hover:text-primary"
+                      className="rounded-full border border-border px-3 py-1 font-medium no-underline transition-colors hover:border-ring hover:text-foreground"
                     >
                       {link.label}
                     </Link>

@@ -1,10 +1,10 @@
-## @theme-kit/shadcn/svelte
-Svelte composable for the shadcn/ui adapter (`@theme-kit/shadcn/svelte`).
+## @themvora/shadcn/svelte
+Svelte composable for the shadcn/ui adapter (`@themvora/shadcn/svelte`).
 
 `useShadcnTheme(runtime, options?)` installs the shadcn adapter onto an
-explicitly provided Theme Kit runtime and disposes it on unmount.
+explicitly provided Themvora runtime and disposes it on unmount.
 
-> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -14,10 +14,10 @@ Kit runtime. Maintains a tagged `:root` style element with concrete `--*`
 variables, kept in sync as the active theme changes.
 
 Must be called during component initialization, passing the runtime from
-your Theme Kit provider (e.g. `getThemeRuntime()` from `@theme-kit/svelte`):
+your Themvora provider (e.g. `getThemeRuntime()` from `@themvora/svelte`):
 
 ```ts
-import { useShadcnTheme } from "@theme-kit/shadcn/svelte";
+import { useShadcnTheme } from "@themvora/shadcn/svelte";
 
 useShadcnTheme(runtime);
 ```
@@ -29,7 +29,7 @@ and is disposed via Svelte's effect tree.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to install the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to install the adapter on. |
 | `options` | `UseAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

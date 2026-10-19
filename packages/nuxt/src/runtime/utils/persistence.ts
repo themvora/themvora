@@ -2,9 +2,9 @@ import type {
   ThemeDefinition,
   ThemeSelectionPersistenceAdapter,
   ThemeSelectionState,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "../../server/fingerprint";
-import { themeKitCookieNames } from "../../server/cookies";
+import { themvoraCookieNames } from "../../server/cookies";
 
 export interface NuxtThemePersistenceOptions {
   key?: string;
@@ -41,7 +41,7 @@ function clearCookie(name: string) {
  * Client-side persistence adapter for Nuxt. Mirrors the selection to
  * `localStorage` (cross-tab sync, offline) AND to the four theme cookies
  * (theme-family / theme-mode / theme-fingerprint) so the server resolves the
- * exact same state on the next request — same contract as `@theme-kit/next`.
+ * exact same state on the next request — same contract as `@themvora/next`.
  */
 export function createNuxtThemePersistence(
   themes?: readonly ThemeDefinition[],
@@ -78,10 +78,10 @@ export function createNuxtThemePersistence(
       } catch {
         return;
       }
-      writeCookie(themeKitCookieNames.family, value.family);
-      writeCookie(themeKitCookieNames.mode, value.mode);
+      writeCookie(themvoraCookieNames.family, value.family);
+      writeCookie(themvoraCookieNames.mode, value.mode);
       if (fingerprint) {
-        writeCookie(themeKitCookieNames.fingerprint, fingerprint);
+        writeCookie(themvoraCookieNames.fingerprint, fingerprint);
       }
     },
 
@@ -91,9 +91,9 @@ export function createNuxtThemePersistence(
       } catch {
         return;
       }
-      clearCookie(themeKitCookieNames.family);
-      clearCookie(themeKitCookieNames.mode);
-      clearCookie(themeKitCookieNames.fingerprint);
+      clearCookie(themvoraCookieNames.family);
+      clearCookie(themvoraCookieNames.mode);
+      clearCookie(themvoraCookieNames.fingerprint);
     },
 
     subscribe(listener) {

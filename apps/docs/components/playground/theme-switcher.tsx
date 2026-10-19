@@ -6,7 +6,7 @@ import {
   useThemeRuntime,
   useSetThemeFamily,
   useSetThemeMode,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 import { Icon } from "@iconify/react";
 import { ModeToggle } from "../mode-toggle";
 import { CopyButton } from "../ui/copy-button";

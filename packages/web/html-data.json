@@ -1,0 +1,374 @@
+{
+  "version": 1.1,
+  "tags": [
+    {
+      "name": "themvora-provider",
+      "description": "Owns the theme runtime for the page (or subtree) and applies the active theme to <html>. Every option is an attribute, and every attribute is live: changing one reconfigures the running runtime instead of reloading the page. Must wrap the other elements.\n\nEmits `theme-ready` once (bubbles, composed) after the runtime exists and the first theme is applied, and `themes-change` on a microtask whenever the catalog changes (a `themes` attribute write, `runtime.use(pack)` or `runtime.restore()`), with `detail.themes` naming the new catalog.",
+      "attributes": [
+        {
+          "name": "themes",
+          "description": "The theme catalog, in either of two syntaxes. Names: a space-separated list of registered theme identifiers, e.g. `themes=\"light dark oat-light oat-dark\"`; each is resolved against the catalog and an unknown name is reported and skipped. Definitions: a JSON array of full theme objects, e.g. `themes='[{\"name\":\"brand\",\"tokens\":{\"colors\":{\"background\":\"#fff\"}}}]'`. An empty or unusable list falls back to the neutral light/dark pair (reported with TV_THEME_NEUTRAL_FALLBACK)."
+        },
+        {
+          "name": "default-theme",
+          "description": "The theme used when nothing is persisted. Supplies both the fallback theme's family and its mode. Changing it re-resolves the selection; removing it does not disturb the live selection. An unknown name resolves to the catalog's first theme."
+        },
+        {
+          "name": "initial-mode",
+          "description": "The mode used when nothing is persisted. `system` follows `prefers-color-scheme`. Overrides the mode that `default-theme` would imply; an invalid value is reported (TV_CONFIG_OPTION_INVALID) and ignored.",
+          "values": [
+            {
+              "name": "light"
+            },
+            {
+              "name": "dark"
+            },
+            {
+              "name": "system"
+            }
+          ]
+        },
+        {
+          "name": "initial-family",
+          "description": "The family used when nothing is persisted. Overrides the family that `default-theme` would imply. An unregistered family is reported (TV_THEME_FAMILY_UNKNOWN) and resolved to a registered one."
+        },
+        {
+          "name": "transition",
+          "description": "JSON transition configuration: `true`, `false`, or an object such as `{\"enabled\":true,\"duration\":250,\"easing\":\"ease-in-out\"}`. Changing it reconfigures the live bindings; removing the attribute returns to no configured transition."
+        },
+        {
+          "name": "scheduled",
+          "description": "JSON sunrise/sunset scheduling options, e.g. `{\"latitude\":27.7,\"longitude\":85.3}`. The runtime switches between the schedule's light and dark themes at the computed times. Removing the attribute tears the schedule down."
+        }
+      ],
+      "references": [
+        {
+          "name": "Themvora — Web Components",
+          "url": "https://themvora-dev.vercel.app/framework-guides/web"
+        }
+      ]
+    },
+    {
+      "name": "themvora-select",
+      "description": "A native <select> bound to the provider's runtime, for `type=\"mode\"` or `type=\"family\"`. Options are generated from the runtime, so a catalog change updates the family list without a reload. Renders a real <select>, so keyboard and screen-reader behaviour are native; `label` sets its accessible name.",
+      "attributes": [
+        {
+          "name": "type",
+          "description": "Which part of the selection the control edits. Defaults to `mode`.",
+          "values": [
+            {
+              "name": "mode"
+            },
+            {
+              "name": "family"
+            }
+          ]
+        },
+        {
+          "name": "label",
+          "description": "Accessible name for the inner <select> (sets `aria-label`). Defaults to a name derived from `type`."
+        }
+      ],
+      "references": [
+        {
+          "name": "Themvora — Web Components",
+          "url": "https://themvora-dev.vercel.app/framework-guides/web"
+        }
+      ]
+    },
+    {
+      "name": "themvora-toggle",
+      "description": "A native <button> that switches between light and dark, with built-in icons and no icon package. Shows three states: a sun while the mode is explicitly light, a moon while it is explicitly dark, and a monitor while the selection is `system` — so a visitor who chose \"System\" can see the control is following the operating system. `data-mode` on the element mirrors that state (`light`, `dark`, `system`), and the inner button's `aria-pressed` is `true`, `false` or `mixed`. Activating it pins an explicit mode through `runtime.selection.toggleTheme()`, resolving the applied appearance first.",
+      "attributes": [],
+      "references": [
+        {
+          "name": "Themvora — Web Components",
+          "url": "https://themvora-dev.vercel.app/framework-guides/web"
+        }
+      ]
+    },
+    {
+      "name": "themvora-scope",
+      "description": "Applies a theme to its subtree, in the light DOM, by writing the theme's CSS variables inline on this element. Accepts an exact theme name (which pins its own mode) or a family name (which follows the provider's mode). Re-resolves in place when the provider's catalog changes; a name the catalog no longer has falls back to the catalog's first theme (reported with TV_CONFIG_OPTION_INVALID). Removing the attribute destroys the binding and restores the element's inline style, so the subtree inherits the surrounding theme.",
+      "attributes": [
+        {
+          "name": "theme",
+          "description": "An exact theme name (e.g. `citrus-dark`) or a family name (e.g. `cocoa`). Omit to disable the scope."
+        },
+        {
+          "name": "theme-transition",
+          "description": "Transition override for this scope: `true`, `false`, or JSON such as `{\"duration\":300,\"easing\":\"ease\"}`. When omitted, the scope inherits the provider's transition."
+        }
+      ],
+      "references": [
+        {
+          "name": "Themvora — Scoped themes",
+          "url": "https://themvora-dev.vercel.app/scoped-theme"
+        }
+      ]
+    },
+    {
+      "name": "themvora-scrollbar",
+      "description": "An overlay scrollbar bound to the provider's runtime: hides the native scrollbar, draws a themed thumb, and tracks every scrollable container (or only the ones matching `include` / `exclude`). Every option is an attribute; changing one rebuilds the overlay. Colors default to the active theme's tokens.",
+      "attributes": [
+        {
+          "name": "auto-hide",
+          "description": "Hide the overlay while the page is idle. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "auto-hide-delay",
+          "description": "Idle time in milliseconds before the overlay hides. Number."
+        },
+        {
+          "name": "hover-expand",
+          "description": "Grow the thumb while the pointer is over the scrollable area. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "draggable",
+          "description": "Allow dragging the thumb. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "click-to-jump",
+          "description": "Jump to the clicked position on the track. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "smooth",
+          "description": "Animate wheel-driven scrolling. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "overscroll",
+          "description": "Rubber-band past the ends. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "arrows",
+          "description": "Show arrow buttons at the ends of each rail. Presence enables them; `false` disables them.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "arrow-icon",
+          "description": "SVG markup (or URL) used for both arrow buttons. Overridden per direction by the four directional attributes."
+        },
+        {
+          "name": "arrow-up-icon",
+          "description": "SVG markup (or URL) for the up arrow."
+        },
+        {
+          "name": "arrow-down-icon",
+          "description": "SVG markup (or URL) for the down arrow."
+        },
+        {
+          "name": "arrow-left-icon",
+          "description": "SVG markup (or URL) for the left arrow."
+        },
+        {
+          "name": "arrow-right-icon",
+          "description": "SVG markup (or URL) for the right arrow."
+        },
+        {
+          "name": "touch",
+          "description": "Enable the overlay on touch devices. Presence enables it; `false` disables it.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "thickness",
+          "description": "Rail thickness in pixels. Number."
+        },
+        {
+          "name": "hover-thickness",
+          "description": "Rail thickness in pixels while hovered. Number."
+        },
+        {
+          "name": "radius",
+          "description": "Thumb corner radius in pixels. Number."
+        },
+        {
+          "name": "min-thumb-size",
+          "description": "Minimum thumb length in pixels. Number."
+        },
+        {
+          "name": "icon-size",
+          "description": "Arrow glyph size in pixels. Number."
+        },
+        {
+          "name": "offset",
+          "description": "Uniform inset from the viewport edge, in pixels. The per-side attributes win when any is present. Number."
+        },
+        {
+          "name": "offset-top",
+          "description": "Inset from the top edge in pixels. Number."
+        },
+        {
+          "name": "offset-right",
+          "description": "Inset from the right edge in pixels. Number."
+        },
+        {
+          "name": "offset-bottom",
+          "description": "Inset from the bottom edge in pixels. Number."
+        },
+        {
+          "name": "offset-left",
+          "description": "Inset from the left edge in pixels. Number."
+        },
+        {
+          "name": "track-opacity",
+          "description": "Track opacity, 0–1. Number."
+        },
+        {
+          "name": "thumb-opacity",
+          "description": "Thumb opacity, 0–1. Number."
+        },
+        {
+          "name": "duration",
+          "description": "Scroll animation duration in milliseconds. Number."
+        },
+        {
+          "name": "animation-duration",
+          "description": "Fade / grow animation duration in milliseconds. Number."
+        },
+        {
+          "name": "thumb-color",
+          "description": "Thumb color. Any CSS color; defaults to the active theme's token."
+        },
+        {
+          "name": "track-color",
+          "description": "Track color. Any CSS color; defaults to the active theme's token."
+        },
+        {
+          "name": "active-thumb-color",
+          "description": "Thumb color while dragging. Any CSS color."
+        },
+        {
+          "name": "thumb-hover-color",
+          "description": "Thumb color while hovered. Any CSS color."
+        },
+        {
+          "name": "z-index",
+          "description": "Stacking order of the overlay. Number; defaults to 9999."
+        },
+        {
+          "name": "dir",
+          "description": "Text direction used to place horizontal rails. Defaults to the document direction.",
+          "values": [
+            {
+              "name": "ltr"
+            },
+            {
+              "name": "rtl"
+            },
+            {
+              "name": "auto"
+            }
+          ]
+        },
+        {
+          "name": "axes",
+          "description": "Which axes to render, comma-separated: `vertical`, `horizontal`, or both (e.g. `axes=\"vertical,horizontal\"`)."
+        },
+        {
+          "name": "include",
+          "description": "Comma-separated CSS selectors: only containers matching one of them get an overlay."
+        },
+        {
+          "name": "exclude",
+          "description": "Comma-separated CSS selectors: containers matching one of them are skipped."
+        }
+      ],
+      "references": [
+        {
+          "name": "Themvora — Web Components",
+          "url": "https://themvora-dev.vercel.app/framework-guides/web"
+        }
+      ]
+    },
+    {
+      "name": "themvora-inspector",
+      "description": "A floating theme inspector: a small toggle button that opens a panel showing the active theme's identity, the current selection, its tokens and the resolved CSS variables, live. Rendered inside a <themvora-provider>.",
+      "attributes": [
+        {
+          "name": "bottom",
+          "description": "Distance from the bottom of the viewport, in pixels. Defaults to 104."
+        },
+        {
+          "name": "right",
+          "description": "Distance from the right edge of the viewport, in pixels. Defaults to 32."
+        },
+        {
+          "name": "size",
+          "description": "Toggle button size in pixels. Defaults to 40."
+        },
+        {
+          "name": "z-index",
+          "description": "Stacking order of the toggle and panel. Defaults to 9999."
+        }
+      ],
+      "references": [
+        {
+          "name": "Themvora — Web Components",
+          "url": "https://themvora-dev.vercel.app/framework-guides/web"
+        }
+      ]
+    }
+  ]
+}

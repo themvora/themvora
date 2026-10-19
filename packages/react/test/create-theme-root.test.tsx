@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import { defineTheme, type ThemeRuntime } from "@theme-kit/core";
+import { defineTheme, type ThemeRuntime } from "@themvora/core";
 import { createThemeRoot, ThemeProvider } from "../src";
 
 const themes = [
@@ -29,7 +29,7 @@ function makeContainer() {
 function cleanDom() {
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-theme-mode");
-  document.getElementById("theme-kit-bootstrap")?.remove();
+  document.getElementById("themvora-bootstrap")?.remove();
 }
 
 type Opts = Parameters<typeof createThemeRoot>[0];

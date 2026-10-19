@@ -1,5 +1,5 @@
 {
-  "name": "@theme-kit/core",
+  "name": "@themvora/core",
   "license": "MIT",
   "version": "1.4.0",
   "type": "module",
@@ -46,11 +46,11 @@
   "description": "Framework-agnostic theming engine: theme store, runtime, transitions, scheduling, accessibility, and DOM adapters.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/themekit-dev/theme-kit.git"
+    "url": "git+https://github.com/themvora/themvora.git"
   },
-  "homepage": "https://theme-kit-dev.vercel.app",
+  "homepage": "https://themvora-dev.vercel.app",
   "bugs": {
-    "url": "https://github.com/themekit-dev/theme-kit/issues"
+    "url": "https://github.com/themvora/themvora/issues"
   },
   "keywords": [
     "theme",

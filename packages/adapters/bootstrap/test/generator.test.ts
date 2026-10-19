@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ThemeTokens } from "@theme-kit/core";
+import type { ThemeTokens } from "@themvora/core";
 import { generateBootstrapVariables, createBootstrapVariables } from "../src/generator";
 
 const fullTokens: ThemeTokens = {

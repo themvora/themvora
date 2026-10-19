@@ -1,5 +1,5 @@
 /**
- * Theme Kit Vue integration.
+ * Themvora Vue integration.
  *
  * Provides the `ThemeProvider`, `ThemeScope`, `ThemeScrollbar` and
  * `ThemeInspector` components, the `provideThemeRuntime` helper, the
@@ -21,6 +21,7 @@ import {
   createPrePaintScrollbarScript,
   createThemeBootstrapScript,
   EMPTY_THEME_SCHEDULE_STATE,
+  resolveGeneratedTheme,
   type OverlayScrollbarOptions,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
@@ -35,11 +36,21 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
+import {
+  resolveIconOptions,
+  resolveScrollbarOptions,
+  type ScrollbarAppearanceOptions,
+  type ScrollbarBehaviorOptions,
+  type ScrollbarGroupedOptions,
+  type ScrollbarIconOptions,
+  type ScrollbarScopeOptions,
+} from "@themvora/core";
 import {
   provide,
   inject,
   ref,
+  computed,
   watch,
   onMounted,
   onUnmounted,
@@ -48,6 +59,36 @@ import {
   type PropType,
   type Ref,
 } from "vue";
+
+/**
+ * Attach Vue's plugin `install` to a component **without erasing its type**.
+ *
+ * The obvious spelling is a cast:
+ *
+ * ```ts
+ * defineComponent({ … }) as unknown as Component & { install(app: App): void }
+ * ```
+ *
+ * and that is what this package used to do. It costs the props. `Component` is
+ * Vue's props-less component type, so every editor — Volar in a `.vue` file
+ * above all — saw `<ThemeProvider>` as a component that accepts no props and
+ * offered only generic attributes. The components were correctly typed in
+ * source and untyped in the one place it mattered.
+ *
+ * `Object.assign` returns `T & { install(…) }`, so the `DefineComponent` type
+ * survives and prop completions work.
+ *
+ * @param component - The component to make installable.
+ * @param name - The name to register it under.
+ * @returns The same component, with `install` attached.
+ */
+function withInstall<T extends Component>(component: T, name: string) {
+  return Object.assign(component, {
+    install(app: App) {
+      app.component(name, component);
+    },
+  });
+}
 
 /**
  * Props accepted by the Vue `<ThemeProvider>` component.
@@ -66,16 +107,16 @@ export interface ThemeProviderProps<T extends ThemeDefinition = ThemeDefinition>
 }
 
 /**
- * Vue `InjectionKey` used to provide and inject the active Theme Kit runtime.
+ * Vue `InjectionKey` used to provide and inject the active Themvora runtime.
  *
  * @see {@link provideThemeRuntime}
  * @see {@link useThemeRuntime}
  */
-export const ThemeKitSymbol: InjectionKey<ThemeRuntime<any>> =
-  Symbol("theme-kit");
+export const ThemeSymbol: InjectionKey<ThemeRuntime<any>> =
+  Symbol("themvora");
 
 /**
- * Provides a Theme Kit runtime to the current Vue component subtree.
+ * Provides a Themvora runtime to the current Vue component subtree.
  *
  * Call inside a component's `setup` scope (typically the app root) so
  * descendant composables can resolve it via {@link useThemeRuntime}.
@@ -88,11 +129,11 @@ export const ThemeKitSymbol: InjectionKey<ThemeRuntime<any>> =
 export function provideThemeRuntime<T extends ThemeDefinition>(
   runtime: ThemeRuntime<T>,
 ) {
-  provide(ThemeKitSymbol, runtime);
+  provide(ThemeSymbol, runtime);
 }
 
 /**
- * Resolves the active Theme Kit runtime from the Vue injection context.
+ * Resolves the active Themvora runtime from the Vue injection context.
  *
  * Call inside Vue `setup` scope, within a component that is a descendant of a
  * `<ThemeProvider>` (or after {@link provideThemeRuntime}).
@@ -111,7 +152,7 @@ export function provideThemeRuntime<T extends ThemeDefinition>(
  * @see {@link useThemeValue}
  */
 export function useThemeRuntime<T extends ThemeDefinition>() {
-  const runtime = inject(ThemeKitSymbol) as ThemeRuntime<T> | undefined;
+  const runtime = inject(ThemeSymbol) as ThemeRuntime<T> | undefined;
   if (!runtime) {
     throw new Error("useThemeRuntime must be used within a ThemeProvider");
   }
@@ -156,7 +197,7 @@ export function useThemeValue<T extends ThemeDefinition>() {
  */
 export function useThemeTokens<T extends ThemeDefinition>() {
   const runtime = useThemeRuntime<T>();
-  const tokens: Ref<import("@theme-kit/core").ThemeTokens | undefined> = ref(runtime.store.get().tokens);
+  const tokens: Ref<import("@themvora/core").ThemeTokens | undefined> = ref(runtime.store.get().tokens);
 
   onMounted(() => {
     const unsub = runtime.store.subscribe((t) => {
@@ -166,6 +207,64 @@ export function useThemeTokens<T extends ThemeDefinition>() {
   });
 
   return tokens;
+}
+
+/**
+ * Reactive ref of the theme produced by `generateTheme()` and registered with
+ * the provider.
+ *
+ * Resolves the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`); shipped presets never qualify. When
+ * both halves of one `generateTheme()` call are registered, the ref tracks the
+ * theme the active selection resolves to and updates on selection changes.
+ *
+ * Call inside a Vue `setup` scope within a `<ThemeProvider>`.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection; if
+ * the generated theme is later removed, the same error is raised at the next
+ * reactive read rather than a stale theme being returned.
+ *
+ * @returns A `Ref` holding the registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when no generated theme is
+ *   registered; `TV_GENERATION_THEME_AMBIGUOUS` when several are and the active
+ *   selection does not identify one.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useGeneratedTheme<T extends ThemeDefinition>(): Ref<T> {
+  const runtime = useThemeRuntime<T>();
+  const version = ref(0);
+
+  // Eager initial resolution preserves the documented setup-time error contract.
+  resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+
+  // Lazy: the getter re-runs when the consumer reads `theme.value` (render), so
+  // a settled missing/ambiguous state throws there — never inside a subscription
+  // callback. `version` is bumped at each transaction boundary.
+  const theme = computed<T>(() => {
+    void version.value;
+    return resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+  });
+
+  onMounted(() => {
+    // React to the registry too: a `runtime.use(pack)` install adds generated
+    // themes without touching the store or selection.
+    const bump = () => {
+      version.value += 1;
+    };
+    const unsubStore = runtime.store.subscribe(bump);
+    const unsubRegistry = runtime.registry.subscribe(bump);
+    onUnmounted(() => {
+      unsubStore();
+      unsubRegistry();
+    });
+  });
+
+  return theme as Ref<T>;
 }
 
 /**
@@ -320,7 +419,7 @@ export function useThemeHistory<T extends ThemeDefinition>() {
 
   const canUndo: Ref<boolean> = ref(runtime.history.canUndo());
   const canRedo: Ref<boolean> = ref(runtime.history.canRedo());
-  const history = ref<readonly import("@theme-kit/core").HistoryEntry<T>[]>(runtime.history.getHistory());
+  const history = ref<readonly import("@themvora/core").HistoryEntry<T>[]>(runtime.history.getHistory());
 
   onMounted(() => {
     const unsub = runtime.store.subscribe(() => {
@@ -401,7 +500,7 @@ export function useThemeSnapshot() {
  */
 export function useThemeRestore() {
   const runtime = useThemeRuntime();
-  return (snapshot: import("@theme-kit/core").ThemeRuntimeSnapshot) => runtime.restore(snapshot);
+  return (snapshot: import("@themvora/core").ThemeRuntimeSnapshot) => runtime.restore(snapshot);
 }
 
 /**
@@ -433,7 +532,7 @@ export function useThemeLifecycle() {
  */
 export function useThemePacks() {
   const runtime = useThemeRuntime();
-  return (pack: import("@theme-kit/core").ThemePack<any>) => runtime.use(pack);
+  return (pack: import("@themvora/core").ThemePack<any>) => runtime.use(pack);
 }
 
 /**
@@ -513,7 +612,7 @@ interface Props extends Record<string, any> {
   dom?: false | DOMBindingOptions;
   cssVariables?: false | CSSVariablesOptions;
   transition?: boolean | ThemeTransitionOptions;
-  scheduled?: false | import("@theme-kit/core").ScheduledThemeOptions<ThemeDefinition>;
+  scheduled?: false | import("@themvora/core").ScheduledThemeOptions<ThemeDefinition>;
 }
 
 /**
@@ -533,38 +632,14 @@ export function createVueThemeBootstrapScript<T extends ThemeDefinition>(
   return createThemeBootstrapScript(options);
 }
 
-/**
- * Vue component that provides a Theme Kit runtime to its subtree and applies
- * the active theme to the DOM.
- *
- * Renders only its default slot (no wrapper element). When no `runtime` prop
- * is given, it creates and owns a runtime from the other props, injects a
- * blocking zero-flash bootstrap script, and binds DOM/CSS variables on mount.
- * The owned runtime is destroyed on unmount. Can be registered globally via
- * `app.use(ThemeProvider)`.
- *
- * @remarks
- * SSR-safe: the runtime is created in `setup` and DOM/CSS bindings are applied
- * only in `onMounted`, so server rendering produces deterministic markup.
- *
- * @example
- * ```vue
- * <ThemeProvider :themes="themes" default-theme="light">
- *   <App />
- * </ThemeProvider>
- * ```
- *
- * @see {@link ThemeProviderProps}
- * @see {@link useThemeRuntime}
- * @see {@link ThemeScope}
- */
-const ThemeProvider = defineComponent({
+const ThemeProviderBase = defineComponent({
   name: "ThemeProvider",
   inheritAttrs: false,
   props: {
     runtime: { type: Object, required: false, default: undefined },
     themes: { type: Array, required: false },
     defaultTheme: { type: String, required: false },
+    initial: { type: Object, required: false, default: undefined },
     initialMode: { type: String, required: false },
     initialFamily: { type: String, required: false },
     persistence: { type: Object, required: false },
@@ -600,10 +675,52 @@ const ThemeProvider = defineComponent({
 
     const resolvedRuntime = runtimeRef.value! as any;
 
-    provide(ThemeKitSymbol, resolvedRuntime);
+    provide(ThemeSymbol, resolvedRuntime);
 
-    let domBinding: { apply(theme: any, emitOptions?: any): void; destroy(): void } | null = null;
-    let cssBinding: { destroy(): void } | null = null;
+    // Live configuration: forward changed props to the runtime, which
+    // re-resolves centrally and no-ops when nothing relevant changed. Only
+    // *supplied* props are forwarded, so an absent prop cannot reset a value the
+    // runtime was created with.
+    watch(
+      () =>
+        [
+          props.themes,
+          props.defaultTheme,
+          props.initialFamily,
+          props.initialMode,
+          props.initial,
+          props.transition,
+          props.scheduled,
+        ] as const,
+      () => {
+        const update: Record<string, unknown> = {};
+        if (props.themes !== undefined) update.themes = props.themes;
+        if (props.defaultTheme !== undefined) update.defaultTheme = props.defaultTheme;
+        if (props.initialFamily !== undefined) update.initialFamily = props.initialFamily;
+        if (props.initialMode !== undefined) update.initialMode = props.initialMode;
+        if (props.initial !== undefined) update.initial = props.initial;
+        if (props.transition !== undefined) update.transition = props.transition;
+        if (props.scheduled !== undefined) update.scheduled = props.scheduled;
+
+        // The runtime owns validation/comparison; an identity change on
+        // `runtime.transition` means the new value was applied, so the
+        // provider's own bindings (created on mount) are pushed it too.
+        const transitionBefore = resolvedRuntime.transition;
+        resolvedRuntime.configure(update);
+        if (resolvedRuntime.transition !== transitionBefore) {
+          domBinding?.setTransition?.(resolvedRuntime.transition);
+          cssBinding?.setTransition?.(resolvedRuntime.transition);
+        }
+      },
+      { flush: "post" },
+    );
+
+    let domBinding: {
+      apply(theme: any, emitOptions?: any): void;
+      setTransition?(transition: any): void;
+      destroy(): void;
+    } | null = null;
+    let cssBinding: { setTransition?(transition: any): void; destroy(): void } | null = null;
 
     onMounted(() => {
       const domOpts = props.dom;
@@ -617,7 +734,7 @@ const ThemeProvider = defineComponent({
         document.head &&
         props.persistence !== null &&
         props.themes?.length &&
-        !document.getElementById("theme-kit-bootstrap")
+        !document.getElementById("themvora-bootstrap")
       ) {
         const bootstrap = createThemeBootstrapScript({
           themes: props.themes as any,
@@ -627,7 +744,7 @@ const ThemeProvider = defineComponent({
         });
         if (bootstrap) {
           const script = document.createElement("script");
-          script.id = "theme-kit-bootstrap";
+          script.id = "themvora-bootstrap";
           script.textContent = bootstrap;
           document.head.appendChild(script);
         }
@@ -685,13 +802,35 @@ const ThemeProvider = defineComponent({
 
     return () => slots.default?.();
   },
-}) as unknown as Component & { install(app: App): void };
+});
 
-ThemeProvider.install = (app: App) => {
-  app.component("ThemeProvider", ThemeProvider);
-};
+/**
+ * Vue component that provides a Themvora runtime to its subtree and applies
+ * the active theme to the DOM.
+ *
+ * Renders only its default slot (no wrapper element). When no `runtime` prop
+ * is given, it creates and owns a runtime from the other props, injects a
+ * blocking zero-flash bootstrap script, and binds DOM/CSS variables on mount.
+ * The owned runtime is destroyed on unmount. Can be registered globally via
+ * `app.use(ThemeProvider)`.
+ *
+ * @remarks
+ * SSR-safe: the runtime is created in `setup` and DOM/CSS bindings are applied
+ * only in `onMounted`, so server rendering produces deterministic markup.
+ *
+ * @example
+ * ```vue
+ * <ThemeProvider :themes="themes" default-theme="light">
+ *   <App />
+ * </ThemeProvider>
+ * ```
+ *
+ * @see {@link ThemeProviderProps}
+ * @see {@link useThemeRuntime}
+ * @see {@link ThemeScope}
+ */
+export const ThemeProvider = withInstall(ThemeProviderBase, "ThemeProvider");
 
-export { ThemeProvider };
 
 /**
  * Props accepted by the Vue `<ThemeScope>` component.
@@ -715,31 +854,7 @@ export interface ThemeScopeProps {
 
 let scopeIdCounter = 0;
 
-/**
- * Vue component that applies a scoped theme to its subtree.
- *
- * Renders a `div` wrapper carrying a `data-v-tk-scope` attribute and applies
- * the resolved theme's CSS variables to that element, overriding the
- * provider's selection for the subtree. Supports an exact theme, a theme
- * family, local theme definitions, and per-scope transitions. Can be
- * registered globally via `app.use(ThemeScope)`.
- *
- * @remarks
- * The scope follows the provider's mode for family/boundary scopes and
- * re-applies when the provider's selection changes. Local themes are resolved
- * first, falling back to the parent registry; no second runtime is created.
- *
- * @example
- * ```vue
- * <ThemeScope family="brand" mode="dark">
- *   <Dashboard />
- * </ThemeScope>
- * ```
- *
- * @see {@link ThemeScopeProps}
- * @see {@link useTheme}
- */
-export const ThemeScope = defineComponent({
+const ThemeScopeBase = defineComponent({
   name: "ThemeScope",
   props: {
     theme: { type: String, required: false, default: undefined },
@@ -760,7 +875,7 @@ export const ThemeScope = defineComponent({
     const prePaint = resolveScopedThemePrePaint(
       [...(props.themes ?? []), ...runtime.themes],
       toSelection(),
-      { selector: `[data-v-tk-scope="${scopeId}"]` },
+      { selector: `[data-v-tv-scope="${scopeId}"]` },
     );
 
     function effectiveMode(): ThemeMode {
@@ -809,15 +924,30 @@ export const ThemeScope = defineComponent({
     );
 
     // Follow the provider's mode for family/boundary scopes.
-    watch(
-      () => runtime.selection.getMode(),
-      () => {
-        if (props.theme != null) return;
-        binding?.update(toSelection());
-      },
-    );
+    //
+    // A subscription rather than a `watch` on `selection.getMode()`: that
+    // getter reads plain runtime state, so Vue had nothing reactive to track
+    // and the scope never flipped when the mode changed. The store is the one
+    // signal every other adapter uses for the same job.
+    //
+    // `toSelection()` already carries the effective mode, so it is forwarded
+    // as-is: a selection that pins its own mode re-resolves to the same theme,
+    // which is cheaper than guarding on it.
+    const unsubscribeStore = runtime.store.subscribe(() => {
+      if (props.theme != null) return;
+      binding?.update(toSelection());
+    });
+
+    // Follow the provider's catalog. A `themes` change that preserves the
+    // active theme never reaches the store subscription above, so without this
+    // the scope keeps rendering a theme the runtime has dropped.
+    const unsubscribeThemes = runtime.registry.subscribe(() => {
+      binding?.refresh();
+    });
 
     onUnmounted(() => {
+      unsubscribeStore();
+      unsubscribeThemes();
       binding?.destroy();
     });
 
@@ -826,24 +956,49 @@ export const ThemeScope = defineComponent({
         "div",
         {
           ref: elRef,
-          "data-v-tk-scope": scopeId,
+          "data-v-tv-scope": scopeId,
           ...(prePaint.systemBased ? {} : { style: prePaint.lightVariables }),
         },
         [prePaint.css ? h("style", { innerHTML: prePaint.css }) : null, slots.default?.()],
       );
   },
-}) as unknown as Component & { install(app: App): void };
+});
 
-ThemeScope.install = (app: App) => {
-  app.component("ThemeScope", ThemeScope);
-};
+/**
+ * Vue component that applies a scoped theme to its subtree.
+ *
+ * Renders a `div` wrapper carrying a `data-v-tv-scope` attribute and applies
+ * the resolved theme's CSS variables to that element, overriding the
+ * provider's selection for the subtree. Supports an exact theme, a theme
+ * family, local theme definitions, and per-scope transitions. Can be
+ * registered globally via `app.use(ThemeScope)`.
+ *
+ * @remarks
+ * The scope follows the provider's mode for family/boundary scopes and
+ * re-applies when the provider's selection changes. Local themes are resolved
+ * first, falling back to the parent registry; no second runtime is created.
+ *
+ * @example
+ * ```vue
+ * <ThemeScope family="brand" mode="dark">
+ *   <Dashboard />
+ * </ThemeScope>
+ * ```
+ *
+ * @see {@link ThemeScopeProps}
+ * @see {@link useTheme}
+ */
+export const ThemeScope = withInstall(ThemeScopeBase, "ThemeScope");
 
 /**
  * Props accepted by the Vue `<ThemeScrollbar>` component.
  *
  * Extends {@link OverlayScrollbarOptions} with an optional custom element tag.
  */
-export interface ThemeScrollbarProps extends OverlayScrollbarOptions {
+export interface ThemeScrollbarProps extends ScrollbarGroupedOptions {
+  /** Arrow button icons: the arrow entry covers all four directions
+   *  (per-direction entries win), plus the shared glyph size in CSS px. */
+  icons?: ScrollbarIconOptions<string>;
   /**
    * The element tag to apply the overlay scrollbar to. Defaults to the
    * provider's scroll container.
@@ -852,101 +1007,26 @@ export interface ThemeScrollbarProps extends OverlayScrollbarOptions {
 }
 
 function pickDefined(prefs: ThemeScrollbarProps): OverlayScrollbarOptions {
-  const opts: OverlayScrollbarOptions = {};
-  if (prefs.autoHide !== undefined) opts.autoHide = prefs.autoHide;
-  if (prefs.hoverExpand !== undefined) opts.hoverExpand = prefs.hoverExpand;
-  if (prefs.draggable !== undefined) opts.draggable = prefs.draggable;
-  if (prefs.clickToJump !== undefined) opts.clickToJump = prefs.clickToJump;
-  if (prefs.smooth !== undefined) opts.smooth = prefs.smooth;
-  if (prefs.overscroll !== undefined) opts.overscroll = prefs.overscroll;
-  if (prefs.arrows !== undefined) opts.arrows = prefs.arrows;
-  if (prefs.arrowIcon !== undefined) opts.arrowIcon = prefs.arrowIcon;
-  if (prefs.arrowUpIcon !== undefined) opts.arrowUpIcon = prefs.arrowUpIcon;
-  if (prefs.arrowDownIcon !== undefined) opts.arrowDownIcon = prefs.arrowDownIcon;
-  if (prefs.arrowLeftIcon !== undefined) opts.arrowLeftIcon = prefs.arrowLeftIcon;
-  if (prefs.arrowRightIcon !== undefined) opts.arrowRightIcon = prefs.arrowRightIcon;
-  if (prefs.thickness !== undefined) opts.thickness = prefs.thickness;
-  if (prefs.hoverThickness !== undefined)
-    opts.hoverThickness = prefs.hoverThickness;
-  if (prefs.radius !== undefined) opts.radius = prefs.radius;
-  if (prefs.minThumbSize !== undefined) opts.minThumbSize = prefs.minThumbSize;
-  if (prefs.offset !== undefined) opts.offset = prefs.offset;
-  if (prefs.trackOpacity !== undefined) opts.trackOpacity = prefs.trackOpacity;
-  if (prefs.thumbOpacity !== undefined) opts.thumbOpacity = prefs.thumbOpacity;
-  if (prefs.duration !== undefined) opts.duration = prefs.duration;
-  if (prefs.animationDuration !== undefined)
-    opts.animationDuration = prefs.animationDuration;
-  if (prefs.axes !== undefined) opts.axes = prefs.axes;
-  if (prefs.touch !== undefined) opts.touch = prefs.touch;
-  if (prefs.thumbColor !== undefined) opts.thumbColor = prefs.thumbColor;
-  if (prefs.trackColor !== undefined) opts.trackColor = prefs.trackColor;
-  if (prefs.activeThumbColor !== undefined)
-    opts.activeThumbColor = prefs.activeThumbColor;
-  if (prefs.thumbHoverColor !== undefined)
-    opts.thumbHoverColor = prefs.thumbHoverColor;
-  if (prefs.zIndex !== undefined) opts.zIndex = prefs.zIndex;
-  if (prefs.dir !== undefined) opts.dir = prefs.dir;
-  return opts;
+  // The public API is the groups; the icons group maps onto the engine's
+  // arrow options. A flat option is no longer part of the surface.
+  return {
+    ...resolveScrollbarOptions({
+      behavior: prefs.behavior,
+      appearance: prefs.appearance,
+      scope: prefs.scope,
+    }),
+    ...resolveIconOptions(prefs.icons),
+  };
 }
 
-/**
- * Vue component that replaces the native scrollbar with a themed overlay
- * scrollbar.
- *
- * Renders nothing (returns `null`) and instead installs an overlay scrollbar
- * on the target element (see {@link ThemeScrollbarProps.tag}) once mounted.
- * Injects the pre-paint hiding CSS synchronously during `setup` so the native
- * bar never flashes. Can be registered globally via `app.use(ThemeScrollbar)`.
- *
- * @remarks
- * The pre-paint injection is idempotent: when the Vite plugin or an SSR
- * adapter already emitted it, this no-ops.
- *
- * @example
- * ```vue
- * <ThemeScrollbar :thickness="10" hover-expand />
- * ```
- *
- * @see {@link ThemeScrollbarProps}
- * @see {@link ThemeProvider}
- */
-export const ThemeScrollbar = defineComponent({
+const ThemeScrollbarBase = defineComponent({
   name: "ThemeScrollbar",
   props: {
-    autoHide: { type: Boolean, required: false, default: undefined },
-    hoverExpand: { type: Boolean, required: false, default: undefined },
-    draggable: { type: Boolean, required: false, default: undefined },
-    clickToJump: { type: Boolean, required: false, default: undefined },
-    smooth: { type: Boolean, required: false, default: undefined },
-    overscroll: { type: Boolean, required: false, default: undefined },
-    arrows: { type: Boolean, required: false, default: undefined },
-    arrowIcon: { type: String, required: false, default: undefined },
-    arrowUpIcon: { type: String, required: false, default: undefined },
-    arrowDownIcon: { type: String, required: false, default: undefined },
-    arrowLeftIcon: { type: String, required: false, default: undefined },
-    arrowRightIcon: { type: String, required: false, default: undefined },
-    thickness: { type: Number, required: false, default: undefined },
-    hoverThickness: { type: Number, required: false, default: undefined },
-    radius: { type: Number, required: false, default: undefined },
-    minThumbSize: { type: Number, required: false, default: undefined },
-    offset: { type: Number, required: false, default: undefined },
-    trackOpacity: { type: Number, required: false, default: undefined },
-    thumbOpacity: { type: Number, required: false, default: undefined },
-    duration: { type: Number, required: false, default: undefined },
-    animationDuration: { type: Number, required: false, default: undefined },
-    axes: { type: Array, required: false, default: undefined },
-    touch: { type: Boolean, required: false, default: undefined },
-    thumbColor: { type: String, required: false, default: undefined },
-    trackColor: { type: String, required: false, default: undefined },
-    activeThumbColor: { type: String, required: false, default: undefined },
-    thumbHoverColor: { type: String, required: false, default: undefined },
-    zIndex: { type: Number, required: false, default: undefined },
-    dir: {
-      type: String,
-      required: false,
-      default: undefined,
-      validator: (v: string) => v === "ltr" || v === "rtl" || v === "auto",
-    },
+    // Grouped settings (canonical). A flat option wins over its group.
+    behavior: { type: Object, required: false, default: undefined },
+    appearance: { type: Object, required: false, default: undefined },
+    scope: { type: Object, required: false, default: undefined },
+    icons: { type: Object, required: false, default: undefined },
   },
   setup(props: ThemeScrollbarProps) {
     const runtime = useThemeRuntime();
@@ -954,13 +1034,13 @@ export const ThemeScrollbar = defineComponent({
 
     // Phase 1 — hide the native scrollbar before the first paint. `setup` runs
     // synchronously during mount (before the browser paints the app), so the
-    // blocking script's `tk-scrollbar` class + <style> are in place before the
+    // blocking script's `tv-scrollbar` class + <style> are in place before the
     // native bar could ever render — the custom overlay is the only scrollbar
     // from the first frame (matching the Next.js/Nuxt SSR experience).
     // Idempotent: when the Vite plugin or an SSR adapter already emitted it,
     // this no-ops.
     if (typeof document !== "undefined" && document.head) {
-      if (!document.getElementById("tk-scrollbar-style")) {
+      if (!document.getElementById("tv-scrollbar-style")) {
         const script = document.createElement("script");
         script.textContent = createPrePaintScrollbarScript();
         document.head.appendChild(script);
@@ -990,15 +1070,34 @@ export const ThemeScrollbar = defineComponent({
 
     return () => null;
   },
-}) as unknown as Component & { install(app: App): void };
+});
 
-ThemeScrollbar.install = (app: App) => {
-  app.component("ThemeScrollbar", ThemeScrollbar);
-};
+/**
+ * Vue component that replaces the native scrollbar with a themed overlay
+ * scrollbar.
+ *
+ * Renders nothing (returns `null`) and instead installs an overlay scrollbar
+ * on the target element (see {@link ThemeScrollbarProps.tag}) once mounted.
+ * Injects the pre-paint hiding CSS synchronously during `setup` so the native
+ * bar never flashes. Can be registered globally via `app.use(ThemeScrollbar)`.
+ *
+ * @remarks
+ * The pre-paint injection is idempotent: when the Vite plugin or an SSR
+ * adapter already emitted it, this no-ops.
+ *
+ * @example
+ * ```vue
+ * <ThemeScrollbar :thickness="10" hover-expand />
+ * ```
+ *
+ * @see {@link ThemeScrollbarProps}
+ * @see {@link ThemeProvider}
+ */
+export const ThemeScrollbar = withInstall(ThemeScrollbarBase, "ThemeScrollbar");
 
 // ── ThemeInspector ──────────────────────────────────────────────────────────
 
-import { ThemeKitInspector } from "@theme-kit/web";
+import { ThemvoraInspector } from "@themvora/web";
 
 /**
  * Props accepted by the Vue `<ThemeInspector>` component.
@@ -1014,10 +1113,30 @@ export interface ThemeInspectorProps {
   zIndex?: number;
 }
 
+const ThemeInspectorBase = defineComponent({
+  name: "ThemeInspector",
+  props: {
+    bottom: { type: Number, required: false, default: undefined },
+    right: { type: Number, required: false, default: undefined },
+    size: { type: Number, required: false, default: undefined },
+    zIndex: { type: Number, required: false, default: undefined },
+  },
+  setup(props) {
+    onMounted(() => ThemvoraInspector.define());
+    return () =>
+      h("themvora-inspector", {
+        ...(props.bottom != null ? { bottom: String(props.bottom) } : {}),
+        ...(props.right != null ? { right: String(props.right) } : {}),
+        ...(props.size != null ? { size: String(props.size) } : {}),
+        ...(props.zIndex != null ? { "z-index": String(props.zIndex) } : {}),
+      });
+  },
+});
+
 /**
  * Vue component that renders the framework-agnostic Theme Inspector.
  *
- * Renders a `<theme-kit-inspector>` custom element (defined on mount) that
+ * Renders a `<themvora-inspector>` custom element (defined on mount) that
  * shows a floating toggle opening a panel inspecting the active theme —
  * identity, selection, tokens, and resolved CSS variables. Can be registered
  * globally via `app.use(ThemeInspector)`.
@@ -1030,26 +1149,4 @@ export interface ThemeInspectorProps {
  * @see {@link ThemeInspectorProps}
  * @see {@link useTheme}
  */
-export const ThemeInspector = defineComponent({
-  name: "ThemeInspector",
-  props: {
-    bottom: { type: Number, required: false, default: undefined },
-    right: { type: Number, required: false, default: undefined },
-    size: { type: Number, required: false, default: undefined },
-    zIndex: { type: Number, required: false, default: undefined },
-  },
-  setup(props) {
-    onMounted(() => ThemeKitInspector.define());
-    return () =>
-      h("theme-kit-inspector", {
-        ...(props.bottom != null ? { bottom: String(props.bottom) } : {}),
-        ...(props.right != null ? { right: String(props.right) } : {}),
-        ...(props.size != null ? { size: String(props.size) } : {}),
-        ...(props.zIndex != null ? { "z-index": String(props.zIndex) } : {}),
-      });
-  },
-}) as unknown as Component & { install(app: App): void };
-
-ThemeInspector.install = (app: App) => {
-  app.component("ThemeInspector", ThemeInspector);
-};
+export const ThemeInspector = withInstall(ThemeInspectorBase, "ThemeInspector");

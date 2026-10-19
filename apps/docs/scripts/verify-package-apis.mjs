@@ -23,7 +23,7 @@ const GRAPH = join(here, "..", "lib", "generated", "package-graph.ts");
 /** package name → primaryApis, parsed from the editorial layer. */
 function parseEditorial(source) {
   const out = new Map();
-  const entry = /"(@theme-kit\/[a-z-]+)":\s*\{([\s\S]*?)\n  \},/g;
+  const entry = /"(@themvora\/[a-z-]+)":\s*\{([\s\S]*?)\n  \},/g;
   let m;
   while ((m = entry.exec(source))) {
     const name = m[1];
@@ -39,7 +39,7 @@ function parseEditorial(source) {
 /** package name → { dir, hasBin } from the generated graph. */
 function parseGraph(source) {
   const out = new Map();
-  const entry = /\{\s*name:\s*"(@theme-kit\/[a-z-]+)",[\s\S]*?dir:\s*"([^"]+)"/g;
+  const entry = /\{\s*name:\s*"(@themvora\/[a-z-]+)",[\s\S]*?dir:\s*"([^"]+)"/g;
   let m;
   while ((m = entry.exec(source))) out.set(m[1], { dir: m[2] });
   return out;
@@ -88,8 +88,8 @@ function parseRecipes(source) {
       id,
       declared: declared
         ? [...declared.matchAll(/"([^"]+)"/g)].map((x) => x[1])
-        : ["@theme-kit/core"],
-      imported: [...new Set([...code.matchAll(/@theme-kit\/[a-z-]+/g)].map((m) => m[0]))],
+        : ["@themvora/core"],
+      imported: [...new Set([...code.matchAll(/@themvora\/[a-z-]+/g)].map((m) => m[0]))],
     });
   }
   return out;
@@ -98,8 +98,8 @@ function parseRecipes(source) {
 /**
  * The entrypoints a package actually declares, from its `exports` map.
  *
- * A package's surface is not only its root entry. `@theme-kit/remix` ships
- * `./server`, `@theme-kit/core` ships `./vanilla`, `./config` and `./vite`.
+ * A package's surface is not only its root entry. `@themvora/remix` ships
+ * `./server`, `@themvora/core` ships `./vanilla`, `./config` and `./vite`.
  * Reading the map is the same model `export-inventory.mjs` uses, so a
  * `primaryApis` name that legitimately lives on a subpath resolves instead of
  * being reported as invented. `package-map.ts` names the API, not the specifier

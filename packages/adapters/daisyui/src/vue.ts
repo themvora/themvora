@@ -1,8 +1,8 @@
 /**
- * Vue composable for the daisyUI adapter (`@theme-kit/daisyui/vue`).
+ * Vue composable for the daisyUI adapter (`@themvora/daisyui/vue`).
  *
  * `useDaisyTheme(runtime, options?)` installs the daisyUI adapter onto an
- * explicitly provided Theme Kit runtime and disposes it on unmount.
+ * explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createDaisyAdapter } from "./adapter";
 
@@ -29,20 +29,20 @@ export interface UseAdapterOptions {
 }
 
 /**
- * Vue composable that installs the daisyUI adapter onto the given Theme Kit
+ * Vue composable that installs the daisyUI adapter onto the given Themvora
  * runtime. Maintains a tagged `:root` style element with concrete `--color-*`
  * variables, kept in sync as the active theme changes.
  *
  * Must be called in a component's `setup` scope, passing the runtime from your
- * Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/vue`):
+ * Themvora provider (e.g. `useThemeRuntime()` from `@themvora/vue`):
  *
  * ```ts
- * import { useDaisyTheme } from "@theme-kit/daisyui/vue";
+ * import { useDaisyTheme } from "@themvora/daisyui/vue";
  *
  * useDaisyTheme(runtime);
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

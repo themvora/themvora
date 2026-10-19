@@ -16,13 +16,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/plugins") },
   title: "Plugins",
   description:
-    "Extend Theme Kit with lifecycle hooks, token transforms, and runtime integrations using the plugin system.",
+    "Extend Themvora with lifecycle hooks, token transforms, and runtime integrations using the plugin system.",
 };
 
 const basicPluginSnippet = {
   lang: "ts",
   title: "defining a basic plugin",
-  code: `import type { ThemePlugin } from "@theme-kit/core";
+  code: `import type { ThemePlugin } from "@themvora/core";
 
 const myPlugin: ThemePlugin = {
   name: "my-plugin",
@@ -42,7 +42,7 @@ const myPlugin: ThemePlugin = {
 const hooksSnippet = {
   lang: "ts",
   title: "plugin hooks",
-  code: `import type { ThemePlugin } from "@theme-kit/core";
+  code: `import type { ThemePlugin } from "@themvora/core";
 
 const logger: ThemePlugin = {
   name: "logger",
@@ -87,7 +87,7 @@ const logger: ThemePlugin = {
 const transformSnippet = {
   lang: "ts",
   title: "token transform plugin",
-  code: `import type { ThemePlugin, ThemeTokens } from "@theme-kit/core";
+  code: `import type { ThemePlugin, ThemeTokens } from "@themvora/core";
 
 const contrastBoost: ThemePlugin = {
   name: "contrast-boost",
@@ -112,7 +112,7 @@ const contrastBoost: ThemePlugin = {
 const prioritySnippet = {
   lang: "ts",
   title: "priority ordering",
-  code: `import type { ThemePlugin } from "@theme-kit/core";
+  code: `import type { ThemePlugin } from "@themvora/core";
 
 const pluginA: ThemePlugin = {
   name: "a",
@@ -140,7 +140,7 @@ const pluginC: ThemePlugin = {
 const runtimeSnippet = {
   lang: "ts",
   title: "runtime plugin management",
-  code: `import { createThemeRuntime, createPluginManager } from "@theme-kit/core";
+  code: `import { createThemeRuntime, createPluginManager } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   plugins: [debuggerPlugin, persistencePlugin],
@@ -171,7 +171,7 @@ unsubscribe();`,
 const fullExampleSnippet = {
   lang: "ts",
   title: "full plugin example",
-  code: `import type { ThemePlugin, ThemeTokens } from "@theme-kit/core";
+  code: `import type { ThemePlugin, ThemeTokens } from "@themvora/core";
 
 /**
  * Logs every theme change and boosts contrast on dark tokens.
@@ -219,7 +219,7 @@ const analyticsPlugin: ThemePlugin = {
 };
 
 // Pass to the runtime at creation
-import { createThemeRuntime } from "@theme-kit/core";
+import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   plugins: [analyticsPlugin],
@@ -232,10 +232,10 @@ export default function PluginsPage() {
       <div className="max-w-3xl">
         <PageHeader
           eyebrow="Plugins"
-          title="Extend Theme Kit with plugins"
+          title="Extend Themvora with plugins"
           description={
             <>
-              Theme Kit&apos;s plugin system lets you hook into every stage of the
+              Themvora&apos;s plugin system lets you hook into every stage of the
               theme lifecycle — from runtime creation to token transforms to
               persistence. Plugins are small, composable objects that follow a
               single{" "}
@@ -463,7 +463,7 @@ export default function PluginsPage() {
           </p>
           <p className="mt-3 text-sm">
             <Link href="/api-reference/core" className="underline">
-              @theme-kit/core API reference
+              @themvora/core API reference
             </Link>
           </p>
         </section>

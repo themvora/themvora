@@ -4,9 +4,9 @@ import {
   type InitialThemeResolution,
   type ResolveInitialThemeOptions,
   type ThemeDefinition,
-  type ThemeKitThemeConfig,
+  type ThemvoraThemeConfig,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { publishTransportedConfig } from "./transport";
 
 /**
@@ -25,7 +25,7 @@ export interface GetInitialThemeStateOptions<T extends ThemeDefinition>
   themes?: readonly T[];
   /**
    * The provider's theme configuration — the same object you pass to
-   * `themeKit({ config })` and spread into `<ThemeProvider>`.
+   * `themvora({ config })` and spread into `<ThemeProvider>`.
    *
    * @remarks
    * Prefer this to the individual `themes` / `defaultTheme` / `mode` options.
@@ -33,7 +33,7 @@ export interface GetInitialThemeStateOptions<T extends ThemeDefinition>
    * the registry in several places is how the server resolution and the
    * pre-paint script drift apart.
    */
-  config?: ThemeKitThemeConfig<T>;
+  config?: ThemvoraThemeConfig<T>;
   /**
    * Resolve `"system"` mode from the `Sec-CH-Prefers-Color-Scheme` client hint
    * instead of falling back to light. Defaults to `false`.
@@ -79,8 +79,8 @@ export interface GetInitialThemeStateOptions<T extends ThemeDefinition>
  * @example
  * ```astro
  * ---
- * import { getInitialThemeState } from "@theme-kit/astro";
- * import { getBuiltInThemes } from "@theme-kit/core";
+ * import { getInitialThemeState } from "@themvora/astro";
+ * import { getBuiltInThemes } from "@themvora/core";
  *
  * const initial = await getInitialThemeState(Astro.request, {
  *   themes: getBuiltInThemes(),
@@ -94,7 +94,7 @@ export interface GetInitialThemeStateOptions<T extends ThemeDefinition>
  * @remarks
  * Pair this with `provider.astro` (which paints the themed `<html>` on the
  * server) and pass the result to the opt-in React island
- * (`@theme-kit/astro/client`) as its `initial` prop so hydration matches.
+ * (`@themvora/astro/client`) as its `initial` prop so hydration matches.
  *
  * @see `provider.astro`
  * @see `ThemeProviderClient`
@@ -110,7 +110,7 @@ export async function getInitialThemeState<T extends ThemeDefinition>(
   const themes = config?.themes ?? resolveOptions.themes;
   if (!themes?.length) {
     throw new Error(
-      "[theme-kit] getInitialThemeState needs the theme registry: pass `config` " +
+      "[themvora] getInitialThemeState needs the theme registry: pass `config` " +
         "(the object you spread into your provider) or `themes`.",
     );
   }

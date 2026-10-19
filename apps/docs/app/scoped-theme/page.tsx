@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/scoped-theme") },
   title: "Scoped Theme",
   description:
-    "Apply a theme to a subtree — a sandboxed island inside the app. ThemeScope, the themeKitScope directive, and per-framework scope theming snippets.",
+    "Apply a theme to a subtree — a sandboxed island inside the app. ThemeScope, the themvoraScope directive, and per-framework scope theming snippets.",
 };
 
 export default function ScopedThemePage() {
@@ -38,7 +38,7 @@ export default function ScopedThemePage() {
             </svg>
           }
           title="Scoped Theme"
-          subtitle="@theme-kit/core · ThemeScope"
+          subtitle="@themvora/core · ThemeScope"
           description={
             <>
               Most theming is global. Scoped theming is not: it lets you apply a

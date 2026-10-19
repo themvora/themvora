@@ -8,7 +8,7 @@ export const metadata = {
   alternates: { canonical: docsUrl("/api-reference") },
   title: "API Reference",
   description:
-    "Generated API reference for every Theme Kit package, produced from source with typedoc so it never drifts from the code.",
+    "Generated API reference for every Themvora package, produced from source with typedoc so it never drifts from the code.",
 };
 
 const packageBadges: Record<string, { label: string; core?: boolean }> = {
@@ -40,7 +40,7 @@ export default function ApiReferenceIndexPage() {
               Every page below is generated straight from{" "}
               <code className="mono">packages/*/src</code> with typedoc.
               Signatures, parameters and types cannot drift from the code — run{" "}
-              <code className="mono">pnpm --filter @theme-kit/docs api:generate</code>{" "}
+              <code className="mono">pnpm --filter @themvora/docs api:generate</code>{" "}
               to regenerate after any change.
             </>
           }

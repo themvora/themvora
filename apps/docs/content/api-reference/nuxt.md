@@ -1,14 +1,51 @@
-## @theme-kit/nuxt
-Theme Kit Nuxt integration.
+## @themvora/nuxt
+Themvora Nuxt integration.
 
 The Nuxt module wires auto-imported `useTheme*` composables, the
 `ThemeScope` / `ThemeScrollbar` / `ThemeInspector` components, and the
 server-side cookie + bootstrap helpers (`defineNuxtTheme`,
 `resolveThemeFromCookies`, `NuxtThemeBootstrap`).
 
-> Generated from `packages/nuxt/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/nuxt/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
+
+### `auditActionProminence(theme): ActionProminence`
+Measure whether a theme's action fill reads as a control.
+
+## Why this is a third contract, not a fourth context
+
+1. **semantic pair** — `primary` against `primaryForeground` must be readable.
+2. **context** — where each role may be used, and with whose judgement.
+3. **prominence** — a *generated* fill must separate from the canvas, because a
+   fill that does not has stopped reading as a control.
+
+It cannot be expressed as "`primary` must clear X:1 against `background`"
+globally, because that would condemn every dark brand anchor. Hence the
+`anchored` flag: the invariant binds generated fills and merely reports
+anchored ones — Slack's aubergine is 1.42:1 against the dark canvas, and that
+is the brand being the brand.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to measure. |
+
+**Returns** `ActionProminence` — The measurement, with `anchored` telling the caller which rule applies.
+
+---
+
+
+### `auditSemanticContexts(theme): ContextResult[]`
+Evaluate every declared context against a theme.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to check. |
+
+**Returns** `ContextResult[]` — One result per context, in declaration order.
+
+---
+
 
 ### `auto(tokenName, lookup): string`
 Resolve an `auto()` foreground token by deriving its value from a base color
@@ -91,6 +128,39 @@ Abort any in-flight theme animation for `target` and remove its styles.
 ---
 
 
+### `chooseForeground(role, background, ctx): Oklch`
+Choose the foreground for a role on a surface.
+
+```
+if the preferred ink meets the target:  use it
+else if the other ink meets it:         use that
+else:                                   use the better of the two, and let the solver repair it
+```
+
+## Why the target, and not the floor
+
+The internal target (4.75) is used here rather than the published floor (4.5),
+because that is what makes the preference *free*: whenever the preferred ink
+clears 4.75 it is also the higher-ratio ink, so honouring the preference and
+maximising contrast agree. The two rules only diverge in the narrow band where
+white measures 4.50–4.58, and there the fallback takes the higher ratio.
+
+This is why the change is a refactor rather than a behaviour change for
+existing themes — see the note in `theme-generation.md`. What it buys is that
+the rule is now **explicit, per-role and testable**, instead of being an
+emergent property of a `>=` comparison inside `bestInk`.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `role` | `CoreColor` | The foreground role being generated. |
+| `background` | `Oklch` | The surface it will sit on. |
+| `ctx` | `PaletteContext` | The generation context. |
+
+**Returns** `Oklch` — The chosen ink.
+
+---
+
+
 ### `clearMigrations(): void`
 Remove all registered migration steps, resetting the migration system to an
 empty state.
@@ -143,6 +213,18 @@ persistence with nothing to catch it.
 ---
 
 
+### `contextFailures(theme): { advisory: ContextResult[]; required: ContextResult[] }`
+The contexts a theme fails, split by whether the generator promised them.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to check. |
+
+**Returns** `{ advisory: ContextResult[]; required: ContextResult[] }` — `required` failures are bugs; `advisory` failures are declared gaps.
+
+---
+
+
 ### `contrast(background): string`
 Compute a readable foreground color for a given background color.
 
@@ -164,7 +246,7 @@ Creates a plugin that validates theme contrast for accessibility.
 
 The plugin runs a WCAG contrast check on the active theme after every theme
 change and reports any violations that fail AA normal contrast, either by
-emitting a `TK_A11Y_CONTRAST_VIOLATION` diagnostic or by invoking the
+emitting a `TV_A11Y_CONTRAST_VIOLATION` diagnostic or by invoking the
 `onViolation` callback.
 
 **See also:** `AccessibilityPluginOptions`
@@ -273,7 +355,7 @@ manager.use(createBroadcastPlugin({ channelName: "my-app-theme" }));
 ---
 
 
-### `createCSSVariablesBinding(store, options?): { destroy: void } | null`
+### `createCSSVariablesBinding(store, options?): { destroy: void; setTransition: void } | null`
 Create a binding that keeps CSS custom properties (`--theme-*`) on a
    target element (default `<html>`) in sync with the store. Applies the
    current theme immediately on creation and diffs updates.
@@ -285,7 +367,7 @@ Create a binding that keeps CSS custom properties (`--theme-*`) on a
 | `store` | `ThemeStore` | — |
 | `options` | `CSSVariablesOptions` (optional) | — |
 
-**Returns** `{ destroy: void } | null`
+**Returns** `{ destroy: void; setTransition: void } | null`
 
 ---
 
@@ -344,13 +426,13 @@ extension can inspect the runtime state.
 The hook is only registered in browser environments. `onDestroy` clears the
 internal runtime reference.
 
-Entries are added to the same `window.__THEME_KIT_DEVTOOLS__` set that
-`@theme-kit/devtools`'s inspector plugin uses, and must satisfy that set's
+Entries are added to the same `window.__THEMVORA_DEVTOOLS__` set that
+`@themvora/devtools`'s inspector plugin uses, and must satisfy that set's
 declared shape — `getState()`, `getEntries()`, `getPerformance()`. This
 plugin records no entries or performance samples, so those two return empty
 arrays; the point is that a consumer enumerating the set can call all three
 on every member without a type check. Use
-`@theme-kit/devtools`'s `createDevToolsPlugin` instead when you want the
+`@themvora/devtools`'s `createDevToolsPlugin` instead when you want the
 recorded entries and timings.
 
 ```ts
@@ -377,7 +459,7 @@ link is derived from the code so call sites never repeat it.
 
 ```ts
 const diagnostic = createDiagnostic({
-  code: "TK_MODE_INVALID",
+  code: "TV_MODE_INVALID",
   level: "warning",
   message: 'setMode() received an unknown mode "purple".',
   context: { api: "setMode", property: "mode", received: "purple", expected: "light | dark | system" },
@@ -388,7 +470,7 @@ const diagnostic = createDiagnostic({
 ---
 
 
-### `createDOMBinding(store, options?): { apply: __type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void; destroy: void } | null`
+### `createDOMBinding(store, options?): { apply: __type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void; destroy: void; setTransition: void } | null`
 Create a binding that syncs the store theme to the DOM: `data-theme`,
    `data-theme-mode`, `data-theme-family`, the `dark` class, and the
    `color-scheme` style — with transition support.
@@ -400,28 +482,30 @@ Create a binding that syncs the store theme to the DOM: `data-theme`,
 | `store` | `ThemeStore` | — |
 | `options` | `DOMBindingOptions` (optional) | — |
 
-**Returns** `{ apply: __type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void; destroy: void } | null`
+**Returns** `{ apply: __type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void; destroy: void; setTransition: void } | null`
 
 ---
 
 
-### `createGenerationPlugin<T extends ThemeDefinition<string>>(options?): ThemePlugin<T>`
+### `createGenerationPlugin<T extends ThemeDefinition<string>>(options?): GenerationPlugin<T>`
 Creates a plugin that participates in theme generation.
 
-The plugin registers a token transform hook that runs during theme
-application, allowing generated themes to be observed or adjusted.
+The plugin is inert until GenerationPlugin.generate is called: it
+registers no tokens of its own and its `transformTokens` hook is the identity.
+Generating goes through `generateTheme`, so the plugin and the runtime cannot
+disagree about what a seed produces.
 
 **See also:** `GenerationPluginOptions`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `options` | `GenerationPluginOptions` (optional) | Generation configuration. |
+| `options` | `GenerationPluginOptions` (optional) | Default seed, default generation options, and a hook. |
 
-**Returns** `ThemePlugin<T>` — A `"theme-generation"` theme plugin.
+**Returns** `GenerationPlugin<T>` — A `"theme-generation"` plugin with a `generate` method.
 
 ```ts
-const manager = createPluginManager();
-manager.use(createGenerationPlugin({ onGenerate: (opts) => track(opts) }));
+const plugin = createGenerationPlugin({ seed: "#6366f1" });
+const { light, dark } = plugin.generate({ family: "brand", style: "brand" });
 ```
 
 ---
@@ -476,14 +560,14 @@ as the final fallback when no cross-tab strategy is available.
 
 ### `createNuxtThemeBootstrapScript<T extends ThemeDefinition<string>>(options): string`
 Generate the blocking, inline bootstrap script that applies the persisted
-theme before first paint — the same zero-flash guarantee `@theme-kit/next`
+theme before first paint — the same zero-flash guarantee `@themvora/next`
 ships.
 
 The script reads the four theme cookies (same contract as Next), validates
 the config fingerprint, resolves the theme for the effective mode
 (`"system"` is resolved against `prefers-color-scheme`), and writes the CSS
 variables plus DOM effects onto `document.documentElement`. It delegates to
-the shared `@theme-kit/core` applier (`buildBootstrapPlan` +
+the shared `@themvora/core` applier (`buildBootstrapPlan` +
 `serializeThemeBootstrapScript`), so every SSR integration emits the same
 correct script and cannot drift from the client runtime contract.
 
@@ -506,7 +590,7 @@ Framework-agnostic, theme-aware scrollbar overlay engine.
 
 The browser performs all scrolling — this only renders + animates a visual
 overlay that tracks it, so inertia, touch, wheel, keyboard and accessibility
-remain native. Colors come from Theme Kit tokens, so the overlay re-themes
+remain native. Colors come from Themvora tokens, so the overlay re-themes
 with the rest of the app (no flashes). It tracks the *document* plus every
 scrollable element on the page by default (anywhere a native scrollbar would
 appear); the native track is hidden automatically — no manual CSS required.
@@ -566,7 +650,7 @@ console warning and returns a no-op disposer. `destroy` invokes `onDestroy`
 on every plugin (in priority order) and clears the registry.
 
 `destroy` is failure-isolated: a plugin whose `onDestroy` throws is reported
-with `TK_PLUGIN_DESTROY_FAILED` and the remaining plugins are still
+with `TV_PLUGIN_DESTROY_FAILED` and the remaining plugins are still
 destroyed, so one broken plugin cannot leak the rest.
 
 ```ts
@@ -581,7 +665,7 @@ dispose();      // removes it
 
 ### `createPrePaintScrollbarCSS(): string`
 The hiding CSS, for SSR output (e.g. Next inlines it as a `<style>` in
- `<head>`). Use together with the `tk-scrollbar` class on `<html>`.
+ `<head>`). Use together with the `tv-scrollbar` class on `<html>`.
 
 **Returns** `string`
 
@@ -620,7 +704,7 @@ so auto-derived themes follow the current selection.
 **Returns** `ThemePlugin<T>` — A `"scheduled"` theme plugin.
 
 When the light/dark pair cannot be resolved, the plugin emits a
-`TK_SCHEDULE_THEME_UNRESOLVED` diagnostic and does not install a binding.
+`TV_SCHEDULE_THEME_UNRESOLVED` diagnostic and does not install a binding.
 `onDestroy` destroys the binding, unsubscribes from the store, and clears all
 internal state.
 
@@ -669,7 +753,7 @@ binding.destroy();
 ---
 
 
-### `createScopedThemeBinding<T extends ThemeDefinition<string>>(themes, target, selection, options?): { destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void }`
+### `createScopedThemeBinding<T extends ThemeDefinition<string>>(themes, target, selection, options?): { destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void }`
 Create a scoped-theme binding for an element: applies the scoped theme's
    CSS variables inline on the element and cleans them up on destroy.
 
@@ -682,7 +766,7 @@ Create a scoped-theme binding for an element: applies the scoped theme's
 | `selection` | `ScopedThemeSelection` | — |
 | `options` | `ScopedThemeBindingOptions` (optional) | — |
 
-**Returns** `{ destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void }`
+**Returns** `{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void }`
 
 ---
 
@@ -738,7 +822,7 @@ sync.post({ mode: "dark", family: "plum" });
 Wraps a React `createRoot` so the **first** `render` call on each root it
 creates is committed synchronously.
 
-**See also:** `themeKitVitePlugin`
+**See also:** `themvoraVitePlugin`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -915,7 +999,7 @@ In `system` mode it follows the OS color-scheme preference live via a
 system binding; in `light`/`dark` mode it applies the corresponding theme
 directly. `setMode` refuses a value that is not `"light"`, `"dark"` or
 `"system"`: the call is ignored — nothing is applied, persisted or
-broadcast — and a `TK_MODE_INVALID` diagnostic is emitted, so `getMode()`
+broadcast — and a `TV_MODE_INVALID` diagnostic is emitted, so `getMode()`
 never reports a mode the runtime cannot render. Mode changes are persisted
 and broadcast when the corresponding adapters are provided. The returned
 controller is safe to destroy: after `destroy()` its methods become no-ops
@@ -975,8 +1059,8 @@ display a theme-derived value the server cannot know.
 **Returns** `string` — The script body to emit at the **end of `<body>`**, after the
   elements it patches exist.
 
-A readout opts in with `data-tk-readout="theme" | "mode" | "family"`, or
-`data-tk-readout="var:--theme-color-primary"` to display a resolved CSS
+A readout opts in with `data-tv-readout="theme" | "mode" | "family"`, or
+`data-tv-readout="var:--theme-color-primary"` to display a resolved CSS
 variable. The script reads the payload the blocking bootstrap published (see
 readBootstrapState) — or, for `var:`, the variable the bootstrap
 already applied to `<html>` — and writes the value into each element's
@@ -1023,7 +1107,7 @@ registry.get("light");
 
 
 ### `createThemeRuntime<T extends ThemeDefinition<string>>(options?): ThemeRuntime<T>`
-Creates an independent Theme Kit runtime — the single entry point for
+Creates an independent Themvora runtime — the single entry point for
 theming.
 
 The runtime wires together the theme store, selection controller
@@ -1192,16 +1276,16 @@ Define a theme. Currently returns the definition unchanged; it exists
 ---
 
 
-### `defineThemeKitConfig<T extends ThemeDefinition<string>>(config): ThemeKitConfig<T>`
-Declares the application's Theme Kit configuration.
+### `defineThemvoraConfig<T extends ThemeDefinition<string>>(config): ThemvoraConfig<T>`
+Declares the application's Themvora configuration.
 
-**See also:** `ThemeKitConfig`
+**See also:** `ThemvoraConfig`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `config` | `ThemeKitConfig<T>` | The configuration. |
+| `config` | `ThemvoraConfig<T>` | The configuration. |
 
-**Returns** `ThemeKitConfig<T>` — The same object, typed.
+**Returns** `ThemvoraConfig<T>` — The same object, typed.
 
 An identity function. Its job is to give the configuration a name, a type and
 a validation point, so the Vite plugin can discover it by convention and the
@@ -1209,7 +1293,7 @@ provider can consume the same object rather than a copy of it.
 
 ```ts
 // theme.config.ts — at the project root
-import { defineTheme, defineThemeKitConfig } from "@theme-kit/core";
+import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
   defineTheme({
@@ -1224,12 +1308,28 @@ const themes = [
   }),
 ];
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "brand-light",
   initialMode: "system",
 });
 ```
+
+---
+
+
+### `describeRoleUsage(role): { advisory: { description: string; owner: ContextOwner }[]; restricted: string[]; supported: string[] }`
+What a role is for — the "safe usage" description.
+
+The docs and Theme Studio show this instead of a bare hex, because *how a token
+may be used* is the thing a reader actually needs. A ratio answers "is it
+readable here"; this answers "is it readable here on purpose".
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `role` | `CoreColor` | The role to describe. |
+
+**Returns** `{ advisory: { description: string; owner: ContextOwner }[]; restricted: string[]; supported: string[] }` — Where the role is supported, and where it is not.
 
 ---
 
@@ -1247,10 +1347,65 @@ cached.
 ---
 
 
+### `diffThemes(a, b, options?): ThemeDiffReport`
+Diff two themes, or two light/dark theme sets.
+
+Accepts a single theme or a `{ light, dark }` pair on either side. Resolves
+inheritance through `options.themes` when a definition declares `extends`, and
+resolves a `mode: "system"` selector through the same registry.
+
+Only `light` and `dark` are visual modes. `"system"` is a selector over that
+pair, resolved before any comparison, and never appears in the report.
+
+`hasChanges` reflects **token** changes only. Provenance differences are
+reported separately, because two themes with identical tokens but different
+seeds render identically.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `a` | `ThemeDefinition<string> \| ThemeSet` | The first theme, or light/dark set. |
+| `b` | `ThemeDefinition<string> \| ThemeSet` | The second theme, or light/dark set. |
+| `options` | `ThemeDiffOptions` (optional) | Registry, `prefersDark`, `includeUnchanged`, and mode filter. |
+
+**Returns** `ThemeDiffReport` — The diff report.
+
+```ts
+const report = diffThemes(mintLight, irisLight);
+report.modes.light?.changes.forEach((c) => {
+  console.log(c.path, c.before, "→", c.after);
+});
+```
+
+---
+
+
+### `disposeThemeTransitionStyles(target): void`
+Release every transition style the coordinator owns for `target`: cancels an
+in-flight run and detaches the persistent `:root` transition stylesheet and
+the descendant-suppression stylesheet.
+
+cancelThemeAnimation deliberately leaves the `:root { transition }`
+rule in place between runs — it is written once and reused, so every
+subsequent change keeps animating. That rule must go when the feature is
+turned off or the owner is disposed, otherwise later variable swaps still
+interpolate through it: a theme switch after `transition: false` would
+animate despite the plan being `null`. Scoped targets never install the
+`:root` rule (it is document-wide), so for them this only clears the
+suppression node and the animating flag.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `target` | `HTMLElement` | — |
+
+**Returns** `void`
+
+---
+
+
 ### `emitDiagnostic(diagnostic, options?): void`
 Emit a diagnostic to the console.
 
-Developer-facing Theme Kit diagnostics go through here rather than calling
+Developer-facing Themvora diagnostics go through here rather than calling
 `console` directly, so that the level, the code, the deduplication and the
 development/production formatting stay consistent across packages.
 
@@ -1264,6 +1419,70 @@ clear that memory.
 | --------- | ---- | ----------- |
 | `diagnostic` | `ThemeDiagnostic` | The diagnostic to emit. |
 | `options` | `EmitDiagnosticOptions` (optional) | Environment, deduplication and sink overrides. |
+
+**Returns** `void`
+
+---
+
+
+### `emitInvalidOptionDiagnostic(option): void`
+Report an unusable transition/scheduling option supplied to `configure()`.
+
+`level: "warning"` — the runtime keeps the previous setting for the affected
+subsystem (a defined state) rather than corrupting a healthy runtime or
+throwing. Deduplicated by emitDiagnostic, so an adapter that forwards
+the same invalid value on every render logs it once.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `option` | `InvalidOption` | — |
+
+**Returns** `void`
+
+---
+
+
+### `emitNeutralFallbackDiagnostic(): void`
+Report that no usable theme was available and the neutral fallback was used.
+
+`level: "warning"` — the runtime recovers safely, so this is reported, not
+thrown. Deduplicated like every other diagnostic.
+
+**Returns** `void`
+
+---
+
+
+### `emitScheduledThemeUnresolvedDiagnostic(names): void`
+Report that a `scheduled` configuration named light/dark themes that are not
+registered, so the schedule cannot drive the selection.
+
+`level: "warning"` — the schedule is installed but reports no light/dark pair,
+matching the existing `TV_SCHEDULE_THEME_UNRESOLVED` contract used by the
+scheduled plugin. Deduplicated by emitDiagnostic.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `names` | `{ darkTheme?: string; lightTheme?: string }` | — |
+
+**Returns** `void`
+
+---
+
+
+### `emitUnknownFamilyDiagnostic(requested, resolved, themes): void`
+Report a family that is not registered in the effective catalog.
+
+`level: "error"` because an explicitly requested family that cannot resolve is
+a configuration mistake, not a supported absence. Deduplication is handled by
+emitDiagnostic: the same invalid value reports once, a new invalid
+value reports again.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `requested` | `string` | — |
+| `resolved` | `string` | — |
+| `themes` | `readonly ThemeDefinition<string>[]` | — |
 
 **Returns** `void`
 
@@ -1304,6 +1523,29 @@ Create a new theme by extending a base theme with overrides, merging
 | `overrides` | `TokenOverrides & { meta?: Partial<ThemeMeta> }` (optional) | — |
 
 **Returns** `ThemeDefinition<TName>`
+
+---
+
+
+### `findGeneratedTheme<T extends ThemeDefinition<string>>(themes, active?): GeneratedThemeLookup<T>`
+Locate the generated theme among a provider's registered themes.
+
+Deterministic and non-throwing:
+
+- No generated theme registered → `"missing"`.
+- Exactly one → `"found"`.
+- More than one → `"found"` for the one whose name matches `active` (the
+  current active selection); otherwise `"ambiguous"`. The first candidate is
+  never returned on a tie.
+
+**See also:** `resolveGeneratedTheme`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[]` | The themes registered with the provider, in registration order. |
+| `active` | `T` (optional) | The currently active theme, used to disambiguate multiple generated themes. Omitted on a surface with no active selection. |
+
+**Returns** `GeneratedThemeLookup<T>` — The lookup result.
 
 ---
 
@@ -1352,10 +1594,11 @@ users.
 ### `generateTheme(options): GeneratedThemePair`
 Generate a cohesive light/dark theme pair from a single seed color.
 
-The seed drives the primary, accent, and supporting surface colors; the
-foreground colors are chosen for contrast so generated themes stay
-accessible regardless of the seed's lightness. When `withCode` is set, a
-matching syntax-highlighting palette is also produced.
+Light and dark are generated **independently** from the same identity — the
+dark theme is not an inversion of the light one — so the brand hue survives
+the mode change. Every semantic pair is solved to the contrast contract with a
+safety margin before the theme is returned, and the seed is recorded in
+`meta.generation` as provenance.
 
 **See also:** `validateTheme`, `defineTheme`
 
@@ -1381,11 +1624,11 @@ themes for both light and dark modes.
 ---
 
 
-### `getBrandPresets(): { meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }[]`
+### `getBrandPresets(): ThemeDefinition<string>[]`
 Build the brand preset theme set: a light and dark theme for each brand
-(Apple, GitHub, Vercel, Slack, Discord), using each brand's signature colors.
+(Apple, GitHub, Vercel, Slack, Discord).
 
-**Returns** `{ meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }[]` — An array of brand theme definitions, one light and one dark per
+**Returns** `ThemeDefinition<string>[]` — An array of brand theme definitions, one light and one dark per
   brand.
 
 ---
@@ -1400,13 +1643,16 @@ Detect the visitor's IANA timezone, e.g. `"Asia/Kathmandu"`. Returns `null`
 ---
 
 
-### `getBuiltInThemes(): { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } } | { meta: { label: string; mode: "light"; order: number }; name: "light"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } } | { meta: { label: string; mode: "dark"; order: number }; name: "dark"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } } | { meta: { family: "oat" | "berry" | "mint" | "citrus" | "cocoa" | "plum" | "iris" | "sky" | "graphite"; label: string; mode: "light" | "dark"; order: number }; name: "oat-light" | "oat-dark" | "berry-light" | "berry-dark" | "mint-light" | "mint-dark" | "citrus-light" | "citrus-dark" | "cocoa-light" | "cocoa-dark" | "plum-light" | "plum-dark" | "iris-light" | "iris-dark" | "sky-light" | "sky-dark" | "graphite-light" | "graphite-dark"; tokens: ThemeTokens } | { meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }[]`
-Build the complete set of built-in themes shipped with Theme Kit.
+### `getBuiltInThemes(): ThemeDefinition<string> | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]`
+Build the complete set of built-in themes shipped with Themvora.
 
 Combines the neutral themes, preset themes, brand presets, and accessibility
 profiles into a single array ready to be registered with a theme runtime.
 
-**Returns** `{ meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } } | { meta: { label: string; mode: "light"; order: number }; name: "light"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } } | { meta: { label: string; mode: "dark"; order: number }; name: "dark"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } } | { meta: { family: "oat" | "berry" | "mint" | "citrus" | "cocoa" | "plum" | "iris" | "sky" | "graphite"; label: string; mode: "light" | "dark"; order: number }; name: "oat-light" | "oat-dark" | "berry-light" | "berry-dark" | "mint-light" | "mint-dark" | "citrus-light" | "citrus-dark" | "cocoa-light" | "cocoa-dark" | "plum-light" | "plum-dark" | "iris-light" | "iris-dark" | "sky-light" | "sky-dark" | "graphite-light" | "graphite-dark"; tokens: ThemeTokens } | { meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }[]` — An array of all built-in theme definitions.
+Every theme passes through ensureReadableContrast on the way out, so a
+semantic foreground that would fail AA is corrected before any consumer sees it.
+
+**Returns** `ThemeDefinition<string> | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]` — An array of all built-in theme definitions.
 
 ---
 
@@ -1430,12 +1676,23 @@ luminances of the lighter and darker colors, yielding a value in the range
 ---
 
 
-### `getDefaultThemes(): { meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string }; radius: { lg: string } } }[]`
+### `getDefaultThemes(): ThemeDefinition<string>[]`
 Build the default theme family set: a light and dark theme for each of the
-built-in color families (oat, berry, mint, citrus, cocoa, plum).
+original six built-in color families (oat, berry, mint, citrus, cocoa, plum).
 
-**Returns** `{ meta: { family: string; label: string; mode: "light" | "dark"; order: number }; name: `${unknown}` | `${unknown}`; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string }; radius: { lg: string } } }[]` — An array of `ThemeDefinition` objects, one light and one dark per
+**Returns** `ThemeDefinition<string>[]` — An array of `ThemeDefinition` objects, one light and one dark per
   family, ready to be registered with a theme runtime.
+
+---
+
+
+### `getFallbackThemes<T extends ThemeDefinition<string>>(): readonly T[]`
+The canonical neutral fallback catalog.
+
+A single source shared by every adapter: the framework packages never define
+their own fallback palette.
+
+**Returns** `readonly T[]`
 
 ---
 
@@ -1485,33 +1742,53 @@ Look up the reference coordinates for an IANA timezone. Returns `null`
 ---
 
 
-### `getNeutralThemes(): readonly [{ meta: { label: string; mode: "light"; order: number }; name: "light"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } }, { meta: { label: string; mode: "dark"; order: number }; name: "dark"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } }]`
+### `getNeutralThemes(): [ThemeDefinition<string>, ThemeDefinition<string>]`
 Build the neutral light and dark themes.
 
 These are the framework's baseline themes: a full token set (colors, radius,
 spacing, shadows, border widths, z-index, breakpoints, typography, and code)
 with no color family applied. They are the fallback when no family is
-selected.
+selected. Their colors are generated, so they satisfy the same contrast
+contract as every preset.
 
-**Returns** `readonly [{ meta: { label: string; mode: "light"; order: number }; name: "light"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } }, { meta: { label: string; mode: "dark"; order: number }; name: "dark"; tokens: { borderWidths: { 0: string; 1: string; 2: string; 4: string; 8: string }; breakpoints: { 2xl: string; lg: string; md: string; sm: string; xl: string }; code: { attribute: string; background: string; border: string; comment: string; foreground: string; function: string; gutter: string; highlight: string; keyword: string; lineNumber: string; number: string; operator: string; property: string; punctuation: string; selection: string; string: string; tag: string; type: string; variable: string }; colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { 2xl: string; full: string; lg: string; md: string; sm: string; xl: string }; shadows: { 2xl: string; lg: string; md: string; sm: string; xl: string; xs: string }; spacing: { 0: string; 0.5: string; 1: string; 1.5: string; 10: string; 11: string; 12: string; 14: string; 16: string; 2: string; 2.5: string; 20: string; 24: string; 3: string; 3.5: string; 4: string; 5: string; 6: string; 7: string; 8: string; 9: string; px: string }; typography: { fontFamilies: { mono: string; sans: string; serif: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { loose: string; none: string; normal: string; relaxed: string; snug: string; tight: string } }; zIndex: { 0: string; 10: string; 20: string; 30: string; 40: string; 50: string; auto: string } } }]` — A `[light, dark]` tuple of neutral theme definitions.
+**Returns** `[ThemeDefinition<string>, ThemeDefinition<string>]` — A `[light, dark]` tuple of neutral theme definitions.
 
 ---
 
 
-### `getPresetThemes(overrides?): { meta: { family: "oat" | "berry" | "mint" | "citrus" | "cocoa" | "plum" | "iris" | "sky" | "graphite"; label: string; mode: "light" | "dark"; order: number }; name: "oat-light" | "oat-dark" | "berry-light" | "berry-dark" | "mint-light" | "mint-dark" | "citrus-light" | "citrus-dark" | "cocoa-light" | "cocoa-dark" | "plum-light" | "plum-dark" | "iris-light" | "iris-dark" | "sky-light" | "sky-dark" | "graphite-light" | "graphite-dark"; tokens: ThemeTokens }[]`
+### `getPresetCatalog(kind?): PresetCatalogEntry[]`
+The preset catalog, derived from the recipes.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `kind` | `PresetKind` (optional) | Restrict to `"default"` or `"brand"`. Omit for both. |
+
+**Returns** `PresetCatalogEntry[]` — The catalog entries, in recipe order.
+
+---
+
+
+### `getPresetThemes(overrides?): ThemeDefinition<string>[]`
 Build the curated preset theme set: a light and dark theme for each preset
 color family (oat, berry, mint, citrus, cocoa, plum, iris, sky, graphite).
 
-Each preset is a WCAG-conscious token set with per-palette foreground colors
-chosen for readability. Optional per-family, per-mode token overrides are
-applied on top of the base palettes.
+Each preset is generated from a recipe — seed, style and radius — by the same
+`semantic-v2` pipeline `generateTheme()` uses, so every preset already satisfies
+the contrast contract and the visual relationship checks before it is returned.
+Optional per-family, per-mode token overrides are applied on top, afterwards.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `overrides` | `Partial<Record<PresetFamily, Partial<Record<PresetVariant, PresetVariantOverride>>>>` (optional) | Optional per-family, per-mode token overrides. |
 
-**Returns** `{ meta: { family: "oat" | "berry" | "mint" | "citrus" | "cocoa" | "plum" | "iris" | "sky" | "graphite"; label: string; mode: "light" | "dark"; order: number }; name: "oat-light" | "oat-dark" | "berry-light" | "berry-dark" | "mint-light" | "mint-dark" | "citrus-light" | "citrus-dark" | "cocoa-light" | "cocoa-dark" | "plum-light" | "plum-dark" | "iris-light" | "iris-dark" | "sky-light" | "sky-dark" | "graphite-light" | "graphite-dark"; tokens: ThemeTokens }[]` — An array of preset theme definitions, one light and one dark per
+**Returns** `ThemeDefinition<string>[]` — An array of preset theme definitions, one light and one dark per
   family.
+
+```ts
+const themes = getPresetThemes({
+  plum: { light: { tokens: { colors: { primary: "#6d28d9" } } } },
+});
+```
 
 ---
 
@@ -1558,6 +1835,30 @@ All known timezone ids, sorted alphabetically. Useful for building pickers
 ---
 
 
+### `hasForegroundPreference(role): boolean`
+Whether a foreground role's choice is governed by a declared preference.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `role` | `CoreColor` | The foreground role. |
+
+**Returns** `boolean` — `true` when the role has a declared preference.
+
+---
+
+
+### `isCoreColor(key): key is CoreColor`
+Whether a colour key is part of the core contract.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `key` | `string` | The colour key to test. |
+
+**Returns** `key is CoreColor`
+
+---
+
+
 ### `isExpression(value): boolean`
 Determine whether a string is a numeric arithmetic expression.
 
@@ -1570,6 +1871,56 @@ calls such as `contrast(...)` and `auto()` are not treated as expressions.
 | `value` | `string` | The string to test. |
 
 **Returns** `boolean` — `true` when `value` is a numeric arithmetic expression.
+
+---
+
+
+### `isGeneratedTheme(theme): boolean`
+Whether a theme was produced by the public generateTheme call.
+
+Matches on the explicit origin marker only. It deliberately does **not** infer
+from a theme's name, family, or colors: the built-in presets and the neutral
+baseline are produced by the same engine and would otherwise be mistaken for
+application-generated themes, and a hand-authored theme could impersonate one
+by adopting a familiar id.
+
+**See also:** `resolveGeneratedTheme`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme definition to test. |
+
+**Returns** `boolean` — `true` when the theme carries the generator's origin marker.
+
+---
+
+
+### `isOptionalSemantic(key): key is OptionalSemantic`
+Whether a colour key is an optional semantic capability.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `key` | `string` | The colour key to test. |
+
+**Returns** `key is OptionalSemantic`
+
+---
+
+
+### `isSelectionResolvable(themes, selection): boolean`
+Whether a selection can be resolved to a usable theme in a catalog.
+
+A selection is resolvable when its family is registered in `themes` AND at
+least one theme for that family resolves the requested mode (treating
+`"system"` as the light variant for the check — the caller re-resolves the
+concrete mode).
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly ThemeDefinition<string>[]` | — |
+| `selection` | `ThemeSelectionState` | — |
+
+**Returns** `boolean`
 
 ---
 
@@ -1604,9 +1955,43 @@ same way instead of each re-implementing the comparison.
 
 ```ts
 if (!isThemeMode(input)) {
-  emitDiagnostic(createDiagnostic({ code: "TK_MODE_INVALID", level: "warning", message: "..." }));
+  emitDiagnostic(createDiagnostic({ code: "TV_MODE_INVALID", level: "warning", message: "..." }));
 }
 ```
+
+---
+
+
+### `isUsableTheme(theme): theme is ThemeDefinition<string>`
+Whether a value is a usable theme entry.
+
+Deliberately lenient — the runtime needs a stable identity (`name`) and an
+object to read `meta`/`tokens` from, not a fully-populated palette. A theme
+with partial tokens is still a valid registration (the CSS-variable binding
+simply emits what is present), so schema completeness is not required here.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `unknown` | — |
+
+**Returns** `theme is ThemeDefinition<string>`
+
+---
+
+
+### `measureThemeContrast(theme): MeasuredPair[]`
+Measure every contract pair in a resolved theme.
+
+The canonical measurement — the scorecard's `text-contrast` and `ui-contrast`
+checks, the preset audit and the docs pages all read this, so a page cannot
+show a ratio the gate disagrees with. Anything that renders contrast numbers
+should call this rather than re-deriving them.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to measure. |
+
+**Returns** `MeasuredPair[]` — One row per contract pair, in contract order.
 
 ---
 
@@ -1664,7 +2049,7 @@ present in either input are omitted from the result.
 
 
 ### `migrateTheme(theme, options?): ThemeDefinition`
-Migrate a legacy theme to the current Theme Kit format using registered
+Migrate a legacy theme to the current Themvora format using registered
    migrations.
 
 **See also:** `registerMigration`
@@ -1679,16 +2064,51 @@ Migrate a legacy theme to the current Theme Kit format using registered
 ---
 
 
+### `normalizeThemeCatalog<T extends ThemeDefinition<string>>(themes): readonly T[]`
+Normalize a theme catalog.
+
+Drops entries that are not usable themes, drops duplicate `name`s (first
+wins, matching the registry's deduplication), and — when nothing usable
+remains — falls back to the canonical neutral themes. The input array is never
+mutated.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[] \| undefined` | The requested catalog, or `undefined` to request the fallback. |
+
+**Returns** `readonly T[]` — A non-empty, deduplicated catalog.
+
+---
+
+
 ### `parseCookieHeader(header): ParsedCookies`
 Minimal RFC 6265 header parser — enough for the four theme cookies.
 
-**See also:** `themeKitCookieNames`, `resolveThemeFromCookies`
+**See also:** `themvoraCookieNames`, `resolveThemeFromCookies`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `header` | `string` | — |
 
 **Returns** `ParsedCookies`
+
+---
+
+
+### `preferredInk(role, ctx): Oklch | null`
+The preferred ink for a role, resolved for the mode.
+
+"light" and "dark" are the two *ink families*, not literal white and black:
+the light ink is the theme's near-white, the dark ink its near-black. A role
+that prefers light ink gets the near-white in both modes, which is what keeps
+a button label consistent across a mode switch.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `role` | `CoreColor` | The role to resolve. |
+| `ctx` | `PaletteContext` | The generation context (for the neutral hue and chroma). |
+
+**Returns** `Oklch | null` — The preferred ink, or `null` when the role has no preference.
 
 ---
 
@@ -1719,7 +2139,7 @@ This is the *read* half of the bootstrap handoff. The blocking script writes
 `data-theme` (resolved theme), `data-theme-selection-mode` /
 `data-theme-selection-family` (the selection, which is not recoverable from
 the resolved theme), `data-theme-ready`, and a
-`window.__THEME_KIT_BOOTSTRAP__` payload.
+`window.__THEMVORA_BOOTSTRAP__` payload.
 
 It exists so a client runtime can **adopt** what was already painted instead
 of re-deriving it: by the time a client renders, `<html>` is the authority on
@@ -1776,6 +2196,61 @@ tests. Call this between test cases so each one observes its own emissions.
 ```ts
 beforeEach(() => resetDiagnosticEmission());
 ```
+
+---
+
+
+### `resolveEffectiveConfiguration<T extends ThemeDefinition<string>>(options): EffectiveConfiguration<T>`
+Resolve the effective selection + theme for a configuration update.
+
+Precedence (shared by every adapter — there is no per-framework variant):
+
+1. `preserve` and the previous selection is still resolvable → keep it. A
+   catalog change that leaves the selection valid must not silently move the
+   user to another theme.
+2. Otherwise resolve from `defaultTheme` / `initialFamily` / `initialMode`
+   against the effective catalog.
+3. An unknown requested family normalizes to a resolvable family and emits a
+   single `TV_THEME_FAMILY_UNKNOWN` diagnostic.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `options` | `{ defaultTheme?: string; initialFamily?: string; initialMode?: ThemeMode; prefersDark?: boolean; preservePrevious?: boolean; previousSelection?: ThemeSelectionState; themes: readonly T[] }` | Resolution inputs. |
+
+**Returns** `EffectiveConfiguration<T>` — The effective selection and its theme.
+
+---
+
+
+### `resolveGeneratedTheme<T extends ThemeDefinition<string>>(themes, active?): T`
+Resolve the single generated theme registered with a provider, or throw.
+
+The throwing counterpart of findGeneratedTheme, for call sites that
+need a theme rather than a status — the framework accessors, which surface the
+failure to the caller.
+
+**See also:** `- isGeneratedTheme
+ - findGeneratedTheme`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[]` | The themes registered with the provider. |
+| `active` | `T` (optional) | The currently active theme, used to disambiguate multiple generated themes. |
+
+**Returns** `T` — The resolved generated theme.
+
+---
+
+
+### `resolveIconOptions<T>(icons?): OverlayScrollbarOptions`
+Map an `icons` group onto the engine's flat icon options, so every adapter
+resolves the group the same way. Only defined entries are copied.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `icons` | `ScrollbarIconOptions<T>` (optional) | The `icons` group (or `undefined`). |
+
+**Returns** `OverlayScrollbarOptions` — Flat `arrowIcon` / `arrow*Icon` / `iconSize` values.
 
 ---
 
@@ -1925,6 +2400,24 @@ preset.
 ---
 
 
+### `resolveScrollbarOptions(grouped?, flat?): OverlayScrollbarOptions`
+Merge grouped settings (plus any deprecated flat aliases) into one canonical
+`OverlayScrollbarOptions` object.
+
+Only keys that are actually defined are copied, so an explicitly-`undefined`
+value never overrides a core default, and the returned object is always a
+fresh one (the inputs are never mutated).
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `grouped` | `ScrollbarGroupedOptions` (optional) | `behavior` / `appearance` / `scope` groups. |
+| `flat` | `ScrollbarFlatOptions` (optional) | Deprecated flat aliases (and framework-specific values such as `iconSize`); any defined key here wins over the same key in a group. |
+
+**Returns** `OverlayScrollbarOptions` — A canonical options object for `createOverlayScrollbar`.
+
+---
+
+
 ### `resolveSelectedTheme<T extends ThemeDefinition<string>>(themes, selection): T`
 Resolve the registered theme that best matches a selection.
 
@@ -2021,7 +2514,7 @@ references (`${token.path}`) and derived expressions are also resolved.
 ### `resolveThemeFromCookies<T extends ThemeDefinition<string>>(options): InitialThemeResolution<T>`
 SSR-first theme resolution. Reads the four theme cookies from the request,
 rejects them when the config fingerprint is stale, and resolves the initial
-theme for the effective selection — exactly like `@theme-kit/next`'s
+theme for the effective selection — exactly like `@themvora/next`'s
 `getInitialThemeState`.
 
 The resolved `<html>` state (theme name, family, mode) can then be rendered
@@ -2134,6 +2627,18 @@ Mirror the scoped binding's aliases (the `--color-*` / `--radius-*` tokens
 ---
 
 
+### `scoreTheme(theme): PresetScore`
+Score a theme against the nine preset quality checks.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to score. |
+
+**Returns** `PresetScore` — The scorecard.
+
+---
+
+
 ### `simulateCVD(hex, type): string`
 Simulate how a color appears to someone with the given color vision
 deficiency.
@@ -2224,13 +2729,13 @@ const vars = themeToCSSVariables(theme); // { "--theme-color-background": "#fff"
 
 
 ### `toBootstrapConfig<T extends ThemeDefinition<string>>(config): ThemeBootstrapConfig<T>`
-Projects a ThemeKitConfig down to what the pre-paint bootstrap needs.
+Projects a ThemvoraConfig down to what the pre-paint bootstrap needs.
 
 **See also:** `ThemeBootstrapConfig`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `config` | `ThemeKitConfig<T>` | The full application configuration. |
+| `config` | `ThemvoraConfig<T>` | The full application configuration. |
 
 **Returns** `ThemeBootstrapConfig<T>` — The bootstrap subset.
 
@@ -2347,7 +2852,7 @@ Call inside Vue `setup` scope within a `<ThemeProvider>`.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Resolves the active Theme Kit runtime from the Vue injection context.
+Resolves the active Themvora runtime from the Vue injection context.
 
 Call inside Vue `setup` scope, within a component that is a descendant of a
 `<ThemeProvider>` (or after provideThemeRuntime).
@@ -2424,7 +2929,7 @@ updates whenever the active theme changes and is cleaned up on unmount.
 
 
 ### `validateTheme(theme, options?): ValidationResult`
-Validate a theme definition against the Theme Kit schema.
+Validate a theme definition against the Themvora schema.
 
 Checks that the definition declares a `tokens` object and that every required
 semantic colour token is present. It deliberately does **not** resolve token
@@ -2467,15 +2972,28 @@ valid when every checked pair passes WCAG AA for normal text.
 
 ---
 
+
+### `validateThemeLevels(theme, options?): LevelIssue[]`
+Run the internal validation levels over a theme definition.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition` | The theme to validate. |
+| `options` | `ValidateThemeLevelsOptions` (optional) | Which levels to run and which CVD types to diagnose. |
+
+**Returns** `LevelIssue[]` — Every issue found, across the requested levels.
+
+---
+
 ## Classes
 
 ### `class ThemeError`
 
 **Extends** `Error`
-The error type thrown by Theme Kit for theme-related failures.
+The error type thrown by Themvora for theme-related failures.
 
 Extends the native `Error` and sets `name` to `"ThemeError"` so callers can
-distinguish Theme Kit failures from other errors via `instanceof` or the
+distinguish Themvora failures from other errors via `instanceof` or the
 `name` property. The `message` carries the human-readable failure detail.
 
 When the failure corresponds to a diagnostic, the error also carries the
@@ -2489,7 +3007,7 @@ single-argument form remains valid.
 | ------ | ---- | ----------- |
 | `constructor` | `ThemeError` | — |
 | `cause` (optional) | `unknown` | — |
-| readonly `code` (optional) | `ThemeDiagnosticCode` | Stable diagnostic code, or `undefined` for a plain Theme Kit failure. |
+| readonly `code` (optional) | `ThemeDiagnosticCode` | Stable diagnostic code, or `undefined` for a plain Themvora failure. |
 | readonly `context` (optional) | `ThemeDiagnosticContext` | Structured context describing the failure, when available. |
 | `message` | `string` | — |
 | `name` | `string` | — |
@@ -2501,7 +3019,7 @@ single-argument form remains valid.
 
 ```ts
 const diagnostic = createDiagnostic({
-  code: "TK_MODE_INVALID",
+  code: "TV_MODE_INVALID",
   level: "warning",
   message: 'setMode() received an unknown mode "purple".',
   context: { api: "setMode", property: "mode", received: "purple" },
@@ -2525,6 +3043,7 @@ and token references happens separately via resolveTheme.
 | ------ | ---- | ----------- |
 | `constructor` | `ThemeRegistry<T>` | — |
 | `themes` | `void` | — |
+| `batch` | `void` | — |
 | `clear` | `void` | — |
 | `destroy` | `void` | — |
 | `get` | `T \| undefined` | — |
@@ -2535,6 +3054,7 @@ and token references happens separately via resolveTheme.
 | `register` | `boolean` | — |
 | `registerMany` | `number` | — |
 | `replace` | `boolean` | — |
+| `subscribe` | `__type(): void` | — |
 | `unregister` | `boolean` | — |
 | `use` | `void` | — |
 
@@ -2550,6 +3070,19 @@ Options for createAccessibilityPlugin.
 | `level` (optional) | `"AA" \| "AAA"` | Target WCAG contrast level. |
 | `onViolation` (optional) | `__type(result: { checks: ContrastCheck[]; themeName: string }): void` | Invoked with the theme name and failing contrast checks whenever a contrast violation is detected. |
 | `warnOnly` (optional) | `boolean` | When `true`, contrast violations are reported at warning level; when `false`, they are reported at error level. Default `true`. |
+
+---
+
+
+### `ActionProminence`
+The prominence of the primary action fill against the canvas.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `anchored` | `boolean` | Whether the fill is a pinned brand anchor rather than a generated colour. Read from `meta.generation.anchored`, which the recipe builder records. When true, `passes` is reported but not enforced: the brand colour is the brand's, and moving it would trade identity for a number. |
+| `floor` | `number` | The floor a generated fill is held to. |
+| `passes` | `boolean` | Whether the fill is prominent enough to read as a control. |
+| `ratio` | `number` | The ratio between the fill and the canvas. |
 
 ---
 
@@ -2635,6 +3168,38 @@ Options for createAnimationsPlugin.
 ---
 
 
+### `BrandReferenceColor`
+One colour from a brand's reference material.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `classification` | `BrandColorClass` | How the generator treats it. |
+| `color` | `string` | The exact value, verbatim from the source. |
+| `label` | `string` | What the source calls this colour, e.g. `"Blurple"` or `"Background 1"`. |
+| `mode` (optional) | `PresetMode` | Restrict the anchor to one mode. Omitted means both. |
+| `official` | `boolean` | Whether the brand publishes this as part of its identity. |
+| `source` | `string` | Where the value came from — specific enough to re-check. |
+| `themeRole` (optional) | `CoreColor` | The Themvora role this value anchors, when it is pinned. Present only on `ANCHOR` entries the generator uses directly. An `ANCHOR` without a `themeRole` is still exact — it informs the identity — but it does not map onto a Themvora role. |
+
+---
+
+
+### `BrandSource`
+The reference material behind a brand preset.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `colors` | `readonly BrandReferenceColor[]` | Every reference colour, classified. |
+| `hasDesignSystem` | `boolean` | Whether the brand publishes a full token system rather than a few colours. |
+| `hasLightDark` | `boolean` | Whether the brand publishes light/dark variants of its system. |
+| `kind` | `BrandSourceKind` | How strong the source is. |
+| `name` | `string` | The brand's name. |
+| `notes` (optional) | `readonly string[]` | Caveats — legal, licensing, or fidelity limits. |
+| `sourceUrl` | `string` | Where to re-check the values. |
+
+---
+
+
 ### `BroadcastChannelLike<T>`
 A minimal subset of the `BroadcastChannel` API used by the broadcast
 adapters. Accepts any object with the same shape, enabling custom or
@@ -2671,6 +3236,24 @@ Options for buildThemeCssMap.
 ---
 
 
+### `CatalogBrand`
+The brand provenance for a catalog entry.
+
+Three separate things, kept separate on purpose:
+
+1. **Identity** — the published reference colours and where they came from.
+2. **Interpretation** — the anchors Themvora pinned, and the roles it derived.
+3. **Normalization** — anchors the solver had to move to keep the theme readable.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `anchors` | `Record<PresetMode, readonly ResolvedAnchor[]>` | Anchors pinned, per mode. |
+| `normalized` | `Record<PresetMode, readonly NormalizedAnchor[]>` | Anchors the solver moved, per mode. Empty when the anchor survived exactly. |
+| `source` | `BrandSource` | The reference material behind the preset. |
+
+---
+
+
 ### `CodeTokens`
 Semantic colors for code and syntax surfaces.
 
@@ -2703,6 +3286,36 @@ This token group is opt-in. Themes that do not define `code` do not emit
 | `tag` (optional) | `string` | Tag name color (markup). |
 | `type` (optional) | `string` | Type / class name color. |
 | `variable` (optional) | `string` | Variable identifier color. |
+
+---
+
+
+### `ContextRestriction`
+A use the system explicitly does **not** promise, and what to do instead.
+
+This is the half that makes the contract useful. Knowing that `primary` is
+*not* supported as body text is what turns "the brand colour looks weak on this
+page" into a decision with an obvious answer.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `against` | `CoreColor` | The role it must not be used against. |
+| `instead` | `string` | What to reach for instead. |
+| `intended` | `string` | What the role *is* for. |
+| `role` | `CoreColor` | The role that must not be used this way. |
+
+---
+
+
+### `ContextResult`
+The outcome of evaluating one context against a theme.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `context` | `SemanticContext` | The context that was evaluated. |
+| `floor` | `number \| null` | The floor it was held to, or `null` for a decorative context. |
+| `passes` | `boolean` | Whether it met its floor. Decorative contexts are always `true` here. |
+| `ratio` | `number \| null` | The measured ratio, or `null` when a role is missing. |
 
 ---
 
@@ -2780,7 +3393,7 @@ Options for createDebuggerPlugin.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `label` (optional) | `string` | Prefix used for all debug log output. Default `"[theme-kit:debug]"`. |
+| `label` (optional) | `string` | Prefix used for all debug log output. Default `"[themvora:debug]"`. |
 | `logHistory` (optional) | `boolean` | Log history events. Default `false`. |
 | `logPersistence` (optional) | `boolean` | Log theme selection persistence events. Default `true`. |
 | `logThemeChanges` (optional) | `boolean` | Log theme changes to the console. Default `true`. |
@@ -2818,6 +3431,18 @@ target element; when none is available the binding is not created.
 ---
 
 
+### `EffectiveConfiguration<T extends ThemeDefinition>`
+The outcome of resolving a configuration change: the effective selection and
+the theme it resolves to.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `selection` | `ThemeSelectionState` | The effective selection after the configuration change. |
+| `theme` | `T` | The theme the effective selection resolves to. |
+
+---
+
+
 ### `EmitDiagnosticOptions`
 Options for emitDiagnostic.
 
@@ -2826,6 +3451,18 @@ Options for emitDiagnostic.
 | `dedupe` (optional) | `boolean` | Whether to suppress a diagnostic already emitted with the same code and context. Default `true`. Reactive paths call the same API on every render or every store update, so without this a single mistake floods the console. The first occurrence is the informative one. |
 | `dev` (optional) | `boolean` | Override environment detection. |
 | `sink` (optional) | `DiagnosticSink` | Where to write. Defaults to the matching `console` method for the level. |
+
+---
+
+
+### `GeneratedThemeLookup<T extends ThemeDefinition>`
+The result of looking up the generated theme among registered themes.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `candidates` | `readonly T[]` | Every registered generated theme, in registration order. For diagnostics. |
+| `status` | `GeneratedThemeStatus` | Which case was hit. |
+| `theme` | `T \| null` | The resolved generated theme, or `null` when none could be resolved. |
 
 ---
 
@@ -2846,8 +3483,11 @@ Options for generateTheme.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
+| `algorithm` (optional) | `string` | Generation algorithm to use. Omitted means the current algorithm. Present so a caller can pin a shipped theme to the algorithm that produced it. |
+| `contrast` (optional) | `"AA"` | Contrast level to solve for. Only `"AA"` is implemented; it is also the default, so omitting this changes nothing. The type deliberately admits no other value rather than accepting one and quietly ignoring it. |
 | `family` (optional) | `string` | Theme family name used for the generated themes' `meta.family` and names. |
 | `seed` | `string` | Hex color seed (e.g. `"#d97706"`) that drives the generated palette. |
+| `style` (optional) | `GenerationStyle` | Visual language to generate in. Omitted means `"balanced"`, which is the behavior existing callers already get. |
 | `withCode` (optional) | `boolean` | Also generate a `tokens.code` block (syntax-highlighting colors) alongside the color tokens. Opt-in — most themes don't need code tokens. |
 
 ---
@@ -2858,7 +3498,9 @@ Options for createGenerationPlugin.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `onGenerate` (optional) | `__type(options: GenerateThemeOptions): void` | Callback invoked with the options used to generate a theme. |
+| `onGenerate` (optional) | `__type(options: GenerateThemeOptions): void` | Called with the resolved options each time a theme is generated. |
+| `options` (optional) | `Omit<GenerateThemeOptions, "seed">` | Default generation options, merged under any per-call overrides. |
+| `seed` (optional) | `string` | Default seed used by GenerationPlugin.generate when none is passed. |
 
 ---
 
@@ -2896,6 +3538,50 @@ resolved selection state.
 ---
 
 
+### `InvalidOption`
+A single unusable option inside a live configuration update.
+
+Used by the runtime's `configure()` validation so the diagnostic names the
+exact option and value rather than reporting the whole update as invalid.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `expected` | `string` | A short description of what would have been accepted. |
+| `property` | `string` | Dotted option path, e.g. `"transition.duration"`. |
+| `received` | `unknown` | The value that was supplied. |
+
+---
+
+
+### `LevelIssue`
+A problem found at a specific level.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `code` | `ThemeDiagnosticCode` | Stable diagnostic code. |
+| `context` (optional) | `ThemeDiagnosticContext` | Structured context. |
+| `level` | `ValidationLevel` | Which level found it. |
+| `message` | `string` | Human-readable description. |
+| `path` (optional) | `string` | Dot-path to the offending token, when there is one. |
+
+---
+
+
+### `MeasuredPair`
+One measured contract pair.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `background` | `string` | The background role. |
+| `floor` | `number` | The published floor for this requirement. |
+| `foreground` | `string` | The foreground role. |
+| `passes` | `boolean` | Whether the floor is met. |
+| `ratio` | `number` | The measured WCAG ratio. |
+| `requirement` | `"text" \| "ui"` | Which contract threshold applies. |
+
+---
+
+
 ### `MigrateOptions`
 Options for migrateTheme.
 
@@ -2922,8 +3608,8 @@ to the next.
 
 
 ### `ModuleOptions`
-Configuration options for the `@theme-kit/nuxt` module, set under the
-`themeKit` key in `nuxt.config.ts`. The module installs an app-wide theme
+Configuration options for the `@themvora/nuxt` module, set under the
+`themvora` key in `nuxt.config.ts`. The module installs an app-wide theme
 runtime, registers the theme components and composables, and wires the
 SSR-first cookie contract so the browser paints already themed.
 
@@ -2935,15 +3621,15 @@ SSR-first cookie contract so the browser paints already themed.
 | `initialFamily` (optional) | `string` | Initial theme family when no selection is persisted. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode: `"light"`, `"dark"` or `"system"`. Default `"system"`. |
 | `scheduled` (optional) | `false \| ThemeScheduleOptions<ThemeDefinition<string>>` | Sunrise/sunset scheduling. Pass `{ lightTheme, darkTheme, latitude, longitude, ... }` to auto-switch between a light and a dark theme at sunrise/sunset. `false` (default) disables scheduling. Use `useThemeSchedule()` to read `enabled`/`status`/`sunrise`/`sunset` and to enable or disable the schedule reactively. |
-| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Custom scrollbar bootstrap. `true` (or options) emits the pre-paint CSS and the `tk-scrollbar` class on `<html>` so the native scrollbar is hidden from first paint; mount `<ThemeScrollbar />` to create the overlay engine (shared with every framework). |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Custom scrollbar bootstrap. `true` (or options) emits the pre-paint CSS and the `tv-scrollbar` class on `<html>` so the native scrollbar is hidden from first paint; mount `<ThemeScrollbar />` to create the overlay engine (shared with every framework). |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Default `"theme-selection"`. |
 | `themes` (optional) | `ThemeDefinition<string>[]` | Theme registry. Defaults to the built-in themes when omitted. |
-| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme transitions. `false` disables them; `true` (or an options object) enables smooth cross-fades on theme changes through the shared `@theme-kit/core` transition engine. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme transitions. `false` disables them; `true` (or an options object) enables smooth cross-fades on theme changes through the shared `@themvora/core` transition engine. |
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  themeKit: {
+  themvora: {
     defaultTheme: "light",
     initialMode: "system",
     scrollbar: true,
@@ -2965,6 +3651,19 @@ fallbacks are reported.
 | `channelName` (optional) | `string` | Name of the `BroadcastChannel` used when the broadcast strategy is selected. |
 | `onFallback` (optional) | `__type(strategy: string): void` | Called with a description whenever a preferred strategy is unavailable and the sync falls back to the next one. |
 | `prefer` (optional) | `"broadcast" \| "sharedworker" \| "auto"` | Preferred strategy. `"auto"` tries broadcast first, then shared worker. |
+
+---
+
+
+### `NormalizedAnchor`
+An anchor the solver had to move, rendered as hex.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `anchor` | `string` | The exact value the brand published. |
+| `label` | `string` | What the brand calls it. |
+| `resolved` | `string` | The value the theme actually ships. |
+| `role` | `string` | The Themvora role. |
 
 ---
 
@@ -3033,9 +3732,10 @@ scrollbar and synchronizes with native scrolling.
 | `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
 | `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
 | `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
+| `iconSize` (optional) | `number` | Arrow glyph size in CSS px, for all four directions (the built-in CSS triangle and custom icons alike). Clamped to the button's usable area, so it can never overflow an unusually thin rail. Omitted keeps the existing default sizing. Adapters surface this as `icons.size`. |
 | `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
 | `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
+| `offset` (optional) | `ScrollbarOffset` | Distance from the container edges to the rail. A number insets every side equally; an object sets individual sides, with omitted sides defaulting to the component default (`4`, except `left`, which defaults to `0`). A side set to `0` gets no inset — the rail sits flush against that edge, like a native scrollbar. The rail follows the writing direction (a vertical rail sits on the inline-end edge), so in RTL it uses `left`. The content is kept clear of the rail by the native scrollbar gutter the component reserves, not by extra padding, so no content width is taken and nothing reflows. |
 | `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
 | `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
 | `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
@@ -3046,7 +3746,7 @@ scrollbar and synchronizes with native scrolling.
 | `touch` (optional) | `boolean` | Native (touch) devices: keep native scrollbars by default. Pass `true` to force the overlay on coarse-pointer devices. Default `false`. |
 | `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
 | `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
+| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. a rail inside a sticky header never floats above that header). Containers that declare no z-index get `0`; the document scrollbar gets `55`, which is above typical sticky headers (50) and below full-screen modal backdrops (60) — the window bar is chrome, so a fixed header must not hide it. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
 
 Options are resolved once when the scrollbar is created. `include`/`exclude`
 scope which inner scrollables are tracked; the window is always tracked.
@@ -3084,6 +3784,78 @@ createPluginManager.
 `use` is idempotent per name: registering an already-registered name is
 skipped with a warning. `destroy` invokes `onDestroy` for every plugin and
 clears the registry; after destruction the manager is empty.
+
+---
+
+
+### `PresetCatalogEntry`
+Everything a preset page needs about one preset family.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `algorithm` | `string` | The algorithm that produced it. |
+| `brand` (optional) | `CatalogBrand` | Brand reference provenance. Present on brand entries only. |
+| `brandColor` (optional) | `string` | The official brand colour, for documentation. Brand recipes only. |
+| `character` | `string` | The recipe's one-line character descriptor. |
+| `family` | `string` | Theme family, e.g. `"oat"`. |
+| `id` | `string` | Stable identifier, e.g. `"oat"`. |
+| `kind` | `PresetKind` | Curated default, or brand-inspired. |
+| `modes` | `readonly PresetMode[]` | Which modes this family ships. |
+| `name` | `string` | Display name, e.g. `"Oat"`. |
+| `provenance` (optional) | `BrandProvenance` | How faithful a brand recipe is. Present on brand recipes only. |
+| `quality` | `PresetQuality` | The merged quality summary. |
+| `radius` | `string` | Border radius. |
+| `seed` | `string` | The seed the palette is generated from. |
+| `style` | `GenerationStyle` | The generation style. |
+| `tags` | `readonly string[]` | Free-form recipe tags. |
+| `temperature` | `Temperature` | Derived from the seed's identity. |
+| `themes` | `Record<PresetMode, ThemeDefinition>` | The resolved themes. |
+
+---
+
+
+### `PresetCheck`
+One row of the scorecard.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `detail` (optional) | `string` | Why it failed, when it did. |
+| `id` | `string` | Stable identifier, e.g. `"text-contrast"`. |
+| `label` | `string` | Human-readable label. |
+| `status` | `CheckStatus` | The outcome. |
+
+---
+
+
+### `PresetQuality`
+The quality summary for a preset, merged across both modes.
+
+A check passes only if it passes in **both** light and dark. This is the same
+result `scripts/audit-presets.mjs` gates on — the page consumes the quality
+model rather than running a second contrast implementation.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `checks` | `readonly PresetCheck[]` | Per-check detail, merged across modes. |
+| `failures` | `readonly string[]` | Check ids that failed in at least one mode. |
+| `passed` | `number` | Checks that did not fail, across both modes. |
+| `total` | `number` | Total checks. |
+| `warnings` | `readonly string[]` | Check ids that warned in at least one mode. |
+
+---
+
+
+### `PresetScore`
+The scorecard for one theme.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `checks` | `PresetCheck[]` | Every check, in order. |
+| `family` | `string \| null` | Theme family. |
+| `mode` | `string \| null` | Theme mode. |
+| `name` | `string` | Theme name. |
+| `passed` | `number` | How many checks passed. |
+| `total` | `number` | How many checks there are. |
 
 ---
 
@@ -3293,7 +4065,113 @@ Controls how a scope's first-paint CSS is generated.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `prefix` (optional) | `string` | Prefix for the emitted custom properties. |
-| `selector` (optional) | `string` | CSS selector targeting the scope element (e.g. `[data-theme-kit-scope="…"]`). Only used by the `@media` override. |
+| `selector` (optional) | `string` | CSS selector targeting the scope element (e.g. `[data-themvora-scope="…"]`). Only used by the `@media` override. |
+
+---
+
+
+### `ScrollbarAppearanceOptions`
+The look and size of every rail.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `activeThumbColor` (optional) | `string` | — |
+| `animationDuration` (optional) | `number` | — |
+| `arrows` (optional) | `boolean` | — |
+| `duration` (optional) | `number` | — |
+| `hoverThickness` (optional) | `number` | — |
+| `iconSize` (optional) | `number` | Arrow glyph size, in CSS px (see OverlayScrollbarOptions.iconSize). Adapters surface this as `icons.size`. |
+| `minThumbSize` (optional) | `number` | — |
+| `offset` (optional) | `ScrollbarOffset` | — |
+| `radius` (optional) | `number` | — |
+| `thickness` (optional) | `number` | — |
+| `thumbColor` (optional) | `string` | — |
+| `thumbHoverColor` (optional) | `string` | — |
+| `thumbOpacity` (optional) | `number` | — |
+| `trackColor` (optional) | `string` | — |
+| `trackOpacity` (optional) | `number` | — |
+| `zIndex` (optional) | `number` | — |
+
+---
+
+
+### `ScrollbarBehaviorOptions`
+How the overlay scrolls and hides.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `autoHide` (optional) | `boolean` | — |
+| `autoHideDelay` (optional) | `number` | — |
+| `axes` (optional) | `ScrollbarAxis[]` | — |
+| `clickToJump` (optional) | `boolean` | — |
+| `dir` (optional) | `"auto" \| "ltr" \| "rtl"` | — |
+| `draggable` (optional) | `boolean` | — |
+| `hoverExpand` (optional) | `boolean` | — |
+| `overscroll` (optional) | `boolean` | — |
+| `smooth` (optional) | `boolean` | — |
+| `touch` (optional) | `boolean` | — |
+
+---
+
+
+### `ScrollbarGroupedOptions`
+The grouped form accepted by every adapter. Each group is optional and may
+ be passed explicitly as `undefined`, so adapters can forward their raw props
+ without stripping keys first.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `appearance` (optional) | `ScrollbarAppearanceOptions` | — |
+| `behavior` (optional) | `ScrollbarBehaviorOptions` | — |
+| `scope` (optional) | `ScrollbarScopeOptions` | — |
+
+---
+
+
+### `ScrollbarIconOptions<T>`
+Arrow icon content for the `icons` group. `arrow` covers every direction;
+the per-direction entries override it; `size` is the shared glyph size in
+CSS px. `T` is the adapter's native icon value (an HTML/node icon for the
+string-based adapters, framework nodes for React and friends).
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `arrow` (optional) | `T` | — |
+| `down` (optional) | `T` | — |
+| `left` (optional) | `T` | — |
+| `right` (optional) | `T` | — |
+| `size` (optional) | `number` | — |
+| `up` (optional) | `T` | — |
+
+---
+
+
+### `ScrollbarOffsetSides`
+Per-side rail offsets, in px.
+
+Each side is the distance from that container edge to the rail. Any side left
+out falls back to the component default (`4`). Pass a plain number instead to
+inset every side equally.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `bottom` (optional) | `number` | — |
+| `left` (optional) | `number` | — |
+| `right` (optional) | `number` | — |
+| `top` (optional) | `number` | — |
+
+---
+
+
+### `ScrollbarScopeOptions`
+Which containers the overlay tracks. Scope decides *where* the scrollbar
+appears, not how it looks — so it is its own group rather than part of
+`appearance`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `exclude` (optional) | `string[] \| null` | — |
+| `include` (optional) | `string[] \| null` | — |
 
 ---
 
@@ -3305,6 +4183,39 @@ The result of selection-theme resolution.
 | ------ | ---- | ----------- |
 | `selection` | `ThemeSelectionState` | The (possibly normalized) selection. |
 | `theme` | `T` | The theme matching the selection. |
+
+---
+
+
+### `SemanticContext`
+One promise about where a role may be used.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `against` | `CoreColor` | The role it is drawn on. |
+| `description` | `string` | What the UI is doing, in words. |
+| `id` | `string` | Stable id, used in diagnostics and fixtures. |
+| `level` | `ContextLevel` | Whether the generator guarantees it. |
+| `owner` | `ContextOwner` | Who has to make it true. |
+| `requirement` | `ContextRequirement` | The threshold it is held to. |
+| `role` | `CoreColor` | The role carrying the content or indicator. |
+
+---
+
+
+### `SemanticRoleGroup`
+How a semantic role is grouped, by what it is *for* rather than where it is
+used. The grouping is documentation and validation metadata — it is what lets
+a reviewer answer "is this a surface or an action?" without consulting a
+specific library's token list.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `description` | `string` | What the group is for. |
+| `id` | `"canvas" \| "surfaces" \| "actions" \| "states" \| "interaction"` | Group identifier. |
+| `label` | `string` | Human-readable label. |
+| `optional` (optional) | `readonly OptionalSemantic[]` | Optional roles in this group, if any. |
+| `roles` | `readonly CoreColor[]` | The core roles in this group. |
 
 ---
 
@@ -3391,6 +4302,8 @@ interface — it never knows Bootstrap, MUI, Chakra or any other library.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | readonly `id` | `string` | Stable identifier used for reference counting and deduplication. |
+| readonly `optional` (optional) | `{ colors?: readonly string[] }` | Roles the adapter *can* use but does not require. These are capabilities: `warning` and `info` are genuine semantic roles that many libraries have no slot for. An adapter lists them here and degrades gracefully when the theme omits them — by deriving a value, or by omitting the library token entirely. **Never by fabricating one**, which would look like support while nothing consumed it. |
+| readonly `requires` (optional) | `{ colors?: readonly string[]; tokens?: readonly string[] }` | The semantic roles this adapter cannot function without. Declaring requirements turns a silent, per-library failure into a checkable contract. Without it, an adapter that needs `primaryForeground` and finds nothing simply emits a variable with an empty value, and the component renders unreadable content — which is exactly the class of defect the integration laboratory kept finding. A role listed here must resolve; an adapter may assume it is present. |
 | `install` | `void` | — |
 | `supports` | `boolean` | — |
 | `uninstall` | `void` | — |
@@ -3486,6 +4399,29 @@ A single recorded theme change, captured by a ThemeDebugger.
 ---
 
 
+### `ThemeConfigurationUpdate<T extends ThemeDefinition>`
+A live configuration change for a runtime.
+
+This is the subset of ThemeRuntimeOptions that can change while the
+runtime stays mounted. Each framework adapter forwards its changed props here
+— the runtime owns normalization, validation, precedence and notification, so
+the adapters share one contract instead of each re-implementing selection.
+
+**See also:** `ThemeRuntime.configure`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `defaultTheme` (optional) | `T["name"]` | Fallback theme name when nothing else is given. |
+| `initial` (optional) | `InitialThemeResolution<T>` | An explicit initial resolution (SSR-resolved selection). Wins when changed. |
+| `initialFamily` (optional) | `string` | Initial family, used when the effective selection is re-resolved. |
+| `initialMode` (optional) | `ThemeMode` | Initial mode, used when the effective selection is re-resolved. |
+| `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Omit to leave the current schedule unchanged; `false` tears it down (`runtime.schedule` becomes `null`); an options object installs one or reconfigures the existing one in place. |
+| `themes` (optional) | `readonly T[]` | The effective theme catalog. Omit to leave the current catalog unchanged. An empty or all-invalid array resolves to the canonical neutral fallback. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. Omit to leave the current setting unchanged; `false` disables transitions from the next theme change on; `true` or an options object enables/reconfigures them. Applied to the runtime's live DOM/CSS bindings without rebuilding them and without touching the current theme. |
+
+---
+
+
 ### `ThemeDebugger<T extends ThemeDefinition>`
 A debugger that records theme changes on a theme store.
 
@@ -3515,7 +4451,7 @@ A theme definition: a name plus optional metadata and token values.
 
 
 ### `ThemeDiagnostic`
-A single Theme Kit diagnostic.
+A single Themvora diagnostic.
 
 This is plain data: creating one has no side effects and touches no
 environment. Emission and formatting are separate concerns — see
@@ -3563,7 +4499,7 @@ failure without parsing prose.
 What actually changed between two themes, grouped by token category.
 
 Produced by the Theme Diff Engine. Every downstream stage (planner,
-scanner, coordinator) keys off these booleans so Theme Kit only animates
+scanner, coordinator) keys off these booleans so Themvora only animates
 the token groups that really changed — never a blanket transition.
 
 **See also:** `createThemeDiff`
@@ -3582,6 +4518,64 @@ the token groups that really changed — never a blanket transition.
 ---
 
 
+### `ThemeDiffOptions`
+Options for diffThemes.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `includeUnchanged` (optional) | `boolean` | Include `unchanged` entries in `changes`. Never affects `counts`. |
+| `modes` (optional) | `readonly "light" \| "dark"[]` | Restrict the comparison to these visual modes. Omit to compare every mode present on either side. |
+| `prefersDark` (optional) | `boolean` | Whether the visitor prefers dark. Consulted **only** when a side declares `mode: "system"`, i.e. only by the selector. An explicit option rather than an ambient read, so the result stays deterministic. |
+| `themes` (optional) | `readonly ThemeDefinition<string>[]` | Registry used to resolve `extends` on either side, and to resolve a `mode: "system"` selector. Mirrors the `themes` option on `validateTheme`. |
+
+---
+
+
+### `ThemeDiffProvenance`
+Provenance differences, reported **separately** from token changes.
+
+`hasChanges` deliberately ignores this: two themes with identical tokens but
+different seeds render identically, so reporting them as different would be
+wrong for the primary use case.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `a` | `ThemeGenerationProvenance \| null` | Provenance on side `a`, or `null`. |
+| `b` | `ThemeGenerationProvenance \| null` | Provenance on side `b`, or `null`. |
+| `changed` | `boolean` | Whether the two sides' provenance differs. |
+| `differing` | `readonly string[]` | The provenance field names that differ, sorted. |
+
+---
+
+
+### `ThemeDiffReport`
+The full diff report.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `a` | `ThemeDiffSide` | Side `a`. |
+| `b` | `ThemeDiffSide` | Side `b`. |
+| `hasChanges` | `boolean` | Whether any **token** value differs. Provenance is reported separately. |
+| `modes` | `Partial<Record<"light" \| "dark", ThemeModeDiff>>` | Keyed by concrete visual mode. A `"system"` key cannot exist. |
+| `provenance` | `ThemeDiffProvenance` | Provenance differences. |
+| `summary` | `ThemeModeDiffCounts` | The union of every mode's counts. |
+| `version` | `1` | The report schema version. Independent of the theme schema and package versions. |
+
+---
+
+
+### `ThemeDiffSide`
+One side of a diff: a resolved theme identity.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` | `string` | The theme family, via `getThemeFamily`. |
+| `mode` | `"light" \| "dark"` | The **concrete** visual mode. Never `"system"`: a `"system"` selector is resolved before the comparison, so this always names the theme that was actually compared. |
+| `name` | `string` | The theme name that was compared. |
+
+---
+
+
 ### `ThemeErrorOptions`
 Options for ThemeError.
 
@@ -3590,6 +4584,19 @@ Options for ThemeError.
 | `cause` (optional) | `unknown` | The underlying error, when this one wraps a failure. |
 | `code` (optional) | `ThemeDiagnosticCode` | Stable diagnostic code, when this error corresponds to one. |
 | `context` (optional) | `ThemeDiagnosticContext` | Structured context, when the error has any. |
+
+---
+
+
+### `ThemeGenerationProvenance`
+Generation provenance for one side, or `null` when the theme has none.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `algorithm` | `string` | The generation algorithm, e.g. `"semantic-v2"`. |
+| `anchored` | `readonly string[]` | Roles pinned to a brand anchor rather than generated. |
+| `seed` | `string` | The seed the theme was generated from. |
+| `style` | `string \| null` | The generation style, when one was recorded. |
 
 ---
 
@@ -3621,6 +4628,7 @@ Options for creating a theme history controller.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `maxSteps` (optional) | `number` | Maximum number of history entries retained (including the initial entry). When the limit is exceeded, the oldest entries are dropped. |
+| `now` (optional) | `__type(): number` | The clock used to timestamp entries. |
 
 ---
 
@@ -3634,62 +4642,6 @@ Props accepted by the Vue `<ThemeInspector>` component.
 | `right` (optional) | `number` | Distance from the right edge of the viewport, in px. Default 32. |
 | `size` (optional) | `number` | Toggle button size, in px. Default 40. |
 | `zIndex` (optional) | `number` | Z-index for the floating toggle and panel. Default 9999. |
-
----
-
-
-### `ThemeKitConfig<T extends ThemeDefinition>`
-The application's Theme Kit configuration: one declaration, consumed by both
-the runtime and the pre-paint bootstrap.
-
-**See also:** `defineThemeKitConfig`
-
-| Member | Type | Description |
-| ------ | ---- | ----------- |
-| `adapters` (optional) | `readonly unknown[]` | Runtime adapters. Runtime-only, and **not serializable** — pass it to the provider, not here. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no selection is persisted. |
-| `initialFamily` (optional) | `string` | Family used when no selection is persisted. |
-| `initialMode` (optional) | `ThemeMode` | Mode used when no selection is persisted. Defaults to the fallback theme's own mode. |
-| `persistence` (optional) | `unknown` | Whether the selection is persisted across visits. `false` or `null` disables it. |
-| `plugins` (optional) | `readonly unknown[]` | Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. |
-| `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
-| `scrollbar` (optional) | `unknown` | Overlay scrollbar options. Runtime-only. |
-| `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Defaults to `"theme-selection"`. |
-| `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
-| `transition` (optional) | `unknown` | Transition configuration. Runtime-only. |
-
-This exists to remove a class of bug rather than to add a feature. When the
-theme registry, the fallback theme and the initial mode are declared twice —
-once for the provider and once for whatever emits the pre-paint script — the
-two drift, and a drift is visible: the script paints one theme, the runtime
-corrects it a frame later, and any theme-name readout contradicts the control
-that set it.
-
-Two projections read this object, and neither is a second declaration:
-
-- the **runtime projection** — everything below, handed to
-  `createThemeRuntime`;
-- the **bootstrap projection** — toBootstrapConfig, the subset the
-  pre-paint script can act on.
-
----
-
-
-### `ThemeKitThemeConfig<T extends ThemeDefinition>`
-The deprecated inline form of the theme configuration: the registry, the
-fallback theme, the initial mode/family, and the persistence key and prefix,
-passed straight to themeKitVitePlugin.
-
-**See also:** `themeKitVitePlugin`
-
-| Member | Type | Description |
-| ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no persisted selection exists. |
-| `initialFamily` (optional) | `string` | Family used when no persisted selection exists. |
-| `initialMode` (optional) | `ThemeMode` | Mode used when no persisted selection exists. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to, so a `defaultTheme="light"` app paints light from frame one. |
-| `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
-| `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. |
-| `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
 
 ---
 
@@ -3741,6 +4693,7 @@ and may be surfaced by tooling, the inspector, or docs generators.
 | `created` (optional) | `string` | ISO date the theme was created. |
 | `description` (optional) | `string` | Short human-readable description of the theme. |
 | `family` (optional) | `string` | Theme family used for selection and toggling. Themes without a family belong to the `"default"` family. |
+| `generation` (optional) | `GenerationMeta` | Generation provenance, present only on generated themes. |
 | `group` (optional) | `string` | Deprecated alias for family. Prefer `family`. |
 | `label` (optional) | `string` | Human-readable theme name shown in pickers and the inspector. |
 | `mode` (optional) | `"light" \| "dark" \| "system"` | Color mode of the theme. When omitted, the mode is inferred from the theme name (e.g. `"mint-dark"` → `"dark"`). |
@@ -3769,6 +4722,50 @@ broadcasting it across tabs/windows.
 | `readPersistenceOnInit` (optional) | `boolean` | Whether to read the persisted mode on creation. |
 | `store` | `ThemeStore<T>` | The store the resolved theme is applied to. |
 | `view` (optional) | `Window` | The `Window` used for the system binding. Defaults to the global `window` when present. |
+
+---
+
+
+### `ThemeModeDiff`
+The diff for one visual mode.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `byGroup` | `readonly ThemeModeGroupCounts[]` | Per-group counts, in `TOKEN_GROUPS` order, for groups present on either side. |
+| `changes` | `readonly ThemeTokenChange[]` | The changes, filtered by `includeUnchanged`. |
+| `counts` | `ThemeModeDiffCounts` | The counts. Never filtered. |
+| `mode` | `"light" \| "dark"` | The concrete visual mode. `"system"` is a selector, not a mode. |
+| `present` | `"both" \| "a" \| "b"` | Which sides provide this mode. |
+
+---
+
+
+### `ThemeModeDiffCounts`
+Per-status counts. Always complete, whatever `includeUnchanged` is set to.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `added` | `number` | Paths present only on `b`. |
+| `changed` | `number` | Paths present on both with different resolved values. |
+| `removed` | `number` | Paths present only on `a`. |
+| `total` | `number` | Every path seen on either side. |
+| `unchanged` | `number` | Paths present on both with the same resolved value. |
+
+---
+
+
+### `ThemeModeGroupCounts`
+
+**Extends** `Omit<ThemeModeDiffCounts, "total">`
+Per-group counts.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `added` | `number` | Paths present only on `b`. |
+| `changed` | `number` | Paths present on both with different resolved values. |
+| `group` | `"code" \| "colors" \| "spacing" \| "radius" \| "shadows" \| "borderWidths" \| "zIndex" \| "breakpoints" \| "typography"` | The token group. |
+| `removed` | `number` | Paths present only on `a`. |
+| `unchanged` | `number` | Paths present on both with the same resolved value. |
 
 ---
 
@@ -3903,7 +4900,7 @@ Options for creating a theme registry.
 
 
 ### `ThemeRuntime<T extends ThemeDefinition>`
-A Theme Kit runtime — the single entry point for theming one application
+A Themvora runtime — the single entry point for theming one application
 boundary.
 
 A runtime owns theme selection, token resolution, persistence bindings,
@@ -3920,12 +4917,13 @@ lifecycle ends.
 | readonly `initial` | `ThemeRuntimeInitial<T>` | The state a **server render** produces — the value `useSyncExternalStore` needs as its *server* snapshot. Read-only and frozen at creation. |
 | `lifecycle` | `ThemeLifecycle<T>` | Typed lifecycle event emitter. |
 | `registry` | `ThemeRegistry<T>` | The theme registry holding the registered definitions. |
-| `schedule` | `ThemeSchedule \| null` | The sunrise/sunset scheduling controller created from the `scheduled` runtime option. `null` when the runtime was created without one. |
-| `selection` | `{ setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; toggleTheme: __type(): void; destroy: void; getFamily: void; getMode: void; getSelection: void; subscribe: void }` | The selection controller (mode/family/system binding, persistence). |
+| readonly `schedule` | `ThemeSchedule \| null` | The sunrise/sunset scheduling controller created from the `scheduled` runtime option. `null` when the runtime was created without one. Live: re-read after ThemeRuntime.configure with a `scheduled` update — the schedule is created, reconfigured in place, or torn down depending on the value. |
+| `selection` | `{ applyState: __type(nextState: ThemeSelectionState, opts?: { persist?: boolean }): void; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; toggleTheme: __type(): void; destroy: void; getFamily: void; getMode: void; getSelection: void; subscribe: void }` | The selection controller (mode/family/system binding, persistence). |
 | `store` | `ThemeStore<T>` | The underlying theme store (current theme + subscription). |
-| readonly `themes` | `readonly T[]` | Live view of the registered themes. |
-| `transition` (optional) | `ThemeTransitionOptions` | The resolved theme-transition options the runtime was created with (`undefined` when none were supplied). Components like `ThemeScope` read this so scoped theme changes inherit the same transition as the provider. |
+| readonly `themes` | `readonly T[]` | Live view of the registered themes. One array, kept in place: a consumer that reads it once and holds the reference still sees a later `configure()`, and a consumer that reads it on every change does not miss one. `configure()` replaces its contents rather than swapping the reference. |
+| readonly `transition` (optional) | `ThemeTransitionOptions` | The resolved theme-transition options the runtime was created with (`undefined` when none were supplied). Components like `ThemeScope` read this so scoped theme changes inherit the same transition as the provider. Live: ThemeRuntime.configure with a `transition` update replaces this value and pushes it into the runtime's live DOM/CSS bindings. |
 | `batch` | `void` | — |
+| `configure` | `void` | — |
 | `destroy` | `void` | — |
 | `restore` | `void` | — |
 | `snapshot` | `ThemeRuntimeSnapshot<T>` | — |
@@ -3972,7 +4970,7 @@ pinned to `false`.
 ### `ThemeRuntimeOptions<T extends ThemeDefinition>`
 
 **Extends** `ThemeRegistryOptions<T>`
-Configuration for creating a Theme Kit runtime.
+Configuration for creating a Themvora runtime.
 
 Every option is optional; the runtime falls back to built-in themes,
 localStorage persistence, and default bindings when an option is omitted.
@@ -4090,8 +5088,10 @@ reconfigures its interval/skip window, and/or toggles its enabled state.
 | ------ | ---- | ----------- |
 | `autoDetectLocation` (optional) | `boolean` | Auto-detect the visitor's location from their browser timezone when no explicit coordinates/timezone are given. Default `true`. On the server (no `window`) detection is skipped and the default coordinates are used so SSR output stays deterministic. |
 | `checkInterval` (optional) | `number` | How often (ms) the schedule re-checks solar time. |
+| `darkTheme` (optional) | `string` | Scheduled nighttime theme name. See `lightTheme`. |
 | `enabled` (optional) | `boolean` | Whether the schedule should be enabled after the update. |
 | `latitude` (optional) | `number` | Explicit latitude. When present (alone or with `longitude`) it wins over timezone resolution. |
+| `lightTheme` (optional) | `string` | Scheduled daytime theme name. Presence-based rather than `!== undefined`: passing the key explicitly — even as `undefined` — clears an earlier explicit name and returns to deriving the pair from the current theme family. Omitting the key leaves the current name alone. |
 | `longitude` (optional) | `number` | Explicit longitude. When present (alone or with `latitude`) it wins over timezone resolution. |
 | `skipApplyMs` (optional) | `number` | Ignore schedule-driven applies within this many ms after a manual selection. |
 | `timeZone` (optional) | `string` | IANA timezone to resolve coordinates from (e.g. `"Asia/Kathmandu"`). Takes precedence over auto-detection. |
@@ -4151,47 +5151,18 @@ Props accepted by the Vue `<ThemeScope>` component.
 
 ### `ThemeScrollbarProps`
 
-**Extends** `OverlayScrollbarOptions`
+**Extends** `ScrollbarGroupedOptions`
 Props accepted by the Vue `<ThemeScrollbar>` component.
 
 Extends OverlayScrollbarOptions with an optional custom element tag.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Custom thumb color while the user is dragging it. When set, overrides the theme-derived active color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
-| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. |
-| `arrowIconRenderer` (optional) | `__type(button: HTMLDivElement, dir: ScrollbarArrowDir): void` | Framework hook: invoked for every arrow button that has custom content, so framework wrappers (React/Vue/Svelte/...) can render framework-owned elements (JSX/VNodes/...) into the button. When set it replaces the `innerHTML`/node injection for `arrowIcon`-style options. |
-| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
-| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Fade the thumb/track out while idle. Default `true` (macOS-style). |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Which axes to render. Defaults to both. |
-| `clickToJump` (optional) | `boolean` | Clicking the empty track scrolls smoothly to that position. Default `true`. |
-| `dir` (optional) | `"auto" \| "ltr" \| "rtl"` | Text direction. Defaults to the resolved `dir` / CSS `direction`. |
-| `draggable` (optional) | `boolean` | Allow dragging the thumb to scroll. Default `true`. |
-| `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
-| `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
-| `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
-| `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
-| `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
-| `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
-| `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
-| `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
+| `appearance` (optional) | `ScrollbarAppearanceOptions` | — |
+| `behavior` (optional) | `ScrollbarBehaviorOptions` | — |
+| `icons` (optional) | `ScrollbarIconOptions<string>` | Arrow button icons: the arrow entry covers all four directions (per-direction entries win), plus the shared glyph size in CSS px. |
+| `scope` (optional) | `ScrollbarScopeOptions` | — |
 | `tag` (optional) | `string` | The element tag to apply the overlay scrollbar to. Defaults to the provider's scroll container. |
-| `thickness` (optional) | `number` | Resting thumb thickness (width for vertical, height for horizontal). Default `8`. |
-| `thumbColor` (optional) | `string` | Custom thumb color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `thumbHoverColor` (optional) | `string` | Custom thumb color while hovered. When set, overrides the theme-derived hover color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `thumbOpacity` (optional) | `number` | Thumb opacity while visible. Default `0.7`. |
-| `touch` (optional) | `boolean` | Native (touch) devices: keep native scrollbars by default. Pass `true` to force the overlay on coarse-pointer devices. Default `false`. |
-| `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
 
 ---
 
@@ -4244,6 +5215,18 @@ of the storage contract.
 ---
 
 
+### `ThemeSet`
+A light/dark theme set — the shape `generate --mode both` writes and
+`toThemes` produces.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `dark` (optional) | `ThemeDefinition<string>` | The dark theme, when the set has one. |
+| `light` (optional) | `ThemeDefinition<string>` | The light theme, when the set has one. |
+
+---
+
+
 ### `ThemeStore<T extends ThemeDefinition>`
 The theme store: the runtime's single source of truth for the active theme.
 
@@ -4277,8 +5260,24 @@ Options for themeToCSSVariables.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `groups` (optional) | `TokenGroup[]` | Restrict emission to the listed token groups. When omitted, all groups are emitted. |
+| `groups` (optional) | `"code" \| "colors" \| "spacing" \| "radius" \| "shadows" \| "borderWidths" \| "zIndex" \| "breakpoints" \| "typography"[]` | Restrict emission to the listed token groups. When omitted, all groups are emitted. |
 | `prefix` (optional) | `string` | CSS custom property prefix. The token group name is appended to it. |
+
+---
+
+
+### `ThemeTokenChange`
+One token path's outcome.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `after` (optional) | `string` | The value on side `b`. Absent when the token was removed. |
+| `before` (optional) | `string` | The value on side `a`. Absent when the token was added. |
+| `group` | `"code" \| "colors" \| "spacing" \| "radius" \| "shadows" \| "borderWidths" \| "zIndex" \| "breakpoints" \| "typography"` | The token group the path belongs to. |
+| `path` | `string` | Dot-path into the token tree, e.g. `"colors.primary"`. |
+| `role` | `CoreColor \| OptionalSemantic \| null` | The semantic role, when the path names a core or optional role. |
+| `roleGroup` | `"canvas" \| "surfaces" \| "actions" \| "states" \| "interaction" \| null` | The role group the role belongs to, e.g. `"actions"`. |
+| `status` | `ThemeTokenChangeStatus` | The outcome. |
 
 ---
 
@@ -4327,6 +5326,62 @@ changes. Individual updates may suppress the configured transition (see
 ---
 
 
+### `ThemvoraConfig<T extends ThemeDefinition>`
+The application's Themvora configuration: one declaration, consumed by both
+the runtime and the pre-paint bootstrap.
+
+**See also:** `defineThemvoraConfig`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `adapters` (optional) | `readonly unknown[]` | Runtime adapters. Runtime-only, and **not serializable** — pass it to the provider, not here. |
+| `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no selection is persisted. |
+| `initialFamily` (optional) | `string` | Family used when no selection is persisted. |
+| `initialMode` (optional) | `ThemeMode` | Mode used when no selection is persisted. Defaults to the fallback theme's own mode. |
+| `persistence` (optional) | `unknown` | Whether the selection is persisted across visits. `false` or `null` disables it. |
+| `plugins` (optional) | `readonly unknown[]` | Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. |
+| `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
+| `scrollbar` (optional) | `unknown` | Overlay scrollbar options. Runtime-only. |
+| `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Defaults to `"theme-selection"`. |
+| `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
+| `transition` (optional) | `unknown` | Transition configuration. Runtime-only. |
+
+This exists to remove a class of bug rather than to add a feature. When the
+theme registry, the fallback theme and the initial mode are declared twice —
+once for the provider and once for whatever emits the pre-paint script — the
+two drift, and a drift is visible: the script paints one theme, the runtime
+corrects it a frame later, and any theme-name readout contradicts the control
+that set it.
+
+Two projections read this object, and neither is a second declaration:
+
+- the **runtime projection** — everything below, handed to
+  `createThemeRuntime`;
+- the **bootstrap projection** — toBootstrapConfig, the subset the
+  pre-paint script can act on.
+
+---
+
+
+### `ThemvoraThemeConfig<T extends ThemeDefinition>`
+The deprecated inline form of the theme configuration: the registry, the
+fallback theme, the initial mode/family, and the persistence key and prefix,
+passed straight to themvoraVitePlugin.
+
+**See also:** `themvoraVitePlugin`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no persisted selection exists. |
+| `initialFamily` (optional) | `string` | Family used when no persisted selection exists. |
+| `initialMode` (optional) | `ThemeMode` | Mode used when no persisted selection exists. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to, so a `defaultTheme="light"` app paints light from frame one. |
+| `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
+| `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. |
+| `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
+
+---
+
+
 ### `TokenRemap`
 A single token rename applied during a migration step.
 
@@ -4364,6 +5419,17 @@ Options for validateThemeContrast.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `themes` (optional) | `readonly ThemeDefinition<string>[]` | Additional theme definitions used to resolve the target theme by name before checking. When omitted, the theme is checked as-is. |
+
+---
+
+
+### `ValidateThemeLevelsOptions`
+Options for validateThemeLevels.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `cvdTypes` (optional) | `readonly CVDType[]` | The CVD types to diagnose against. Defaults to the two common ones. |
+| `levels` (optional) | `readonly ValidationLevel[]` | Which levels to run. Defaults to all of them. |
 
 ---
 
@@ -4407,7 +5473,7 @@ The outcome of validating a theme definition.
 ### `AdapterStrategy`
 How faithfully an adapter reproduces the target library's native feel.
 
-- `exact`      — only map what Theme Kit defines; change nothing.
+- `exact`      — only map what Themvora defines; change nothing.
 - `native`     — behave like the library: derive missing semantic concepts
                  (e.g. success/warning/info) and make small feel adjustments.
 - `aggressive` — fully emulate the library: also adjust spacing, typography,
@@ -4426,11 +5492,109 @@ The name of an animatable token group.
 ---
 
 
+### `BrandColorClass`
+How a reference colour is used by the generator.
+
+`"ANCHOR" | "DERIVED" | "SEMANTIC" | "IMPLEMENTATION"`
+
+---
+
+
+### `BrandProvenance`
+How faithful a brand recipe is to the real brand.
+
+Required on brand recipes: a preset gallery that shows a company's colours
+without saying how it relates to the company is misleading.
+
+`"official" | "approximate" | "community-inspired" | "demonstration-only" | "unaffiliated"`
+
+---
+
+
+### `BrandSourceKind`
+Where a brand's reference data came from.
+
+`official-guidelines` and `official-design-system` are the strong sources: the
+brand publishes the values and intends them to be used. `web-reference` is
+weaker — a value observed on a site, which may change without notice.
+
+`"official-guidelines" | "official-design-system" | "web-reference"`
+
+---
+
+
 ### `CalculateSunTimesLocationOptions`
 Options accepted by `calculateSunTimes` for resolving a location when
  `latitude`/`longitude` are omitted.
 
 `SolarLocationInput`
+
+---
+
+
+### `CheckStatus`
+The outcome of one check.
+
+`"pass" | "warn" | "fail"`
+
+---
+
+
+### `ContextLevel`
+Whether the generator promises the context, or merely reports it.
+
+- `required` — part of the shipped guarantee. A theme that fails is a bug.
+- `advisory` — a use the system knows about and deliberately does not promise,
+  because promising it would force brand colours to be desaturated. Reported
+  so the failure is visible rather than silent.
+
+`"required" | "advisory"`
+
+---
+
+
+### `ContextOwner`
+Who is responsible for keeping a context true.
+
+The point of naming an owner is to make a bad screenshot cheap to triage. The
+first question is never "is the generator wrong?" — it is "whose promise is
+this?", and the answer decides whether the fix belongs in the colour engine, in
+a Themvora integration, or in the application that placed the role.
+
+- `generator` — the colour itself must satisfy the contract. Nothing outside
+  the engine can fix a failure here.
+- `integration` — Themvora's own runtime consumes the tokens and must choose
+  a role that satisfies the context. The scrollbar is the case.
+- `consumer` — the application decides where the role goes. Themvora declares
+  the use as advisory and the consumer owns the judgement.
+
+`"generator" | "integration" | "consumer"`
+
+---
+
+
+### `ContextRequirement`
+The threshold a context is held to.
+
+`decorative` is not "anything goes" — it means the role must be *visible and
+subordinate*, which is enforced as a relationship rather than a ratio. A
+border is the canonical case.
+
+`ContrastRequirement | "decorative"`
+
+---
+
+
+### `CoreColor`
+The colour roles every Themvora theme defines.
+
+These are *semantic roles*, not library tokens. An adapter is responsible for
+expressing each one in its target library's own vocabulary — or for declaring
+that it does not need it.
+
+**See also:** `OptionalSemantic`
+
+`"background" | "foreground" | "card" | "cardForeground" | "popover" | "popoverForeground" | "primary" | "primaryForeground" | "secondary" | "secondaryForeground" | "muted" | "mutedForeground" | "accent" | "accentForeground" | "destructive" | "destructiveForeground" | "success" | "successForeground" | "border" | "input" | "ring"`
 
 ---
 
@@ -4459,11 +5623,54 @@ A destination for rendered diagnostics.
 ---
 
 
+### `ForegroundPreference`
+Which ink a role prefers, when that preference is legible.
+
+`"light" | "dark"`
+
+---
+
+
+### `GeneratedThemeStatus`
+The outcome of findGeneratedTheme.
+
+- `"found"` — exactly one eligible theme resolved (its `theme` is set).
+- `"missing"` — no generated theme is registered.
+- `"ambiguous"` — more than one is registered and the active selection does
+  not pick one out. Callers must reject this rather than guess.
+
+`"found" | "missing" | "ambiguous"`
+
+---
+
+
+### `GenerationStyle`
+The visual languages a theme can be generated in.
+
+`"balanced" | "soft" | "vibrant" | "editorial" | "minimal" | "brand"`
+
+---
+
+
+### `OptionalSemantic`
+Colour roles a theme *may* declare.
+
+These are capabilities rather than contract. A theme that omits them is
+complete; an adapter that needs one declares it in its `optional` list and
+must degrade gracefully when it is absent — by deriving it, or by omitting the
+library token entirely. Fabricating a value no consumer reads is worse than
+omitting it, because it looks like support.
+
+`"warning" | "warningForeground" | "info" | "infoForeground" | "error" | "errorForeground"`
+
+---
+
+
 ### `PrePaintScrollbarOptions`
 Phase 1 — Bootstrap: hide native scrollbar before first paint.
 
 This is a tiny, dependency-free, blocking `<script>` that runs before
-React. It does ONE thing: inject a `<style>` and add `tk-scrollbar`
+React. It does ONE thing: inject a `<style>` and add `tv-scrollbar`
 to `<html>` so the native scrollbar is never painted.
 
   No DOM creation.
@@ -4476,13 +5683,13 @@ Executes in under 1 ms.
 
 The overlay (ThemeScrollbar) handles everything else: measure, draw,
 animate, drag, hover, physics. When the overlay has been painted once,
-it adds `tk-scrollbar-ready` to `<html>` — enabling CSS fade-in.
+it adds `tv-scrollbar-ready` to `<html>` — enabling CSS fade-in.
 
 Architecture:
 
   Phase 1 — Bootstrap (this module)
     └─ hide native scrollbar
-    └─ add tk-scrollbar
+    └─ add tv-scrollbar
 
   Phase 2 — ThemeScrollbar (React / Web / Angular)
     └─ create overlay
@@ -4490,15 +5697,15 @@ Architecture:
     └─ attach listeners (scroll, resize, pointer, wheel, MutationObserver)
 
   Phase 3 — Ready
-    └─ tk-scrollbar-ready
+    └─ tv-scrollbar-ready
     └─ overlay fades in via CSS
 
-Next.js (`@theme-kit/next`) server-renders the `tk-scrollbar` class on
+Next.js (`@themvora/next`) server-renders the `tv-scrollbar` class on
 `<html>` and inlines `createPrePaintScrollbarCSS()` as a `<style>` in
 `<head>` when the `scrollbar` prop is set — so the native bar is hidden
 from the very first paint AND React hydrates without a class mismatch.
 Emitting `createPrePaintScrollbarScript()` yourself is only needed when
-you're not on `@theme-kit/next` (no SSR of the class).
+you're not on `@themvora/next` (no SSR of the class).
 
 `void`
 
@@ -4509,6 +5716,14 @@ you're not on `@theme-kit/next` (no SSR of the class).
 The name of a preset theme family.
 
 `"neutral" | "oat" | "berry" | "mint" | "citrus" | "cocoa" | "plum" | "iris" | "sky" | "graphite"`
+
+---
+
+
+### `PresetKind`
+Whether a recipe is a curated default or a brand-inspired starting point.
+
+`"default" | "brand"`
 
 ---
 
@@ -4568,12 +5783,44 @@ never replaces or moves native scrolling — it only synchronizes with it.
 ---
 
 
+### `ScrollbarFlatOptions`
+Flat options as the adapters forward them.
+
+Every key is optional AND may be explicitly `undefined` (adapters pass their
+raw props straight through), so `exactOptionalPropertyTypes` does not force
+every call site to strip undefined keys by hand.
+
+`{ [K in keyof OverlayScrollbarOptions]: OverlayScrollbarOptions[K] }`
+
+---
+
+
+### `ScrollbarOffset`
+The rail offset: one inset for every side, or per-side values.
+
+`number | ScrollbarOffsetSides`
+
+---
+
+
+### `SemanticRole`
+A status role, independent of how any library spells it.
+
+This is the *intent*: "this surface communicates a warning". How that becomes
+`--warning` (shadcn), `--alert-warning` (Bootstrap), `colorScheme.warning`
+(MUI) or nothing at all is the adapter's decision, not the theme's.
+
+`"success" | "warning" | "info" | "error"`
+
+---
+
+
 ### `ThemeBootstrapConfig<T extends ThemeDefinition>`
-The subset of ThemeKitConfig the pre-paint bootstrap can act on.
+The subset of ThemvoraConfig the pre-paint bootstrap can act on.
 
 **See also:** `toBootstrapConfig`
 
-`Pick<ThemeKitConfig<T>, "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix">`
+`Pick<ThemvoraConfig<T>, "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix">`
 
 Split out deliberately. The bootstrap runs before any application code and
 before the runtime exists, so it can only resolve a selection from a
@@ -4593,25 +5840,25 @@ The origin of a theme change, used to attribute debug events.
 
 
 ### `ThemeDiagnosticCode`
-A stable, machine-readable identifier for a Theme Kit diagnostic.
+A stable, machine-readable identifier for a Themvora diagnostic.
 
 Codes are part of the public contract: they are what tests assert on and what
 tooling can filter by. The human-readable message is deliberately *not* — it
 may be reworded at any time.
 
-Naming is `TK_<DOMAIN>_<CONDITION>`. Codes are added only alongside the
+Naming is `TV_<DOMAIN>_<CONDITION>`. Codes are added only alongside the
 diagnostic that actually emits them; this union is never pre-populated with
 speculative entries.
 
 **See also:** `ThemeDiagnostic`
 
-`"TK_MODE_INVALID" | "TK_THEME_TOKEN_MISSING" | "TK_A11Y_CONTRAST_VIOLATION" | "TK_SCHEDULE_THEME_UNRESOLVED" | "TK_PLUGIN_DESTROY_FAILED"`
+`"TV_MODE_INVALID" | "TV_THEME_TOKEN_MISSING" | "TV_THEME_FAMILY_UNKNOWN" | "TV_THEME_NEUTRAL_FALLBACK" | "TV_THEME_TOKEN_INVALID" | "TV_A11Y_CONTRAST_VIOLATION" | "TV_SCHEDULE_THEME_UNRESOLVED" | "TV_CONFIG_OPTION_INVALID" | "TV_SCROLLBAR_OPTION_INVALID" | "TV_PLUGIN_DESTROY_FAILED" | "TV_GENERATION_INVALID_SEED" | "TV_GENERATION_CONTRAST_REPAIR" | "TV_GENERATION_ROLE_COLLISION" | "TV_GENERATION_CONSTRAINT_UNSATISFIED" | "TV_GENERATION_THEME_NOT_FOUND" | "TV_GENERATION_THEME_AMBIGUOUS" | "TV_DIFF_UNRESOLVED_EXTENDS" | "TV_DIFF_UNRESOLVED_SYSTEM"`
 
 ---
 
 
 ### `ThemeDiagnosticLevel`
-Severity of a Theme Kit diagnostic.
+Severity of a Themvora diagnostic.
 
 The level is a deliberate decision per diagnostic, not a default. It records
 what the caller is expected to do about it:
@@ -4707,6 +5954,14 @@ Whether the schedule is driving theme selection right now. `"active"`
 ---
 
 
+### `ThemeTokenChangeStatus`
+How one token path differs between the two sides.
+
+`"added" | "removed" | "changed" | "unchanged"`
+
+---
+
+
 ### `TimeZoneLocation`
 `latitude, longitude` tuple.
 
@@ -4718,7 +5973,10 @@ Whether the schedule is driving theme selection right now. `"active"`
 ### `TokenGroup`
 The name of a token group that can be emitted as CSS custom properties.
 
-`"colors" | "spacing" | "radius" | "shadows" | "borderWidths" | "zIndex" | "breakpoints" | "typography" | "code"`
+Derived from TOKEN_GROUPS so the type and the runtime order can never
+disagree.
+
+`typeof TOKEN_GROUPS[number]`
 
 ---
 
@@ -4736,7 +5994,23 @@ Named or explicit transition property sets.
 
 ---
 
+
+### `ValidationLevel`
+The validation levels, in escalating order.
+
+`"structural" | "semantic" | "contrast" | "visual" | "accessibility"`
+
+---
+
 ## Variables
+
+### `ACTION_PROMINENCE_FLOOR`
+The non-text floor an action fill is held to against the canvas.
+
+`3`
+
+---
+
 
 ### `ANIMATED_GROUP_KEYS`
 Token-category → CSS-property classification.
@@ -4751,6 +6025,39 @@ hardcoding property lists in multiple places.
 Every other group is animated on the scanned elements that use it.
 
 `readonly ["colors", "radius", "spacing", "typography", "shadows", "borders", "transforms", "opacity"]`
+
+---
+
+
+### `BRAND_PRESET_DISCLAIMER`
+The canonical brand disclaimer.
+
+Exported so every surface that shows a brand preset — the docs pages, the
+README, a future gallery — states the same thing in the same words. A
+disclaimer that is paraphrased per page is a disclaimer that eventually
+contradicts itself.
+
+`"These presets are brand-inspired examples for Themvora. They are not official brand themes, and they do not imply endorsement or affiliation."`
+
+---
+
+
+### `CONTEXT_RESTRICTIONS`
+The declared restrictions.
+
+These are not failures — they are the design system saying what it means. A
+brand colour is allowed to be vivid precisely because nobody promised it would
+work as a paragraph.
+
+`readonly ContextRestriction[]`
+
+---
+
+
+### `CORE_COLORS`
+Every CoreColor, as a runtime list.
+
+`readonly CoreColor[]`
 
 ---
 
@@ -4824,6 +6131,50 @@ initial state before a schedule resolves its location and themes.
 ---
 
 
+### `FOREGROUND_PREFERENCE`
+The preferred foreground for each role that has one.
+
+**Only action and emphasis surfaces appear here**, and that is the whole point
+of the list being short. A preference is a statement about *what the surface
+is for*: a strong action fill wants light ink because that is what makes it
+read as an action rather than a disabled control.
+
+Reading inks are deliberately absent. `foreground`, `mutedForeground`,
+`cardForeground` and `secondaryForeground` sit on quiet surfaces whose
+lightness flips with the mode, so the correct ink family flips with it too —
+a fixed preference would be wrong in one mode. They fall through to highest
+contrast, which is exactly right for a role whose only job is legibility.
+
+(An earlier draft listed them as preferring "light"/"dark" and broke
+`mutedForeground/muted` to 4.495:1 — the property test caught it. The rule
+"don't give a reading ink a preference" is load-bearing.)
+
+`Readonly<Partial<Record<CoreColor, ForegroundPreference>>>`
+
+---
+
+
+### `GENERATED_THEME_KIND`
+The `meta.generation.kind` value stamped by generateTheme.
+
+**See also:** `isGeneratedTheme`
+
+`"generated"`
+
+---
+
+
+### `GENERATION_STYLE_NAMES`
+Every style name, as a runtime list.
+
+Exported publicly so the CLI and the docs can validate a `--style` argument
+against the real set rather than re-listing it.
+
+`readonly GenerationStyle[]`
+
+---
+
+
 ### `GROUP_PROPERTIES`
 Maps each animatable token group to the CSS properties it drives.
 
@@ -4854,12 +6205,61 @@ registerMigration and clearMigrations.
 ---
 
 
+### `OPTIONAL_SEMANTICS`
+Every OptionalSemantic, as a runtime list.
+
+`readonly OptionalSemantic[]`
+
+---
+
+
 ### `PRE_PAINT_SCROLLBAR_CSS`
-The CSS that hides native scrollbars while `tk-scrollbar` is present on
+The CSS that hides native scrollbars while `tv-scrollbar` is present on
  `<html>`. Shared by the client bootstrap script and Next's SSR output so
  both apply identical rules.
 
+ The bar is painted invisible while KEEPING its space, so the gutter that
+ keeps content clear of the rail exists from the first frame (no load-time
+ layout shift). Two groups:
+
+ - The PAGE / window scrollbar is collapsed (`scrollbar-width: none`). Its
+   rail auto-hides, so a reserved empty strip at the window edge would read
+   as a missing scrollbar; the standard property also overrides the WebKit
+   sizing below, so the page never reserves one.
+ - INNER scroll containers keep an invisible, space-occupying scrollbar. It
+   is sized through `::-webkit-scrollbar` (not only `scrollbar-color`)
+   because styling those pseudo-elements is what takes Chromium/Safari off
+   OVERLAY scrollbars — so the gutter is reserved on macOS too, where the
+   native path would take no space. The space appears only while the
+   container actually scrolls, exactly like a native `overflow: auto` bar.
+ - Engines without WebKit pseudo-elements (Firefox) get the same reserve
+   through the standard properties.
+
 `string`
+
+---
+
+
+### `SEMANTIC_CONTEXTS`
+Every context the system declares.
+
+The `required` set is the invariant: *a generated theme is safe for every
+semantic usage Themvora's own components promise to support*. The `advisory`
+set is the honest inventory of uses that exist in the wild but are not
+guaranteed — chiefly "a brand colour used as reading text on the canvas".
+
+`readonly SemanticContext[]`
+
+---
+
+
+### `SEMANTIC_ROLE_GROUPS`
+The canonical role vocabulary, grouped by intent.
+
+`warning` and `info` appear under `states` as **optional** — the grouping is
+the same either way, but the contract is not.
+
+`readonly SemanticRoleGroup[]`
 
 ---
 
@@ -4867,36 +6267,20 @@ The CSS that hides native scrollbars while `tk-scrollbar` is present on
 ### `ThemeInspector`
 Vue component that renders the framework-agnostic Theme Inspector.
 
-Renders a `<theme-kit-inspector>` custom element (defined on mount) that
+Renders a `<themvora-inspector>` custom element (defined on mount) that
 shows a floating toggle opening a panel inspecting the active theme —
 identity, selection, tokens, and resolved CSS variables. Can be registered
 globally via `app.use(ThemeInspector)`.
 
 **See also:** `ThemeInspectorProps`, `useTheme`
 
-`Component & { install: void }`
-
----
-
-
-### `themeKitCookieNames`
-Cookie contract shared between the server resolver, the client persistence
-adapter and the blocking bootstrap script. Same names as `@theme-kit/next`:
-
-  theme-name       → exact resolved theme
-  theme-family     → selected family
-  theme-mode       → selected mode (light | dark | system)
-  theme-fingerprint→ theme-config fingerprint (stale cookies are rejected)
-
-**See also:** `parseCookieHeader`
-
-`{ family: "theme-family"; fingerprint: "theme-fingerprint"; mode: "theme-mode"; name: "theme-name" }`
+`ThemeInspector(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<ExtractPropTypes<{ bottom: { default: undefined; required: false; type: NumberConstructor }; right: { default: undefined; required: false; type: NumberConstructor }; size: { default: undefined; required: false; type: NumberConstructor }; zIndex: { default: undefined; required: false; type: NumberConstructor } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { bottom: number; right: number; size: number; zIndex: number }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<ExtractPropTypes<{ bottom: { default: undefined; required: false; type: NumberConstructor }; right: { default: undefined; required: false; type: NumberConstructor }; size: { default: undefined; required: false; type: NumberConstructor }; zIndex: { default: undefined; required: false; type: NumberConstructor } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, { bottom: number; right: number; size: number; zIndex: number }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
 
 ### `ThemeProvider`
-Vue component that provides a Theme Kit runtime to its subtree and applies
+Vue component that provides a Themvora runtime to its subtree and applies
 the active theme to the DOM.
 
 Renders only its default slot (no wrapper element). When no `runtime` prop
@@ -4907,7 +6291,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 
 **See also:** `ThemeProviderProps`, `useThemeRuntime`, `ThemeScope`
 
-`Component & { install: void }`
+`ThemeProvider(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -4915,7 +6299,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 ### `ThemeScope`
 Vue component that applies a scoped theme to its subtree.
 
-Renders a `div` wrapper carrying a `data-v-tk-scope` attribute and applies
+Renders a `div` wrapper carrying a `data-v-tv-scope` attribute and applies
 the resolved theme's CSS variables to that element, overriding the
 provider's selection for the subtree. Supports an exact theme, a theme
 family, local theme definitions, and per-scope transitions. Can be
@@ -4923,7 +6307,7 @@ registered globally via `app.use(ThemeScope)`.
 
 **See also:** `ThemeScopeProps`, `useTheme`
 
-`Component & { install: void }`
+`ThemeScope(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<ExtractPropTypes<{ family: { default: undefined; required: false; type: StringConstructor }; mode: { default: undefined; required: false; type: PropType<ThemeMode> }; theme: { default: undefined; required: false; type: StringConstructor }; themes: { default: undefined; required: false; type: PropType<readonly ...[]> }; transition: { default: undefined; type: PropType<boolean | ThemeTransitionOptions> } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { family: string; mode: ThemeMode; theme: string; themes: readonly ThemeDefinition<string>[]; transition: boolean | ThemeTransitionOptions }, true, object, any, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<ExtractPropTypes<{ family: { default: undefined; required: false; type: StringConstructor }; mode: { default: undefined; required: false; type: PropType<ThemeMode> }; theme: { default: undefined; required: false; type: StringConstructor }; themes: { default: undefined; required: false; type: PropType<readonly ...[]> }; transition: { default: undefined; type: PropType<boolean | ThemeTransitionOptions> } }>> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>, object, object, object, { family: string; mode: ThemeMode; theme: string; themes: readonly ThemeDefinition<string>[]; transition: boolean | ThemeTransitionOptions }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -4939,7 +6323,39 @@ bar never flashes. Can be registered globally via `app.use(ThemeScrollbar)`.
 
 **See also:** `ThemeScrollbarProps`, `ThemeProvider`
 
-`Component & { install: void }`
+`ThemeScrollbar(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }> & Readonly<object>, __type(): null, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }> & Readonly<object>, __type(): null, object, object, object, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
+
+---
+
+
+### `themvoraCookieNames`
+Cookie contract shared between the server resolver, the client persistence
+adapter and the blocking bootstrap script. Same names as `@themvora/next`:
+
+  theme-name       → exact resolved theme
+  theme-family     → selected family
+  theme-mode       → selected mode (light | dark | system)
+  theme-fingerprint→ theme-config fingerprint (stale cookies are rejected)
+
+**See also:** `parseCookieHeader`
+
+`{ family: "theme-family"; fingerprint: "theme-fingerprint"; mode: "theme-mode"; name: "theme-name" }`
+
+---
+
+
+### `TOKEN_GROUPS`
+Every token group that can be emitted as CSS custom properties, **in the
+canonical order groups are emitted**.
+
+The order is part of the contract, not an accident of declaration: anything
+that renders or compares token groups (the CSS emitter, the theme diff) reads
+it from here, so a group cannot appear in one order in one place and a
+different order in another.
+
+**See also:** `TokenGroup`
+
+`readonly ["colors", "spacing", "radius", "shadows", "borderWidths", "zIndex", "breakpoints", "typography", "code"]`
 
 ---
 

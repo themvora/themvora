@@ -1,8 +1,8 @@
 /**
- * React hook for the Open Props adapter (`@theme-kit/open-props/react`).
+ * React hook for the Open Props adapter (`@themvora/open-props/react`).
  *
  * `useOpenPropsTheme(runtime, options?)` installs the Open Props adapter onto
- * an explicitly provided Theme Kit runtime and disposes it on unmount.
+ * an explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,22 +13,22 @@ import type {
   AdapterStrategy,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createOpenPropsAdapter } from "./adapter";
 import { injectOpenPropsCSS } from "./index";
 
 /**
- * React hook that installs the Open Props adapter onto the given Theme Kit
+ * React hook that installs the Open Props adapter onto the given Themvora
  * runtime. The adapter maintains a tagged `:root` style element containing
  * concrete `--color-*` / `--brand` / `--size-*` / `--shadow-*` variables in
  * sync as the theme changes.
  *
- * Call once in your app root, passing the runtime from your Theme Kit
- * provider (e.g. the `useThemeRuntime()` hook from `@theme-kit/react`):
+ * Call once in your app root, passing the runtime from your Themvora
+ * provider (e.g. the `useThemeRuntime()` hook from `@themvora/react`):
  *
  * ```tsx
- * import { useOpenPropsTheme } from "@theme-kit/open-props/react";
+ * import { useOpenPropsTheme } from "@themvora/open-props/react";
  *
  * function App() {
  *   useOpenPropsTheme(runtime);
@@ -36,7 +36,7 @@ import { injectOpenPropsCSS } from "./index";
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  *
  * @see {@link createOpenPropsAdapter}

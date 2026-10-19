@@ -1,4 +1,4 @@
-import type { AdapterPluginContext, AdapterStrategy } from "@theme-kit/core";
+import type { AdapterPluginContext, AdapterStrategy } from "@themvora/core";
 
 export function createBootstrapRefineContext(
   mode: "light" | "dark" | "system" | undefined,

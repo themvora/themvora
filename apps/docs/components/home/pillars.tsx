@@ -59,7 +59,7 @@ const pillars: Pillar[] = [
   },
   {
     title: "Adapters",
-    desc: "Theme Kit gives your component library a theme runtime — it doesn't replace it.",
+    desc: "Themvora gives your component library a theme runtime — it doesn't replace it.",
     visual: ["MUI", "AntD", "Chakra", "shadcn", "Bootstrap", "DaisyUI"],
     href: "/adapters",
     icon: (
@@ -79,7 +79,7 @@ export function Pillars() {
           Five primitives, one system
         </h2>
         <p className="opacity-70 max-w-2xl">
-          Everything else in Theme Kit builds on these five ideas. They&apos;re
+          Everything else in Themvora builds on these five ideas. They&apos;re
           orientation, not the whole story.
         </p>
       </div>

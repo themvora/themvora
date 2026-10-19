@@ -8,7 +8,7 @@ import { SITE_URL, GITHUB_URL, CONTACT_URL, CONTACT_EMAIL } from "../../lib/site
 
 export const metadata = legalMetadata(
   "Privacy Policy",
-  "What the Theme Kit documentation website stores and why: theme preference cookies and browser storage, nothing else.",
+  "What the Themvora documentation website stores and why: theme preference cookies and browser storage, nothing else.",
   "/privacy",
 );
 
@@ -21,12 +21,12 @@ export default function PrivacyPage() {
       updated={updated}
       lead={
         <>
-          This policy describes what the Theme Kit documentation website
+          This policy describes what the Themvora documentation website
           ({" "}
           <a href={SITE_URL} className="underline">
             {SITE_URL.replace(/^https?:\/\//, "")}
           </a>
-          ) stores and why. It covers the site — not the Theme Kit library
+          ) stores and why. It covers the site — not the Themvora library
           itself, which runs entirely inside your own application and stores
           whatever your app tells it to store.
         </>
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
           We do not collect your name, email address, or account information.
           We do not run analytics, advertising, or third-party trackers. We do
           not store your themes, configurations, or any files you create in
-          the playground on our servers. Theme Kit is a library — your
+          the playground on our servers. Themvora is a library — your
           applications remain yours.
         </p>
       </LegalSection>

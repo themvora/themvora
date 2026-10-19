@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/showcase") },
   title: "Showcase",
   description:
-    "Beautiful interfaces, one theming system. Six interfaces themed with Theme Kit — dashboards, analytics, settings, a storefront, a documentation layout and a component gallery. Switch theme or mode and every preview restyles live.",
+    "Beautiful interfaces, one theming system. Six interfaces themed with Themvora — dashboards, analytics, settings, a storefront, a documentation layout and a component gallery. Switch theme or mode and every preview restyles live.",
 };
 
 /**
  * Navigation destinations, not showcase items. Deliberately short: the Showcase's
- * job is “look what Theme Kit can make possible”, not “here is another page that
+ * job is “look what Themvora can make possible”, not “here is another page that
  * links to everything on the site”.
  */
 const EXPLORE_MORE = [
@@ -25,7 +25,7 @@ const EXPLORE_MORE = [
   },
   {
     name: "Playground",
-    description: "Experiment with Theme Kit",
+    description: "Experiment with Themvora",
     href: "/playground",
   },
   {
@@ -40,7 +40,7 @@ const EXPLORE_MORE = [
   },
   {
     name: "Framework guides",
-    description: "Integrate Theme Kit into your stack",
+    description: "Integrate Themvora into your stack",
     href: "/framework-guides",
   },
   {
@@ -84,18 +84,18 @@ export default function ShowcasePage() {
           </h1>
 
           <p className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-            Explore what can be built with Theme Kit.
+            Explore what can be built with Themvora.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <span>
-              Verified with Theme Kit{" "}
+              Verified with Themvora{" "}
               <span className="mono text-foreground">{PKG_VERSION}</span>
             </span>
             <span aria-hidden className="opacity-40">
               ·
             </span>
-            <Link href="/examples" className="text-primary hover:underline">
+            <Link href="/examples" className="text-foreground underline hover:decoration-foreground">
               Want runnable code? See Examples →
             </Link>
           </div>
@@ -125,7 +125,7 @@ export default function ShowcasePage() {
                     {item.description}
                   </span>
                 </span>
-                <span className="text-primary text-sm shrink-0" aria-hidden>
+                <span className="text-foreground text-sm shrink-0" aria-hidden>
                   ↗
                 </span>
               </Link>

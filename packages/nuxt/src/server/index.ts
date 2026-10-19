@@ -2,11 +2,11 @@ export {
   computeFingerprint,
 } from "./fingerprint";
 export {
-  themeKitCookieNames,
+  themvoraCookieNames,
   parseCookieHeader,
   encodeCookieValue,
   type ParsedCookies,
-  type ThemeKitCookieName,
+  type ThemvoraCookieName,
 } from "./cookies";
 export {
   resolveThemeFromCookies,

@@ -4,8 +4,8 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveAdapterSource } from "@themvora/adapters";
 import { generateBootstrapVariables } from "./generator";
 import { injectCSS, removeCSS, toCSS } from "./inject";
 import {
@@ -33,7 +33,7 @@ export interface CreateBootstrapAdapterOptions extends BootstrapAdapterOptions {
  * Creates a Bootstrap adapter.
  *
  * The adapter is a DOM-only, framework-free adapter: it depends only on
- * `@theme-kit/core` and the DOM. On install it injects the Bootstrap
+ * `@themvora/core` and the DOM. On install it injects the Bootstrap
  * compatibility stylesheet (when enabled) and a `<style>` element of CSS
  * variables derived from the active theme, then subscribes to the runtime
  * store and rewrites the variables whenever the theme selection changes. It
@@ -46,7 +46,7 @@ export interface CreateBootstrapAdapterOptions extends BootstrapAdapterOptions {
  *
  * @example
  * ```ts
- * import { createBootstrapAdapter } from "@theme-kit/bootstrap";
+ * import { createBootstrapAdapter } from "@themvora/bootstrap";
  *
  * runtime.installAdapter(createBootstrapAdapter());
  * ```
@@ -91,7 +91,7 @@ export function createBootstrapAdapter<T extends ThemeDefinition>(
         }),
       ),
     );
-    styleEl.setAttribute("data-theme-kit", "bootstrap");
+    styleEl.setAttribute("data-themvora", "bootstrap");
 
     unsubscribe = runtime.store.subscribe(() => {
       apply(runtime.store.get());

@@ -2,7 +2,7 @@
  * What actually changed between two themes, grouped by token category.
  *
  * Produced by the Theme Diff Engine. Every downstream stage (planner,
- * scanner, coordinator) keys off these booleans so Theme Kit only animates
+ * scanner, coordinator) keys off these booleans so Themvora only animates
  * the token groups that really changed — never a blanket transition.
  *
  * @see {@link createThemeDiff}

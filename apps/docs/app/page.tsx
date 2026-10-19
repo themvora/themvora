@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Hero } from "../components/home/hero";
 import { Pillars } from "../components/home/pillars";
-import { WhyThemeKit } from "../components/home/why-theme-kit";
+import { WhyThemvora } from "../components/home/why-themvora";
 import { FrameworkMatrix } from "../components/home/framework-matrix";
 import { SsrIntegrations } from "../components/home/ssr-integrations";
 import { AdapterStory } from "../components/home/adapter-story";
@@ -29,7 +29,7 @@ export default function Home() {
         <Pillars />
       </Reveal>
       <Reveal delay={60}>
-        <WhyThemeKit />
+        <WhyThemvora />
       </Reveal>
       <Reveal delay={60}>
         <FrameworkMatrix />

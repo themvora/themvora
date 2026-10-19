@@ -86,7 +86,7 @@ describe("theme family normalization", () => {
 
       // The theme falls back; the selection must follow it rather than keep
       // naming the family the visitor asked for. Otherwise a
-      // `data-tk-readout="family"` renders `mint` next to a `brand-light` theme.
+      // `data-tv-readout="family"` renders `mint` next to a `brand-light` theme.
       expect(result.theme).toBe(themes[2]);
       expect(getThemeFamily(result.theme)).toBe("brand");
       expect(result.selection.family).toBe("brand");
@@ -183,7 +183,7 @@ describe("theme family normalization", () => {
       );
 
       // The theme falls back, and the selection now names the family that
-      // fallback belongs to — so a `data-tk-readout="family"` cannot render a
+      // fallback belongs to — so a `data-tv-readout="family"` cannot render a
       // family that is not applied.
       expect(attrs["data-theme"]).toBe("neutral-dark");
       expect(attrs["data-theme-family"]).toBe("neutral");

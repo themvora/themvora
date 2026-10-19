@@ -9,8 +9,8 @@ export const recipeData = {
     description:
       "Prevent the flash of unstyled content by resolving the theme on the server and embedding it in the initial render.",
     prerequisites: [
-      "@theme-kit/core installed",
-      "Framework adapter (e.g., @theme-kit/next, @theme-kit/nuxt)",
+      "@themvora/core installed",
+      "Framework adapter (e.g., @themvora/next, @themvora/nuxt)",
       "Theme configuration with cookie persistence",
     ],
     stack: "Next.js / Nuxt / Astro (SSR-capable frameworks)",
@@ -18,7 +18,7 @@ export const recipeData = {
     code: `import {
   createThemeBootstrapScript,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 export async function BootstrapScript({ resolvedTheme }) {
   const script = createThemeBootstrapScript({
@@ -34,7 +34,7 @@ export async function BootstrapScript({ resolvedTheme }) {
 The script:
 1. Resolves the theme from cookies, headers, or URL parameters
 2. Sets all CSS variables on document.documentElement
-3. Does not require any Theme Kit runtime code to load
+3. Does not require any Themvora runtime code to load
 
 Make sure to:
 - Include the script in <head> before stylesheets
@@ -51,7 +51,7 @@ Make sure to:
     description:
       "Save the user's theme preference across page reloads and browser sessions using localStorage or cookies.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "A theme runtime initialized with persistence adapter",
     ],
     stack: "Any framework",
@@ -59,7 +59,7 @@ Make sure to:
     code: `import {
   createThemeRuntime,
   createPersistencePlugin,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -81,12 +81,12 @@ Important considerations:
     description:
       "Respect the user's OS-level dark/light preference and update automatically when it changes.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "Theme runtime configured with defaultMode",
     ],
     stack: "Any framework",
     result: "Theme automatically matches OS preference",
-    code: `import { createThemeRuntime } from "@theme-kit/core";
+    code: `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "system", // Respects prefers-color-scheme
@@ -105,12 +105,12 @@ Caveats:
     description:
       "Animate theme switches with customizable duration, easing, and presets for smooth visual experience.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "Theme runtime initialized",
     ],
     stack: "Any framework",
     result: "Smooth animated theme transitions",
-    code: `import { createThemeRuntime } from "@theme-kit/core";
+    code: `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -133,7 +133,7 @@ Note: Transitions are disabled by default. Enable them explicitly when you want 
     description:
       "Synchronize theme changes across multiple browser tabs and windows using BroadcastChannel and storage events.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "Theme runtime with multi-window sync adapter",
     ],
     stack: "Any framework",
@@ -141,7 +141,7 @@ Note: Transitions are disabled by default. Enable them explicitly when you want 
     code: `import {
   createThemeRuntime,
   createMultiWindowSync,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -157,7 +157,7 @@ const runtime = createThemeRuntime({
     description:
       "Overlay themed scrollbars that track the active theme with smooth transitions and touch-friendly interactions.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "Theme scrollbar plugin",
     ],
     stack: "Any framework",
@@ -165,7 +165,7 @@ const runtime = createThemeRuntime({
     code: `import {
   createThemeRuntime,
   createOverlayScrollbar,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -185,15 +185,15 @@ const runtime = createThemeRuntime({
     description:
       "Apply a different theme to a specific subtree (like a dashboard panel) while keeping the rest of the app in its default theme.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "A custom theme defined",
     ],
     stack: "React",
     result: "Scoped themes for dashboard sections",
     // The snippet imports `ThemeScope` from the React bindings, so this recipe
     // is React-specific.
-    packages: ["@theme-kit/core", "@theme-kit/react"],
-    code: `import { ThemeScope } from "@theme-kit/react";
+    packages: ["@themvora/core", "@themvora/react"],
+    code: `import { ThemeScope } from "@themvora/react";
 
 export default function DashboardPage() {
   return (
@@ -219,9 +219,9 @@ Note: In Svelte, ThemeScope reads props only at mount time. Other frameworks rea
   "accessible-palette-generation": {
     title: "Accessible Palette Generation",
     description:
-      "Generate color palettes that meet WCAG contrast requirements using Theme Kit's contrast validation.",
+      "Generate color palettes that meet WCAG contrast requirements using Themvora's contrast validation.",
     prerequisites: [
-      "@theme-kit/core installed",
+      "@themvora/core installed",
       "Basic color palette",
     ],
     stack: "Any framework",
@@ -229,7 +229,7 @@ Note: In Svelte, ThemeScope reads props only at mount time. Other frameworks rea
     code: `import {
   getContrastRatio,
   validateThemeContrast,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // Contrast ratio between two colors.
 // WCAG 2.1 AA needs 4.5:1 for normal text and 3:1 for large text.
@@ -252,16 +252,16 @@ if (!result.valid) {
   "cli-theme-generation": {
     title: "CLI-Driven Theme Generation",
     description:
-      "Use the Theme Kit CLI to generate complete theme families from seed colors in your build pipeline.",
+      "Use the Themvora CLI to generate complete theme families from seed colors in your build pipeline.",
     prerequisites: [
-      "@theme-kit/cli installed",
+      "@themvora/cli installed",
       "Seed color definition",
     ],
     stack: "Node.js (CI/CD)",
     result: "Generated theme files in your project",
     // This recipe drives the CLI, not the runtime — the only recipe that does.
-    packages: ["@theme-kit/cli"],
-    code: `theme-kit generate \\
+    packages: ["@themvora/cli"],
+    code: `themvora generate \\
   --seed "#6366f1" \\
   --output ./src/themes/brand.json \\
   --format json`,
@@ -305,19 +305,19 @@ export function recipeNeighbours(slug: RecipeId): {
  * The packages a recipe needs installed.
  *
  * Declared explicitly per recipe because the code alone is not enough: the CLI
- * recipe's snippet is a shell command (`theme-kit generate …`) that names no
+ * recipe's snippet is a shell command (`themvora generate …`) that names no
  * package at all. Defaults to core, which is what most recipes import.
  */
 export function recipePackages(slug: RecipeId): string[] {
   const declared = (recipeData[slug] as { packages?: string[] }).packages;
-  return declared ?? ["@theme-kit/core"];
+  return declared ?? ["@themvora/core"];
 }
 
-/** Every `@theme-kit/*` package imported by a recipe's snippet. */
+/** Every `@themvora/*` package imported by a recipe's snippet. */
 export function recipeImportedPackages(slug: RecipeId): string[] {
   return [
     ...new Set(
-      [...recipeData[slug].code.matchAll(/@theme-kit\/[a-z-]+/g)].map((m) => m[0]),
+      [...recipeData[slug].code.matchAll(/@themvora\/[a-z-]+/g)].map((m) => m[0]),
     ),
   ];
 }

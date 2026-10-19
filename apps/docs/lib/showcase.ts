@@ -4,12 +4,12 @@ import type { CompositionId } from "../components/showcase/compositions";
  * Showcase catalog.
  *
  * A **showcase** is a purpose-built visual composition — a mock interface that
- * exists to demonstrate what a Theme Kit theme looks like applied to a real
+ * exists to demonstrate what a Themvora theme looks like applied to a real
  * product surface. An **example** (see `/examples`) is a runnable, instructional
  * implementation of one feature. The two are deliberately different jobs:
  *
- *   /showcase → "this is what Theme Kit makes possible"
- *   /examples → "copy this and learn how Theme Kit works"
+ *   /showcase → "this is what Themvora makes possible"
+ *   /examples → "copy this and learn how Themvora works"
  *
  * `implementationHref` is the bridge: a showcase points at the guide or reference
  * that shows how to build it for real.
@@ -48,10 +48,10 @@ export type ShowcaseEntry = {
   /** One line, shown under the title. */
   tagline: string;
   category: ShowcaseCategory;
-  /** Layout character, so the gallery proves Theme Kit is not one style. */
+  /** Layout character, so the gallery proves Themvora is not one style. */
   character: string;
   tags: string[];
-  /** What this composition demonstrates about Theme Kit. */
+  /** What this composition demonstrates about Themvora. */
   demonstrates: string[];
   /** The flagship gets a full-width, taller preview. */
   hero?: boolean;

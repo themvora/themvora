@@ -3,6 +3,7 @@ import {
   useThemeRuntime as useVueThemeRuntime,
   useThemeHistory as useVueThemeHistory,
   useThemeValue as useVueThemeValue,
+  useGeneratedTheme as useVueGeneratedTheme,
   useThemeTokens as useVueThemeTokens,
   useThemeMode as useVueThemeMode,
   useThemeFamily as useVueThemeFamily,
@@ -12,12 +13,13 @@ import {
   useThemeLifecycle as useVueThemeLifecycle,
   useThemePacks as useVueThemePacks,
   useThemeSchedule as useVueThemeSchedule,
-} from "@theme-kit/vue";
+} from "@themvora/vue";
 
 export const useTheme = useVueTheme;
 export const useThemeRuntime = useVueThemeRuntime;
 export const useThemeHistory = useVueThemeHistory;
 export const useThemeValue = useVueThemeValue;
+export const useGeneratedTheme = useVueGeneratedTheme;
 export const useThemeTokens = useVueThemeTokens;
 export const useThemeMode = useVueThemeMode;
 export const useThemeFamily = useVueThemeFamily;
@@ -29,7 +31,7 @@ export const useThemePacks = useVueThemePacks;
 export const useThemeSchedule = useVueThemeSchedule;
 
 /** Alias of `useThemeRuntime` — resolves the app-wide runtime installed by the
- *  `@theme-kit/nuxt` plugin (also available as `$themeKit` on `nuxtApp`). */
-export function useThemeKitRuntime() {
+ *  `@themvora/nuxt` plugin (also available as `$themvora` on `nuxtApp`). */
+export function useThemvoraRuntime() {
   return useVueThemeRuntime();
 }

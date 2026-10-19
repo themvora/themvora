@@ -1,7 +1,7 @@
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
 import type { BootstrapVariableOptions } from "./generator";
 import { generateBootstrapVariables } from "./generator";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+import { resolveAdapterSource } from "@themvora/adapters";
 
 export function getBootstrapVariables<T extends ThemeDefinition>(
   runtime: ThemeRuntime<T>,

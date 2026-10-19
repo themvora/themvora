@@ -23,7 +23,7 @@ const snippets: Record<string, { lang: string; title: string; label: string; cod
     label: "React",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider, ThemeInspector } from "@theme-kit/react";
+    code: `import { ThemeProvider, ThemeInspector } from "@themvora/react";
 
 export function App() {
   return (
@@ -39,7 +39,7 @@ export function App() {
     lang: "tsx",
     title: "components/site-toolbar.tsx",
     code: `"use client";
-import { ThemeInspector } from "@theme-kit/next/client";
+import { ThemeInspector } from "@themvora/next/client";
 
 export function SiteToolbar() {
   return <ThemeInspector bottom={104} right={32} zIndex={50} />;
@@ -50,7 +50,7 @@ export function SiteToolbar() {
     lang: "vue",
     title: "App.vue",
     code: `<script setup>
-import { ThemeProvider, ThemeInspector } from "@theme-kit/vue";
+import { ThemeProvider, ThemeInspector } from "@themvora/vue";
 </script>
 
 <template>
@@ -65,13 +65,13 @@ import { ThemeProvider, ThemeInspector } from "@theme-kit/vue";
     lang: "svelte",
     title: "App.svelte",
     code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
-  import { themeInspector } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
+  import { themeInspector } from "@themvora/svelte";
 </script>
 
 <ThemeProvider defaultTheme="plum-light">
   <YourApp />
-  <!-- The action mounts a <theme-kit-inspector> into the div -->
+  <!-- The action mounts a <themvora-inspector> into the div -->
   <div use:themeInspector={{ bottom: 104, right: 32 }} />
 </ThemeProvider>`,
   },
@@ -79,7 +79,7 @@ import { ThemeProvider, ThemeInspector } from "@theme-kit/vue";
     label: "Solid",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider, ThemeInspector } from "@theme-kit/solid";
+    code: `import { ThemeProvider, ThemeInspector } from "@themvora/solid";
 
 export function App() {
   return (
@@ -95,16 +95,16 @@ export function App() {
     lang: "ts",
     title: "app.component.ts",
     code: `import { Component } from "@angular/core";
-import { provideThemeKit, ThemeInspectorComponent } from "@theme-kit/angular";
+import { provideTheme, ThemeInspectorComponent } from "@themvora/angular";
 
 @Component({
   selector: "app-root",
   standalone: true,
   imports: [ThemeInspectorComponent],
-  providers: [provideThemeKit({ defaultTheme: "plum-light" })],
+  providers: [provideTheme({ defaultTheme: "plum-light" })],
   template: \`
     <your-app />
-    <theme-kit-inspector-component [bottom]="104" [right]="32" />
+    <themvora-inspector-component [bottom]="104" [right]="32" />
   \`,
 })
 export class AppComponent {}`,
@@ -114,7 +114,7 @@ export class AppComponent {}`,
     lang: "astro",
     title: "src/pages/index.astro",
     code: `---
-import ThemeInspector from "@theme-kit/astro/ThemeInspector.astro";
+import ThemeInspector from "@themvora/astro/ThemeInspector.astro";
 ---
 
 <ThemeInspector bottom={104} right={32} />`,
@@ -126,7 +126,7 @@ import ThemeInspector from "@theme-kit/astro/ThemeInspector.astro";
     code: `<template>
   <ThemeProvider>
     <YourApp />
-    <!-- Auto-imported by the @theme-kit/nuxt module -->
+    <!-- Auto-imported by the @themvora/nuxt module -->
     <ThemeInspector :bottom="104" :right="32" />
   </ThemeProvider>
 </template>`,
@@ -135,7 +135,7 @@ import ThemeInspector from "@theme-kit/astro/ThemeInspector.astro";
     label: "Remix",
     lang: "tsx",
     title: "app/root.tsx",
-    code: `import { ThemeProvider, ThemeInspector } from "@theme-kit/remix";
+    code: `import { ThemeProvider, ThemeInspector } from "@themvora/remix";
 
 export default function App() {
   return (
@@ -153,17 +153,17 @@ export default function App() {
     code: `<!DOCTYPE html>
 <html>
   <body>
-    <theme-kit-provider default-theme="plum-light">
+    <themvora-provider default-theme="plum-light">
       <your-app></your-app>
-      <theme-kit-inspector
+      <themvora-inspector
         bottom="104"
         right="32"
         z-index="50"
-      ></theme-kit-inspector>
-    </theme-kit-provider>
+      ></themvora-inspector>
+    </themvora-provider>
     <script type="module">
-      import { ThemeKitInspector } from "@theme-kit/web";
-      ThemeKitInspector.define();
+      // Registers every <themvora-*> element, including the inspector.
+      import "@themvora/web";
     </script>
   </body>
 </html>`,
@@ -200,7 +200,7 @@ export default function ThemeInspectorPage() {
         <PageHeader
           eyebrow="Developer Tools"
           title="Theme Inspector"
-          subtitle="@theme-kit/core — the token system"
+          subtitle="@themvora/core — the token system"
           description={
             <>
               The <strong className="opacity-100">Theme Inspector</strong> is a
@@ -217,7 +217,7 @@ export default function ThemeInspectorPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core or framework package",
+              value: "@themvora/core or framework package",
               href: "/packages/core",
             },
             {
@@ -259,8 +259,8 @@ export default function ThemeInspectorPage() {
           <FrameworkTabs examples={frameworkExamples} scrollToId="usage" />
           <p className="mt-4 text-sm opacity-70 leading-relaxed">
             Under the hood every framework wrapper mounts the same{" "}
-            <code className="mono text-[0.9em]">@theme-kit/web</code>{" "}
-            <code className="mono text-[0.9em]">&lt;theme-kit-inspector&gt;</code>{" "}
+            <code className="mono text-[0.9em]">@themvora/web</code>{" "}
+            <code className="mono text-[0.9em]">&lt;themvora-inspector&gt;</code>{" "}
             custom element, so the behavior and visuals are identical across
             React, Vue, Svelte, Solid, Angular, Astro and vanilla HTML. React and
             Next also ship a native React implementation with the same props.
@@ -321,22 +321,22 @@ export default function ThemeInspectorPage() {
             <CodeBlock
               html={highlightCode(
                 `/* Works in any framework — plain CSS. */
-theme-kit-inspector::part(inspector-toggle) {
+themvora-inspector::part(inspector-toggle) {
   border-radius: 9999px;   /* pill toggle */
   background: var(--theme-color-accent);
 }
-theme-kit-inspector::part(inspector-panel) {
+themvora-inspector::part(inspector-panel) {
   border-radius: 20px;
   border-color: var(--theme-color-ring);
 }`,
                 "css",
               )}
               code={`/* Works in any framework — plain CSS. */
-theme-kit-inspector::part(inspector-toggle) {
+themvora-inspector::part(inspector-toggle) {
   border-radius: 9999px;   /* pill toggle */
   background: var(--theme-color-accent);
 }
-theme-kit-inspector::part(inspector-panel) {
+themvora-inspector::part(inspector-panel) {
   border-radius: 20px;
   border-color: var(--theme-color-ring);
 }`}
@@ -363,7 +363,7 @@ theme-kit-inspector::part(inspector-panel) {
           />
           <p className="mt-3 text-sm opacity-70 leading-relaxed">
             The custom element reads the nearest{" "}
-            <code className="mono text-[0.9em]">&lt;theme-kit-provider&gt;</code>{" "}
+            <code className="mono text-[0.9em]">&lt;themvora-provider&gt;</code>{" "}
             runtime, subscribes to the store, and re-renders the panel whenever
             the theme changes. Attributes mirror the props:{" "}
             <code className="mono text-[0.9em]">bottom</code>,{" "}

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/zero-flash") },
   title: "Zero Flash",
   description:
-    "How Theme Kit prevents a flash of the wrong theme: server-side resolution, inline CSS variables, a blocking bootstrap script, and clean hydration on every framework.",
+    "How Themvora prevents a flash of the wrong theme: server-side resolution, inline CSS variables, a blocking bootstrap script, and clean hydration on every framework.",
 };
 
 function snippetBlock(snippet: { lang: string; title: string; code: string }) {
@@ -39,7 +39,7 @@ const coreSnippet = {
   resolveInitialTheme,
   systemModeCSSTemplate,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // The built-in set — the neutral light/dark pair plus the preset families — is
 // a valid registry, so no theme file is needed.
@@ -121,7 +121,7 @@ const frameworkExamples = [
     code: `// Flash-proof out of the box. The provider reads the persisted selection,
 // applies it before first paint, and injects a blocking bootstrap <script>
 // into <head> — no vite plugin or manual index.html script required.
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 
 root.render(
   <ThemeProvider defaultTheme="light" initialMode="system">
@@ -133,9 +133,10 @@ root.render(
     label: "Next.js",
     lang: "tsx",
     code: `// app/layout.tsx — a Server Component, no "use client" required.
-import { ThemeProvider } from "@theme-kit/next";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@themvora/next";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="light">
       {children}
@@ -154,8 +155,8 @@ export default function RootLayout({ children }) {
     lang: "ts",
     code: `// nuxt.config.ts — the module wires SSR persistence + bootstrap.
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: { defaultTheme: "light", initialMode: "system" },
+  modules: ["@themvora/nuxt"],
+  themvora: { defaultTheme: "light", initialMode: "system" },
 });
 
 // In a plain Vue SPA the provider is flash-proof out of the box:
@@ -167,7 +168,7 @@ export default defineNuxtConfig({
     label: "SvelteKit",
     lang: "svelte",
     code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <!-- Flash-proof out of the box — the provider injects the blocking
@@ -183,7 +184,7 @@ export default defineNuxtConfig({
     code: `// Flash-proof out of the box — the provider injects the blocking bootstrap
 // and applies the persisted theme before first paint.
 import { render } from "solid-js/web";
-import { ThemeProvider } from "@theme-kit/solid";
+import { ThemeProvider } from "@themvora/solid";
 
 render(
   () => (
@@ -200,16 +201,16 @@ render(
     code: `// src/main.ts — the runtime side. The server side emits the <head> content.
 import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
-import { createBlockingScriptContent, provideThemeKit } from "@theme-kit/angular";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { createBlockingScriptContent, provideTheme } from "@themvora/angular";
+import { getBuiltInThemes } from "@themvora/core";
 
 @Component({ selector: "app-root", template: "<router-outlet />" })
 class AppComponent {}
 
 // createBlockingScriptContent takes the registry positionally. Inject its
 // return value RAW into the SSR <head> — it is
-// \`<style id="theme-kit-critical">…</style>\` followed by
-// \`<script id="theme-kit-blocking">…</script>\`. For a "system" selection the
+// \`<style id="themvora-critical">…</style>\` followed by
+// \`<script id="themvora-blocking">…</script>\`. For a "system" selection the
 // style carries one \`prefers-color-scheme\` block per scheme, so an OS-dark
 // visitor is correct with no JavaScript at all.
 const themes = getBuiltInThemes();
@@ -245,7 +246,7 @@ const head = createBlockingScriptContent(
 bootstrapApplication(AppComponent, {
   providers: [
     // The same registry the script was built from, and the same mode.
-    provideThemeKit({ themes, defaultTheme: "light", initialMode: "system" }),
+    provideTheme({ themes, defaultTheme: "light", initialMode: "system" }),
   ],
 });`,
   },
@@ -253,9 +254,9 @@ bootstrapApplication(AppComponent, {
     label: "Astro",
     lang: "astro",
     code: `---
-import { createBlockingScript, buildThemeCssMap } from "@theme-kit/astro";
-import { ThemeProviderClient } from "@theme-kit/astro/client";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { createBlockingScript, buildThemeCssMap } from "@themvora/astro";
+import { ThemeProviderClient } from "@themvora/astro/client";
+import { getBuiltInThemes } from "@themvora/core";
 
 // buildThemeCssMap takes the registry positionally.
 const themes = getBuiltInThemes();
@@ -288,9 +289,9 @@ import {
   useLoaderData,
   type LoaderFunctionArgs,
 } from "@remix-run/react";
-import { ThemeProvider, ThemeHead } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { ThemeProvider, ThemeHead } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
 
 // getInitialThemeState and ThemeHead both take the registry explicitly; the
 // built-in set is a valid registry, so no theme file is needed.
@@ -328,16 +329,25 @@ export default function App() {
     code: `<!doctype html>
 <html>
   <head>
-    <!-- Inlined output of createThemeBootstrapScript({ themes, defaultTheme: "light", initialMode: "system" }) -->
+    <!-- Inlined output of createThemeBootstrapScript({ themes, defaultTheme: "light", initialMode: "system" }).
+         It runs before the module below, so <html> already carries the right
+         variables and data-theme attributes when the first pixel is painted. -->
     <script>
       /* reads "theme-selection", resolves family + effective mode,
          writes --theme-* vars + data-theme attrs before first paint */
     </script>
   </head>
   <body>
-    <theme-kit-provider default-theme="light" initial-mode="system">
+    <themvora-provider default-theme="light" initial-mode="system">
       <my-app></my-app>
-    </theme-kit-provider>
+    </themvora-provider>
+
+    <!-- The element lifecycle alone cannot guarantee first paint: a module is
+         fetched and evaluated asynchronously. The provider adopts the state the
+         script above painted, so the two never disagree. -->
+    <script type="module">
+      import "@themvora/web";
+    </script>
   </body>
 </html>`,
   },
@@ -380,7 +390,7 @@ const modeWiring = [
     label: "Web Components",
     script:
       "you inline createThemeBootstrapScript() output yourself — there is no build step to inject it",
-    runtime: "the initial-mode attribute on <theme-kit-provider>",
+    runtime: "the initial-mode attribute on <themvora-provider>",
   },
   {
     label: "Next.js",
@@ -389,7 +399,7 @@ const modeWiring = [
   },
   {
     label: "Nuxt",
-    script: 'themeKit.initialMode in nuxt.config.ts, defaulting to "system"',
+    script: 'themvora.initialMode in nuxt.config.ts, defaulting to "system"',
     runtime: "the same config key",
   },
   {
@@ -400,7 +410,7 @@ const modeWiring = [
   {
     label: "Angular",
     script: "the third argument to createBlockingScriptContent()",
-    runtime: "provideThemeKit({ initialMode })",
+    runtime: "provideTheme({ initialMode })",
   },
   {
     label: "Remix",
@@ -410,7 +420,7 @@ const modeWiring = [
   {
     label: "Core · Vite plugin",
     script:
-      "createThemeBootstrapScript({ initialMode }) / themeKitVitePlugin()",
+      "createThemeBootstrapScript({ initialMode }) / themvoraVitePlugin()",
     runtime: "createThemeRuntime({ initialMode })",
   },
 ];
@@ -424,7 +434,7 @@ const modeWiring = [
 const astroHalves = [
   {
     label: "Before first paint",
-    desc: "One inline script in <head>, injected by the themeKit() integration. It reads the theme cookies, rejects them when the config fingerprint is stale, resolves the effective mode, and writes the CSS variables plus the data-theme / dark-class contract. No runtime, no listeners, no framework import.",
+    desc: "One inline script in <head>, injected by the themvora() integration. It reads the theme cookies, rejects them when the config fingerprint is stale, resolves the effective mode, and writes the CSS variables plus the data-theme / dark-class contract. No runtime, no listeners, no framework import.",
   },
   {
     label: "At island mount",
@@ -436,7 +446,7 @@ const astroHalves = [
   },
   {
     label: "Installing the stylesheet",
-    desc: "The system-mode stylesheet is installed behind a guard on an existing data-theme-kit=\"system\" element, so provider.astro emitting it statically and the integration installing it never stack a duplicate sheet.",
+    desc: 'The system-mode stylesheet is installed behind a guard on an existing data-themvora="system" element, so provider.astro emitting it statically and the integration installing it never stack a duplicate sheet.',
   },
 ];
 
@@ -460,13 +470,14 @@ export default function ZeroFlashPage() {
             </svg>
           }
           title="Zero Flash"
-          subtitle="@theme-kit/core — bootstrap &amp; SSR-safe hydration"
+          subtitle="@themvora/core — bootstrap &amp; SSR-safe hydration"
           description={
             <>
-              Theme Kit prevents flash of incorrect theme on supported SSR frameworks
-              and client-side applications. The server resolves the persisted selection,
-              inlines the CSS variables, and a blocking bootstrap script covers the rest,
-              so the very first paint is already the user&apos;s theme.
+              Themvora prevents flash of incorrect theme on supported SSR
+              frameworks and client-side applications. The server resolves the
+              persisted selection, inlines the CSS variables, and a blocking
+              bootstrap script covers the rest, so the very first paint is
+              already the user&apos;s theme.
             </>
           }
         />
@@ -475,12 +486,13 @@ export default function ZeroFlashPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {
               label: "Framework",
-              value: "SSR-capable framework (Next.js, Nuxt, Astro, Remix) or client provider",
+              value:
+                "SSR-capable framework (Next.js, Nuxt, Astro, Remix) or client provider",
             },
             {
               label: "Knowledge",
@@ -495,8 +507,8 @@ export default function ZeroFlashPage() {
             Zero-flash behavior works as documented for supported SSR frameworks
             (Next.js, Nuxt, Astro, Remix) and client providers with the blocking
             bootstrap script. Some edge cases exist around{" "}
-            <code className="mono text-[0.9em]">system</code> mode with JavaScript
-            disabled and framework-specific SSR constraints. See{" "}
+            <code className="mono text-[0.9em]">system</code> mode with
+            JavaScript disabled and framework-specific SSR constraints. See{" "}
             <Link href="/known-limitations" className="underline">
               Known Limitations
             </Link>{" "}
@@ -515,7 +527,7 @@ export default function ZeroFlashPage() {
           <div className="grid gap-4 sm:grid-cols-2 mb-3">
             <div className="rounded-xl border border-border overflow-hidden">
               <div className="px-4 py-2 border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider opacity-50">
-                Without Theme Kit
+                Without Themvora
               </div>
               <div className="p-4 flex flex-col gap-2 text-sm">
                 {[
@@ -524,11 +536,14 @@ export default function ZeroFlashPage() {
                   "Client JS reads the saved dark theme",
                   "Re-render — and a visible flash of the wrong theme",
                 ].map((step, i) => (
-                  <div key={step} className="flex gap-2 items-center text-sm opacity-75">
+                  <div
+                    key={step}
+                    className="flex gap-2 items-center text-sm opacity-75"
+                  >
                     <span
                       className={`w-5 h-5 shrink-0 rounded-full grid place-items-center text-[10px] font-bold ${
                         i === 2
-                          ? "bg-[color-mix(in_srgb,var(--theme-color-destructive)_15%,transparent)] text-[var(--theme-color-destructive)]"
+                          ? "bg-[color-mix(in_srgb,var(--theme-color-destructive)_15%,transparent)] text-(--theme-color-destructive)"
                           : "bg-muted text-foreground/50"
                       }`}
                     >
@@ -541,7 +556,7 @@ export default function ZeroFlashPage() {
             </div>
             <div className="rounded-xl border border-border overflow-hidden">
               <div className="px-4 py-2 border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider opacity-50">
-                With Theme Kit
+                With Themvora
               </div>
               <div className="p-4 flex flex-col gap-2 text-sm">
                 {[
@@ -550,7 +565,10 @@ export default function ZeroFlashPage() {
                   "First paint is already the user's theme",
                   "Hydration takes over — no re-render, no flash, no mismatch",
                 ].map((step, i) => (
-                  <div key={step} className="flex gap-2 items-center text-sm opacity-75">
+                  <div
+                    key={step}
+                    className="flex gap-2 items-center text-sm opacity-75"
+                  >
                     <span
                       className="w-5 h-5 shrink-0 rounded-full grid place-items-center text-[10px] font-bold"
                       style={{
@@ -569,7 +587,10 @@ export default function ZeroFlashPage() {
 
           <div className="grid gap-2 sm:grid-cols-3">
             {consequences.map((item) => (
-              <div key={item.title} className="rounded-xl border border-border bg-muted/30 p-3">
+              <div
+                key={item.title}
+                className="rounded-xl border border-border bg-muted/30 p-3"
+              >
                 <div className="text-sm font-semibold">{item.title}</div>
                 <div className="mt-1 text-xs opacity-60 leading-relaxed">
                   {item.desc}
@@ -633,14 +654,18 @@ export default function ZeroFlashPage() {
                 What about the native scrollbar?
               </div>
               <p className="text-xs opacity-70 leading-relaxed">
-                A dark-mode user opening a page while the default theme is
-                light sees the <em>native</em> light scrollbar flash before
-                hydration — even when colors are already correct. Theme Kit&apos;s
+                A dark-mode user opening a page while the default theme is light
+                sees the <em>native</em> light scrollbar flash before hydration
+                — even when colors are already correct. Themvora&apos;s
                 scrollbar story uses the same trick: the bootstrap hides the
                 native scrollbar before first paint, then the theme-aware
                 overlay engine takes over.
               </p>
-              <Link href="/custom-scrollbar" className="text-xs font-semibold no-underline" style={{ color: "var(--theme-color-primary)" }}>
+              <Link
+                href="/custom-scrollbar"
+                className="text-xs font-semibold no-underline"
+                style={{ color: "var(--theme-color-primary)" }}
+              >
                 Custom Scrollbar →
               </Link>
             </div>
@@ -651,11 +676,15 @@ export default function ZeroFlashPage() {
               <p className="text-xs opacity-70 leading-relaxed">
                 The transition engine only starts after the initial theme is
                 established — the first paint is never animated. A user who
-                arrives with the dark theme selected gets dark immediately,
-                then any later switch (families, modes, scopes) animates
-                through the configured plan.
+                arrives with the dark theme selected gets dark immediately, then
+                any later switch (families, modes, scopes) animates through the
+                configured plan.
               </p>
-              <Link href="/animation" className="text-xs font-semibold no-underline" style={{ color: "var(--theme-color-primary)" }}>
+              <Link
+                href="/animation"
+                className="text-xs font-semibold no-underline"
+                style={{ color: "var(--theme-color-primary)" }}
+              >
                 Animation &amp; Transition →
               </Link>
             </div>
@@ -683,9 +712,9 @@ export default function ZeroFlashPage() {
           <p className="mt-4 text-sm opacity-80 leading-relaxed">
             The script and the runtime resolve the mode independently — the
             script cannot read the runtime&apos;s configuration, and the runtime
-            never inspects the script. So both derive their default from the same
-            place: the fallback theme&apos;s own mode. Leave the mode alone and
-            they agree by construction, which is why{" "}
+            never inspects the script. So both derive their default from the
+            same place: the fallback theme&apos;s own mode. Leave the mode alone
+            and they agree by construction, which is why{" "}
             <code className="mono text-[0.9em]">
               &lt;ThemeProvider defaultTheme=&quot;light&quot;&gt;
             </code>{" "}
@@ -788,11 +817,11 @@ export default function ZeroFlashPage() {
             Measured on a production build of the Astro example with page
             scripts blocked and the OS set to dark: inline light variables plus
             a dark media block painted{" "}
-            <code className="mono text-[0.9em]">rgb(248, 250, 252)</code>. Moving
-            both schemes into media blocks and leaving no inline variables
-            painted <code className="mono text-[0.9em]">rgb(2, 6, 23)</code>.
-            That is why{" "}
-            <code className="mono text-[0.9em]">provider.astro</code> emits{" "}
+            <code className="mono text-[0.9em]">rgb(248, 250, 252)</code>.
+            Moving both schemes into media blocks and leaving no inline
+            variables painted{" "}
+            <code className="mono text-[0.9em]">rgb(2, 6, 23)</code>. That is
+            why <code className="mono text-[0.9em]">provider.astro</code> emits{" "}
             <code className="mono text-[0.9em]">systemModeCSSTemplate</code> and
             keeps only{" "}
             <code className="mono text-[0.9em]">color-scheme: light dark</code>{" "}
@@ -819,14 +848,14 @@ export default function ZeroFlashPage() {
               <code className="mono text-[0.9em]">data-theme</code> attribute
               stays at the build-time value even though the canvas is correct —
               the attribute is only a marker, and the script is what updates it.
-              Colors, which are what the visitor actually sees, are right
-              either way.
+              Colors, which are what the visitor actually sees, are right either
+              way.
             </p>
           </Callout>
           <p className="mt-3 text-sm opacity-80 leading-relaxed">
             The builder lives in{" "}
-            <code className="mono text-[0.9em]">@theme-kit/core</code>, and{" "}
-            <code className="mono text-[0.9em]">@theme-kit/astro</code>{" "}
+            <code className="mono text-[0.9em]">@themvora/core</code>, and{" "}
+            <code className="mono text-[0.9em]">@themvora/astro</code>{" "}
             re-exports it. That is deliberate: the integration,{" "}
             <code className="mono text-[0.9em]">provider.astro</code> and
             Angular&apos;s{" "}
@@ -856,20 +885,31 @@ export default function ZeroFlashPage() {
           >
             Every framework
           </SectionHeading>
-          <Callout variant="neutral" title="Flash-proof by default (1.2.0)">
+          <Callout
+            variant="neutral"
+            title="Flash-proof by default (1.2.0)"
+            className="mb-8"
+          >
             <p className="text-sm leading-relaxed">
               The React, Vue, Svelte and Solid providers now inject the blocking
               bootstrap themselves — you just wrap your app in the provider and
               the persisted theme is applied before first paint. The core{" "}
-              <code className="mono text-[0.9em]">createThemeBootstrapScript</code>{" "}
+              <code className="mono text-[0.9em]">
+                createThemeBootstrapScript
+              </code>{" "}
               and the{" "}
-              <Link href="/vite-plugin" className="text-primary hover:underline">
+              <Link
+                href="/vite-plugin"
+                className="text-primary hover:underline"
+              >
                 Vite plugin
               </Link>{" "}
               remain available for custom heads and the pre-bundle first frame.
             </p>
           </Callout>
+
           <FrameworkTabs examples={frameworkExamplesWithHtml} />
+
           <p className="mt-4 text-sm opacity-70 leading-relaxed">
             SSR frameworks with dedicated server integration (Next, Nuxt, Astro,
             Angular, Remix) resolve the theme on the server. Client providers
@@ -938,7 +978,7 @@ export default function ZeroFlashPage() {
             </Link>
           </div>
         </section>
-        <section id="api-reference" className="scroll-mt-24 mb-10">
+        <section id="api-reference" className="scroll-mt-24 my-10">
           <SectionHeading
             num={7}
             desc="Every export this page uses, generated from the package JSDoc."
@@ -950,7 +990,7 @@ export default function ZeroFlashPage() {
           </p>
           <p className="mt-3 text-sm">
             <Link href="/api-reference/core" className="underline">
-              @theme-kit/core API reference
+              @themvora/core API reference
             </Link>
           </p>
         </section>

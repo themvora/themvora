@@ -8,7 +8,7 @@ import {
   type ThemeDefinition,
   type ThemeScheduleState,
 } from "../src";
-import { ThemeKit } from "../src/vanilla";
+import { Themvora } from "../src/vanilla";
 
 const themes: ThemeDefinition[] = [
   { name: "day", meta: { mode: "light" } },
@@ -417,10 +417,10 @@ describe("runtime.schedule", () => {
     runtime.destroy();
   });
 
-  it("works with ThemeKit vanilla class and automatically applies daytime/nighttime theme", () => {
+  it("works with Themvora vanilla class and automatically applies daytime/nighttime theme", () => {
     vi.setSystemTime(new Date("2025-06-21T12:00:00"));
 
-    const kit = new ThemeKit({
+    const kit = new Themvora({
       themes,
       defaultTheme: "day",
       initialMode: "system",

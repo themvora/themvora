@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/adapters") },
   title: "Adapters",
   description:
-    "How Theme Kit translates themes into Bootstrap, shadcn/ui, daisyUI, Open Props, MUI, Chakra, Ant Design, Mantine and UnoCSS — strategies, plugins, the registry, and how to use them in every framework.",
+    "How Themvora translates themes into Bootstrap, shadcn/ui, daisyUI, Open Props, MUI, Chakra, Ant Design, Mantine and UnoCSS — strategies, plugins, the registry, and how to use them in every framework.",
 };
 
 const shadcnHookSnippet = {
   lang: "tsx",
   title: "react — one-line binding",
-  code: `import { ThemeProvider, useTheme, useThemeRuntime } from "@theme-kit/react";
-import { useShadcnTheme } from "@theme-kit/shadcn/react";
+  code: `import { ThemeProvider, useTheme, useThemeRuntime } from "@themvora/react";
+import { useShadcnTheme } from "@themvora/shadcn/react";
 
 function App() {
   const runtime = useThemeRuntime();
@@ -38,10 +38,10 @@ function App() {
 const cssVarsSnippet = {
   lang: "ts",
   title: "css-variable adapter — factory",
-  code: `import { createShadcnAdapter } from "@theme-kit/shadcn/factory";
-import { createBootstrapAdapter } from "@theme-kit/bootstrap/factory";
-import { createDaisyAdapter } from "@theme-kit/daisyui/factory";
-import { createOpenPropsAdapter } from "@theme-kit/open-props/factory";
+  code: `import { createShadcnAdapter } from "@themvora/shadcn/factory";
+import { createBootstrapAdapter } from "@themvora/bootstrap/factory";
+import { createDaisyAdapter } from "@themvora/daisyui/factory";
+import { createOpenPropsAdapter } from "@themvora/open-props/factory";
 
 const handle = runtime.adapters.use(createShadcnAdapter());`,
 };
@@ -50,7 +50,7 @@ const tailwindV4Snippet = {
   lang: "css",
   title: "tailwind.config.ts",
   code: `import { defineConfig } from "tailwindcss";
-import { createTailwindPlugin } from "@theme-kit/tailwind";
+import { createTailwindPlugin } from "@themvora/tailwind";
 
 export default defineConfig({
   plugins: [createTailwindPlugin()],
@@ -60,8 +60,8 @@ export default defineConfig({
 const shadcnAdapterSnippet = {
   lang: "ts",
   title: "manual registration",
-  code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createShadcnAdapter } from "@theme-kit/shadcn/factory";
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createShadcnAdapter } from "@themvora/shadcn/factory";
 
 const runtime = createThemeRuntime({ defaultTheme: "light" });
 const handle = runtime.adapters.use(createShadcnAdapter());
@@ -76,8 +76,8 @@ handle.dispose();`,
 const antdAdapterSnippet = {
   lang: "tsx",
   title: "antd adapter — provider",
-  code: `import { ThemeProvider, useThemeRuntime } from "@theme-kit/react";
-import { useAntdTheme } from "@theme-kit/antd";
+  code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
+import { useAntdTheme } from "@themvora/antd";
 
 function AntdZone() {
   const runtime = useThemeRuntime();
@@ -98,18 +98,18 @@ const unocssPresetSnippet = {
   lang: "ts",
   title: "uno.config.ts",
   code: `import { defineConfig, presetWind3 } from "unocss";
-import { presetThemeKit } from "@theme-kit/unocss";
+import { presetThemvora } from "@themvora/unocss";
 
 export default defineConfig({
-  presets: [presetWind3(), presetThemeKit()],
+  presets: [presetWind3(), presetThemvora()],
 });`,
 };
 
 const unocssStaticSnippet = {
   lang: "ts",
   title: "build-time static output",
-  code: `import { createUnoTheme } from "@theme-kit/unocss";
-import { getBuiltInThemes, resolveInitialTheme } from "@theme-kit/core";
+  code: `import { createUnoTheme } from "@themvora/unocss";
+import { getBuiltInThemes, resolveInitialTheme } from "@themvora/core";
 
 // resolveInitialTheme takes the registry explicitly; the built-in set is a
 // valid registry, so no theme file is needed.
@@ -145,10 +145,10 @@ export default function AdaptersPage() {
             </svg>
           }
           title="Adapters"
-          subtitle="@theme-kit/core — the translation layer"
+          subtitle="@themvora/core — the translation layer"
           description={
             <>
-              An adapter translates a Theme Kit <code>ThemeDefinition</code>{" "}
+              An adapter translates a Themvora <code>ThemeDefinition</code>{" "}
               into whatever a specific UI library needs. Core knows nothing
               about Bootstrap, MUI, shadcn/ui, Ant Design or UnoCSS — it only
               knows themes, tokens and runtimes. Adapters bridge the gap.
@@ -160,7 +160,7 @@ export default function AdaptersPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {
@@ -218,7 +218,7 @@ export default function AdaptersPage() {
               imports adapters <strong>without React</strong>. The adapter
               packages own their own framework wrappers behind subpaths, so a
               Vue app imports from{" "}
-              <code className="mono text-[0.9em]">@theme-kit/shadcn/vue</code>{" "}
+              <code className="mono text-[0.9em]">@themvora/shadcn/vue</code>{" "}
               — no React dependency is pulled in.
             </p>
           </div>
@@ -227,12 +227,12 @@ export default function AdaptersPage() {
         <section id="tailwind" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={2}
-            desc="Tailwind CSS v4 and UnoCSS are handled through build-time presets that expose Theme Kit tokens as utility classes referencing live --theme-* variables."
+            desc="Tailwind CSS v4 and UnoCSS are handled through build-time presets that expose Themvora tokens as utility classes referencing live --theme-* variables."
           >
             Tailwind CSS v4
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            The <code className="mono text-[0.9em]">@theme-kit/tailwind</code>{" "}
+            The <code className="mono text-[0.9em]">@themvora/tailwind</code>{" "}
             plugin maps resolved tokens to{" "}
             <code className="mono text-[0.9em]">--color-*</code>,{" "}
             <code className="mono text-[0.9em]">--radius-*</code>,{" "}
@@ -298,7 +298,7 @@ export default function AdaptersPage() {
             Ant Design adapter
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            The <code className="mono text-[0.9em]">@theme-kit/antd</code>{" "}
+            The <code className="mono text-[0.9em]">@themvora/antd</code>{" "}
             package provides <code className="mono text-[0.9em]">useAntdTheme</code> and{" "}
             <code className="mono text-[0.9em]">AntdThemeProvider</code>. The
             theme object is rebuilt automatically on every theme change.
@@ -323,12 +323,12 @@ export default function AdaptersPage() {
         <section id="unocss" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={5}
-            desc="UnoCSS gets a build-time preset that exposes Theme Kit tokens as utilities referencing live --theme-* variables."
+            desc="UnoCSS gets a build-time preset that exposes Themvora tokens as utilities referencing live --theme-* variables."
           >
             UnoCSS adapter
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            Add <code className="mono text-[0.9em]">presetThemeKit()</code> to
+            Add <code className="mono text-[0.9em]">presetThemvora()</code> to
             your UnoCSS config. Utilities like{" "}
             <code className="mono text-[0.9em]">bg-primary</code>,{" "}
             <code className="mono text-[0.9em]">text-foreground</code>,{" "}
@@ -359,7 +359,7 @@ export default function AdaptersPage() {
         <section id="next" className="scroll-mt-24">
           <SectionHeading
             num={6}
-            desc="Tokens are the input — adapters consume them. Explore what else Theme Kit offers."
+            desc="Tokens are the input — adapters consume them. Explore what else Themvora offers."
           >
             What&apos;s next
           </SectionHeading>
@@ -371,7 +371,7 @@ export default function AdaptersPage() {
               <div>
                 <div className="font-semibold">Packages</div>
                 <div className="text-xs opacity-60">
-                  Browse every @theme-kit/* package — core, react, vue, svelte,
+                  Browse every @themvora/* package — core, react, vue, svelte,
                   solid, angular, and every adapter.
                 </div>
               </div>

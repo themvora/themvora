@@ -1,4 +1,4 @@
-import type { ThemeDefinition, ThemeTokens, ThemeSelectionState, HistoryEntry } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeTokens, ThemeSelectionState, HistoryEntry } from "@themvora/core";
 
 /**
  * A single recorded devtools event entry.

@@ -1,13 +1,46 @@
 /*!
- * @theme-kit/shadcn
+ * @themvora/shadcn
  *
- * Compatibility layer between Theme Kit semantic tokens and the CSS variables
- * that shadcn/ui components consume. Theme Kit is the source of truth; each
- * `--*` variable below is an alias to a `--theme-*` variable that the Theme Kit
+ * Compatibility layer between Themvora semantic tokens and the CSS variables
+ * that shadcn/ui components consume. Themvora is the source of truth; each
+ * `--*` variable below is an alias to a `--theme-*` variable that the Themvora
  * runtime owns and updates automatically.
  *
  * Import once, done:
- *   import "@theme-kit/shadcn";
+ *   import "@themvora/shadcn";
+ *
+ * ## Scope: shadcn's own variable set, and nothing more
+ *
+ * The variables below are exactly the ones shadcn/ui declares. The adapter does
+ * **not** invent variables shadcn does not consume — a mapping that no component
+ * reads is not integration, it is decoration.
+ *
+ * ## Status tokens: `destructive` only (deliberate)
+ *
+ * shadcn/ui has **no `success` or `warning` semantic ramp**. Its status surface
+ * is `destructive` and nothing else — a deliberate upstream design choice, not
+ * an omission this adapter can fill in.
+ *
+ * The policy is therefore:
+ *
+ *   Themvora `destructive`        → `--destructive` (native shadcn role)
+ *   Themvora `success` / `warning` → **not represented natively**
+ *
+ * and, for the two unrepresented roles:
+ *
+ *   - **No fabricated shadcn mapping.** Declaring `--success` here would look
+ *     like shadcn support while no shadcn component reads it, and would invite
+ *     consumers to build on a variable that is not part of the library's
+ *     contract.
+ *   - **The Themvora variables remain available.** `--theme-color-success`,
+ *     `--theme-color-warning`, `--theme-color-successForeground` and
+ *     `--theme-color-warningForeground` are written to `:root` by the runtime,
+ *     so an application that needs a success surface can consume them directly
+ *     (`background: var(--theme-color-success)`) without this adapter claiming
+ *     shadcn support for a role shadcn does not have.
+ *
+ * If a future shadcn release adds a status ramp, mapping it here is a one-line
+ * addition — the policy is "mirror the library", not "avoid the role".
  */
 
 :root {
@@ -32,6 +65,8 @@
   --accent: var(--theme-color-accent, var(--theme-color-secondary));
   --accent-foreground: var(--theme-color-accent-foreground, var(--theme-color-accentForeground, var(--theme-color-foreground)));
 
+  /* shadcn's only status role. `success` / `warning` are intentionally absent —
+     see the status-token policy in the header. */
   --destructive: var(--theme-color-destructive);
   --destructive-foreground: var(--theme-color-destructive-foreground, var(--theme-color-destructiveForeground));
 

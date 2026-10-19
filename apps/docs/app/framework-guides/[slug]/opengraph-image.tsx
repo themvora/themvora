@@ -5,7 +5,7 @@ import {
 } from "../../../components/og/card";
 import { frameworks } from "../../../lib/frameworks";
 
-export const alt = "Theme Kit framework guide";
+export const alt = "Themvora framework guide";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
@@ -19,7 +19,7 @@ export default async function OpengraphImage({
 
   return renderOgCard({
     eyebrow: "Framework guide",
-    title: framework?.name ?? "Theme Kit",
+    title: framework?.name ?? "Themvora",
     description: framework?.tagline,
   });
 }

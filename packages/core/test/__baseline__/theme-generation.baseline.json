@@ -1,0 +1,4311 @@
+{
+  "note": "Pre-semantic-v2 generator baseline. See theme-generation.md Phase 0.",
+  "seedMatrix": [
+    {
+      "seed": "#ef4444",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ef4444",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f1e4e4",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f5efef",
+        "mutedForeground": "#64748b",
+        "accent": "#ecc5c5",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e8d9d9",
+        "input": "#e8d9d9",
+        "ring": "#ef4444"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#ea9494",
+        "primaryForeground": "#020617",
+        "secondary": "#460606",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#380505",
+        "mutedForeground": "#94a3b8",
+        "accent": "#511515",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#5e0808",
+        "input": "#5e0808",
+        "ring": "#ea9494"
+      }
+    },
+    {
+      "seed": "#f97316",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#f97316",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f2e9e3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6f2ef",
+        "mutedForeground": "#64748b",
+        "accent": "#efd5c3",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e9dfd8",
+        "input": "#e9dfd8",
+        "ring": "#f97316"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#f0b78f",
+        "primaryForeground": "#020617",
+        "secondary": "#4b2002",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3c1902",
+        "mutedForeground": "#94a3b8",
+        "accent": "#552d11",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#632a03",
+        "input": "#632a03",
+        "ring": "#f0b78f"
+      }
+    },
+    {
+      "seed": "#f59e0b",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#f59e0b",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f2ede3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6f3ef",
+        "mutedForeground": "#64748b",
+        "accent": "#eedec4",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e9e3d8",
+        "input": "#e9e3d8",
+        "ring": "#f59e0b"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#eecb90",
+        "primaryForeground": "#020617",
+        "secondary": "#492f03",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3b2602",
+        "mutedForeground": "#94a3b8",
+        "accent": "#543b12",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#623f04",
+        "input": "#623f04",
+        "ring": "#eecb90"
+      }
+    },
+    {
+      "seed": "#eab308",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#eab308",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f2efe3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6f4ef",
+        "mutedForeground": "#64748b",
+        "accent": "#eee4c3",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e9e5d8",
+        "input": "#e9e5d8",
+        "ring": "#eab308"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#efd890",
+        "primaryForeground": "#020617",
+        "secondary": "#4a3903",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3b2d02",
+        "mutedForeground": "#94a3b8",
+        "accent": "#544412",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#634b03",
+        "input": "#634b03",
+        "ring": "#efd890"
+      }
+    },
+    {
+      "seed": "#84cc16",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#84cc16",
+        "primaryForeground": "#0f172a",
+        "secondary": "#ecf1e4",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f3f5ef",
+        "mutedForeground": "#64748b",
+        "accent": "#ddebc6",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e2e8d9",
+        "input": "#e2e8d9",
+        "ring": "#84cc16"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#c8e896",
+        "primaryForeground": "#020617",
+        "secondary": "#2d4507",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#243706",
+        "mutedForeground": "#94a3b8",
+        "accent": "#395016",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#3c5c0a",
+        "input": "#3c5c0a",
+        "ring": "#c8e896"
+      }
+    },
+    {
+      "seed": "#22c55e",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#22c55e",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e5f0e9",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f0f5f2",
+        "mutedForeground": "#64748b",
+        "accent": "#c9e9d4",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#dae7df",
+        "input": "#dae7df",
+        "ring": "#22c55e"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#9be3b6",
+        "primaryForeground": "#020617",
+        "secondary": "#0b411f",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#093419",
+        "mutedForeground": "#94a3b8",
+        "accent": "#1a4c2c",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#0f572a",
+        "input": "#0f572a",
+        "ring": "#9be3b6"
+      }
+    },
+    {
+      "seed": "#10b981",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#10b981",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e4f1ed",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff5f3",
+        "mutedForeground": "#64748b",
+        "accent": "#c5ecdf",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d9e8e3",
+        "input": "#d9e8e3",
+        "ring": "#10b981"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#94eace",
+        "primaryForeground": "#020617",
+        "secondary": "#064631",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#053827",
+        "mutedForeground": "#94a3b8",
+        "accent": "#15513d",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#085e41",
+        "input": "#085e41",
+        "ring": "#94eace"
+      }
+    },
+    {
+      "seed": "#14b8a6",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#14b8a6",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e4f1f0",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff5f5",
+        "mutedForeground": "#64748b",
+        "accent": "#c6ebe7",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d9e8e6",
+        "input": "#d9e8e6",
+        "ring": "#14b8a6"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#96e8df",
+        "primaryForeground": "#020617",
+        "secondary": "#07453e",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#063732",
+        "mutedForeground": "#94a3b8",
+        "accent": "#165049",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#0a5c53",
+        "input": "#0a5c53",
+        "ring": "#96e8df"
+      }
+    },
+    {
+      "seed": "#06b6d4",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#06b6d4",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e3f0f2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff5f6",
+        "mutedForeground": "#64748b",
+        "accent": "#c3e8ee",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d8e7e9",
+        "input": "#d8e7e9",
+        "ring": "#06b6d4"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#8fe1ef",
+        "primaryForeground": "#020617",
+        "secondary": "#02404a",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#02333c",
+        "mutedForeground": "#94a3b8",
+        "accent": "#114b55",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#035563",
+        "input": "#035563",
+        "ring": "#8fe1ef"
+      }
+    },
+    {
+      "seed": "#0ea5e9",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#0ea5e9",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e3edf2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff4f6",
+        "mutedForeground": "#64748b",
+        "accent": "#c4e0ed",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d8e3e9",
+        "input": "#d8e3e9",
+        "ring": "#0ea5e9"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#92d0ec",
+        "primaryForeground": "#020617",
+        "secondary": "#043348",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#03293a",
+        "mutedForeground": "#94a3b8",
+        "accent": "#133f53",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#064460",
+        "input": "#064460",
+        "ring": "#92d0ec"
+      }
+    },
+    {
+      "seed": "#3b82f6",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#3b82f6",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e3e9f2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff1f6",
+        "mutedForeground": "#64748b",
+        "accent": "#c4d4ee",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d8dee9",
+        "input": "#d8dee9",
+        "ring": "#3b82f6"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#91b4ee",
+        "primaryForeground": "#020617",
+        "secondary": "#031e49",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#03183b",
+        "mutedForeground": "#94a3b8",
+        "accent": "#122b54",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#042862",
+        "input": "#042862",
+        "ring": "#91b4ee"
+      }
+    },
+    {
+      "seed": "#6366f1",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#6366f1",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e4e4f1",
+        "secondaryForeground": "#0f172a",
+        "muted": "#efeff5",
+        "mutedForeground": "#64748b",
+        "accent": "#c6c6ec",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d9d9e8",
+        "input": "#d9d9e8",
+        "ring": "#6366f1"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#9596ea",
+        "primaryForeground": "#020617",
+        "secondary": "#060846",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#050638",
+        "mutedForeground": "#94a3b8",
+        "accent": "#151651",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#080a5e",
+        "input": "#080a5e",
+        "ring": "#9596ea"
+      }
+    },
+    {
+      "seed": "#8b5cf6",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#8b5cf6",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e8e3f2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f1eff6",
+        "mutedForeground": "#64748b",
+        "accent": "#d1c4ed",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#ddd8e9",
+        "input": "#ddd8e9",
+        "ring": "#8b5cf6"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#ad92ed",
+        "primaryForeground": "#020617",
+        "secondary": "#190448",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#14033a",
+        "mutedForeground": "#94a3b8",
+        "accent": "#271353",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#210561",
+        "input": "#210561",
+        "ring": "#ad92ed"
+      }
+    },
+    {
+      "seed": "#a855f7",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#a855f7",
+        "primaryForeground": "#0f172a",
+        "secondary": "#ebe3f2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2eff6",
+        "mutedForeground": "#64748b",
+        "accent": "#d9c4ee",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e1d8e9",
+        "input": "#e1d8e9",
+        "ring": "#a855f7"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#c091ee",
+        "primaryForeground": "#020617",
+        "secondary": "#270349",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f033a",
+        "mutedForeground": "#94a3b8",
+        "accent": "#341353",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#340561",
+        "input": "#340561",
+        "ring": "#c091ee"
+      }
+    },
+    {
+      "seed": "#d946ef",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#d946ef",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f0e4f1",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f5eff5",
+        "mutedForeground": "#64748b",
+        "accent": "#e7c5ec",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e6d9e8",
+        "input": "#e6d9e8",
+        "ring": "#d946ef"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#df94ea",
+        "primaryForeground": "#020617",
+        "secondary": "#3e0646",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#320538",
+        "mutedForeground": "#94a3b8",
+        "accent": "#491551",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#53085e",
+        "input": "#53085e",
+        "ring": "#df94ea"
+      }
+    },
+    {
+      "seed": "#ec4899",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ec4899",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f1e4eb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f5eff2",
+        "mutedForeground": "#64748b",
+        "accent": "#ebc6d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e8d9e0",
+        "input": "#e8d9e0",
+        "ring": "#ec4899"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#e996bf",
+        "primaryForeground": "#020617",
+        "secondary": "#450726",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#37061e",
+        "mutedForeground": "#94a3b8",
+        "accent": "#501633",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#5c0a32",
+        "input": "#5c0a32",
+        "ring": "#e996bf"
+      }
+    },
+    {
+      "seed": "#f43f5e",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#f43f5e",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f2e3e6",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6eff0",
+        "mutedForeground": "#64748b",
+        "accent": "#edc4cb",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e9d8db",
+        "input": "#e9d8db",
+        "ring": "#f43f5e"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#ed92a1",
+        "primaryForeground": "#020617",
+        "secondary": "#480410",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3a030d",
+        "mutedForeground": "#94a3b8",
+        "accent": "#53131e",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#600615",
+        "input": "#600615",
+        "ring": "#ed92a1"
+      }
+    },
+    {
+      "seed": "#000000",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#000000",
+        "primaryForeground": "#ffffff",
+        "secondary": "#ebebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d9d9d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#000000"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bfbfbf",
+        "primaryForeground": "#020617",
+        "secondary": "#262626",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f1f1f",
+        "mutedForeground": "#94a3b8",
+        "accent": "#333333",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#333333",
+        "input": "#333333",
+        "ring": "#bfbfbf"
+      }
+    },
+    {
+      "seed": "#ffffff",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ffffff",
+        "primaryForeground": "#0f172a",
+        "secondary": "#ebebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d9d9d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#ffffff"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bfbfbf",
+        "primaryForeground": "#020617",
+        "secondary": "#262626",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f1f1f",
+        "mutedForeground": "#94a3b8",
+        "accent": "#333333",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#333333",
+        "input": "#333333",
+        "ring": "#bfbfbf"
+      }
+    },
+    {
+      "seed": "#808080",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#808080",
+        "primaryForeground": "#0f172a",
+        "secondary": "#ebebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d9d9d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#808080"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bfbfbf",
+        "primaryForeground": "#020617",
+        "secondary": "#262626",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f1f1f",
+        "mutedForeground": "#94a3b8",
+        "accent": "#333333",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#333333",
+        "input": "#333333",
+        "ring": "#bfbfbf"
+      }
+    },
+    {
+      "seed": "#a1a1aa",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#a1a1aa",
+        "primaryForeground": "#0f172a",
+        "secondary": "#eaeaeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d8d8da",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e1",
+        "input": "#e0e0e1",
+        "ring": "#a1a1aa"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bdbdc2",
+        "primaryForeground": "#020617",
+        "secondary": "#242428",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1d1d20",
+        "mutedForeground": "#94a3b8",
+        "accent": "#313135",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#303036",
+        "input": "#303036",
+        "ring": "#bdbdc2"
+      }
+    },
+    {
+      "seed": "#7f8c8d",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#7f8c8d",
+        "primaryForeground": "#0f172a",
+        "secondary": "#eaebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d7dada",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e1e1",
+        "input": "#e0e1e1",
+        "ring": "#7f8c8d"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bcc2c2",
+        "primaryForeground": "#020617",
+        "secondary": "#242828",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1d2020",
+        "mutedForeground": "#94a3b8",
+        "accent": "#313535",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#303636",
+        "input": "#303636",
+        "ring": "#bcc2c2"
+      }
+    },
+    {
+      "seed": "#f5f5f5",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#f5f5f5",
+        "primaryForeground": "#0f172a",
+        "secondary": "#ebebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d9d9d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#f5f5f5"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bfbfbf",
+        "primaryForeground": "#020617",
+        "secondary": "#262626",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f1f1f",
+        "mutedForeground": "#94a3b8",
+        "accent": "#333333",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#333333",
+        "input": "#333333",
+        "ring": "#bfbfbf"
+      }
+    },
+    {
+      "seed": "#0a0a0a",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#0a0a0a",
+        "primaryForeground": "#ffffff",
+        "secondary": "#ebebeb",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2f2f2",
+        "mutedForeground": "#64748b",
+        "accent": "#d9d9d9",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#0a0a0a"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bfbfbf",
+        "primaryForeground": "#020617",
+        "secondary": "#262626",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1f1f1f",
+        "mutedForeground": "#94a3b8",
+        "accent": "#333333",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#333333",
+        "input": "#333333",
+        "ring": "#bfbfbf"
+      }
+    },
+    {
+      "seed": "#fde68a",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#fde68a",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f2efe3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6f4ef",
+        "mutedForeground": "#64748b",
+        "accent": "#efe6c3",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e9e6d8",
+        "input": "#e9e6d8",
+        "ring": "#fde68a"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#f1dd8e",
+        "primaryForeground": "#020617",
+        "secondary": "#4b3c01",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3c3001",
+        "mutedForeground": "#94a3b8",
+        "accent": "#564810",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#645102",
+        "input": "#645102",
+        "ring": "#f1dd8e"
+      }
+    },
+    {
+      "seed": "#bbf7d0",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#bbf7d0",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e4f1e9",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff5f1",
+        "mutedForeground": "#64748b",
+        "accent": "#c7ebd3",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d9e8de",
+        "input": "#d9e8de",
+        "ring": "#bbf7d0"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#97e8b3",
+        "primaryForeground": "#020617",
+        "secondary": "#08441d",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#063717",
+        "mutedForeground": "#94a3b8",
+        "accent": "#174f2b",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#0b5b27",
+        "input": "#0b5b27",
+        "ring": "#97e8b3"
+      }
+    },
+    {
+      "seed": "#bfdbfe",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#bfdbfe",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e3eaf3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eff2f6",
+        "mutedForeground": "#64748b",
+        "accent": "#c3d6ef",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d8dfe9",
+        "input": "#d8dfe9",
+        "ring": "#bfdbfe"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#8ebaf1",
+        "primaryForeground": "#020617",
+        "secondary": "#01224b",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#011b3c",
+        "mutedForeground": "#94a3b8",
+        "accent": "#102f56",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#022e64",
+        "input": "#022e64",
+        "ring": "#8ebaf1"
+      }
+    },
+    {
+      "seed": "#e9d5ff",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#e9d5ff",
+        "primaryForeground": "#0f172a",
+        "secondary": "#eae2f3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f2eef6",
+        "mutedForeground": "#64748b",
+        "accent": "#d8c2f0",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e0d7ea",
+        "input": "#e0d7ea",
+        "ring": "#e9d5ff"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#bd8cf2",
+        "primaryForeground": "#020617",
+        "secondary": "#24004d",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#1d003d",
+        "mutedForeground": "#94a3b8",
+        "accent": "#310f57",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#310066",
+        "input": "#310066",
+        "ring": "#bd8cf2"
+      }
+    },
+    {
+      "seed": "#ff0000",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ff0000",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f3e2e2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6eeee",
+        "mutedForeground": "#64748b",
+        "accent": "#f0c2c2",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#ead7d7",
+        "input": "#ead7d7",
+        "ring": "#ff0000"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#f28c8c",
+        "primaryForeground": "#020617",
+        "secondary": "#4d0000",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3d0000",
+        "mutedForeground": "#94a3b8",
+        "accent": "#570f0f",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#660000",
+        "input": "#660000",
+        "ring": "#f28c8c"
+      }
+    },
+    {
+      "seed": "#00ff00",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#00ff00",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e2f3e2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eef6ee",
+        "mutedForeground": "#64748b",
+        "accent": "#c2f0c2",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d7ead7",
+        "input": "#d7ead7",
+        "ring": "#00ff00"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#8cf28c",
+        "primaryForeground": "#020617",
+        "secondary": "#004d00",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#003d00",
+        "mutedForeground": "#94a3b8",
+        "accent": "#0f570f",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#006600",
+        "input": "#006600",
+        "ring": "#8cf28c"
+      }
+    },
+    {
+      "seed": "#0000ff",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#0000ff",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e2e2f3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eeeef6",
+        "mutedForeground": "#64748b",
+        "accent": "#c2c2f0",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d7d7ea",
+        "input": "#d7d7ea",
+        "ring": "#0000ff"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#8c8cf2",
+        "primaryForeground": "#020617",
+        "secondary": "#00004d",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#00003d",
+        "mutedForeground": "#94a3b8",
+        "accent": "#0f0f57",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#000066",
+        "input": "#000066",
+        "ring": "#8c8cf2"
+      }
+    },
+    {
+      "seed": "#00ffff",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#00ffff",
+        "primaryForeground": "#0f172a",
+        "secondary": "#e2f3f3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#eef6f6",
+        "mutedForeground": "#64748b",
+        "accent": "#c2f0f0",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#d7eaea",
+        "input": "#d7eaea",
+        "ring": "#00ffff"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#8cf2f2",
+        "primaryForeground": "#020617",
+        "secondary": "#004d4d",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#003d3d",
+        "mutedForeground": "#94a3b8",
+        "accent": "#0f5757",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#006666",
+        "input": "#006666",
+        "ring": "#8cf2f2"
+      }
+    },
+    {
+      "seed": "#ff00ff",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ff00ff",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f3e2f3",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6eef6",
+        "mutedForeground": "#64748b",
+        "accent": "#f0c2f0",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#ead7ea",
+        "input": "#ead7ea",
+        "ring": "#ff00ff"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#f28cf2",
+        "primaryForeground": "#020617",
+        "secondary": "#4d004d",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3d003d",
+        "mutedForeground": "#94a3b8",
+        "accent": "#570f57",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#660066",
+        "input": "#660066",
+        "ring": "#f28cf2"
+      }
+    },
+    {
+      "seed": "#ffff00",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#ffff00",
+        "primaryForeground": "#0f172a",
+        "secondary": "#f3f3e2",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f6f6ee",
+        "mutedForeground": "#64748b",
+        "accent": "#f0f0c2",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#eaead7",
+        "input": "#eaead7",
+        "ring": "#ffff00"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#f2f28c",
+        "primaryForeground": "#020617",
+        "secondary": "#4d4d00",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#3d3d00",
+        "mutedForeground": "#94a3b8",
+        "accent": "#57570f",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#666600",
+        "input": "#666600",
+        "ring": "#f2f28c"
+      }
+    },
+    {
+      "seed": "#78350f",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#78350f",
+        "primaryForeground": "#ffffff",
+        "secondary": "#f1e9e4",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f5f1ef",
+        "mutedForeground": "#64748b",
+        "accent": "#ebd4c7",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e8ded9",
+        "input": "#e8ded9",
+        "ring": "#78350f"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#e7b498",
+        "primaryForeground": "#020617",
+        "secondary": "#441e08",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#361807",
+        "mutedForeground": "#94a3b8",
+        "accent": "#4f2b17",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#5b280b",
+        "input": "#5b280b",
+        "ring": "#e7b498"
+      }
+    },
+    {
+      "seed": "#1e3a8a",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#1e3a8a",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e5e8f0",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f0f1f5",
+        "mutedForeground": "#64748b",
+        "accent": "#cad2e8",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#dadee6",
+        "input": "#dadee6",
+        "ring": "#1e3a8a"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#9eafe0",
+        "primaryForeground": "#020617",
+        "secondary": "#0e1a3f",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#0b1532",
+        "mutedForeground": "#94a3b8",
+        "accent": "#1c284a",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#122354",
+        "input": "#122354",
+        "ring": "#9eafe0"
+      }
+    },
+    {
+      "seed": "#831843",
+      "light": {
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+        "card": "#ffffff",
+        "cardForeground": "#0f172a",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f172a",
+        "primary": "#831843",
+        "primaryForeground": "#ffffff",
+        "secondary": "#f0e5e9",
+        "secondaryForeground": "#0f172a",
+        "muted": "#f5f0f2",
+        "mutedForeground": "#64748b",
+        "accent": "#e9c9d6",
+        "accentForeground": "#0f172a",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#22c55e",
+        "successForeground": "#ffffff",
+        "border": "#e7dadf",
+        "input": "#e7dadf",
+        "ring": "#831843"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#f8fafc",
+        "card": "#0f172a",
+        "cardForeground": "#f8fafc",
+        "popover": "#0f172a",
+        "popoverForeground": "#f8fafc",
+        "primary": "#e29cb8",
+        "primaryForeground": "#020617",
+        "secondary": "#410c21",
+        "secondaryForeground": "#f8fafc",
+        "muted": "#34091a",
+        "mutedForeground": "#94a3b8",
+        "accent": "#4c1a2e",
+        "accentForeground": "#f8fafc",
+        "destructive": "#f87171",
+        "destructiveForeground": "#020617",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#56102c",
+        "input": "#56102c",
+        "ring": "#e29cb8"
+      }
+    }
+  ],
+  "defaultPresets": [
+    {
+      "name": "oat-light",
+      "family": "oat",
+      "mode": "light",
+      "colors": {
+        "background": "#fbf7f1",
+        "foreground": "#3a2b1c",
+        "card": "#ffffff",
+        "cardForeground": "#3a2b1c",
+        "popover": "#ffffff",
+        "popoverForeground": "#3a2b1c",
+        "primary": "#b45309",
+        "primaryForeground": "#fffaf0",
+        "secondary": "#f4e8d7",
+        "secondaryForeground": "#7a4a12",
+        "muted": "#f4e8d7",
+        "mutedForeground": "#71604b",
+        "accent": "#f4e8d7",
+        "accentForeground": "#7a4a12",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#e7d8c4",
+        "input": "#e7d8c4",
+        "ring": "#b45309"
+      }
+    },
+    {
+      "name": "oat-dark",
+      "family": "oat",
+      "mode": "dark",
+      "colors": {
+        "background": "#171109",
+        "foreground": "#f6efe5",
+        "card": "#1e1710",
+        "cardForeground": "#f6efe5",
+        "popover": "#1e1710",
+        "popoverForeground": "#f6efe5",
+        "primary": "#e9aa66",
+        "primaryForeground": "#2a1a09",
+        "secondary": "#2c2215",
+        "secondaryForeground": "#eacba5",
+        "muted": "#2c2215",
+        "mutedForeground": "#a99a87",
+        "accent": "#2c2215",
+        "accentForeground": "#eacba5",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#433320",
+        "input": "#433320",
+        "ring": "#e9aa66"
+      }
+    },
+    {
+      "name": "berry-light",
+      "family": "berry",
+      "mode": "light",
+      "colors": {
+        "background": "#fdf4f7",
+        "foreground": "#46142a",
+        "card": "#ffffff",
+        "cardForeground": "#46142a",
+        "popover": "#ffffff",
+        "popoverForeground": "#46142a",
+        "primary": "#be185d",
+        "primaryForeground": "#ffffff",
+        "secondary": "#fce7ef",
+        "secondaryForeground": "#9d1350",
+        "muted": "#fce7ef",
+        "mutedForeground": "#7c5a6a",
+        "accent": "#fce7ef",
+        "accentForeground": "#9d1350",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#f3d1de",
+        "input": "#f3d1de",
+        "ring": "#be185d"
+      }
+    },
+    {
+      "name": "berry-dark",
+      "family": "berry",
+      "mode": "dark",
+      "colors": {
+        "background": "#1f1218",
+        "foreground": "#fceef4",
+        "card": "#271721",
+        "cardForeground": "#fceef4",
+        "popover": "#271721",
+        "popoverForeground": "#fceef4",
+        "primary": "#f472b6",
+        "primaryForeground": "#2a0b1c",
+        "secondary": "#34202b",
+        "secondaryForeground": "#f5c1d8",
+        "muted": "#34202b",
+        "mutedForeground": "#bd9dab",
+        "accent": "#34202b",
+        "accentForeground": "#f5c1d8",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#472e3c",
+        "input": "#472e3c",
+        "ring": "#f472b6"
+      }
+    },
+    {
+      "name": "mint-light",
+      "family": "mint",
+      "mode": "light",
+      "colors": {
+        "background": "#f3faf6",
+        "foreground": "#0f2f21",
+        "card": "#ffffff",
+        "cardForeground": "#0f2f21",
+        "popover": "#ffffff",
+        "popoverForeground": "#0f2f21",
+        "primary": "#0b8154",
+        "primaryForeground": "#ffffff",
+        "secondary": "#dcefe4",
+        "secondaryForeground": "#0b6547",
+        "muted": "#dcefe4",
+        "mutedForeground": "#42695a",
+        "accent": "#dcefe4",
+        "accentForeground": "#0b6547",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#cce7d6",
+        "input": "#cce7d6",
+        "ring": "#0b8154"
+      }
+    },
+    {
+      "name": "mint-dark",
+      "family": "mint",
+      "mode": "dark",
+      "colors": {
+        "background": "#0a1912",
+        "foreground": "#e9f7ef",
+        "card": "#0f2419",
+        "cardForeground": "#e9f7ef",
+        "popover": "#0f2419",
+        "popoverForeground": "#e9f7ef",
+        "primary": "#2fbf80",
+        "primaryForeground": "#05281a",
+        "secondary": "#173327",
+        "secondaryForeground": "#8fd6b4",
+        "muted": "#173327",
+        "mutedForeground": "#87a998",
+        "accent": "#173327",
+        "accentForeground": "#8fd6b4",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#1f4a34",
+        "input": "#1f4a34",
+        "ring": "#2fbf80"
+      }
+    },
+    {
+      "name": "citrus-light",
+      "family": "citrus",
+      "mode": "light",
+      "colors": {
+        "background": "#fdfaf0",
+        "foreground": "#3d2f0e",
+        "card": "#ffffff",
+        "cardForeground": "#3d2f0e",
+        "popover": "#ffffff",
+        "popoverForeground": "#3d2f0e",
+        "primary": "#d97706",
+        "primaryForeground": "#3b2100",
+        "secondary": "#fbeecb",
+        "secondaryForeground": "#85500a",
+        "muted": "#fbeecb",
+        "mutedForeground": "#6b5f3c",
+        "accent": "#fbeecb",
+        "accentForeground": "#85500a",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#ecddab",
+        "input": "#ecddab",
+        "ring": "#d97706"
+      }
+    },
+    {
+      "name": "citrus-dark",
+      "family": "citrus",
+      "mode": "dark",
+      "colors": {
+        "background": "#1b1506",
+        "foreground": "#fcf3d9",
+        "card": "#241d0b",
+        "cardForeground": "#fcf3d9",
+        "popover": "#241d0b",
+        "popoverForeground": "#fcf3d9",
+        "primary": "#fbbf24",
+        "primaryForeground": "#3a2500",
+        "secondary": "#33280f",
+        "secondaryForeground": "#f3db9a",
+        "muted": "#33280f",
+        "mutedForeground": "#c2ad7e",
+        "accent": "#33280f",
+        "accentForeground": "#f3db9a",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#51401b",
+        "input": "#51401b",
+        "ring": "#fbbf24"
+      }
+    },
+    {
+      "name": "cocoa-light",
+      "family": "cocoa",
+      "mode": "light",
+      "colors": {
+        "background": "#f8f3ee",
+        "foreground": "#2c1e15",
+        "card": "#ffffff",
+        "cardForeground": "#2c1e15",
+        "popover": "#ffffff",
+        "popoverForeground": "#2c1e15",
+        "primary": "#92400e",
+        "primaryForeground": "#fff8ef",
+        "secondary": "#ecdfd2",
+        "secondaryForeground": "#6b3d1a",
+        "muted": "#ecdfd2",
+        "mutedForeground": "#6f6254",
+        "accent": "#ecdfd2",
+        "accentForeground": "#6b3d1a",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#ddcec0",
+        "input": "#ddcec0",
+        "ring": "#92400e"
+      }
+    },
+    {
+      "name": "cocoa-dark",
+      "family": "cocoa",
+      "mode": "dark",
+      "colors": {
+        "background": "#17110c",
+        "foreground": "#f5ede4",
+        "card": "#1f1812",
+        "cardForeground": "#f5ede4",
+        "popover": "#1f1812",
+        "popoverForeground": "#f5ede4",
+        "primary": "#c9976b",
+        "primaryForeground": "#2a1a0e",
+        "secondary": "#2a1f16",
+        "secondaryForeground": "#e5c5a8",
+        "muted": "#2a1f16",
+        "mutedForeground": "#a49381",
+        "accent": "#2a1f16",
+        "accentForeground": "#e5c5a8",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#443829",
+        "input": "#443829",
+        "ring": "#c9976b"
+      }
+    },
+    {
+      "name": "plum-light",
+      "family": "plum",
+      "mode": "light",
+      "colors": {
+        "background": "#f8f6fd",
+        "foreground": "#322561",
+        "card": "#ffffff",
+        "cardForeground": "#322561",
+        "popover": "#ffffff",
+        "popoverForeground": "#322561",
+        "primary": "#7c3aed",
+        "primaryForeground": "#ffffff",
+        "secondary": "#ede8fb",
+        "secondaryForeground": "#5a2ba6",
+        "muted": "#ede8fb",
+        "mutedForeground": "#6b6390",
+        "accent": "#ede8fb",
+        "accentForeground": "#5a2ba6",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#ddd5f1",
+        "input": "#ddd5f1",
+        "ring": "#7c3aed"
+      }
+    },
+    {
+      "name": "plum-dark",
+      "family": "plum",
+      "mode": "dark",
+      "colors": {
+        "background": "#1b1430",
+        "foreground": "#efeaf9",
+        "card": "#231a3d",
+        "cardForeground": "#efeaf9",
+        "popover": "#231a3d",
+        "popoverForeground": "#efeaf9",
+        "primary": "#a78bfa",
+        "primaryForeground": "#231540",
+        "secondary": "#2d2348",
+        "secondaryForeground": "#cec2f7",
+        "muted": "#2d2348",
+        "mutedForeground": "#a79cc8",
+        "accent": "#2d2348",
+        "accentForeground": "#cec2f7",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#443a68",
+        "input": "#443a68",
+        "ring": "#a78bfa"
+      }
+    },
+    {
+      "name": "iris-light",
+      "family": "iris",
+      "mode": "light",
+      "colors": {
+        "background": "#f6f7fe",
+        "foreground": "#23295c",
+        "card": "#ffffff",
+        "cardForeground": "#23295c",
+        "popover": "#ffffff",
+        "popoverForeground": "#23295c",
+        "primary": "#4f46e5",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e2e6fc",
+        "secondaryForeground": "#3831a8",
+        "muted": "#e2e6fc",
+        "mutedForeground": "#4a5180",
+        "accent": "#e2e6fc",
+        "accentForeground": "#3831a8",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#d6dbef",
+        "input": "#d6dbef",
+        "ring": "#4f46e5"
+      }
+    },
+    {
+      "name": "iris-dark",
+      "family": "iris",
+      "mode": "dark",
+      "colors": {
+        "background": "#141831",
+        "foreground": "#e9ebfa",
+        "card": "#1b2040",
+        "cardForeground": "#e9ebfa",
+        "popover": "#1b2040",
+        "popoverForeground": "#e9ebfa",
+        "primary": "#818cf8",
+        "primaryForeground": "#1a1f45",
+        "secondary": "#232a58",
+        "secondaryForeground": "#c5ccfe",
+        "muted": "#232a58",
+        "mutedForeground": "#9aa2cf",
+        "accent": "#232a58",
+        "accentForeground": "#c5ccfe",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#2e3773",
+        "input": "#2e3773",
+        "ring": "#818cf8"
+      }
+    },
+    {
+      "name": "sky-light",
+      "family": "sky",
+      "mode": "light",
+      "colors": {
+        "background": "#f3f8fe",
+        "foreground": "#16314f",
+        "card": "#ffffff",
+        "cardForeground": "#16314f",
+        "popover": "#ffffff",
+        "popoverForeground": "#16314f",
+        "primary": "#0369a1",
+        "primaryForeground": "#ffffff",
+        "secondary": "#dcebf9",
+        "secondaryForeground": "#075985",
+        "muted": "#dcebf9",
+        "mutedForeground": "#45627d",
+        "accent": "#dcebf9",
+        "accentForeground": "#075985",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#cbddef",
+        "input": "#cbddef",
+        "ring": "#0369a1"
+      }
+    },
+    {
+      "name": "sky-dark",
+      "family": "sky",
+      "mode": "dark",
+      "colors": {
+        "background": "#0c1d2f",
+        "foreground": "#e7f1fb",
+        "card": "#12283f",
+        "cardForeground": "#e7f1fb",
+        "popover": "#12283f",
+        "popoverForeground": "#e7f1fb",
+        "primary": "#38bdf8",
+        "primaryForeground": "#08202e",
+        "secondary": "#14304d",
+        "secondaryForeground": "#a7d8fa",
+        "muted": "#14304d",
+        "mutedForeground": "#92aabb",
+        "accent": "#14304d",
+        "accentForeground": "#a7d8fa",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#204564",
+        "input": "#204564",
+        "ring": "#38bdf8"
+      }
+    },
+    {
+      "name": "graphite-light",
+      "family": "graphite",
+      "mode": "light",
+      "colors": {
+        "background": "#f7f8fa",
+        "foreground": "#1b2027",
+        "card": "#ffffff",
+        "cardForeground": "#1b2027",
+        "popover": "#ffffff",
+        "popoverForeground": "#1b2027",
+        "primary": "#4a5568",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e6eaf0",
+        "secondaryForeground": "#2d3748",
+        "muted": "#e6eaf0",
+        "mutedForeground": "#525d6b",
+        "accent": "#e6eaf0",
+        "accentForeground": "#2d3748",
+        "destructive": "#dc2626",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#d8dee6",
+        "input": "#d8dee6",
+        "ring": "#4a5568"
+      }
+    },
+    {
+      "name": "graphite-dark",
+      "family": "graphite",
+      "mode": "dark",
+      "colors": {
+        "background": "#14171d",
+        "foreground": "#ebeef2",
+        "card": "#1b1f27",
+        "cardForeground": "#ebeef2",
+        "popover": "#1b1f27",
+        "popoverForeground": "#ebeef2",
+        "primary": "#94a3b8",
+        "primaryForeground": "#17191f",
+        "secondary": "#20252e",
+        "secondaryForeground": "#c6ccd6",
+        "muted": "#20252e",
+        "mutedForeground": "#9aa3af",
+        "accent": "#20252e",
+        "accentForeground": "#c6ccd6",
+        "destructive": "#f87171",
+        "destructiveForeground": "#2b0e0e",
+        "success": "#4ade80",
+        "successForeground": "#020617",
+        "border": "#2c333d",
+        "input": "#2c333d",
+        "ring": "#94a3b8"
+      }
+    }
+  ],
+  "brandPresets": [
+    {
+      "name": "apple-light",
+      "family": "apple",
+      "mode": "light",
+      "colors": {
+        "background": "#f5f5f7",
+        "foreground": "#1d1d1f",
+        "card": "#ffffff",
+        "cardForeground": "#1d1d1f",
+        "popover": "#ffffff",
+        "popoverForeground": "#1d1d1f",
+        "primary": "#0071e3",
+        "primaryForeground": "#ffffff",
+        "secondary": "#86868b",
+        "secondaryForeground": "#1d1d1f",
+        "muted": "#f5f5f7",
+        "mutedForeground": "#86868b",
+        "accent": "#86868b",
+        "accentForeground": "#1d1d1f",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#d2d2d7",
+        "input": "#d2d2d7",
+        "ring": "#0071e3"
+      }
+    },
+    {
+      "name": "apple-dark",
+      "family": "apple",
+      "mode": "dark",
+      "colors": {
+        "background": "#000000",
+        "foreground": "#f5f5f7",
+        "card": "#1c1c1e",
+        "cardForeground": "#f5f5f7",
+        "popover": "#1c1c1e",
+        "popoverForeground": "#f5f5f7",
+        "primary": "#0a84ff",
+        "primaryForeground": "#000000",
+        "secondary": "#98989d",
+        "secondaryForeground": "#f5f5f7",
+        "muted": "#2c2c2e",
+        "mutedForeground": "#98989d",
+        "accent": "#98989d",
+        "accentForeground": "#f5f5f7",
+        "destructive": "#f87171",
+        "destructiveForeground": "#000000",
+        "success": "#4ade80",
+        "successForeground": "#000000",
+        "border": "#38383a",
+        "input": "#38383a",
+        "ring": "#0a84ff"
+      }
+    },
+    {
+      "name": "github-light",
+      "family": "github",
+      "mode": "light",
+      "colors": {
+        "background": "#ffffff",
+        "foreground": "#1f2328",
+        "card": "#ffffff",
+        "cardForeground": "#1f2328",
+        "popover": "#ffffff",
+        "popoverForeground": "#1f2328",
+        "primary": "#24292f",
+        "primaryForeground": "#ffffff",
+        "secondary": "#ddf4ff",
+        "secondaryForeground": "#1f2328",
+        "muted": "#f6f8fa",
+        "mutedForeground": "#656d76",
+        "accent": "#ddf4ff",
+        "accentForeground": "#1f2328",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#d0d7de",
+        "input": "#d0d7de",
+        "ring": "#0969da"
+      }
+    },
+    {
+      "name": "github-dark",
+      "family": "github",
+      "mode": "dark",
+      "colors": {
+        "background": "#0d1117",
+        "foreground": "#c9d1d9",
+        "card": "#161b22",
+        "cardForeground": "#c9d1d9",
+        "popover": "#161b22",
+        "popoverForeground": "#c9d1d9",
+        "primary": "#e6edf3",
+        "primaryForeground": "#000000",
+        "secondary": "#1f3a5f",
+        "secondaryForeground": "#c9d1d9",
+        "muted": "#1c2128",
+        "mutedForeground": "#8b949e",
+        "accent": "#1f3a5f",
+        "accentForeground": "#c9d1d9",
+        "destructive": "#f87171",
+        "destructiveForeground": "#000000",
+        "success": "#4ade80",
+        "successForeground": "#000000",
+        "border": "#30363d",
+        "input": "#30363d",
+        "ring": "#58a6ff"
+      }
+    },
+    {
+      "name": "vercel-light",
+      "family": "vercel",
+      "mode": "light",
+      "colors": {
+        "background": "#ffffff",
+        "foreground": "#000000",
+        "card": "#ffffff",
+        "cardForeground": "#000000",
+        "popover": "#ffffff",
+        "popoverForeground": "#000000",
+        "primary": "#000000",
+        "primaryForeground": "#ffffff",
+        "secondary": "#fafafa",
+        "secondaryForeground": "#000000",
+        "muted": "#fafafa",
+        "mutedForeground": "#737373",
+        "accent": "#fafafa",
+        "accentForeground": "#000000",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#eaeaea",
+        "input": "#eaeaea",
+        "ring": "#000000"
+      }
+    },
+    {
+      "name": "vercel-dark",
+      "family": "vercel",
+      "mode": "dark",
+      "colors": {
+        "background": "#000000",
+        "foreground": "#ffffff",
+        "card": "#0a0a0a",
+        "cardForeground": "#ffffff",
+        "popover": "#0a0a0a",
+        "popoverForeground": "#ffffff",
+        "primary": "#ffffff",
+        "primaryForeground": "#000000",
+        "secondary": "#1a1a1a",
+        "secondaryForeground": "#ffffff",
+        "muted": "#1a1a1a",
+        "mutedForeground": "#a3a3a3",
+        "accent": "#1a1a1a",
+        "accentForeground": "#ffffff",
+        "destructive": "#f87171",
+        "destructiveForeground": "#000000",
+        "success": "#4ade80",
+        "successForeground": "#000000",
+        "border": "#262626",
+        "input": "#262626",
+        "ring": "#ffffff"
+      }
+    },
+    {
+      "name": "slack-light",
+      "family": "slack",
+      "mode": "light",
+      "colors": {
+        "background": "#ffffff",
+        "foreground": "#1d1c1d",
+        "card": "#ffffff",
+        "cardForeground": "#1d1c1d",
+        "popover": "#ffffff",
+        "popoverForeground": "#1d1c1d",
+        "primary": "#e01e5a",
+        "primaryForeground": "#ffffff",
+        "secondary": "#f5f3f4",
+        "secondaryForeground": "#1d1c1d",
+        "muted": "#f5f3f4",
+        "mutedForeground": "#6b6a6a",
+        "accent": "#f5f3f4",
+        "accentForeground": "#1d1c1d",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#e0e0e0",
+        "input": "#e0e0e0",
+        "ring": "#e01e5a"
+      }
+    },
+    {
+      "name": "slack-dark",
+      "family": "slack",
+      "mode": "dark",
+      "colors": {
+        "background": "#1d1c1d",
+        "foreground": "#e0e0e0",
+        "card": "#2c2c2c",
+        "cardForeground": "#e0e0e0",
+        "popover": "#2c2c2c",
+        "popoverForeground": "#e0e0e0",
+        "primary": "#e01e5a",
+        "primaryForeground": "#000000",
+        "secondary": "#16a34a",
+        "secondaryForeground": "#e0e0e0",
+        "muted": "#3d3c3d",
+        "mutedForeground": "#9d9c9c",
+        "accent": "#16a34a",
+        "accentForeground": "#e0e0e0",
+        "destructive": "#f87171",
+        "destructiveForeground": "#000000",
+        "success": "#4ade80",
+        "successForeground": "#000000",
+        "border": "#4d4c4d",
+        "input": "#4d4c4d",
+        "ring": "#e01e5a"
+      }
+    },
+    {
+      "name": "discord-light",
+      "family": "discord",
+      "mode": "light",
+      "colors": {
+        "background": "#ffffff",
+        "foreground": "#040405",
+        "card": "#ffffff",
+        "cardForeground": "#040405",
+        "popover": "#ffffff",
+        "popoverForeground": "#040405",
+        "primary": "#5865f2",
+        "primaryForeground": "#ffffff",
+        "secondary": "#f0f0ff",
+        "secondaryForeground": "#040405",
+        "muted": "#f2f2f3",
+        "mutedForeground": "#999ba4",
+        "accent": "#f0f0ff",
+        "accentForeground": "#040405",
+        "destructive": "#ef4444",
+        "destructiveForeground": "#ffffff",
+        "success": "#16a34a",
+        "successForeground": "#ffffff",
+        "border": "#e3e3e3",
+        "input": "#e3e3e3",
+        "ring": "#5865f2"
+      }
+    },
+    {
+      "name": "discord-dark",
+      "family": "discord",
+      "mode": "dark",
+      "colors": {
+        "background": "#2c2f33",
+        "foreground": "#dcddde",
+        "card": "#36393f",
+        "cardForeground": "#dcddde",
+        "popover": "#36393f",
+        "popoverForeground": "#dcddde",
+        "primary": "#5865f2",
+        "primaryForeground": "#000000",
+        "secondary": "#4f545c",
+        "secondaryForeground": "#dcddde",
+        "muted": "#2f3136",
+        "mutedForeground": "#b9bbbe",
+        "accent": "#4f545c",
+        "accentForeground": "#dcddde",
+        "destructive": "#f87171",
+        "destructiveForeground": "#000000",
+        "success": "#4ade80",
+        "successForeground": "#000000",
+        "border": "#40444b",
+        "input": "#40444b",
+        "ring": "#5865f2"
+      }
+    }
+  ],
+  "contrast": [
+    {
+      "name": "light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 17.063,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 17.853,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 17.853,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 17.853,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 14.482,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 14.482,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.147,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 17.063,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.955,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.955,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 17.063,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 13.982,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 13.982,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.705,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.454,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 10.245,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "oat-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.758,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.617,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.617,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.827,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 6.169,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.169,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.996,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "oat-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.417,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.521,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.521,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 8.324,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 10.087,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 10.087,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.687,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "berry-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 13.961,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.065,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.065,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.038,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 6.742,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.742,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.05,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "berry-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.128,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.173,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.173,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.817,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 9.731,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 9.731,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.18,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "mint-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 13.677,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 14.494,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 14.494,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.904,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 5.902,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 5.902,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.15,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "mint-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.383,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 14.778,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 14.778,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.706,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 8.085,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 8.085,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.3,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "citrus-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.479,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.032,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.032,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.697,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 5.777,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 5.777,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.468,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "citrus-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.395,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.101,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.101,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 8.708,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 10.619,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 10.619,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.596,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "cocoa-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 14.61,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.109,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.109,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.727,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 6.956,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.956,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.521,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "cocoa-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.148,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.127,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.127,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.485,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 9.865,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 9.865,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.413,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "plum-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.456,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.351,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.351,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 5.699,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 7.523,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 7.523,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.6,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "plum-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 14.972,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.84,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.84,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.16,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 8.775,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 8.775,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.695,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "iris-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.736,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.608,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.608,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.288,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 7.804,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 7.804,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.1,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "iris-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 14.716,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.357,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.357,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 5.31,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 8.709,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 8.709,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.47,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "sky-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.399,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.238,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.238,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 5.934,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 6.228,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.228,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.247,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "sky-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 14.908,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 13.114,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 13.114,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 7.802,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 8.877,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 8.877,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.571,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "graphite-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 15.409,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.374,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.374,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 7.526,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 9.929,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 9.929,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.544,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 4.829,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "graphite-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 15.422,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 14.187,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 14.187,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.852,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 9.527,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 9.527,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.029,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.478,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 11.577,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "apple-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 15.457,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.83,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.83,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.697,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 4.645,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 4.645,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 19.287,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "apple-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 19.287,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.626,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.626,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 5.757,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 7.313,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 7.313,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.853,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 7.592,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 12.051,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "github-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 15.798,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 15.798,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 15.798,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 14.652,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 13.886,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 13.886,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.929,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "github-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.261,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 11.207,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 11.207,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 17.772,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 7.44,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 7.44,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 5.262,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 7.592,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 12.051,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "vercel-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 20.119,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 20.119,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.543,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "vercel-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 19.798,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 19.798,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 17.404,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 17.404,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.9,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 7.592,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 12.051,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "slack-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 16.989,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.989,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.989,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.664,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 15.378,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 15.378,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 4.881,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "slack-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 12.87,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 10.579,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 10.579,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.503,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 6.372,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.372,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 10.982,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 7.592,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 12.051,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "discord-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 20.493,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 20.493,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 20.493,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.607,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 18.164,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 18.164,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 18.771,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.58,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 6.372,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "discord-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 9.888,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 8.512,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 8.512,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 4.559,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 5.604,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 5.604,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 6.765,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 7.592,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 12.051,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "high-contrast-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 9.398,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 15.908,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 9.398,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 14.304,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.887,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 5.137,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "high-contrast-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.211,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 12.635,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.211,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 10.89,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.162,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 9.966,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "large-text-light",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 20.119,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 21,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.622,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 17.139,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.622,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 10.312,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 5.887,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 5.137,
+          "passesAA": true
+        }
+      ]
+    },
+    {
+      "name": "large-text-dark",
+      "checks": [
+        {
+          "pair": "foreground/background",
+          "ratio": 17.373,
+          "passesAA": true
+        },
+        {
+          "pair": "cardForeground/card",
+          "ratio": 16.57,
+          "passesAA": true
+        },
+        {
+          "pair": "popoverForeground/popover",
+          "ratio": 16.57,
+          "passesAA": true
+        },
+        {
+          "pair": "primaryForeground/primary",
+          "ratio": 6.211,
+          "passesAA": true
+        },
+        {
+          "pair": "secondaryForeground/secondary",
+          "ratio": 12.595,
+          "passesAA": true
+        },
+        {
+          "pair": "accentForeground/accent",
+          "ratio": 6.211,
+          "passesAA": true
+        },
+        {
+          "pair": "mutedForeground/muted",
+          "ratio": 8.938,
+          "passesAA": true
+        },
+        {
+          "pair": "destructiveForeground/destructive",
+          "ratio": 6.162,
+          "passesAA": true
+        },
+        {
+          "pair": "successForeground/success",
+          "ratio": 9.966,
+          "passesAA": true
+        }
+      ]
+    }
+  ],
+  "presetOverride": {
+    "primary": "#6d28d9"
+  }
+}

@@ -7,7 +7,7 @@ import {
   themeToCSSVariables,
   type InitialThemeResolution,
   type ThemeDefinition,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 export interface ThemeBootstrapProps<T extends ThemeDefinition> {
   themes: readonly T[];

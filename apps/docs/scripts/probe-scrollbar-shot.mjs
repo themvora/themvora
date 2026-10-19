@@ -46,7 +46,7 @@ await page.screenshot({
 // Force the docs theme to dark and repeat.
 await page.evaluate(() => {
   document.documentElement.setAttribute("data-theme-mode", "dark");
-  document.documentElement.setAttribute("data-theme", "theme-kit-default-dark");
+  document.documentElement.setAttribute("data-theme", "themvora-default-dark");
   localStorage.setItem("theme-mode", "dark");
 });
 await page.waitForTimeout(1200);

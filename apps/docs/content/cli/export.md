@@ -1,9 +1,9 @@
-# `theme-kit export`
+# `themvora export`
 
 ## Prerequisites
 - Node.js 22+
 - Theme JSON file(s) to export
-- Project with @theme-kit/cli installed or npx access
+- Project with @themvora/cli installed or npx access
 
 Export theme tokens to **CSS variables** or a **flat JSON map** for another
 system. Every token becomes a `--theme-*` custom property, so the exported CSS
@@ -11,31 +11,48 @@ needs no runtime and no framework — Tailwind, shadcn/ui, daisyUI, and
 hand-written CSS can all consume the variables.
 
 <!-- cli-command:generated:start -->
-## Synopsis
-
-Exports theme tokens to CSS variables or a flat JSON map.
+## Synopsis — Export a theme to CSS or JSON
 
 ```text
 Usage:
-  theme-kit export <file> [options]
+  themvora export <file> [options]
 ```
 
-## Options
+| Argument | Description |
+| -------- | ----------- |
+| `<file>` | Theme file to export. |
+
+### Options
 
 | Option | Description | Default |
 | ------ | ----------- | ------- |
-| `--file <path>` | Theme file to export (or pass positionally) | — |
-| `--format <fmt>` | css \| json | `css` |
-| `--output <file>` | Write the export to a file instead of stdout | — |
+| `-f, --file <path>` | Theme file to export (or pass it positionally). | — |
+| `-F, --format <fmt>` | Output format. One of: `css`, `json`. | `css` |
+| `-o, --output <file>` | Write the export to a file instead of stdout. | — |
 
-> Generated from `packages/cli/src/cli.ts` — the same text `theme-kit export --help` prints.
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | success |
+| `1` | command/runtime error |
+| `2` | usage/argument error |
+
+### Examples
+
+```bash
+themvora export theme.json --format css
+themvora export theme.json --format json --output tokens.json
+```
+
+> Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders.
 <!-- cli-command:generated:end -->
 ## CSS variables
 
 A single theme:
 
 ```bash
-theme-kit export theme.json --format css --output theme.css
+themvora export theme.json --format css --output theme.css
 ```
 
 ```css
@@ -64,7 +81,7 @@ A light + dark pair exports both blocks:
 ## JSON
 
 ```bash
-theme-kit export theme.json --format json
+themvora export theme.json --format json
 ```
 
 Emits the flat `--theme-*` key/value map as JSON — useful for editors, scripts,
@@ -87,6 +104,6 @@ Omit `--output` to print the CSS (or JSON) to stdout.
 - [CLI reference](./reference)
 
 ## Related
-- [Theme Kit Quick Start](../quickstart)
+- [Themvora Quick Start](../quickstart)
 - [Tailwind Framework Guide](../../framework-guides/tailwind)
 - [API Reference](../../api-reference)

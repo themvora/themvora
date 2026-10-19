@@ -3,6 +3,7 @@
 export {
   useTheme,
   useThemeValue,
+  useGeneratedTheme,
   useThemeMode,
   useThemeFamily,
   useSetThemeMode,
@@ -18,4 +19,4 @@ export {
   useThemeLifecycle,
   useThemePacks,
   useThemeSchedule,
-} from "@theme-kit/react";
+} from "@themvora/react";

@@ -1,9 +1,9 @@
 /**
  * Angular injection helper for the daisyUI adapter
- * (`@theme-kit/daisyui/angular`).
+ * (`@themvora/daisyui/angular`).
  *
  * `injectDaisyTheme(runtime, options?)` registers the daisyUI adapter on an
- * explicitly provided Theme Kit runtime and unregisters it when the current
+ * explicitly provided Themvora runtime and unregisters it when the current
  * injection context is destroyed.
  *
  * @packageDocumentation
@@ -14,7 +14,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createDaisyAdapter } from "./adapter";
 
@@ -30,24 +30,24 @@ export interface InjectAdapterOptions {
 }
 
 /**
- * Angular injectable that registers the daisyUI adapter on the given Theme Kit
+ * Angular injectable that registers the daisyUI adapter on the given Themvora
  * runtime. Maintains a tagged `:root` style element with concrete `--color-*`
  * variables, kept in sync as the active theme changes.
  *
  * Call in your component (or root) constructor or field initializer — the
  * function uses `DestroyRef` to unregister the adapter, so it must run in an
  * injection context (the runtime usually comes from
- * `injectThemeRuntime()` in `@theme-kit/angular`):
+ * `injectThemeRuntime()` in `@themvora/angular`):
  *
  * ```ts
- * import { injectDaisyTheme } from "@theme-kit/daisyui/angular";
+ * import { injectDaisyTheme } from "@themvora/daisyui/angular";
  *
  * export class AppComponent {
  *   adapter = injectDaisyTheme(runtime);
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to register the adapter on.
+ * @param runtime The active Themvora runtime to register the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

@@ -1,9 +1,9 @@
 /**
- * Base class for Theme Kit custom elements that is safe to import in
+ * Base class for Themvora custom elements that is safe to import in
  * non-DOM (SSR) environments.
  *
  * In the browser this is exactly `HTMLElement`. On the server it degrades to a
- * plain class so that importing `@theme-kit/web` (which Vue/Nuxt and other
+ * plain class so that importing `@themvora/web` (which Vue/Nuxt and other
  * SSR bundles pull in transitively) does not throw a `ReferenceError:
  * HTMLElement is not defined` at module load. The elements are only ever
  * constructed and registered (`customElements.define`) in the browser, so the

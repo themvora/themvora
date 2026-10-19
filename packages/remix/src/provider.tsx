@@ -3,11 +3,11 @@ import type {
   InitialThemeResolution,
   ThemeDefinition,
   ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import {
   ThemeProvider as ReactThemeProvider,
   useThemeRuntime,
-} from "@theme-kit/react";
+} from "@themvora/react";
 import { createRemixThemePersistence } from "./persistence";
 import { computeFingerprint } from "./fingerprint";
 
@@ -113,7 +113,7 @@ function CookieSync<T extends ThemeDefinition>({
  *
  * @example
  * ```tsx
- * import { ThemeProvider } from "@theme-kit/remix";
+ * import { ThemeProvider } from "@themvora/remix";
  *
  * export default function App({ children }) {
  *   return (
@@ -158,6 +158,13 @@ export function ThemeProvider<T extends ThemeDefinition>({
     <ReactThemeProvider
       {...(initial ? { initial } : {})}
       {...(themes ? { themes } : {})}
+      // `defaultTheme` belongs in the React provider's options, not only in the
+      // persistence adapter: it is the runtime's fallback when no selection is
+      // persisted (a client-only mount, a cleared cookie), and forwarding it
+      // also keeps it applied through the shared `configure()` contract when it
+      // changes. When an SSR-resolved `initial` is present it still wins, so
+      // the zero-flash path is unchanged.
+      {...(defaultTheme !== undefined ? { defaultTheme } : {})}
       {...(initialMode !== undefined ? { initialMode } : {})}
       {...(initialFamily !== undefined ? { initialFamily } : {})}
       readPersistenceOnInit={!initial}

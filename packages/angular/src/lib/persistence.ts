@@ -3,9 +3,9 @@ import { isPlatformBrowser, isPlatformServer } from "@angular/common";
 import type {
   ThemeSelectionPersistenceAdapter,
   ThemeSelectionState,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
-export const THEME_SELECTION_KEY = makeStateKey<ThemeSelectionState>("theme-kit:selection");
+export const THEME_SELECTION_KEY = makeStateKey<ThemeSelectionState>("themvora:selection");
 
 const STORAGE_KEY = "theme-selection";
 
@@ -21,7 +21,7 @@ const STORAGE_KEY = "theme-selection";
  * @returns A `ThemeSelectionPersistenceAdapter` bound to the current platform.
  *
  * @see `createThemePersistence`
- * @see {@link provideThemeKit}
+ * @see {@link provideTheme}
  */
 export function createAngularPersistence(): ThemeSelectionPersistenceAdapter {
   const platformId = inject(PLATFORM_ID);

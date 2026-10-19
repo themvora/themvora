@@ -1,33 +1,33 @@
-## @theme-kit/core/vite
-Theme Kit Vite plugin — injects the zero-flash bootstrap script and the
+## @themvora/core/vite
+Themvora Vite plugin — injects the zero-flash bootstrap script and the
 pre-paint scrollbar CSS into the served HTML.
 
-Imported from the `@theme-kit/core/vite` subpath. Use with the Vite
+Imported from the `@themvora/core/vite` subpath. Use with the Vite
 configuration of vanilla or framework apps that render HTML on the
 server.
 
-> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
-### `themeKitVitePlugin<T extends ThemeDefinition<string>>(options): ThemeKitVitePlugin`
+### `themvoraVitePlugin<T extends ThemeDefinition<string>>(options): ThemvoraVitePlugin`
 Vite plugin that injects the theme bootstrap as a blocking inline script at
 the top of `index.html`, so the persisted theme is applied before the first
 paint. Prevents the flash-of-wrong-theme on reload for client-rendered apps.
 
-**See also:** `ThemeKitVitePluginOptions`
+**See also:** `ThemvoraVitePluginOptions`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `options` | `ThemeKitVitePluginOptions<T>` | Build-time options. Optional; the default discovery path needs none. |
+| `options` | `ThemvoraVitePluginOptions<T>` | Build-time options. Optional; the default discovery path needs none. |
 
-**Returns** `ThemeKitVitePlugin` — A Vite plugin, to be added to `plugins`.
+**Returns** `ThemvoraVitePlugin` — A Vite plugin, to be added to `plugins`.
 
 **Config discovery.** The plugin looks for the application's
 `theme.config.ts` in Vite's root (`config.root`, or `process.cwd()` when
 unset), trying `theme.config.ts`, `.tsx`, `.mts`, `.mjs`, `.js` and `.cjs` in
 that order. The file must have a default export — the object
-defineThemeKitConfig returns. Discovery goes through Vite's own
+defineThemvoraConfig returns. Discovery goes through Vite's own
 `loadConfigFromFile`, so a TypeScript config resolves its imports exactly as
 `vite.config.ts` does.
 
@@ -36,7 +36,7 @@ the blocking bootstrap script (`head-prepend`, `enforce: "pre"`) and, when
 `scrollbar` is enabled, the pre-paint scrollbar CSS. The bootstrap payload is
 the ThemeBootstrapConfig projection of the config — the registry, the
 fallback theme, the initial mode/family, the storage key and the prefix. It is
-also published to the browser as `window.__THEME_KIT_CONFIG__`, which is what
+also published to the browser as `window.__THEMVORA_CONFIG__`, which is what
 lets the provider take no theme props.
 
 **Development.** `transformIndexHtml` runs on every dev page load, so the
@@ -58,10 +58,10 @@ failing the build.
 
 ```ts
 // vite.config.ts — nothing to configure beyond registering the plugin.
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [react(), themeKitVitePlugin()],
+  plugins: [react(), themvoraVitePlugin()],
 });
 ```
 
@@ -69,12 +69,12 @@ export default defineConfig({
 
 ## Interfaces
 
-### `ThemeKitThemeConfig<T extends ThemeDefinition>`
+### `ThemvoraThemeConfig<T extends ThemeDefinition>`
 The deprecated inline form of the theme configuration: the registry, the
 fallback theme, the initial mode/family, and the persistence key and prefix,
-passed straight to themeKitVitePlugin.
+passed straight to themvoraVitePlugin.
 
-**See also:** `themeKitVitePlugin`
+**See also:** `themvoraVitePlugin`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
@@ -88,7 +88,7 @@ passed straight to themeKitVitePlugin.
 ---
 
 
-### `ThemeKitViteInjectedTag`
+### `ThemvoraViteInjectedTag`
 Structural twin of Vite's `HtmlTagDescriptor`. Kept local so the plugin does
 not need a hard dependency on `vite` types; the shape is assignable to
 Vite's `IndexHtmlTransformResult` in Vite 4 through 8.
@@ -103,7 +103,7 @@ Vite's `IndexHtmlTransformResult` in Vite 4 through 8.
 ---
 
 
-### `ThemeKitVitePlugin`
+### `ThemvoraVitePlugin`
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `enforce` | `"pre"` | — |
@@ -112,25 +112,25 @@ Vite's `IndexHtmlTransformResult` in Vite 4 through 8.
 | `configureServer` (optional) | `void` | — |
 | `load` (optional) | `string \| Promise<string \| null \| undefined> \| null \| undefined` | — |
 | `resolveId` (optional) | `string \| Promise<string \| null \| undefined> \| null \| undefined` | — |
-| `transformIndexHtml` | `string \| ThemeKitViteInjectedTag[] \| { html: string; tags: ThemeKitViteInjectedTag[] } \| Promise<string \| ThemeKitViteInjectedTag[] \| { html: string; tags: ThemeKitViteInjectedTag[] }>` | — |
+| `transformIndexHtml` | `string \| ThemvoraViteInjectedTag[] \| { html: string; tags: ThemvoraViteInjectedTag[] } \| Promise<string \| ThemvoraViteInjectedTag[] \| { html: string; tags: ThemvoraViteInjectedTag[] }>` | — |
 
 ---
 
 
-### `ThemeKitVitePluginOptions<T extends ThemeDefinition>`
-Options for themeKitVitePlugin: where the application configuration
+### `ThemvoraVitePluginOptions<T extends ThemeDefinition>`
+Options for themvoraVitePlugin: where the application configuration
 lives, plus the concerns that only exist at build time.
 
-**See also:** `themeKitVitePlugin`
+**See also:** `themvoraVitePlugin`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `config` (optional) | `string \| ThemeKitThemeConfig<T>` | The application's theme configuration, when discovery is not enough. |
+| `config` (optional) | `string \| ThemvoraThemeConfig<T>` | The application's theme configuration, when discovery is not enough. |
 | `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no persisted selection exists. |
 | `initialFamily` (optional) | `string` | Family the pre-paint script uses when no persisted selection exists. |
 | `initialMode` (optional) | `ThemeMode` | Mode the pre-paint script uses when no persisted selection exists. |
 | `prefix` (optional) | `string` | CSS custom property prefix. |
-| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide native scrollbars before first paint by injecting the scrollbar pre-paint bootstrap script. `true` hides them (desktop), an options object keeps native bars on coarse-pointer devices unless `touch` is forced. Default `false` — the script is only needed when the page uses the Theme Kit overlay scrollbar. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide native scrollbars before first paint by injecting the scrollbar pre-paint bootstrap script. `true` hides them (desktop), an options object keeps native bars on coarse-pointer devices unless `touch` is forced. Default `false` — the script is only needed when the page uses the Themvora overlay scrollbar. |
 | `ssrContainer` (optional) | `string` | `id` of the element `ssrEntry`'s markup is injected into. |
 | `ssrEntry` (optional) | `string \| null` | Module that exports `render(): string` — the app's markup, server-rendered. Set it and the plugin prerenders `#root` in the **dev server** as well as in a build. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. |

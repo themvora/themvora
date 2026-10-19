@@ -19,7 +19,7 @@ const react: UseCase[] = [
     title: "Toggle light / dark",
     desc: "Read the active theme, mode and family and flip between them with zero config.",
     lang: "tsx",
-    code: `import { useTheme } from "@theme-kit/react";
+    code: `import { useTheme } from "@themvora/react";
 
 export function ThemeToggle() {
   const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
@@ -42,7 +42,7 @@ export function ThemeToggle() {
     title: "Undo / redo + live token editing",
     desc: "Theme changes are snapshotted automatically. Undo, redo, or patch tokens at runtime.",
     lang: "tsx",
-    code: `import { useThemeHistory, useThemeRuntime } from "@theme-kit/react";
+    code: `import { useThemeHistory, useThemeRuntime } from "@themvora/react";
 
 export function ThemeControls() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -66,8 +66,8 @@ export function ThemeControls() {
     desc: "Apply a specific theme to a section of the tree with scoped CSS variables.",
     lang: "tsx",
     code: `import { useRef } from "react";
-import { ThemeScope, useScopedTheme } from "@theme-kit/react";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope, useScopedTheme } from "@themvora/react";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
@@ -93,8 +93,8 @@ export function ScopedCard() {
     desc: "React to every theme change, and install a ready-made pack (e.g. a11y profiles) at runtime.",
     lang: "tsx",
     code: `import { useEffect } from "react";
-import { useThemeLifecycle, useThemePacks } from "@theme-kit/react";
-import { getAccessibilityProfiles } from "@theme-kit/core";
+import { useThemeLifecycle, useThemePacks } from "@themvora/react";
+import { getAccessibilityProfiles } from "@themvora/core";
 
 export function Telemetry() {
   const { on } = useThemeLifecycle();
@@ -122,7 +122,7 @@ export function Telemetry() {
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
-    code: `import { ThemeProvider } from "@theme-kit/react";
+    code: `import { ThemeProvider } from "@themvora/react";
 
 export function App() {
   return (
@@ -154,7 +154,7 @@ const next: UseCase[] = [
     desc: "The server component resolves the initial theme, renders CSS variables in the HTML, and blocks the flash.",
     lang: "tsx",
     code: `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -170,11 +170,11 @@ export default function RootLayout({ children }) {
   },
   {
     title: "Client-side switcher",
-    desc: "Hooks live behind @theme-kit/next/client and update cookies + DOM together.",
+    desc: "Hooks live behind @themvora/next/client and update cookies + DOM together.",
     lang: "tsx",
     code: `// app/theme-switcher.tsx
 "use client";
-import { useTheme } from "@theme-kit/next/client";
+import { useTheme } from "@themvora/next/client";
 
 export function ThemeSwitcher() {
   const { theme, mode, setMode, toggleTheme } = useTheme();
@@ -191,8 +191,8 @@ export function ThemeSwitcher() {
     lang: "tsx",
     code: `// app/widgets.tsx
 "use client";
-import { ThemeScope } from "@theme-kit/next/client";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/next/client";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
@@ -211,7 +211,7 @@ export function Widget() {
     code: `// app/runtime-demo.tsx
 "use client";
 import { useEffect } from "react";
-import { useThemeRuntime, useThemeLifecycle } from "@theme-kit/next/client";
+import { useThemeRuntime, useThemeLifecycle } from "@themvora/next/client";
 
 export function RuntimeDemo() {
   const runtime = useThemeRuntime();
@@ -235,9 +235,10 @@ export function RuntimeDemo() {
     desc: "Switch between a light and a dark theme at each visitor's local sunrise and sunset. Coordinates are auto-detected from the browser timezone — pin them with latitude/longitude or timeZone when you need to.",
     lang: "tsx",
     code: `// app/layout.tsx — no theme definitions required
-import { ThemeProvider } from "@theme-kit/next";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@themvora/next";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // No \`themes\` prop: the built-in neutral light/dark pair is used.
     // With your own themes, name the pair instead:
@@ -250,7 +251,7 @@ export default function RootLayout({ children }) {
 
 // app/schedule-status.tsx
 "use client";
-import { useThemeSchedule } from "@theme-kit/next/client";
+import { useThemeSchedule } from "@themvora/next/client";
 
 export function ScheduleStatus() {
   const schedule = useThemeSchedule();
@@ -273,7 +274,7 @@ export function ScheduleStatus() {
     lang: "tsx",
     code: `// app/sync-status.tsx
 "use client";
-import { useTheme } from "@theme-kit/next/client";
+import { useTheme } from "@themvora/next/client";
 
 export function SyncStatus() {
   const { theme, family, mode } = useTheme();
@@ -292,7 +293,7 @@ export function SyncStatus() {
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
     code: `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -317,7 +318,7 @@ const vue: UseCase[] = [
     desc: "useTheme exposes refs and setters — reactive in templates and scripts.",
     lang: "vue",
     code: `<script setup>
-import { useTheme } from "@theme-kit/vue";
+import { useTheme } from "@themvora/vue";
 const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
 </script>
 
@@ -335,7 +336,7 @@ const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
     desc: "History state is reactive; use it to build undo/redo controls.",
     lang: "vue",
     code: `<script setup>
-import { useThemeHistory, useThemeRuntime } from "@theme-kit/vue";
+import { useThemeHistory, useThemeRuntime } from "@themvora/vue";
 const { undo, redo, canUndo, canRedo } = useThemeHistory();
 const runtime = useThemeRuntime();
 </script>
@@ -353,8 +354,8 @@ const runtime = useThemeRuntime();
     desc: "ThemeScope applies a theme to a slot with scoped CSS variables.",
     lang: "vue",
     code: `<script setup lang="ts">
-import { ThemeScope } from "@theme-kit/vue";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/vue";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 </script>
@@ -372,8 +373,8 @@ const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
     lang: "vue",
     code: `<script setup>
 import { onMounted } from "vue";
-import { useThemeLifecycle, useThemePacks } from "@theme-kit/vue";
-import { getAccessibilityProfiles } from "@theme-kit/core";
+import { useThemeLifecycle, useThemePacks } from "@themvora/vue";
+import { getAccessibilityProfiles } from "@themvora/core";
 
 const { on } = useThemeLifecycle();
 const applyPack = useThemePacks();
@@ -394,7 +395,7 @@ onMounted(() => {
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "vue",
     code: `<script setup>
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 </script>
 
 <template>
@@ -413,7 +414,7 @@ const svelte: UseCase[] = [
     desc: "useTheme returns readable stores — prefix with $ in Svelte.",
     lang: "svelte",
     code: `<script>
-  import { useTheme } from "@theme-kit/svelte";
+  import { useTheme } from "@themvora/svelte";
   const { theme, mode, setMode, toggleTheme } = useTheme();
 </script>
 
@@ -425,7 +426,7 @@ const svelte: UseCase[] = [
     desc: "History stores are reactive, just like the theme state.",
     lang: "svelte",
     code: `<script>
-  import { useThemeHistory, useThemeRuntime } from "@theme-kit/svelte";
+  import { useThemeHistory, useThemeRuntime } from "@themvora/svelte";
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
   const runtime = useThemeRuntime();
 </script>
@@ -450,8 +451,8 @@ const svelte: UseCase[] = [
     lang: "svelte",
     code: `<script>
   import { onMount } from "svelte";
-  import { useThemeLifecycle, useThemePacks } from "@theme-kit/svelte";
-  import { getAccessibilityProfiles } from "@theme-kit/core";
+  import { useThemeLifecycle, useThemePacks } from "@themvora/svelte";
+  import { getAccessibilityProfiles } from "@themvora/core";
   const { on } = useThemeLifecycle();
   const applyPack = useThemePacks();
   onMount(() => on("beforeThemeChange", (e) => console.log(e.next.name)));
@@ -466,7 +467,7 @@ const svelte: UseCase[] = [
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "svelte",
 code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <ThemeProvider
@@ -482,7 +483,7 @@ const solid: UseCase[] = [
     title: "Toggle light / dark",
     desc: "useTheme returns signals and getters for fine-grained reactivity.",
     lang: "tsx",
-    code: `import { useTheme } from "@theme-kit/solid";
+    code: `import { useTheme } from "@themvora/solid";
 
 function ThemeToggle() {
   const { theme, mode, setMode, toggleTheme } = useTheme();
@@ -499,7 +500,7 @@ function ThemeToggle() {
     title: "Undo / redo theme changes",
     desc: "History controls as signals, plus live runtime updates.",
     lang: "tsx",
-    code: `import { useThemeHistory, useThemeRuntime } from "@theme-kit/solid";
+    code: `import { useThemeHistory, useThemeRuntime } from "@themvora/solid";
 
 function HistoryControls() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -519,7 +520,7 @@ function HistoryControls() {
     title: "Scope a subtree",
     desc: "ThemeScope themes a subtree with scoped CSS variables.",
     lang: "tsx",
-    code: `import { ThemeScope } from "@theme-kit/solid";
+    code: `import { ThemeScope } from "@themvora/solid";
 
 function Dashboard() {
   return (
@@ -537,9 +538,9 @@ function Dashboard() {
     desc: "Subscribe to lifecycle events and install theme packs.",
     lang: "tsx",
     code: `import { onMount } from "solid-js";
-import { useThemeLifecycle, useThemePacks } from "@theme-kit/solid";
-import { getAccessibilityProfiles } from "@theme-kit/core";
-import type { ThemeLifecycleEventMap } from "@theme-kit/core";
+import { useThemeLifecycle, useThemePacks } from "@themvora/solid";
+import { getAccessibilityProfiles } from "@themvora/core";
+import type { ThemeLifecycleEventMap } from "@themvora/core";
 
 function Telemetry() {
   const { on } = useThemeLifecycle();
@@ -561,7 +562,7 @@ function Telemetry() {
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
-    code: `import { ThemeProvider } from "@theme-kit/solid";
+    code: `import { ThemeProvider } from "@themvora/solid";
 
 export function App() {
   return (
@@ -578,13 +579,13 @@ export function App() {
 const angular: UseCase[] = [
   {
     title: "Provide the runtime",
-    desc: "Wire Theme Kit once in your app config, then inject reactive state anywhere.",
+    desc: "Wire Themvora once in your app config, then inject reactive state anywhere.",
     lang: "ts",
-    code: `import { provideThemeKit } from "@theme-kit/angular";
+    code: `import { provideTheme } from "@themvora/angular";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({ defaultTheme: "light" }),
+    provideTheme({ defaultTheme: "light" }),
   ],
 };`,
   },
@@ -593,7 +594,7 @@ export const appConfig: ApplicationConfig = {
     desc: "injectTheme returns reactive ThemeState with setters.",
     lang: "ts",
     code: `import { Component, inject } from "@angular/core";
-import { injectTheme } from "@theme-kit/angular";
+import { injectTheme } from "@themvora/angular";
 
 @Component({ selector: "app-toggle", template: \`
   <button (click)="theme().toggleTheme()">
@@ -609,7 +610,7 @@ export class ThemeToggleComponent {
     desc: "Inject history controls and the runtime for live edits.",
     lang: "ts",
     code: `import { Component, inject } from "@angular/core";
-import { injectThemeHistory, injectThemeRuntime } from "@theme-kit/angular";
+import { injectThemeHistory, injectThemeRuntime } from "@themvora/angular";
 
 @Component({ selector: "app-history", template: \`
   <button (click)="history.undo()" [disabled]="!history.history().canUndo">Undo</button>
@@ -628,13 +629,13 @@ export class ThemeHistoryComponent {
     desc: "ThemeScopeDirective themes a single element subtree.",
     lang: "ts",
     code: `import { Component } from "@angular/core";
-import { ThemeScopeDirective } from "@theme-kit/angular";
+import { ThemeScopeDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-dashboard",
   template: \`
     <div class="global-theme">Inherits global</div>
-    <div [themeKitScope]="'plum-dark'">Always plum-dark here</div>
+    <div [themvoraScope]="'plum-dark'">Always plum-dark here</div>
   \`,
   standalone: true,
   imports: [ThemeScopeDirective],
@@ -645,11 +646,11 @@ export class DashboardComponent {}`,
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "ts",
-    code: `import { provideThemeKit } from "@theme-kit/angular";
+    code: `import { provideTheme } from "@themvora/angular";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({
+    provideTheme({
       defaultTheme: "light",
       transition: { enabled: true, duration: 300, easing: "ease-in-out" },
     }),
@@ -661,35 +662,38 @@ export const appConfig: ApplicationConfig = {
 const web: UseCase[] = [
   {
     title: "Define the elements",
-    desc: "One call registers every theme-kit custom element.",
+    desc: "One call registers every themvora custom element.",
     lang: "ts",
-    code: `import { defineCustomElements } from "@theme-kit/web";
+    code: `import { defineCustomElements } from "@themvora/web";
 defineCustomElements();`,
   },
   {
     title: "Provider + toggle + select",
     desc: "Compose the elements in plain HTML — no framework required.",
     lang: "html",
-    code: `<theme-kit-provider default-theme="light">
-  <theme-kit-toggle></theme-kit-toggle>
-  <theme-kit-select></theme-kit-select>
-</theme-kit-provider>`,
+    code: `<themvora-provider default-theme="light">
+  <themvora-toggle></themvora-toggle>
+  <themvora-select></themvora-select>
+</themvora-provider>`,
   },
   {
     title: "Scope a subtree",
-    desc: "theme-kit-scope applies a theme to its children.",
+    desc: "themvora-scope applies a theme to its children.",
     lang: "html",
-    code: `<theme-kit-scope theme="plum-dark">
+    code: `<themvora-scope theme="plum-dark">
   <section>Always plum-dark here</section>
-</theme-kit-scope>`,
+</themvora-scope>`,
   },
   {
     title: "Imperative runtime access",
     desc: "Grab the runtime and drive it from any script.",
     lang: "ts",
-    code: `import { getProviderRuntime } from "@theme-kit/web";
+    code: `import { useThemeRuntime } from "@themvora/web";
 
-const runtime = getProviderRuntime();
+// Resolves the first <themvora-provider> in the document and throws a clear
+// error if none has initialised yet. Pass an element instead with
+// getProviderRuntime(providerEl) when there is more than one provider.
+const runtime = useThemeRuntime();
 runtime.selection.setMode("dark");
 runtime.update({ colors: { primary: "#6366f1" } });
 console.log(runtime.store.get().name);`,
@@ -698,12 +702,12 @@ console.log(runtime.store.get().name);`,
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "html",
-    code: `<theme-kit-provider
+    code: `<themvora-provider
   default-theme="light"
   transition='{"enabled": true, "duration": 300, "easing": "ease-in-out"}'
 >
   <my-app></my-app>
-</theme-kit-provider>`,
+</themvora-provider>`,
   },
 ];
 
@@ -713,7 +717,7 @@ const tailwind: UseCase[] = [
     desc: "Import the plugin so theme tokens become Tailwind v4 utilities.",
     lang: "css",
     code: `@import "tailwindcss";
-@import "@theme-kit/tailwind";`,
+@import "@themvora/tailwind";`,
   },
   {
     title: "Dark variant",
@@ -742,10 +746,10 @@ const tailwind: UseCase[] = [
   },
   {
     title: "Keep the dark class in sync",
-    desc: "synchronizeDarkClass bridges a theme-kit runtime with Tailwind's dark variant.",
+    desc: "synchronizeDarkClass bridges a themvora runtime with Tailwind's dark variant.",
     lang: "ts",
-    code: `import { synchronizeDarkClass } from "@theme-kit/tailwind";
-import { getProviderRuntime } from "@theme-kit/web";
+    code: `import { synchronizeDarkClass } from "@themvora/tailwind";
+import { getProviderRuntime } from "@themvora/web";
 
 const runtime = getProviderRuntime();
 synchronizeDarkClass(runtime.store.get());`,
@@ -754,12 +758,12 @@ synchronizeDarkClass(runtime.store.get());`,
     title: "Smooth theme transitions",
     desc: "Transitions are a runtime option, not CSS you write. Configure them where the runtime is created — here the provider element's transition attribute.",
     lang: "html",
-    code: `<theme-kit-provider
+    code: `<themvora-provider
   default-theme="light"
   transition='{"enabled": true, "duration": 300, "easing": "ease-in-out"}'
 >
-  <theme-kit-toggle></theme-kit-toggle>
-</theme-kit-provider>`,
+  <themvora-toggle></themvora-toggle>
+</themvora-provider>`,
   },
 ];
 
@@ -769,8 +773,8 @@ const astro: UseCase[] = [
     desc: "getInitialThemeState reads the request cookies, so the document and any island render one resolution.",
     lang: "astro",
     code: `---
-import { getInitialThemeState } from "@theme-kit/astro";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getInitialThemeState } from "@themvora/astro";
+import { getBuiltInThemes } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 
@@ -788,8 +792,8 @@ const initial = getInitialThemeState(Astro.request, { themes });
     desc: "Build the blocking script and precompute CSS variables server-side, when you render the document yourself.",
     lang: "astro",
     code: `---
-import { createBlockingScript, buildThemeCssMap, computeFingerprint } from "@theme-kit/astro";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { createBlockingScript, buildThemeCssMap, computeFingerprint } from "@themvora/astro";
+import { getBuiltInThemes } from "@themvora/core";
 
 // computeFingerprint/buildThemeCssMap take the registry positionally; the
 // built-in set (neutral light/dark + the preset families) is a valid registry,
@@ -811,7 +815,7 @@ const script = createBlockingScript(fingerprint, cssMap);
     desc: "ThemeScope overrides the theme for its own subtree. It is a sibling of the provider, not a child — ThemeProviderClient renders nothing, so children passed to it are dropped.",
     lang: "tsx",
     code: `// src/components/ScopedChart.tsx — inside the React island.
-import { ThemeProviderClient, ThemeScope } from "@theme-kit/astro/client";
+import { ThemeProviderClient, ThemeScope } from "@themvora/astro/client";
 
 export function ScopedChart() {
   return (
@@ -832,7 +836,7 @@ export function ScopedChart() {
     code: `<script>
   // A browser bundle: import from /runtime, not the package root, which also
   // exports the build integration and would pull node:url into the bundle.
-  import { getGlobalRuntime } from "@theme-kit/astro/runtime";
+  import { getGlobalRuntime } from "@themvora/astro/runtime";
 
   const runtime = getGlobalRuntime();
   console.log(runtime?.store.get().name ?? "not initialized yet");
@@ -843,7 +847,7 @@ export function ScopedChart() {
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
     code: `// src/components/ThemeIsland.tsx
-import { ThemeProviderClient, useTheme } from "@theme-kit/astro/client";
+import { ThemeProviderClient, useTheme } from "@themvora/astro/client";
 
 function Switcher() {
   const { theme, toggleTheme } = useTheme();
@@ -872,8 +876,8 @@ const nuxt: UseCase[] = [
     lang: "ts",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "mint-light",
     initialMode: "system",
   },
@@ -885,8 +889,8 @@ export default defineNuxtConfig({
     lang: "ts",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "mint-light",
     initialMode: "system",
     initialFamily: "mint",
@@ -932,11 +936,11 @@ function soften() {
   },
   {
     title: "Runtime access in a plugin",
-    desc: "The plugin-provided runtime is available as `nuxtApp.$themeKit`.",
+    desc: "The plugin-provided runtime is available as `nuxtApp.$themvora`.",
     lang: "ts",
     code: `// plugins/theme.client.ts
 export default defineNuxtPlugin((nuxtApp) => {
-  const runtime = nuxtApp.$themeKit as ThemeRuntime;
+  const runtime = nuxtApp.$themvora as ThemeRuntime;
   runtime.lifecycle.on("beforeThemeChange", (e) => {
     console.log("theme changing to", e.next.name);
   });
@@ -948,8 +952,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     lang: "ts",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "light",
     transition: { enabled: true, duration: 360, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
   },
@@ -964,9 +968,9 @@ const remix: UseCase[] = [
     lang: "tsx",
     code: `// app/root.tsx
 import { useLoaderData } from "@remix-run/react";
-import { ThemeProvider } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { ThemeProvider } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
 
 // getInitialThemeState takes the registry as a required option; the built-in
 // set is a valid registry, so no theme file is needed.
@@ -990,8 +994,8 @@ export default function App() {
     desc: "Emit the blocking head script so there is no theme flash.",
     lang: "tsx",
     code: `import { Links, Scripts } from "@remix-run/react";
-import { ThemeHead } from "@theme-kit/remix";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { ThemeHead } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
 
 // ThemeHead.themes is required — the built-in set is a valid registry.
 const themes = getBuiltInThemes();
@@ -1010,9 +1014,9 @@ export function Layout({ children }) {
   },
   {
     title: "Client switcher",
-    desc: "All hooks are re-exported from @theme-kit/remix for client components.",
+    desc: "All hooks are re-exported from @themvora/remix for client components.",
     lang: "tsx",
-    code: `import { useTheme, useThemeHistory } from "@theme-kit/remix";
+    code: `import { useTheme, useThemeHistory } from "@themvora/remix";
 
 export function ThemeControls() {
   const { theme, toggleTheme } = useTheme();
@@ -1030,8 +1034,8 @@ export function ThemeControls() {
     title: "Persistence",
     desc: "createRemixThemePersistence keeps the selection in sync with the server.",
     lang: "ts",
-    code: `import { createRemixThemePersistence } from "@theme-kit/remix";
-import { getBuiltInThemes } from "@theme-kit/core";
+    code: `import { createRemixThemePersistence } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
 
 // The registry is the first positional argument; the built-in set works.
 const themes = getBuiltInThemes();
@@ -1045,7 +1049,7 @@ export const persistence = createRemixThemePersistence(themes, "light", {
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
     code: `// app/root.tsx
-import { ThemeProvider } from "@theme-kit/remix";
+import { ThemeProvider } from "@themvora/remix";
 
 export default function App() {
   return (

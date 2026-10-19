@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useThemeMode, useSetThemeMode } from "@theme-kit/next/client";
+import { useThemeMode, useSetThemeMode } from "@themvora/next/client";
 import { ThemeQuickSwitcher } from "./theme-quick-switcher";
 import { ModeToggle } from "./mode-toggle";
 import { SearchButton } from "./search-dialog";
-import ThemeKitLogo from "./ui/logo";
+import ThemvoraLogo from "./ui/logo";
 import { useFocusTrap } from "./ui/use-focus-trap";
 import { GITHUB_URL, NPM_ORG_URL, SITE_NAME } from "../lib/site";
 
@@ -89,7 +89,7 @@ export function SiteHeader() {
 
   // Persist the mobile menu's scroll position (like the desktop sidebar) so a
   // closed-and-reopened menu lands where the reader left off instead of the top.
-  const MOBILE_MENU_SCROLL_KEY = "tk-mobile-menu-scroll";
+  const MOBILE_MENU_SCROLL_KEY = "tv-mobile-menu-scroll";
 
   // useLayoutEffect so the restore happens after DOM mutation but before paint,
   // when the nav's content height is already settled on the newly rendered page.
@@ -163,7 +163,7 @@ export function SiteHeader() {
         <div className="max-w-6xl mx-auto px-6 h-(--site-header-height) flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Link href="/">
-              <ThemeKitLogo size={30} />
+              <ThemvoraLogo size={30} />
             </Link>
 
             <nav
@@ -177,10 +177,16 @@ export function SiteHeader() {
                     key={link.href}
                     href={link.href}
                     aria-current={active ? "page" : undefined}
+                    // The active item is `foreground` with a brand underline,
+                    // not `text-primary`. A nav label is reading text: it has to
+                    // be legible in every theme, and `primary` on the canvas is
+                    // not. The brand still marks the current page — as a rule
+                    // under it rather than as the colour of the words. The inset
+                    // shadow draws that rule without changing the item's height.
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors no-underline ${
                       active
-                        ? "text-primary"
-                        : "opacity-70 hover:opacity-100 hover:bg-muted"
+                        ? "text-foreground shadow-[inset_0_-2px_0_0_var(--theme-color-primary)]"
+                        : "opacity-70 hover:opacity-100 hover:bg-muted hover:text-foreground"
                     }`}
                   >
                     {link.label}

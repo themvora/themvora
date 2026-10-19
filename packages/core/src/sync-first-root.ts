@@ -35,7 +35,7 @@ export interface SyncFirstRootOptions {
    *
    * @remarks
    * This is what a build-time integration wants. Libraries legitimately call
-   * `createRoot` from an effect — Theme Kit's own `ThemeScrollbar` does, once per
+   * `createRoot` from an effect — Themvora's own `ThemeScrollbar` does, once per
    * arrow — and flushing inside React's commit phase makes React log
    * *"flushSync was called from inside a lifecycle method"*. The application's
    * own root is created at module scope before anything renders, so it is always
@@ -71,7 +71,7 @@ export interface SyncFirstRootOptions {
  * stubs — the behaviour it encodes (first render flushed, later renders not) is
  * otherwise only observable in a real browser.
  *
- * @see {@link themeKitVitePlugin} — applies this to application code
+ * @see {@link themvoraVitePlugin} — applies this to application code
  *   automatically, via a `react-dom/client` shim.
  */
 export function createSyncFirstRoot<TRoot extends SyncFirstRenderRoot>(

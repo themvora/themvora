@@ -1,6 +1,6 @@
 /**
  * Checks that every framework guide contains a complete first-success path:
- * Install → Set up → Add a small UI → Style it with Theme Kit tokens, with the
+ * Install → Set up → Add a small UI → Style it with Themvora tokens, with the
  * toggle and the themed UI actually rendered and no dev-server step in the
  * onboarding flow.
  *
@@ -16,7 +16,7 @@
  * page the reader copies from, and every `var(--theme-*)` in it has to be a
  * custom property the shipped runtime actually emits. The second half re-derives
  * the emitted set by running `themeToCSSVariables()` from the built
- * `@theme-kit/core`, so a renamed token fails here instead of silently falling
+ * `@themvora/core`, so a renamed token fails here instead of silently falling
  * back to an inherited value in every reader's app.
  *
  * Astro is asserted differently, because its guide is shape-driven rather than
@@ -66,7 +66,7 @@ const emittedProperties = await (async () => {
 })();
 
 /** The first line of the canonical stylesheet — how the probe finds its block. */
-const STYLESHEET_MARKER = "Theme Kit emits its design tokens as CSS custom properties";
+const STYLESHEET_MARKER = "Themvora emits its design tokens as CSS custom properties";
 
 /**
  * The `var(--theme-*)` references inside the stylesheet block of `text`.
@@ -108,17 +108,17 @@ const PORT = probePort(4540);
 // slug -> the packages the install command must name, and the zero-flash
 // badge the compatibility table implies ("yes" for Auto, "partial" for Manual).
 const SLUGS = [
-  ["react", ["@theme-kit/core", "@theme-kit/react"], "Partial"],
-  ["next", ["@theme-kit/core", "@theme-kit/next"], "Yes"],
-  ["vue", ["@theme-kit/core", "@theme-kit/vue"], "Partial"],
-  ["svelte", ["@theme-kit/core", "@theme-kit/svelte"], "Partial"],
-  ["solid", ["@theme-kit/core", "@theme-kit/solid"], "Partial"],
-  ["angular", ["@theme-kit/core", "@theme-kit/angular"], "Partial"],
-  ["web", ["@theme-kit/core", "@theme-kit/web"], "Partial"],
-  ["tailwind", ["@theme-kit/core", "@theme-kit/tailwind", "@theme-kit/react"], undefined],
-  ["astro", ["@theme-kit/core", "@theme-kit/astro"], "Yes"],
-  ["nuxt", ["@theme-kit/core", "@theme-kit/nuxt"], "Yes"],
-  ["remix", ["@theme-kit/core", "@theme-kit/remix"], "Partial"],
+  ["react", ["@themvora/core", "@themvora/react"], "Partial"],
+  ["next", ["@themvora/core", "@themvora/next"], "Yes"],
+  ["vue", ["@themvora/core", "@themvora/vue"], "Partial"],
+  ["svelte", ["@themvora/core", "@themvora/svelte"], "Partial"],
+  ["solid", ["@themvora/core", "@themvora/solid"], "Partial"],
+  ["angular", ["@themvora/core", "@themvora/angular"], "Partial"],
+  ["web", ["@themvora/core", "@themvora/web"], "Partial"],
+  ["tailwind", ["@themvora/core", "@themvora/tailwind", "@themvora/react"], undefined],
+  ["astro", ["@themvora/core", "@themvora/astro"], "Yes"],
+  ["nuxt", ["@themvora/core", "@themvora/nuxt"], "Yes"],
+  ["remix", ["@themvora/core", "@themvora/remix"], "Partial"],
 ];
 
 const proc = spawn(
@@ -160,7 +160,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
 
   const info = await page.evaluate((pkgs) => {
     // innerText inserts newlines between the spans inside a highlighted code
-    // block ("pnpm\n add\n @theme-kit/react"), so collapse whitespace before
+    // block ("pnpm\n add\n @themvora/react"), so collapse whitespace before
     // matching anything inside a snippet.
     const text = (document.querySelector("article") || document.body).innerText
       .replace(/[ \t]+/g, " ")
@@ -175,7 +175,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
       // The whole guide as the reader sees it, for the stylesheet assertions.
       text,
       hasInstallCmd: /\b(pnpm|npm|yarn|bun) (add|install)\b/.test(text),
-      hasToggleCall: /toggleTheme|toggle\(\)|theme-kit-toggle/.test(text),
+      hasToggleCall: /toggleTheme|toggle\(\)|themvora-toggle/.test(text),
       // The onboarding flow runs from "Install" up to "Theme configuration".
       // A dev-server command in there would mean the "Run it" step crept back.
       onboardingDevCommand: (() => {
@@ -262,7 +262,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
       return at.every((p) => p >= 0) && at.every((p, i) => i === 0 || p > at[i - 1]);
     };
 
-    if (!ordered(astro.onlySteps, ["Install", "Configure", "Use Theme Kit", "Style it with Theme Kit tokens"]))
+    if (!ordered(astro.onlySteps, ["Install", "Configure", "Use Themvora", "Style it with Themvora tokens"]))
       problems.push(
         `Astro-only steps missing or out of order: ${astro.onlySteps.join(" → ") || "(none)"}`,
       );
@@ -272,17 +272,17 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
         "Configure",
         "Add React island",
         "Use React APIs",
-        "Style it with Theme Kit tokens",
+        "Style it with Themvora tokens",
       ])
     )
       problems.push(
         `Astro + React steps missing or out of order: ${astro.reactSteps.join(" → ") || "(none)"}`,
       );
 
-    // The theme config is what `themeKit()` discovers and what the layout
+    // The theme config is what `themvora()` discovers and what the layout
     // imports, so the framework-free path must show the file itself — showing
     // only the integration registration leaves the layout unresolved.
-    for (const needle of ["theme.config.ts", "defineThemeKitConfig"]) {
+    for (const needle of ["theme.config.ts", "defineThemvoraConfig"]) {
       if (!astro.onlyText.includes(needle))
         problems.push(`the Astro-only path does not show ${needle}`);
     }
@@ -328,7 +328,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
   } else {
     // The first-success path, in order. Quick Start carries the same four steps,
     // so the two pages are asserted against one list.
-    const want = ["Install", "Set up", "Add a small UI", "Style it with Theme Kit tokens"];
+    const want = ["Install", "Set up", "Add a small UI", "Style it with Themvora tokens"];
     const positions = want.map((label) => info.headings.indexOf(label));
     const inOrder =
       positions.every((pos) => pos >= 0) &&
@@ -388,7 +388,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
 
     await page
       .getByRole("button")
-      .filter({ hasText: "@theme-kit/astro" })
+      .filter({ hasText: "@themvora/astro" })
       .first()
       .click();
     await page.waitForTimeout(600);
@@ -438,11 +438,11 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
     if (!/ThemeToggle/.test(only.text))
       problems.push("the default shape shows no <ThemeToggle />");
     // The setup must declare the theme config, not just register the
-    // integration: `theme.config.ts` is what `themeKit()` discovers, and the
+    // integration: `theme.config.ts` is what `themvora()` discovers, and the
     // layout imports it, so a page that omits it leaves the layout unresolved.
     for (const needle of [
       "theme.config.ts",
-      "defineThemeKitConfig",
+      "defineThemvoraConfig",
       "config={themeConfig}",
     ]) {
       if (!only.text.includes(needle))
@@ -457,7 +457,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
     // The styling step is part of the shortest path now, so Quick Start has to
     // show it and the completion state — a reader who stops here must have seen
     // how the UI is driven by tokens, not just how it is mounted.
-    for (const label of ["Style it with Theme Kit tokens", "You're ready"]) {
+    for (const label of ["Style it with Themvora tokens", "You're ready"]) {
       if (!only.text.includes(label))
         problems.push(`Quick Start does not show "${label}"`);
     }

@@ -1,5 +1,5 @@
 // React consumer runtime smoke — renders ThemeProvider via SSR (no browser).
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 import { renderToString } from "react-dom/server";
 import { createElement, StrictMode } from "react";
 

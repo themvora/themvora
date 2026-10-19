@@ -11,13 +11,13 @@ import {
 } from "react";
 import { useServerInsertedHTML } from "next/navigation";
 import { Select } from "../ui/select";
-import type { TransitionPreset } from "@theme-kit/core";
+import type { TransitionPreset } from "@themvora/core";
 import {
   createScopedThemeBinding,
   resolveScopedThemePrePaint,
   type ScopedThemeSelection,
-} from "@theme-kit/core";
-import { useThemeRuntime } from "@theme-kit/react";
+} from "@themvora/core";
+import { useThemeRuntime } from "@themvora/react";
 import { Callout } from "../ui/callout";
 
 const EASINGS = [
@@ -39,7 +39,7 @@ const PRESETS: { value: TransitionPreset; label: string }[] = [
 ];
 
 /** Follow the page's current mode as a scoped selection, so when the site is on
- *  `system` the demo regions resolve light/dark from the OS (like every theme-kit
+ *  `system` the demo regions resolve light/dark from the OS (like every themvora
  *  scope). The first-paint stylesheet is generated generically by the core
  *  helper from the theme data — nothing here hardcodes the lab/scope colors. */
 function followModeSelection(
@@ -118,7 +118,7 @@ export function AnimationLab() {
       resolveScopedThemePrePaint(
         runtime.themes,
         followModeSelection("lab", runtime),
-        { selector: "[data-theme-kit-demo='lab']" },
+        { selector: "[data-themvora-demo='lab']" },
       ),
     [runtime],
   );
@@ -127,7 +127,7 @@ export function AnimationLab() {
       resolveScopedThemePrePaint(
         runtime.themes,
         followModeSelection("scope", runtime),
-        { selector: "[data-theme-kit-demo='scope']" },
+        { selector: "[data-themvora-demo='scope']" },
       ),
     [runtime],
   );
@@ -149,7 +149,7 @@ export function AnimationLab() {
         {styles.map((entry) => (
           <style
             key={entry.key}
-            data-theme-kit-demo-pre-paint={entry.key}
+            data-themvora-demo-pre-paint={entry.key}
             dangerouslySetInnerHTML={{ __html: entry.css }}
           />
         ))}
@@ -157,7 +157,7 @@ export function AnimationLab() {
     );
   });
 
-  // --- Lab card: live binding with the real theme-kit animation pipeline ---
+  // --- Lab card: live binding with the real themvora animation pipeline ---
   const transition = useMemo(
     () => ({
       enabled: !simulateReduced,
@@ -267,10 +267,10 @@ export function AnimationLab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-                          {/* Lab card - scoped via createScopedThemeBinding with the real theme-kit animation pipeline */}
+                          {/* Lab card - scoped via createScopedThemeBinding with the real themvora animation pipeline */}
         <div
           ref={labRef}
-          data-theme-kit-demo="lab"
+          data-themvora-demo="lab"
           className="rounded-2xl border p-6 min-h-64 flex flex-col bg-(--theme-color-card) text-(--theme-color-foreground)"
           style={tileStyle(labPrePaint)}
         >
@@ -446,7 +446,7 @@ export function AnimationLab() {
           {/* Scoped region - separate createScopedThemeBinding, runs its own transition */}
           <div
             ref={scopeRef}
-            data-theme-kit-demo="scope"
+            data-themvora-demo="scope"
             className="rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border"
             style={{
               ...tileStyle(scopePrePaint),
@@ -487,7 +487,7 @@ export function AnimationLab() {
             </button>
           </div>
           <p className="m-0 mt-4 text-sm opacity-70 leading-relaxed">
-            This subtree runs the real theme-kit animation pipeline
+            This subtree runs the real themvora animation pipeline
             (<code className="mono text-[0.85em]">createThemeDiff</code> →{" "}
             <code className="mono text-[0.85em]">createTransitionPlan</code> →{" "}
             <code className="mono text-[0.85em]">runThemeAnimation</code>).

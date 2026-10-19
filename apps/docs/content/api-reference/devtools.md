@@ -1,12 +1,12 @@
-## @theme-kit/devtools
-Theme Kit devtools.
+## @themvora/devtools
+Themvora devtools.
 
 Provides the runtime plugin (`createDevToolsPlugin`) that records
 theme-change entries and performance measurements per runtime, the
 standalone `createDevToolsInspector`, and the `createDevToolsPanel`
 UI factory for custom devtools integrations.
 
-> Generated from `packages/devtools/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/devtools/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -50,11 +50,11 @@ the panel.
 
 
 ### `createDevToolsPlugin<T extends ThemeDefinition<string>>(options?): { name: string; priority: number; version: string; getInspector: void; onDestroy: void; onRuntimeCreated: void }`
-Creates a Theme Kit devtools plugin.
+Creates a Themvora devtools plugin.
 
 The plugin binds an inspector to each runtime it is applied to, records
 theme-change events and performance measurements, and registers the
-inspector on `window.__THEME_KIT_DEVTOOLS__` in the browser. Use it with the
+inspector on `window.__THEMVORA_DEVTOOLS__` in the browser. Use it with the
 runtime's plugin system.
 
 **See also:** `createDevToolsInspector`, `createDevToolsPanel`, `DevToolsInspector`
@@ -67,8 +67,8 @@ runtime's plugin system.
   `onDestroy` hooks.
 
 ```ts
-import { createDevToolsPlugin } from "@theme-kit/devtools";
-import { createThemeRuntime, getBuiltInThemes } from "@theme-kit/core";
+import { createDevToolsPlugin } from "@themvora/devtools";
+import { createThemeRuntime, getBuiltInThemes } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   themes: getBuiltInThemes(),

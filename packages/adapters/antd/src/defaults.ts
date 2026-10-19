@@ -1,4 +1,4 @@
-import type { AdapterStrategy } from "@theme-kit/core";
+import type { AdapterStrategy } from "@themvora/core";
 
 /**
  * The adapter id registered by the Ant Design adapter.

@@ -5,7 +5,7 @@ import { docsUrl } from "../../../lib/site";
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/cli/inspect") },
   title: "CLI inspect",
-  description: "Inspect a theme's structure and token groups with the theme-kit CLI.",
+  description: "Inspect a theme's structure and token groups with the themvora CLI.",
 };
 
 export default function Page() {

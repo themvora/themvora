@@ -75,7 +75,7 @@ const useCases = [
   },
   {
     title: "I'm using a UI library",
-    description: "Connect Theme Kit to shadcn/ui, Bootstrap, daisyUI, etc.",
+    description: "Connect Themvora to shadcn/ui, Bootstrap, daisyUI, etc.",
     href: "/libraries",
     iconKey: "library",
   },
@@ -95,7 +95,7 @@ export function GetStartedRouter() {
           Choose your path
         </h2>
         <p className="opacity-70 text-sm mb-6 max-w-2xl">
-          Theme Kit adapts to your workflow. Pick the guide that matches where
+          Themvora adapts to your workflow. Pick the guide that matches where
           you are and what you need.
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
@@ -167,7 +167,7 @@ export function GetStartedRouter() {
                 </h3>
                 <p className="text-xs opacity-60">{useCase.description}</p>
               </div>
-              <span className="text-muted-foreground group-hover:text-primary transition-colors">
+              <span className="text-muted-foreground group-hover:text-foreground transition-colors">
                 →
               </span>
             </a>
@@ -181,7 +181,7 @@ export function GetStartedRouter() {
         </h2>
         <div className="rounded-xl border border-border bg-card p-6">
           <p className="text-sm opacity-70 leading-relaxed mb-4">
-            Every Theme Kit setup needs <span className="mono font-semibold">@theme-kit/core</span> plus
+            Every Themvora setup needs <span className="mono font-semibold">@themvora/core</span> plus
             your framework adapter. Library adapters (shadcn/ui, Bootstrap, daisyUI, etc.) are optional.
           </p>
           <div className="grid sm:grid-cols-2 gap-3 mb-4">
@@ -189,9 +189,9 @@ export function GetStartedRouter() {
               <div className="font-semibold text-sm mb-1">Framework packages</div>
               <div className="text-xs opacity-60 mb-2">Required for your stack</div>
               <div className="flex flex-wrap gap-1.5">
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/next</span>
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/react</span>
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/vue</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/next</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/react</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/vue</span>
                 <span className="text-xs opacity-60">+ 8 more</span>
               </div>
             </div>
@@ -199,9 +199,9 @@ export function GetStartedRouter() {
               <div className="font-semibold text-sm mb-1">Library adapters</div>
               <div className="text-xs opacity-60 mb-2">Optional UI integrations</div>
               <div className="flex flex-wrap gap-1.5">
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/shadcn</span>
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/mui</span>
-                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@theme-kit/daisyui</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/shadcn</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/mui</span>
+                <span className="mono text-[10px] px-2 py-1 rounded bg-secondary text-secondary-foreground">@themvora/daisyui</span>
                 <span className="text-xs opacity-60">+ 6 more</span>
               </div>
             </div>

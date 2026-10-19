@@ -13,6 +13,20 @@ export interface ThemeHistoryOptions {
    * @defaultValue 50
    */
   maxSteps?: number;
+  /**
+   * The clock used to timestamp entries.
+   *
+   * @defaultValue `Date.now`
+   *
+   * @remarks
+   * Exists so a **server render can avoid `Date.now()` entirely**. Next.js's
+   * Cache Components refuse to prerender a client component that reads a
+   * non-deterministic value like `Date.now()`, and the theme runtime — and with
+   * it this controller — is constructed during exactly that prerender. The
+   * runtime therefore supplies a clock that returns `0` when there is no
+   * `document`, matching the history it synthesises for the server render.
+   */
+  now?: () => number;
 }
 
 /**
@@ -108,9 +122,12 @@ export function createThemeHistory<T extends ThemeDefinition>(
   options?: ThemeHistoryOptions,
 ): ThemeHistory<T> {
   const maxSteps = options?.maxSteps ?? 50;
+  // Never call `Date.now()` directly: a server render must stay deterministic,
+  // and this constructor runs during one.
+  const now = options?.now ?? Date.now;
   const entries: HistoryEntry<T>[] = [{
     theme: cloneThemeValue(store.get()),
-    timestamp: Date.now(),
+    timestamp: now(),
   }];
   let currentIndex = 0;
   let skipNext = false;
@@ -125,7 +142,7 @@ export function createThemeHistory<T extends ThemeDefinition>(
     cachedHistory = null;
     const entry: HistoryEntry<T> = {
       theme: cloneThemeValue(theme),
-      timestamp: Date.now(),
+      timestamp: now(),
     };
 
     entries.splice(currentIndex + 1, entries.length - currentIndex - 1);
@@ -189,7 +206,7 @@ export function createThemeHistory<T extends ThemeDefinition>(
       entries.length = 0;
       entries.push({
         theme: cloneThemeValue(store.get()),
-        timestamp: Date.now(),
+        timestamp: now(),
       });
       currentIndex = 0;
     },

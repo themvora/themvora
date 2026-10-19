@@ -1,12 +1,12 @@
-## @theme-kit/shadcn/angular
+## @themvora/shadcn/angular
 Angular injection helper for the shadcn/ui adapter
-(`@theme-kit/shadcn/angular`).
+(`@themvora/shadcn/angular`).
 
 `injectShadcnTheme(runtime, options?)` registers the shadcn adapter on an
-explicitly provided Theme Kit runtime and unregisters it when the current
+explicitly provided Themvora runtime and unregisters it when the current
 injection context is destroyed.
 
-> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -18,10 +18,10 @@ variables, kept in sync as the active theme changes.
 Call in your component (or root) constructor or field initializer — the
 function uses `DestroyRef` to unregister the adapter, so it must run in an
 injection context (the runtime usually comes from
-`injectThemeRuntime()` in `@theme-kit/angular`):
+`injectThemeRuntime()` in `@themvora/angular`):
 
 ```ts
-import { injectShadcnTheme } from "@theme-kit/shadcn/angular";
+import { injectShadcnTheme } from "@themvora/shadcn/angular";
 
 export class AppComponent {
   adapter = injectShadcnTheme(runtime);
@@ -32,7 +32,7 @@ export class AppComponent {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to register the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to register the adapter on. |
 | `options` | `InjectAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/animation") },
   title: "Animation & Transition",
   description:
-    "How Theme Kit animates theme changes: the diff → plan → scan → coordinate pipeline, transition presets (smooth / subtle / instant), the View Transitions cross-fade, and every transition option.",
+    "How Themvora animates theme changes: the diff → plan → scan → coordinate pipeline, transition presets (smooth / subtle / instant), the View Transitions cross-fade, and every transition option.",
 };
 
 export default function AnimationPage() {
@@ -34,10 +34,10 @@ export default function AnimationPage() {
             </svg>
           }
           title="Animation &amp; Transition"
-          subtitle="@theme-kit/core — transition pipeline"
+          subtitle="@themvora/core — transition pipeline"
           description={
             <>
-              Theme Kit owns the entire visual update for a theme change — diff
+              Themvora owns the entire visual update for a theme change — diff
               what actually changed, plan which properties may animate, and run
               one coordinated, lag-free transition. Enable it with a one-line{" "}
               <code className="mono text-[0.9em]">transition</code> prop and
@@ -51,7 +51,7 @@ export default function AnimationPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {

@@ -19,4 +19,11 @@ allowBuilds:
 # 160+ packages instead of being a fast no-op. The installed links are healthy
 # (release:audit passes, every example app builds), so the guard is disabled
 # here. Re-enable it on a host where `pnpm install` settles immediately.
+minimumReleaseAgeExclude:
+  - "@angular-devkit/architect@0.2202.3"
+  - "@angular-devkit/core@22.2.3"
+  - "@angular-devkit/schematics@22.2.3"
+  - "@angular/build@22.2.3"
+  - "@angular/cli@22.2.3"
+  - "@schematics/angular@22.2.3"
 verifyDepsBeforeRun: false

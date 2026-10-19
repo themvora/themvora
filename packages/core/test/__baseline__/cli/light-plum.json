@@ -1,0 +1,47 @@
+{
+  "name": "plum-light",
+  "meta": {
+    "family": "plum",
+    "mode": "light",
+    "label": "Plum Light",
+    "order": 10,
+    "generation": {
+      "kind": "generated",
+      "algorithm": "semantic-v2",
+      "seed": "#6d28d9",
+      "contrast": {
+        "text": 4.5,
+        "largeText": 3,
+        "ui": 3
+      }
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#f2f1f6",
+      "foreground": "#1b1a1f",
+      "muted": "#e8e7ec",
+      "mutedForeground": "#656468",
+      "card": "#fbfaff",
+      "cardForeground": "#1b1a1f",
+      "popover": "#f6f6fa",
+      "popoverForeground": "#1b1a1f",
+      "primary": "#6d28d9",
+      "primaryForeground": "#fcfbff",
+      "secondary": "#e4e3ea",
+      "secondaryForeground": "#242327",
+      "accent": "#c150cb",
+      "accentForeground": "#121115",
+      "destructive": "#cc2827",
+      "destructiveForeground": "#fcfbff",
+      "success": "#0a8234",
+      "successForeground": "#fcfbff",
+      "border": "#d9d8dd",
+      "input": "#87868b",
+      "ring": "#6d28d9"
+    },
+    "radius": {
+      "lg": "8px"
+    }
+  }
+}

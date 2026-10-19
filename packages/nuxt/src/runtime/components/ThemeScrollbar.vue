@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ThemeScrollbar as VueThemeScrollbar } from "@theme-kit/vue";
-import type { ThemeScrollbarProps } from "@theme-kit/vue";
+import { ThemeScrollbar as VueThemeScrollbar } from "@themvora/vue";
+import type { ThemeScrollbarProps } from "@themvora/vue";
 
 const props = defineProps<ThemeScrollbarProps>();
 

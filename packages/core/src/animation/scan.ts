@@ -139,7 +139,7 @@ export function scanForTransition(
     if (
       el.nodeType === 1 &&
       el !== root &&
-      !el.hasAttribute("data-theme-kit-host")
+      !el.hasAttribute("data-themvora-host")
     ) {
       const cs = getComputedStyle(el);
       if (isVisible(cs) && needsAnimation(cs, properties)) {

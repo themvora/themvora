@@ -29,7 +29,7 @@ const capabilities: Capability[] = [
   },
   {
     title: "Scoped themes",
-    desc: "Isolate a subtree — a video player, an embedded widget, legacy DOM — with ThemeScope, the theme-kit-scope element, or an imperative binding.",
+    desc: "Isolate a subtree — a video player, an embedded widget, legacy DOM — with ThemeScope, the themvora-scope element, or an imperative binding.",
     href: "/scoped-theme",
     tag: "islands",
     icon: (
@@ -81,7 +81,7 @@ const capabilities: Capability[] = [
   },
   {
     title: "Component-library adapters",
-    desc: "Bridge tokens into MUI, Chakra, Ant Design, shadcn/ui, Bootstrap, daisyUI, and Mantine — Theme Kit powers your library, it doesn't replace it.",
+    desc: "Bridge tokens into MUI, Chakra, Ant Design, shadcn/ui, Bootstrap, daisyUI, and Mantine — Themvora powers your library, it doesn't replace it.",
     href: "/adapters",
     tag: "adapters",
     icon: (
@@ -102,7 +102,7 @@ export function Capabilities() {
         </h2>
         <p className="opacity-70 max-w-2xl">
           Every feature below is real — implemented in{" "}
-          <code className="mono text-[0.9em]">@theme-kit/core</code> and
+          <code className="mono text-[0.9em]">@themvora/core</code> and
           exposed natively by each framework adapter. Click through to see the
           actual API.
         </p>

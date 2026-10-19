@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/core-concepts") },
   title: "Core Concepts",
   description:
-    "The ideas behind Theme Kit: semantic tokens, theme families, modes, the runtime, adapters, scoped themes and zero-flash SSR.",
+    "The ideas behind Themvora: semantic tokens, theme families, modes, the runtime, adapters, scoped themes and zero-flash SSR.",
 };
 
 export default function CoreConceptsPage() {
@@ -34,8 +34,8 @@ export default function CoreConceptsPage() {
             </svg>
           }
           title="Core Concepts"
-          subtitle="@theme-kit/core"
-          description="The mental model behind Theme Kit: semantic tokens, theme families, modes, the runtime, adapters, scoped themes and zero-flash SSR."
+          subtitle="@themvora/core"
+          description="The mental model behind Themvora: semantic tokens, theme families, modes, the runtime, adapters, scoped themes and zero-flash SSR."
         />
         <div className="prose-doc -mt-6">
           <Markdown content={content} />

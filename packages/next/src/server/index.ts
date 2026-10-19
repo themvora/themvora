@@ -6,7 +6,7 @@ import {
   type ResolveInitialThemeOptions,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 export async function getInitialThemeState<T extends ThemeDefinition>(
   options: ResolveInitialThemeOptions<T>,

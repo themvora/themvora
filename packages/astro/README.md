@@ -1,20 +1,91 @@
-# @theme-kit/astro
+# @themvora/astro
+
+## Install
+
+```bash
+npm install @themvora/core @themvora/astro astro
+```
+
+`@themvora/astro` builds on `@themvora/core`, so those are installed explicitly rather than relied on transitively.
 
 Astro-native theming: an integration for the pre-paint bootstrap, a React-free
 `<html>` layout, and opt-in client islands.
 
-`@theme-kit/astro` imports no React. React lives behind the opt-in
-`@theme-kit/astro/client` entry and is an **optional peer dependency** — install
+`@themvora/astro` imports no React. React lives behind the opt-in
+`@themvora/astro/client` entry and is an **optional peer dependency** — install
 it only if you choose a React island.
+
+## Set up
+
+```astro
+---
+// src/layouts/BaseLayout.astro
+import Provider from "@themvora/astro/provider.astro";
+import themeConfig from "../theme.config";
+---
+
+<Provider config={themeConfig} lang="en">
+  <slot />
+</Provider>
+```
+
+The integration owns the pre-paint bootstrap; this layout owns the
+server-rendered `<html>`.
+
+## Add a small UI
+
+A heading, a card and a button. The button reads the current theme and changes
+it — nothing is styled yet.
+
+```astro
+---
+// src/pages/index.astro
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+---
+
+<BaseLayout>
+  <main class="page">
+    <h1>Themvora</h1>
+    <ThemeToggle />
+  </main>
+</BaseLayout>
+```
+
+`ThemeToggle.astro` works with no client runtime. React hooks do **not** work
+directly inside `.astro` files — for those, mount a React island with
+`client:only="react"` and put the provider and its consumers in the same tree.
+
+## Style it with Themvora tokens
+
+Themvora emits one CSS variable per token, so your own classes read the active
+theme without any per-theme CSS:
+
+```css
+.page {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.card {
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+  padding: var(--theme-spacing-4);
+}
+```
+
+Nothing is re-rendered on a switch — the variables change and the styles follow.
 
 ## 1. Integration (build boundary)
 
 ```ts
 // theme.config.ts — the single declaration
-import { defineThemeKitConfig } from "@theme-kit/core";
+import { defineThemvoraConfig } from "@themvora/core";
 import { themes } from "./src/themes";
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "mint-light",
   initialMode: "system",
@@ -22,17 +93,17 @@ export default defineThemeKitConfig({
 
 // astro.config.ts — register the integration. No theme data.
 import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });
 ```
 
 The integration discovers `theme.config.ts` at the project root, injects the
 pre-paint blocking bootstrap into every page's `<head>` via
 `injectScript("head-inline")`, and transports the same configuration to the
-runtime as `window.__THEME_KIT_CONFIG__` — so the pages, the layout and the
+runtime as `window.__THEMVORA_CONFIG__` — so the pages, the layout and the
 islands all read one declaration instead of three that have to be kept in sync.
 
 ## 2. Astro component (SSR document)
@@ -40,7 +111,7 @@ islands all read one declaration instead of three that have to be kept in sync.
 ```astro
 ---
 // src/layouts/BaseLayout.astro — React-free.
-import Provider from "@theme-kit/astro/provider.astro";
+import Provider from "@themvora/astro/provider.astro";
 import { themes } from "../themes";
 ---
 
@@ -57,8 +128,8 @@ bootstrap. Pass `bootstrap={false}` when the integration already injects it.
 
 ```astro
 ---
-import { getInitialThemeState } from "@theme-kit/astro";
-import { ThemeProviderClient } from "@theme-kit/astro/client";
+import { getInitialThemeState } from "@themvora/astro";
+import { ThemeProviderClient } from "@themvora/astro/client";
 import { themes } from "../themes";
 
 const initial = await getInitialThemeState(Astro.request, { themes });
@@ -67,7 +138,7 @@ const initial = await getInitialThemeState(Astro.request, { themes });
 <ThemeProviderClient client:load themes={themes} initial={initial} />
 ```
 
-`@theme-kit/astro/client` is the only entry that depends on React. Install
+`@themvora/astro/client` is the only entry that depends on React. Install
 `react`, `react-dom` and `@astrojs/react` yourself.
 
 Use **`client:load`**, not `client:only`, and always pass `initial`. Astro
@@ -86,12 +157,12 @@ order and a consumer that hydrates first throws "ThemeRuntime not initialized".
 
 | Entry | Contents | Client framework |
 | ----- | -------- | ---------------- |
-| `@theme-kit/astro` | `themeKit()`, `getInitialThemeState()`, `createBlockingScript`, `buildThemeCssMap`, `darkModeCSSTemplate`, `createAstroThemePersistence`, `computeFingerprint`, `getGlobalRuntime` / `setGlobalRuntime` | none |
-| `@theme-kit/astro/provider.astro` | The SSR document component | none |
-| `@theme-kit/astro/client` | `ThemeProviderClient`, the `useTheme*` hooks, `ThemeScope` | React |
-| `@theme-kit/astro/ThemeInspector.astro` | Dev inspector | none |
+| `@themvora/astro` | `themvora()`, `getInitialThemeState()`, `createBlockingScript`, `buildThemeCssMap`, `darkModeCSSTemplate`, `createAstroThemePersistence`, `computeFingerprint`, `getGlobalRuntime` / `setGlobalRuntime` | none |
+| `@themvora/astro/provider.astro` | The SSR document component | none |
+| `@themvora/astro/client` | `ThemeProviderClient`, the `useTheme*` hooks, `ThemeScope` | React |
+| `@themvora/astro/ThemeInspector.astro` | Dev inspector | none |
 
 ## Documentation
 
-Full API reference and guides: [Theme Kit docs](https://theme-kit-dev.vercel.app).
-All packages: [npm](https://www.npmjs.com/org/theme-kit).
+Full API reference and guides: [Themvora docs](https://themvora-dev.vercel.app).
+All packages: [npm](https://www.npmjs.com/org/themvora).

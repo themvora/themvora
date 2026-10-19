@@ -1,5 +1,5 @@
 import React from "react";
-import type { ThemeDefinition, ThemeMode } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeMode } from "@themvora/core";
 import {
   buildBootstrapPlan,
   createPrePaintScrollbarCSS,
@@ -7,7 +7,7 @@ import {
   resolveInitialTheme,
   serializeThemeBootstrapScript,
   themeToCSSVariables,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 
 /**
@@ -36,14 +36,14 @@ export interface ThemeHeadProps<T extends ThemeDefinition> {
    */
   mode?: ThemeMode;
   /**
-   * Hide the native scrollbar from the very first paint, so the Theme Kit
+   * Hide the native scrollbar from the very first paint, so the Themvora
    * overlay (`ThemeScrollbar`) is the only scrollbar from frame one — no
    * native-bar-then-overlay swap while the bundle hydrates. Defaults to `false`.
    *
    * @remarks
    * Emits the pre-paint hiding CSS. You must **also** render
-   * `className="tk-scrollbar"` on your `<html>` element — Remix owns that
-   * element, so Theme Kit cannot add the class for you. Both halves are
+   * `className="tv-scrollbar"` on your `<html>` element — Remix owns that
+   * element, so Themvora cannot add the class for you. Both halves are
    * required: the class scopes the CSS, and rendering it in your layout is what
    * keeps React's virtual DOM in agreement with the server HTML. Adding it from
    * a pre-paint script instead produces a hydration mismatch on `<html>`, and
@@ -51,7 +51,7 @@ export interface ThemeHeadProps<T extends ThemeDefinition> {
    * scrollbar back.
    *
    * Applies to every device, because the server cannot detect the pointer type.
-   * That matches `@theme-kit/next`; the `themeKit()` Astro integration and the
+   * That matches `@themvora/next`; the `themvora()` Astro integration and the
    * Nuxt module are the integrations that can keep native bars on touch
    * devices, because they can choose between the script and the SSR class.
    */
@@ -133,12 +133,12 @@ export function getDarkModeCSS<T extends ThemeDefinition>(
  * @example
  * ```tsx
  * // app/root.tsx
- * import { ThemeHead } from "@theme-kit/remix";
+ * import { ThemeHead } from "@themvora/remix";
  *
  * export function Layout({ children }) {
  *   return (
- *     // `tk-scrollbar` must be rendered here, not added by a script.
- *     <html className="tk-scrollbar">
+ *     // `tv-scrollbar` must be rendered here, not added by a script.
+ *     <html className="tv-scrollbar">
  *       <head>
  *         <ThemeHead themes={myThemes} defaultTheme="light" scrollbar />
  *       </head>
@@ -170,7 +170,7 @@ export function ThemeHead<T extends ThemeDefinition>({
       <script dangerouslySetInnerHTML={{ __html: scriptContent }} />
       {scrollbar ? (
         <style
-          data-theme-kit-pre-paint="scrollbar"
+          data-themvora-pre-paint="scrollbar"
           dangerouslySetInnerHTML={{ __html: createPrePaintScrollbarCSS() }}
         />
       ) : null}

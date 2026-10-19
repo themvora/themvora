@@ -181,7 +181,7 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
     // Refuse a family the registry does not have. Accepting it would leave the
     // selection naming a family that is not on screen — the store falls back to
     // `themes[0]` — so `data-theme-selection-family` and any
-    // `data-tk-readout="family"` would contradict `data-theme-family`. Ignoring
+    // `data-tv-readout="family"` would contradict `data-theme-family`. Ignoring
     // the request keeps the selection honest; silently switching the visitor to
     // a *different* family than the one requested would be worse, and a caller
     // that passes an unregistered family has a bug that a no-op does not hide
@@ -202,6 +202,24 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
 
   function toggleTheme() {
     setMode(getAppliedMode() === "dark" ? "light" : "dark");
+  }
+
+  /**
+   * Apply a resolved selection wholesale (used by the runtime's configuration
+   * update). Unlike `setMode`/`setFamily`, it does not compare against the
+   * current state — a catalog change can require re-resolving the *same*
+   * family/mode to a different theme object — and it does not persist by
+   * default, because a configuration-driven change is not a user choice.
+   */
+  function applyState(nextState: ThemeSelectionState, opts: { persist?: boolean } = {}) {
+    if (destroyed) return;
+    if (!isThemeMode(nextState.mode)) {
+      emitInvalidModeDiagnostic(nextState.mode);
+      return;
+    }
+    const family = normalizeThemeFamily(options.themes, nextState.family, options.themes[0]);
+    state = { family, mode: nextState.mode };
+    applySelection(state, opts.persist ?? false);
   }
 
   const onSyncApply = options.onSyncApply ?? null;
@@ -279,6 +297,8 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
     setMode,
 
     setFamily,
+
+    applyState,
 
     toggleTheme,
 

@@ -2,12 +2,12 @@
 
 import React from "react";
 import { ChakraProvider } from "@chakra-ui/react";
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
-import { useRuntimeThemeFactory } from "@theme-kit/adapters/react";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
+import { useRuntimeThemeFactory } from "@themvora/adapters/react";
 import { createChakraTheme } from "./theme";
 
 /**
- * Subscribes to a Theme Kit runtime and returns a Chakra UI system that is
+ * Subscribes to a Themvora runtime and returns a Chakra UI system that is
  * rebuilt automatically whenever the active theme changes.
  */
 export function useChakraTheme<T extends ThemeDefinition>(
@@ -20,7 +20,7 @@ export function useChakraTheme<T extends ThemeDefinition>(
  * Props for {@link ChakraThemeProvider}.
  */
 export interface ChakraThemeProviderProps<T extends ThemeDefinition> {
-  /** The Theme Kit runtime whose active theme drives the Chakra system. */
+  /** The Themvora runtime whose active theme drives the Chakra system. */
   runtime: ThemeRuntime<T>;
   /** The React subtree rendered inside Chakra's `ChakraProvider`. */
   children: React.ReactNode;
@@ -28,7 +28,7 @@ export interface ChakraThemeProviderProps<T extends ThemeDefinition> {
 
 /**
  * `<ChakraThemeProvider runtime={runtime}>` — wraps Chakra's own `ChakraProvider`
- * with a system derived from Theme Kit's semantic tokens.
+ * with a system derived from Themvora's semantic tokens.
  *
  * The provider owns the derived Chakra system: it subscribes to the runtime and
  * rebuilds the system whenever the active theme changes, so the wrapped subtree
@@ -36,7 +36,7 @@ export interface ChakraThemeProviderProps<T extends ThemeDefinition> {
  *
  * @example
  * ```tsx
- * import { ChakraThemeProvider } from "@theme-kit/chakra";
+ * import { ChakraThemeProvider } from "@themvora/chakra";
  *
  * <ChakraThemeProvider runtime={runtime}>
  *   <App />

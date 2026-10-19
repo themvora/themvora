@@ -2,7 +2,7 @@
  * IANA timezone → approximate coordinates resolution.
  *
  * Solar time needs a location (latitude/longitude). Instead of forcing every
- * consumer to configure coordinates, Theme Kit can derive them from the
+ * consumer to configure coordinates, Themvora can derive them from the
  * visitor's IANA timezone (`Intl.DateTimeFormat().resolvedOptions().timeZone`):
  * each zone is anchored to the reference city the tz database uses for its
  * rules, which is accurate enough for sunrise/sunset switching.

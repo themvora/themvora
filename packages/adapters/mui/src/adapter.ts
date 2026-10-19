@@ -2,7 +2,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import type { Theme as MuiTheme } from "@mui/material/styles";
 import { createMuiTheme } from "./theme";
 import type { MuiAdapterOptions } from "./defaults";
@@ -36,7 +36,7 @@ export interface MuiThemeAdapter<T extends ThemeDefinition>
 }
 
 /**
- * Runtime-owned Material UI adapter. On install it subscribes to the Theme Kit
+ * Runtime-owned Material UI adapter. On install it subscribes to the Themvora
  * store and rebuilds a MUI `Theme` whenever the active theme changes. The
  * generated theme is available through `getSnapshot` for React consumption.
  *

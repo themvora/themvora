@@ -3,9 +3,9 @@ import {
   type InitialThemeResolution,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
-import { themeKitCookieNames, type ParsedCookies } from "./cookies";
+import { themvoraCookieNames, type ParsedCookies } from "./cookies";
 
 /**
  * Options for {@link resolveThemeFromCookies}. Describes the theme registry,
@@ -42,7 +42,7 @@ export interface ResolveThemeFromCookiesOptions<T extends ThemeDefinition> {
 /**
  * SSR-first theme resolution. Reads the four theme cookies from the request,
  * rejects them when the config fingerprint is stale, and resolves the initial
- * theme for the effective selection — exactly like `@theme-kit/next`'s
+ * theme for the effective selection — exactly like `@themvora/next`'s
  * `getInitialThemeState`.
  *
  * The resolved `<html>` state (theme name, family, mode) can then be rendered
@@ -58,7 +58,7 @@ export function resolveThemeFromCookies<T extends ThemeDefinition>(
   const { themes, defaultTheme, initialMode, initialFamily, cookies } = options;
 
   const fingerprint = computeFingerprint(themes, defaultTheme);
-  const savedFingerprint = cookies[themeKitCookieNames.fingerprint];
+  const savedFingerprint = cookies[themvoraCookieNames.fingerprint];
 
   let mode: ThemeMode | undefined;
   let family: string | undefined;
@@ -73,14 +73,14 @@ export function resolveThemeFromCookies<T extends ThemeDefinition>(
   // fingerprint cookie is missing; rejecting them here made the server render
   // the fallback theme while the script painted the persisted one — the two
   // halves of the zero-flash contract disagreeing, which shows up as a
-  // hydration mismatch. Identical rule to `@theme-kit/remix`'s
-  // `readCookieSelection` and `@theme-kit/next`'s `ThemeProvider`.
+  // hydration mismatch. Identical rule to `@themvora/remix`'s
+  // `readCookieSelection` and `@themvora/next`'s `ThemeProvider`.
   if (savedFingerprint === undefined || savedFingerprint === fingerprint) {
-    const cookieMode = cookies[themeKitCookieNames.mode];
+    const cookieMode = cookies[themvoraCookieNames.mode];
     if (cookieMode === "light" || cookieMode === "dark" || cookieMode === "system") {
       mode = cookieMode;
     }
-    family = cookies[themeKitCookieNames.family];
+    family = cookies[themvoraCookieNames.family];
   }
 
   return resolveInitialTheme({

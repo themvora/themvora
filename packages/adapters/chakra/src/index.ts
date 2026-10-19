@@ -1,7 +1,7 @@
 /**
- * Theme Kit Chakra UI adapter.
+ * Themvora Chakra UI adapter.
  *
- * Bridges a Theme Kit runtime to Chakra UI's theme: `ChakraThemeProvider`,
+ * Bridges a Themvora runtime to Chakra UI's theme: `ChakraThemeProvider`,
  * `buildChakraTheme`, and the runtime adapter (`createChakraAdapter` /
  * `useChakraTheme`).
  *

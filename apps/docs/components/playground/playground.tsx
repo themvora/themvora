@@ -61,8 +61,8 @@ export function Playground() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       <PageHeader
         eyebrow="Interactive playground"
-        title="Theme Kit Playground"
-        description="Everything below runs on Theme Kit's real runtime — the same store, history, and resolver that ships in the library. Switch a family or mode, explore the token tree, audit contrast, run a transition, and watch CSS variables update live."
+        title="Themvora Playground"
+        description="Everything below runs on Themvora's real runtime — the same store, history, and resolver that ships in the library. Switch a family or mode, explore the token tree, audit contrast, run a transition, and watch CSS variables update live."
       />
 
       {/* Section nav — wraps naturally on small screens. */}
@@ -135,7 +135,7 @@ export function Playground() {
         <PlaygroundSection
           id="generator"
           title="Theme generator"
-          description="Generate a complete light/dark theme pair from a seed color, then copy the JSON or CSS variables."
+          description="Generate a complete light/dark theme pair from a seed color, then copy the JSON or the TypeScript definition."
         >
           <ThemeGenerator />
         </PlaygroundSection>

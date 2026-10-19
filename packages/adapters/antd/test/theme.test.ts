@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 import { createAntdTheme } from "../src/theme";
 
 const dark = defineTheme({

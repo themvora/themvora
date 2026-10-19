@@ -1,24 +1,19 @@
-## @theme-kit/next
-Theme Kit Next.js App Router integration.
+## @themvora/next
+Themvora Next.js App Router integration.
 
 Provides the SSR-safe `ThemeProvider` (with `ThemeProviderHtmlProps` /
 `ThemeProviderBodyProps` for zero-flash layout wiring) plus the React
 `ThemeScope` and `ThemeScrollbar` re-exports.
 
-> Generated from `packages/next/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/next/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
-### `ThemeProvider<T extends ThemeDefinition<string>>(props): Promise<Element>`
+### `ThemeProvider<T extends ThemeDefinition<string>>(props): Element`
 App Router theme provider. Must be used in the root layout: it renders the
-`<html>` and `<body>` elements, resolves the initial theme server-side from
-the persisted cookies (zero-flash), emits a blocking bootstrap script plus
-the SSR CSS variables, and mounts the client runtime inside the body.
-
-The server cannot know the client's OS preference, so a `"system"` selection
-is resolved to the light theme for SSR; the client runtime receives the
-`"system"` selection and creates the system binding, which resolves the
-correct theme for the client's OS via `prefers-color-scheme`.
+`<html>` and `<body>` elements, resolves the persisted selection, emits
+matching SSR CSS variables and a blocking bootstrap script, and mounts the
+client runtime inside the body.
 
 **See also:** `ThemeProviderProps`, `ThemeProviderBodyProps`, `ThemeProviderHtmlProps`
 
@@ -26,15 +21,21 @@ correct theme for the client's OS via `prefers-color-scheme`.
 | --------- | ---- | ----------- |
 | `props` | `ThemeProviderProps<T>` | The provider props (see ThemeProviderProps). |
 
-**Returns** `Promise<Element>` — The themed `<html>`/`<body>` tree wrapping the application content.
+**Returns** `Element` — The themed `<html>`/`<body>` tree wrapping the application content.
 
 Because this component renders the document shell, it must be the root of
 the App Router layout tree. `body` props are forwarded to the `<body>`
 element; `className`/`style` are merged with the theme's SSR output.
 
+The component itself is **synchronous**: the document shell is deterministic
+and request-independent. The persisted theme is resolved in a nested server
+component under `<Suspense>` (see ResolvedThemeProvider) and applied
+pre-paint by the blocking bootstrap, so the shell is never blocking under
+Next's Cache Components.
+
 ```ts
 // app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -83,12 +84,18 @@ Creates the custom scrollbar overlay.
 
 Lifecycle:
   mount  → create overlay → measure → attach listeners
-  paint  → add tk-scrollbar-ready
+  paint  → add tv-scrollbar-ready
   destroy → remove overlay
 
-Props are organized into three optional groups — `behavior`, `appearance`
-and `icons` — but every option is also accepted as a flat, top-level prop
-(flat props win over the grouped ones).
+Props are four optional groups — `behavior`, `appearance`, `scope` and
+`icons` — plus `children`, which is accepted for JSX symmetry only.
+
+  <ThemeScrollbar
+    behavior={{ autoHide: true, smooth: true }}
+    appearance={{ thickness: 8, radius: 999 }}
+    scope={{ include: [".panel"] }}
+    icons={{ up: <ArrowUpIcon />, size: 12 }}
+  />
 
   <ThemeScrollbar
     behavior={{ autoHide: true, smooth: true }}
@@ -695,8 +702,7 @@ theme's SSR output rather than replaced.
 
 **Extends** `ThemeProviderHtmlProps`
 Props for the App Router `ThemeProvider`. Renders the `<html>` and `<body>`
-elements, applies the SSR-resolved theme (zero-flash), and mounts the client
-runtime inside the body.
+elements, applies the theme, and mounts the client runtime inside the body.
 
 **See also:** `ThemeProvider`, `ThemeProviderBodyProps`
 
@@ -771,7 +777,7 @@ runtime inside the body.
 | `dangerouslySetInnerHTML` (optional) | `{ }` | — |
 | `datatype` (optional) | `string` | — |
 | `defaultChecked` (optional) | `boolean` | — |
-| `defaultTheme` (optional) | `T["name"]` | Theme to be applied as default. Pass defaultTheme="light" for the theme-kit's default neutral light theme. And defaultTheme="dark" for default neutral dark theme. |
+| `defaultTheme` (optional) | `T["name"]` | Theme to be applied as default. Pass defaultTheme="light" for the themvora's default neutral light theme. And defaultTheme="dark" for default neutral dark theme. |
 | `defaultValue` (optional) | `string \| number \| readonly string[]` | — |
 | `dir` (optional) | `string` | — |
 | `draggable` (optional) | `Booleanish` | — |
@@ -972,7 +978,7 @@ runtime inside the body.
 | `rev` (optional) | `string` | — |
 | `role` (optional) | `AriaRole` | — |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Passed to the client runtime; the server resolves the initial theme (zero-flash) and the client schedule controls activation. Exposed reactively via `useThemeSchedule()`. |
-| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Opt into a custom document scrollbar that exists from the very first paint — no native-scrollbar flash, no gap while the bundle hydrates. `true` builds the pre-paint overlay with defaults; pass `PrePaintScrollbarOptions` to customize it. The server emits the overlay `tk-scrollbar` class on `<html>` plus a blocking `<style>` (via `createPrePaintScrollbarCSS`) so the native scrollbar is hidden from the very first paint — no flash and no hydration mismatch. When your `<ThemeScrollbar>` / `createOverlayScrollbar` hydrates, the engine creates the custom strips and takes over. Import `@theme-kit/core/scrollbar.css` for the pre-paint styles. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Opt into a custom document scrollbar that exists from the very first paint — no native-scrollbar flash, no gap while the bundle hydrates. `true` builds the pre-paint overlay with defaults; pass `PrePaintScrollbarOptions` to customize it. The server emits the overlay `tv-scrollbar` class on `<html>` plus a blocking `<style>` (via `createPrePaintScrollbarCSS`) so the native scrollbar is hidden from the very first paint — no flash and no hydration mismatch. When your `<ThemeScrollbar>` / `createOverlayScrollbar` hydrates, the engine creates the custom strips and takes over. Import `@themvora/core/scrollbar.css` for the pre-paint styles. |
 | `security` (optional) | `string` | — |
 | `slot` (optional) | `string` | — |
 | `spellCheck` (optional) | `Booleanish` | — |
@@ -988,9 +994,28 @@ runtime inside the body.
 | `unselectable` (optional) | `"off" \| "on"` | — |
 | `vocab` (optional) | `string` | — |
 
+**The document shell is static; the persisted selection resolves behind a
+Suspense boundary.** `ThemeProvider` renders `<html>`/`<head>`/`<body>` from
+the configured `themes`/`defaultTheme` alone — it never awaits request data —
+so a route that hosts it stays prerenderable under Next's Cache Components
+with no route-segment opt-out (in particular **no `export const instant =
+false`**). The persisted, cookie-backed selection is resolved two ways that
+agree with each other:
+
+ - the blocking bootstrap script in `<head>` reads the same cookies in the
+   browser and writes the selection onto `<html>` before the first frame, so
+   the static default never flashes; and
+ - a nested server component under `<Suspense>` reads `cookies()` and hands
+   the resolved selection to the client runtime, so the hydrated provider and
+   the server-rendered subtree both carry the visitor's theme.
+
+`data-theme-selection-mode`/`-family` are declared on the shell too: the
+script rewrites them, so React's hydration diff is suppressed on the document
+element — the narrowest scope that covers attributes the script owns.
+
 ```ts
 // app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -1033,42 +1058,11 @@ grouped ones).
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.activeThumbColor`. |
-| `animationDuration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.animationDuration`. |
-| `appearance` (optional) | `ThemeScrollbarAppearance` | Grouped appearance options. Flat props override these. |
-| `arrowDownIcon` (optional) | `ReactNode` | JSX / element for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ReactNode` | JSX / element rendered inside every arrow button (overrides the built-in CSS triangle). Accepts any `ReactNode`. |
-| `arrowLeftIcon` (optional) | `ReactNode` | JSX / element for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ReactNode` | JSX / element for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.arrows`. |
-| `arrowUpIcon` (optional) | `ReactNode` | JSX / element for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.autoHide`. |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Flat alias for `OverlayScrollbarOptions.axes`. |
-| `behavior` (optional) | `ThemeScrollbarBehavior` | Grouped behavior options. Flat props (e.g. `autoHide`) override these. |
-| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). |
-| `clickToJump` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.clickToJump`. |
-| `dir` (optional) | `"auto" \| "ltr" \| "rtl"` | Flat alias for `OverlayScrollbarOptions.dir`. |
-| `draggable` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.draggable`. |
-| `duration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.duration`. |
-| `exclude` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.exclude`. |
-| `hoverExpand` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.hoverExpand`. |
-| `hoverThickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.hoverThickness`. |
-| `icons` (optional) | `ThemeScrollbarIcons` | Grouped arrow button icons. Flat `arrow*Icon` props override these. |
-| `include` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.include`. |
-| `minThumbSize` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.minThumbSize`. |
-| `offset` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.offset`. |
-| `overscroll` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.overscroll`. |
-| `radius` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.radius`. |
-| `smooth` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.smooth`. |
-| `thickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thickness`. |
-| `thumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbColor`. |
-| `thumbHoverColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbHoverColor`. |
-| `thumbOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thumbOpacity`. |
-| `touch` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.touch`. |
-| `trackColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.trackColor`. |
-| `trackOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.trackOpacity`. |
-| `zIndex` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.zIndex`. |
+| `appearance` (optional) | `ThemeScrollbarAppearance` | The look and size of every rail. |
+| `behavior` (optional) | `ThemeScrollbarBehavior` | How the overlay scrolls and hides. |
+| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). It is deliberately ignored by option resolution and change detection. |
+| `icons` (optional) | `ThemeScrollbarIcons` | Arrow button icons, plus the shared glyph size. |
+| `scope` (optional) | `ThemeScrollbarScope` | Which scrollable containers the overlay tracks. |
 
 ---
 

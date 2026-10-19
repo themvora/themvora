@@ -23,7 +23,7 @@ export function ensureCSS(id: string, css: string): HTMLStyleElement {
   if (!style) {
     style = document.createElement("style");
     style.id = id;
-    style.setAttribute("data-theme-kit", "true");
+    style.setAttribute("data-themvora", "true");
     document.head.appendChild(style);
   }
   style.textContent = css;

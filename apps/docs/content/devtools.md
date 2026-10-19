@@ -1,6 +1,6 @@
 # DevTools Reference
 
-`@theme-kit/devtools` ships an inspector, a plugin, and a ready-made panel for
+`@themvora/devtools` ships an inspector, a plugin, and a ready-made panel for
 debugging every theme change. It records lifecycle events, performance timings,
 state snapshots and the flattened CSS-variable output of the active theme.
 
@@ -9,8 +9,8 @@ state snapshots and the flattened CSS-variable output of the active theme.
 Attach the plugin to your runtime and a panel to your page:
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
-import { createDevToolsPlugin, createDevToolsPanel } from "@theme-kit/devtools";
+import { createThemeRuntime } from "@themvora/core";
+import { createDevToolsPlugin, createDevToolsPanel } from "@themvora/devtools";
 
 const runtime = createThemeRuntime({
   plugins: [createDevToolsPlugin()],
@@ -25,8 +25,8 @@ document.body.appendChild(panel);
 
 ## createDevToolsPlugin(options)
 
-A Theme Kit plugin that instantiates an inspector, binds it to the runtime and
-exposes it on `window.__THEME_KIT_DEVTOOLS__` so extensions can find it.
+A Themvora plugin that instantiates an inspector, binds it to the runtime and
+exposes it on `window.__THEMVORA_DEVTOOLS__` so extensions can find it.
 
 ```ts
 const plugin = createDevToolsPlugin({ maxEntries: 200, maxPerfEntries: 100 });
@@ -103,13 +103,13 @@ document.body.appendChild(panel);
 ## Global hook
 
 Every inspector registered via the plugin is added to a Set on
-`window.__THEME_KIT_DEVTOOLS__`, so a browser extension or your own code can
+`window.__THEMVORA_DEVTOOLS__`, so a browser extension or your own code can
 enumerate and inspect all live runtimes:
 
 ```ts
 declare global {
   interface Window {
-    __THEME_KIT_DEVTOOLS__?: Set<{
+    __THEMVORA_DEVTOOLS__?: Set<{
       getState(): unknown;
       getEntries(): unknown[];
       getPerformance(): unknown[];
@@ -117,7 +117,7 @@ declare global {
   }
 }
 
-for (const inspector of window.__THEME_KIT_DEVTOOLS__ ?? []) {
+for (const inspector of window.__THEMVORA_DEVTOOLS__ ?? []) {
   console.log(inspector.getState());
 }
 ```

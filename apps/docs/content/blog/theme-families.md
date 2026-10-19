@@ -19,10 +19,10 @@ With a boolean toggle, every palette is a separate theme. You'd need `plum-light
 
 ## Families: two independent dials
 
-Theme Kit separates the concept of **family** (the color palette) from **mode** (light/dark/system):
+Themvora separates the concept of **family** (the color palette) from **mode** (light/dark/system):
 
 ```ts
-import { useTheme } from "@theme-kit/react";
+import { useTheme } from "@themvora/react";
 
 function ThemePicker() {
   const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
@@ -49,10 +49,10 @@ The user picks a family (Plum → Mint) and a mode (light → dark) independentl
 
 ## How themes are organized
 
-Themes in Theme Kit carry a `meta` field that declares their family and mode:
+Themes in Themvora carry a `meta` field that declares their family and mode:
 
 ```ts
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 export const plumLight = defineTheme({
   name: "plum-light",
@@ -71,7 +71,7 @@ The registry indexes themes by family and mode, so `resolveInitialTheme({ themes
 
 ## The nine built-in families
 
-Theme Kit ships nine families out of the box — oat, berry, mint, citrus, cocoa, plum, iris, sky, and graphite — each with a light and dark mode. You can add your own by defining themes with the same `meta.family` and `meta.mode` structure.
+Themvora ships nine families out of the box — oat, berry, mint, citrus, cocoa, plum, iris, sky, and graphite — each with a light and dark mode. You can add your own by defining themes with the same `meta.family` and `meta.mode` structure.
 
 ## Families in the runtime
 

@@ -16,7 +16,7 @@
  *   5. runs a Node smoke test that imports the copied framework-free sources.
  *
  * Network is only needed for npm to fetch the example's *registry* peers
- * (react, typescript, ...) from the cache; theme-kit packages never touch it.
+ * (react, typescript, ...) from the cache; themvora packages never touch it.
  * No reporting here: throw on the first failure; the caller owns output.
  */
 
@@ -104,15 +104,15 @@ function packWorkspacePackage(pkgName, ws, outDir) {
  * a single run keeps it to one download; a fresh directory per run keeps it
  * reliable.
  *
- * Set `THEME_KIT_AUDIT_C_CACHE` to deliberately reuse a warm cache.
+ * Set `THEMVORA_AUDIT_C_CACHE` to deliberately reuse a warm cache.
  */
 function npmCacheDir() {
-  return process.env.THEME_KIT_AUDIT_C_CACHE ?? join(tmpdir(), `theme-kit-audit-c-cache-${process.pid}`);
+  return process.env.THEMVORA_AUDIT_C_CACHE ?? join(tmpdir(), `themvora-audit-c-cache-${process.pid}`);
 }
 
 /** Removes the run's private npm cache (no-op when one was supplied via env). */
 export function disposeNpmCache() {
-  if (process.env.THEME_KIT_AUDIT_C_CACHE) return;
+  if (process.env.THEMVORA_AUDIT_C_CACHE) return;
   try {
     rmSync(npmCacheDir(), { recursive: true, force: true });
   } catch {
@@ -130,7 +130,7 @@ export function disposeNpmCache() {
 export async function verifyExampleConsumerCompile(exampleDir) {
   const meta = JSON.parse(readFileSync(join(exampleDir, "example.meta.json"), "utf8"));
   const ws = workspacePackages();
-  const work = join(tmpdir(), `theme-kit-audit-c-${exampleSlug(exampleDir)}-${process.pid}`);
+  const work = join(tmpdir(), `themvora-audit-c-${exampleSlug(exampleDir)}-${process.pid}`);
   const tarballs = join(work, "tarballs");
   const fixture = join(work, "fixture");
   const packed = [];
@@ -145,11 +145,11 @@ export async function verifyExampleConsumerCompile(exampleDir) {
     mkdirSync(tarballs, { recursive: true });
     mkdirSync(join(fixture, "src"), { recursive: true });
 
-    // 1. Pack every declared theme-kit package plus its workspace deps so the
+    // 1. Pack every declared themvora package plus its workspace deps so the
     //    installed tree matches what the registry would serve.
     const need = new Set();
     for (const spec of meta.packages ?? []) {
-      const pkgName = spec.startsWith("@theme-kit/") ? spec : null;
+      const pkgName = spec.startsWith("@themvora/") ? spec : null;
       if (!pkgName || !ws.has(pkgName)) continue;
       need.add(pkgName);
       const pkg = ws.get(pkgName);
@@ -160,7 +160,7 @@ export async function verifyExampleConsumerCompile(exampleDir) {
       if (t) packed.push(t);
     }
 
-    // 2. Fixture package.json: declared theme-kit packages and workspace peers
+    // 2. Fixture package.json: declared themvora packages and workspace peers
     //    from tarballs; registry peers (react, react-dom, ...) from the cache.
     const usesReact =
       (meta.files ?? []).some((f) => f.endsWith(".tsx")) || (meta.peerDependencies ?? []).includes("react");
@@ -170,13 +170,13 @@ export async function verifyExampleConsumerCompile(exampleDir) {
       if (!t) throw new Error(`no tarball packed for ${pkgName}`);
       // Absolute path on purpose. A *relative* `file:../tarballs/x.tgz`
       // specifier is re-resolved from a different base when the packed package
-      // itself depends on the same package (e.g. @theme-kit/react ->
-      // @theme-kit/core), and npm then hangs forever in `idealTree buildDeps`
+      // itself depends on the same package (e.g. @themvora/react ->
+      // @themvora/core), and npm then hangs forever in `idealTree buildDeps`
       // instead of failing. Absolute specifiers are unambiguous.
       return `file:${join(tarballs, t)}`;
     };
     for (const spec of meta.packages ?? []) {
-      if (spec.startsWith("@theme-kit/") && ws.has(spec)) deps[spec] = tarballSpec(spec);
+      if (spec.startsWith("@themvora/") && ws.has(spec)) deps[spec] = tarballSpec(spec);
     }
     for (const peer of meta.peerDependencies ?? []) {
       const pkg = ws.get(peer);
@@ -184,7 +184,7 @@ export async function verifyExampleConsumerCompile(exampleDir) {
     }
     // Registry peers resolve to "*" from the npm cache; React examples also
     // need the same @types devDeps the canonical examples themselves declare
-    // (the packed @theme-kit/react declarations import React types).
+    // (the packed @themvora/react declarations import React types).
     const devDeps = { typescript: "^5.9.0" };
     if (usesReact) {
       devDeps["@types/react"] = "^19.0.0";
@@ -194,7 +194,7 @@ export async function verifyExampleConsumerCompile(exampleDir) {
       join(fixture, "package.json"),
       JSON.stringify(
         {
-          name: "theme-kit-audit-c-fixture",
+          name: "themvora-audit-c-fixture",
           private: true,
           version: "0.0.0",
           type: "module",
@@ -247,7 +247,7 @@ export async function verifyExampleConsumerCompile(exampleDir) {
       "--no-package-lock",
       `--cache=${npmCacheDir()}`,
     ];
-    const installTimeout = Number(process.env.THEME_KIT_AUDIT_C_TIMEOUT_MS ?? 120_000);
+    const installTimeout = Number(process.env.THEMVORA_AUDIT_C_TIMEOUT_MS ?? 120_000);
     const npmCli = npmCliPath();
     const tail = (v) =>
       String(v ?? "")
@@ -313,7 +313,7 @@ export async function verifyExampleConsumerCompile(exampleDir) {
         .join("\n");
       const touched = smokeFiles.map((_, i) => `void m${i};`).join(" ");
       const smoke = `${imports}
-import { createThemeRegistry } from "@theme-kit/core";
+import { createThemeRegistry } from "@themvora/core";
 const registry = createThemeRegistry({ themes: [] });
 if (typeof registry.get !== "function") throw new Error("registry smoke failed");
 ${touched}
@@ -357,7 +357,7 @@ function findInstalledDir(pkgName) {
   return null;
 }
 
-/** The declaration entry a consumer would see for `@theme-kit/<name>[/sub]`. */
+/** The declaration entry a consumer would see for `@themvora/<name>[/sub]`. */
 function declarationEntryFor(spec, ws) {
   const m = spec.match(/^(@[^/]+\/[^/]+)(?:\/(.+))?$/);
   if (!m) return null;
@@ -417,7 +417,7 @@ function esbuildBin() {
 function buildOfflineProject(exampleDir) {
   const meta = JSON.parse(readFileSync(join(exampleDir, "example.meta.json"), "utf8"));
   const ws = workspacePackages();
-  const work = join(tmpdir(), `theme-kit-audit-c-offline-${exampleSlug(exampleDir)}-${process.pid}`);
+  const work = join(tmpdir(), `themvora-audit-c-offline-${exampleSlug(exampleDir)}-${process.pid}`);
 
   const typePaths = {};
   const runtimePaths = {};

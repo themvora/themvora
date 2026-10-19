@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ThemeKitLogo from "./ui/logo";
+import ThemvoraLogo from "./ui/logo";
 import { Badge } from "./ui/badge";
 import { PKG_VERSION_BADGE } from "../lib/version";
 import { GITHUB_URL, NPM_ORG_URL, CONTACT_URL, SITE_NAME } from "../lib/site";
@@ -52,7 +52,7 @@ const columns: {
       { href: "/terms", label: "Terms" },
       { href: "/security", label: "Security" },
       { href: "/license", label: "License" },
-      { href: CONTACT_URL, label: "Contact" },
+      { href: "/contact", label: "Contact" },
     ],
   },
 ];
@@ -168,7 +168,7 @@ function FooterColumn({
               key={link.href}
               href={link.href}
               label={link.label}
-              className="text-sm text-foreground/75 hover:text-primary transition-colors no-underline"
+              className="text-sm text-foreground/75 hover:text-foreground transition-colors no-underline"
             />
           ))}
         </div>
@@ -178,7 +178,7 @@ function FooterColumn({
             key={link.href}
             href={link.href}
             label={link.label}
-            className="w-fit text-sm text-foreground/75 hover:text-primary transition-colors no-underline"
+            className="w-fit text-sm text-foreground/75 hover:text-foreground transition-colors no-underline"
           />
         ))
       )}
@@ -193,7 +193,7 @@ export function SiteFooter() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-8">
           <div className="max-w-sm">
             <Link href="/" className="no-underline">
-              <ThemeKitLogo size={30} />
+              <ThemvoraLogo size={30} />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-foreground/65">
               A framework-agnostic theming library with theme families, semantic
@@ -202,7 +202,7 @@ export function SiteFooter() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Badge tone="accent">MIT Licensed</Badge>
               <Badge tone="neutral">{PKG_VERSION_BADGE}</Badge>
-              <Badge tone="neutral">Powered by Theme Kit</Badge>
+              <Badge tone="neutral">Powered by Themvora</Badge>
             </div>
             <div className="mt-6 flex gap-3">
               {socials.map((s) => (
@@ -228,8 +228,18 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center">
-          <span>
-            &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
+          {/*
+            Not "All rights reserved" — that phrasing claims rights an
+            MIT-licensed project gives away almost all of. What is left states
+            the licence, which is the part that is true and useful.
+          */}
+          <span className="max-w-2xl text-pretty">
+            &copy; {new Date().getFullYear()} {SITE_NAME}. Open-source theming
+            library licensed under the{" "}
+            <Link href="/license" className="underline">
+              MIT License
+            </Link>
+            .
           </span>
           <span className="font-mono">theming, without the friction</span>
         </div>

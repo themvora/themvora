@@ -64,32 +64,8 @@ release-test/clean-app/package.json
 # Examples (local playgrounds)
 /examples/*
 /examples/apps/*
-!/examples/basic-theme/
-!/examples/theme-scope/
-!/examples/persistence/
-!/examples/transitions/
-!/examples/scheduling/
-!/examples/custom-scrollbar/
-!/examples/history/
-!/examples/snapshots/
-!/examples/themes/
-!/examples/tokens/
-!/examples/runtime/
-!/examples/scopes/
-!/examples/multi-window-sync/
-!/examples/sunrise-sunset/
-!/examples/accessibility/
-!/examples/theme-generation/
-!/examples/plugins/
-!/examples/zero-flash/
-!/examples/cli/
-!/examples/families-modes/
-!/examples/devtools/
-!/examples/diagnostics/
 # repository documentation
 !/examples/README.md
 
 # Local tooling state — machine-local
 .playwright-mcp/
-.workbuddy-ai/
-.kilo/

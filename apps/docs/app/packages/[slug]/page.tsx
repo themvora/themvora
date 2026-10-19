@@ -96,7 +96,7 @@ export default async function PackagePage({ params }: PageProps) {
               label: "Dependencies",
               value: isCorePackage
                 ? "None — this is the core package"
-                : "@theme-kit/core (peer dependency)",
+                : "@themvora/core (peer dependency)",
             },
             {
               label: "Use Case",
@@ -104,7 +104,7 @@ export default async function PackagePage({ params }: PageProps) {
                 ? "Framework-agnostic runtime and tooling"
                 : isFrameworkPackage
                   ? `${pkg.name} projects with theme support`
-                  : "Theme Kit development and CI/CD",
+                  : "Themvora development and CI/CD",
             },
           ]}
         />
@@ -119,7 +119,7 @@ export default async function PackagePage({ params }: PageProps) {
                 href={npmPackageUrl(pkg.pkg)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-primary hover:underline no-underline"
+                className="text-foreground underline hover:decoration-foreground no-underline"
               >
                 View on npm ↗
               </a>
@@ -127,19 +127,19 @@ export default async function PackagePage({ params }: PageProps) {
                 href={sourceUrlForPackage(pkg.pkg)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-foreground/70 hover:text-primary hover:underline no-underline"
+                className="text-foreground/70 hover:text-foreground underline hover:decoration-foreground no-underline"
               >
                 Source ↗
               </a>
             </div>
           </div>
           <p className="text-sm opacity-70 mt-1 mb-3">
-            {pkg.pkg === "@theme-kit/core" ? (
+            {pkg.pkg === "@themvora/core" ? (
               "Install the framework-agnostic core directly."
             ) : (
               <>
                 Install the integration —{" "}
-                <code className="mono text-[0.9em]">@theme-kit/core</code> is
+                <code className="mono text-[0.9em]">@themvora/core</code> is
                 pulled in automatically as a dependency.
               </>
             )}

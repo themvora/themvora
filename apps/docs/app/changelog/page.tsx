@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/changelog") },
   title: "Changelog",
   description:
-    "Theme Kit release history: what changed in each version, which packages were affected, whether a release is breaking, and how to upgrade.",
+    "Themvora release history: what changed in each version, which packages were affected, whether a release is breaking, and how to upgrade.",
 };
 
 const kindTone: Record<ChangeKind, string> = {
@@ -39,7 +39,7 @@ export default function ChangelogPage() {
           icon="📜"
           title="Changelog"
           subtitle={`Current release v${CURRENT_RELEASE} · Updated ${LAST_UPDATED}`}
-          description="Every Theme Kit release, what it changed, which packages it touched, and whether upgrading can affect your app. Proposed work is listed separately so it is never mistaken for shipped behavior."
+          description="Every Themvora release, what it changed, which packages it touched, and whether upgrading can affect your app. Proposed work is listed separately so it is never mistaken for shipped behavior."
         />
 
         <section id="upgrade-policy" className="scroll-mt-24 mb-10">
@@ -70,8 +70,8 @@ export default function ChangelogPage() {
           </div>
           <Callout title="All packages release together">
             <p className="text-sm leading-relaxed">
-              Theme Kit ships one version number across every package. When you
-              upgrade, move <em>all</em> installed <code className="mono text-[0.9em]">@theme-kit/*</code>{" "}
+              Themvora ships one version number across every package. When you
+              upgrade, move <em>all</em> installed <code className="mono text-[0.9em]">@themvora/*</code>{" "}
               packages to the same version — mismatched versions cause module
               resolution failures because the packages share internal modules.
             </p>
@@ -87,7 +87,7 @@ export default function ChangelogPage() {
             <span className="text-sm opacity-70">Released {latest?.date}</span>
             <Link
               href="#upgrade-policy"
-              className="ml-auto text-sm text-primary hover:underline no-underline"
+              className="ml-auto text-sm text-foreground underline hover:decoration-foreground no-underline"
             >
               Upgrade policy →
             </Link>
@@ -99,10 +99,10 @@ export default function ChangelogPage() {
             </li>
             <li>
               Migrating an older theme definition to the current token schema?
-              Use the <Link href="/migration" className="text-primary hover:underline">migration engine</Link>.
+              Use the <Link href="/migration" className="text-foreground underline hover:decoration-foreground">migration engine</Link>.
             </li>
             <li>
-              Installing fresh? Start at <Link href="/quick-start" className="text-primary hover:underline">Quick Start</Link>.
+              Installing fresh? Start at <Link href="/quick-start" className="text-foreground underline hover:decoration-foreground">Quick Start</Link>.
             </li>
           </ul>
         </section>

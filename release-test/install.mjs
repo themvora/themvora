@@ -2,7 +2,7 @@
 /**
  * Consumer install runner for release-test/ (checklist item 2).
  *
- * Re-generates each fixture app's package.json so that every @theme-kit/*
+ * Re-generates each fixture app's package.json so that every @themvora/*
  * dependency points at a local tarball (file:../tarballs/<name>-<version>.tgz)
  * instead of the registry or workspace, then runs `npm install` in each app.
  *
@@ -20,7 +20,7 @@ const tarballsDir = join(here, "tarballs");
 const APPS = ["vanilla-app", "react-app", "cli-app", "clean-app"];
 
 function tarballFor(pkgName) {
-  const scope = pkgName.startsWith("@") ? pkgName.split("/")[0].replace("@", "") : "theme-kit";
+  const scope = pkgName.startsWith("@") ? pkgName.split("/")[0].replace("@", "") : "themvora";
   const unscoped = pkgName.startsWith("@") ? pkgName.split("/")[1] : pkgName;
   // Resolve by prefix rather than a hardcoded version: the fixtures must track
   // whatever version was just packed, otherwise this gate silently stops running
@@ -40,7 +40,7 @@ function tarballFor(pkgName) {
 const APPS_CONFIG = {
   "vanilla-app": {
     registryDeps: {},
-    themeKitDeps: ["@theme-kit/core"],
+    themvoraDeps: ["@themvora/core"],
   },
   "react-app": {
     registryDeps: {
@@ -50,11 +50,11 @@ const APPS_CONFIG = {
       "@types/react-dom": "^19.0.0",
       typescript: "^5.9.0",
     },
-    themeKitDeps: ["@theme-kit/core", "@theme-kit/react"],
+    themvoraDeps: ["@themvora/core", "@themvora/react"],
   },
   "cli-app": {
     registryDeps: {},
-    themeKitDeps: ["@theme-kit/cli", "@theme-kit/core"],
+    themvoraDeps: ["@themvora/cli", "@themvora/core"],
   },
   "clean-app": {
     registryDeps: {
@@ -64,22 +64,22 @@ const APPS_CONFIG = {
       "@types/react-dom": "^19.0.0",
       typescript: "^5.9.0",
     },
-    // @theme-kit/next depends on the whole adapter family (batteries included),
+    // @themvora/next depends on the whole adapter family (batteries included),
     // so a realistic Next.js consumer installs the full coherent set.
-    themeKitDeps: [
-      "@theme-kit/core",
-      "@theme-kit/react",
-      "@theme-kit/next",
-      "@theme-kit/adapters",
-      "@theme-kit/mui",
-      "@theme-kit/chakra",
-      "@theme-kit/antd",
-      "@theme-kit/mantine",
-      "@theme-kit/shadcn",
-      "@theme-kit/bootstrap",
-      "@theme-kit/daisyui",
-      "@theme-kit/open-props",
-      "@theme-kit/unocss",
+    themvoraDeps: [
+      "@themvora/core",
+      "@themvora/react",
+      "@themvora/next",
+      "@themvora/adapters",
+      "@themvora/mui",
+      "@themvora/chakra",
+      "@themvora/antd",
+      "@themvora/mantine",
+      "@themvora/shadcn",
+      "@themvora/bootstrap",
+      "@themvora/daisyui",
+      "@themvora/open-props",
+      "@themvora/unocss",
     ],
   },
 };
@@ -88,11 +88,11 @@ function writeAppPackageJson(app, config) {
   const dir = join(here, app);
   mkdirSync(dir, { recursive: true });
   const deps = { ...config.registryDeps };
-  for (const pkg of config.themeKitDeps) {
+  for (const pkg of config.themvoraDeps) {
     deps[pkg] = tarballFor(pkg);
   }
   const pkg = {
-    name: `theme-kit-${app}`,
+    name: `themvora-${app}`,
     private: true,
     version: "0.0.0",
     type: "module",

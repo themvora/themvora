@@ -1,8 +1,8 @@
 /**
- * React hook for the Bootstrap adapter (`@theme-kit/bootstrap/react`).
+ * React hook for the Bootstrap adapter (`@themvora/bootstrap/react`).
  *
  * `useBootstrapTheme(runtime, options?)` installs the Bootstrap adapter onto
- * an explicitly provided Theme Kit runtime and disposes it on unmount.
+ * an explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,22 +13,22 @@ import type {
   AdapterStrategy,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createBootstrapAdapter } from "./adapter";
 import { injectBootstrapCSS } from "./index";
 
 /**
- * React hook that installs the Bootstrap adapter onto the given Theme Kit
+ * React hook that installs the Bootstrap adapter onto the given Themvora
  * runtime. The adapter maintains a tagged `:root` style element containing
  * concrete `--bs-*` variables (including `-rgb` triplets) and keeps them in
  * sync as the theme changes.
  *
- * Call once in your app root, passing the runtime from your Theme Kit
- * provider (e.g. the `useThemeRuntime()` hook from `@theme-kit/react`):
+ * Call once in your app root, passing the runtime from your Themvora
+ * provider (e.g. the `useThemeRuntime()` hook from `@themvora/react`):
  *
  * ```tsx
- * import { useBootstrapTheme } from "@theme-kit/bootstrap/react";
+ * import { useBootstrapTheme } from "@themvora/bootstrap/react";
  *
  * function App() {
  *   useBootstrapTheme(runtime);
@@ -36,7 +36,7 @@ import { injectBootstrapCSS } from "./index";
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  *
  * @see {@link createBootstrapAdapter}

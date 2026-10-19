@@ -36,10 +36,10 @@ export default function CustomThemesPage() {
             </svg>
           }
           title="Custom Themes"
-          subtitle="@theme-kit/core"
+          subtitle="@themvora/core"
 description={
               <>
-                Theme Kit ships with neutral, preset, brand and accessibility
+                Themvora ships with neutral, preset, brand and accessibility
                 themes — but the real power is defining your own. Every theme is a
                 plain object of{" "}
                 <em className="mono text-[0.9em]">semantic tokens</em> plus{" "}

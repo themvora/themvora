@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-shot consumer verification for Theme Kit 1.0.0:
+ * One-shot consumer verification for Themvora 1.0.0:
  *  1. pack all packages into release-test/tarballs (and verify contents)
  *  2. install vanilla-app + react-app + cli-app + clean-app from those tarballs (npm, no lockfile)
  *  3. run each app's test suite

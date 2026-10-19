@@ -12,8 +12,8 @@ import {
   type ThemeRuntime,
   type ThemeScheduleOptions,
   type ThemeTransitionOptions,
-} from "@theme-kit/core";
-import { ThemeKitSymbol } from "@theme-kit/vue";
+} from "@themvora/core";
+import { ThemeSymbol } from "@themvora/vue";
 import { toRaw } from "vue";
 import {
   defineNuxtPlugin,
@@ -28,13 +28,13 @@ import {
   cssVariablesStyle,
 } from "../../server/bootstrap";
 import {
-  themeKitCookieNames,
+  themvoraCookieNames,
   parseCookieHeader,
 } from "../../server/cookies";
 import { computeFingerprint } from "../../server/fingerprint";
 import { createNuxtThemePersistence } from "../utils/persistence";
 
-export interface ThemeKitRuntimeConfig {
+export interface ThemvoraRuntimeConfig {
   themes?: ThemeDefinition[];
   defaultTheme?: string;
   initialMode?: ThemeMode;
@@ -45,7 +45,7 @@ export interface ThemeKitRuntimeConfig {
   scheduled?: false | ThemeScheduleOptions<ThemeDefinition>;
 }
 
-const INITIAL_STATE_KEY = "theme-kit:initial";
+const INITIAL_STATE_KEY = "themvora:initial";
 
 function writeCookie(name: string, value: string) {
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(
@@ -55,7 +55,7 @@ function writeCookie(name: string, value: string) {
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
-  const themeConfig = (config.public.themeKit ?? {}) as ThemeKitRuntimeConfig;
+  const themeConfig = (config.public.themvora ?? {}) as ThemvoraRuntimeConfig;
 
   // Nuxt hands us Vue reactive proxies: `useRuntimeConfig()` is reactive and so
   // is every `useState` payload. The core history/snapshot controllers isolate
@@ -112,7 +112,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     // stylesheet rule regardless of specificity, so a dark media block emitted
     // alongside them could never apply and an OS-dark visitor would stay light.
     // Emit both schemes as media blocks instead and leave only
-    // `color-scheme: light dark`, which is the same rule `@theme-kit/astro`
+    // `color-scheme: light dark`, which is the same rule `@themvora/astro`
     // applies via `systemModeCSSTemplate`.
     let themeStyle: string;
     let colorScheme: string;
@@ -176,8 +176,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (effMode === "dark") htmlAttrs.class = "dark";
     if (scrollbar) {
       htmlAttrs.class = htmlAttrs.class
-        ? `${htmlAttrs.class} tk-scrollbar`
-        : "tk-scrollbar";
+        ? `${htmlAttrs.class} tv-scrollbar`
+        : "tv-scrollbar";
     }
 
     useHead(
@@ -206,9 +206,9 @@ export default defineNuxtPlugin((nuxtApp) => {
       ...(scheduled !== undefined ? { scheduled } : {}),
     });
 
-    nuxtApp.vueApp.provide(ThemeKitSymbol, ssrRuntime);
-    nuxtApp.provide("themeKit", ssrRuntime);
-    nuxtApp.provide("themeKitRuntime", ssrRuntime);
+    nuxtApp.vueApp.provide(ThemeSymbol, ssrRuntime);
+    nuxtApp.provide("themvora", ssrRuntime);
+    nuxtApp.provide("themvoraRuntime", ssrRuntime);
     return;
   }
 
@@ -239,26 +239,26 @@ export default defineNuxtPlugin((nuxtApp) => {
     ...(scheduled !== undefined ? { scheduled } : {}),
   });
 
-  nuxtApp.vueApp.provide(ThemeKitSymbol, runtime);
-  nuxtApp.provide("themeKit", runtime);
+  nuxtApp.vueApp.provide(ThemeSymbol, runtime);
+  nuxtApp.provide("themvora", runtime);
   // Registered exactly once. Nuxt's `provide` installs a non-configurable
-  // getter, so also returning `{ provide: { themeKitRuntime } }` from the
-  // plugin would call `provide("themeKitRuntime", ...)` a second time and throw
-  // "Cannot redefine property: $themeKitRuntime" during app initialisation.
-  nuxtApp.provide("themeKitRuntime", runtime);
+  // getter, so also returning `{ provide: { themvoraRuntime } }` from the
+  // plugin would call `provide("themvoraRuntime", ...)` a second time and throw
+  // "Cannot redefine property: $themvoraRuntime" during app initialisation.
+  nuxtApp.provide("themvoraRuntime", runtime);
 
   // Mirror the full selection back to cookies so the server knows exactly what
-  // the client picked on the next request (same CookieSync as @theme-kit/next).
+  // the client picked on the next request (same CookieSync as @themvora/next).
   const fingerprint = computeFingerprint(themes, defaultTheme);
 
   const syncFromRuntime = (theme: ThemeDefinition) => {
     const isDark = theme.meta?.mode === "dark";
     document.documentElement.classList.toggle("dark", isDark);
-    writeCookie(themeKitCookieNames.name, String(theme.name));
-    writeCookie(themeKitCookieNames.family, runtime.selection.getFamily());
-    writeCookie(themeKitCookieNames.mode, runtime.selection.getMode());
+    writeCookie(themvoraCookieNames.name, String(theme.name));
+    writeCookie(themvoraCookieNames.family, runtime.selection.getFamily());
+    writeCookie(themvoraCookieNames.mode, runtime.selection.getMode());
     if (fingerprint) {
-      writeCookie(themeKitCookieNames.fingerprint, fingerprint);
+      writeCookie(themvoraCookieNames.fingerprint, fingerprint);
     }
   };
 
@@ -274,4 +274,4 @@ export default defineNuxtPlugin((nuxtApp) => {
   });
 });
 
-export type ThemeKitPluginRuntime = ThemeRuntime<ThemeDefinition>;
+export type ThemvoraPluginRuntime = ThemeRuntime<ThemeDefinition>;

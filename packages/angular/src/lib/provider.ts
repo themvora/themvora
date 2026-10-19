@@ -18,27 +18,27 @@ import {
   type ThemeRuntimeOptions,
   type ThemeDefinition,
   type ThemeTransitionOptions,
-} from "@theme-kit/core";
-import { THEME_KIT_RUNTIME } from "./tokens";
+} from "@themvora/core";
+import { THEME_RUNTIME } from "./tokens";
 import { createAngularPersistence, THEME_SELECTION_KEY } from "./persistence";
 import { createBlockingScriptContent } from "./blocking-script";
 
 /**
- * Options for {@link provideThemeKit}.
+ * Options for {@link provideTheme}.
  *
  * Extends the core runtime options with an optional DOM target element. When
  * omitted, the runtime is bound to `document.documentElement`.
  *
- * @see {@link provideThemeKit}
+ * @see {@link provideTheme}
  */
-export type ThemeKitProviderOptions = ThemeRuntimeOptions<ThemeDefinition> & {
+export type ThemeProviderOptions = ThemeRuntimeOptions<ThemeDefinition> & {
   /** The DOM element the runtime's DOM and CSS-variable bindings attach to.
    *  Defaults to `document.documentElement`. */
   target?: HTMLElement;
 };
 
 /**
- * Provides a Theme Kit runtime for the current Angular environment injector.
+ * Provides a Themvora runtime for the current Angular environment injector.
  *
  * Call this once at the application root (or a feature environment) to create
  * the runtime, wire up Angular persistence, and register environment
@@ -54,22 +54,22 @@ export type ThemeKitProviderOptions = ThemeRuntimeOptions<ThemeDefinition> & {
  *
  * @example
  * ```ts
- * import { provideThemeKit } from "@theme-kit/angular";
- * import { getBuiltInThemes } from "@theme-kit/core";
+ * import { provideTheme } from "@themvora/angular";
+ * import { getBuiltInThemes } from "@themvora/core";
  *
  * bootstrapApplication(AppComponent, {
  *   providers: [
- *     provideThemeKit({ themes: getBuiltInThemes(), defaultTheme: "light" }),
+ *     provideTheme({ themes: getBuiltInThemes(), defaultTheme: "light" }),
  *   ],
  * });
  * ```
  *
- * @see {@link provideThemeKitRuntime}
+ * @see {@link provideThemeRuntime}
  * @see {@link injectThemeRuntime}
- * @see {@link ThemeKitProviderOptions}
+ * @see {@link ThemeProviderOptions}
  */
-export function provideThemeKit(
-  options: ThemeKitProviderOptions = {},
+export function provideTheme(
+  options: ThemeProviderOptions = {},
 ): EnvironmentProviders {
   const { target, ...runtimeOptions } = options;
 
@@ -88,7 +88,7 @@ export function provideThemeKit(
 
   const providers: Provider[] = [
     {
-      provide: THEME_KIT_RUNTIME,
+      provide: THEME_RUNTIME,
       useFactory: () => {
         const persistence = createAngularPersistence();
         return createThemeRuntime({
@@ -114,7 +114,7 @@ export function provideThemeKit(
         const platformId = inject(PLATFORM_ID);
         if (!isPlatformBrowser(platformId)) return () => {};
 
-        const runtime = inject(THEME_KIT_RUNTIME);
+        const runtime = inject(THEME_RUNTIME);
         return () => {
           const el = target ?? document.documentElement;
           createDOMBinding(runtime.store, {
@@ -140,7 +140,7 @@ export function provideThemeKit(
         const platformId = inject(PLATFORM_ID);
         if (!isPlatformServer(platformId)) return () => {};
 
-        const runtime = inject(THEME_KIT_RUNTIME);
+        const runtime = inject(THEME_RUNTIME);
         const transferState = inject(TransferState);
         const rendererFactory = inject(RendererFactory2);
         const document = inject(DOCUMENT);
@@ -185,12 +185,12 @@ export function provideThemeKit(
 }
 
 /**
- * Provides an existing Theme Kit runtime for the current Angular environment
+ * Provides an existing Themvora runtime for the current Angular environment
  * injector.
  *
  * Use this when you already have a runtime instance (for example, created
  * outside Angular or shared across environments) and want to expose it through
- * the {@link THEME_KIT_RUNTIME} token. Unlike {@link provideThemeKit}, it does
+ * the {@link THEME_RUNTIME} token. Unlike {@link provideTheme}, it does
  * not create bindings or persistence.
  *
  * May be called from an Angular injection context. Returns an
@@ -199,13 +199,13 @@ export function provideThemeKit(
  * @param runtime The runtime instance to provide.
  * @returns An `EnvironmentProviders` value that provides the runtime.
  *
- * @see {@link provideThemeKit}
+ * @see {@link provideTheme}
  * @see {@link injectThemeRuntime}
  */
-export function provideThemeKitRuntime(
+export function provideThemeRuntime(
   runtime: ThemeRuntime<ThemeDefinition>,
 ): EnvironmentProviders {
   return makeEnvironmentProviders([
-    { provide: THEME_KIT_RUNTIME, useValue: runtime },
+    { provide: THEME_RUNTIME, useValue: runtime },
   ]);
 }

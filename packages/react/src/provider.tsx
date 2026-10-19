@@ -24,13 +24,14 @@ import {
   type ThemeModes,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
-} from "@theme-kit/core";
+  type ThemeConfigurationUpdate,
+} from "@themvora/core";
 
-type ThemeKitContextValue<T extends ThemeDefinition> = {
+type ThemeContextValue<T extends ThemeDefinition> = {
   runtime: ThemeRuntime<T>;
 };
 
-const ThemeKitContext = createContext<ThemeKitContextValue<any> | null>(null);
+const ThemeContext = createContext<ThemeContextValue<any> | null>(null);
 
 /**
  * Props for the {@link ThemeProvider} component.
@@ -67,11 +68,11 @@ export interface ThemeProviderProps<
 }
 
 /**
- * React provider for a Theme Kit runtime.
+ * React provider for a Themvora runtime.
  *
  * Creates a runtime on mount (unless a `runtime` prop is given), installs the
  * DOM + CSS-variable bindings, injects a pre-paint bootstrap script for
- * flash-proofing, and provides the runtime to all Theme Kit hooks below.
+ * flash-proofing, and provides the runtime to all Themvora hooks below.
  *
  * Must be rendered inside the application's root. When no `runtime` prop is
  * passed, the provider owns the runtime and destroys it on unmount; the
@@ -89,7 +90,7 @@ export interface ThemeProviderProps<
  *
  * It is fixed where it happens instead, with no application code:
  *
- * - **Vite apps** — `themeKitVitePlugin()` resolves `react-dom/client` to a shim
+ * - **Vite apps** — `themvoraVitePlugin()` resolves `react-dom/client` to a shim
  *   that flushes the first `render` synchronously (`syncFirstRender`, on by
  *   default). Nothing in the app changes; `<ThemeProvider>` alone is enough.
  * - **Anything else** — {@link createThemeRoot} is that same synchronous first
@@ -126,7 +127,11 @@ export function ThemeProvider<T extends ThemeDefinition>({
   const ownsRuntime = runtime === undefined;
 
   const runtimeRef = useRef<ThemeRuntime<T> | null>(null);
-  const prevInitialRef = useRef<object | null>(null);
+  // The provider owns its DOM/CSS bindings (the runtime is created with
+  // `dom: false` / `cssVariables: false`), so a live `transition` change has to
+  // reach them directly — the runtime can only update bindings it owns itself.
+  const domBindingRef = useRef<ReturnType<typeof createDOMBinding> | null>(null);
+  const cssBindingRef = useRef<ReturnType<typeof createCSSVariablesBinding> | null>(null);
   // Holds the pending runtime-destroy timer left by a cleanup. React
   // StrictMode (dev) runs effect cleanups and re-runs setup synchronously, so
   // a deferred destroy lets the re-run cancel it — the runtime survives
@@ -173,48 +178,50 @@ export function ThemeProvider<T extends ThemeDefinition>({
 
   const resolvedRuntime = runtimeRef.current;
 
-  // Applied in a LAYOUT effect, not a passive one: `initial` is the SSR-resolved
-  // selection, and it has to win *before* the browser paints. In a passive
-  // effect it ran after paint, so a server-rendered app painted the persisted
-  // selection first and then corrected itself — a visible theme blink on every
-  // load, for exactly the apps that went to the trouble of resolving the
-  // selection on the server. Layout effects run after the insertion effect above
-  // (which injects the pre-paint bootstrap) and before paint, which is the order
-  // this needs: the bootstrap establishes the persisted selection, `initial`
-  // overrides it with the server's answer, and the browser sees only the result.
-  //
-  // `createThemeRoot` applies the same selection synchronously, before its first
-  // commit — this is the plain-provider equivalent.
+  // Live configuration. Every changed config prop is forwarded to the runtime,
+  // which re-resolves centrally; the runtime no-ops when nothing that affects
+  // the resolved theme changed, so an ordinary re-render costs nothing and a
+  // user's own selection is never disturbed. A LAYOUT effect so a server-
+  // resolved `initial` still wins before paint (as before); it also means a
+  // changed prop after hydration applies in the same commit, not a frame later.
   useLayoutEffect(() => {
-    if (!ownsRuntime || !resolvedRuntime) {
+    if (!resolvedRuntime) {
       return;
     }
 
-    if (coreOptions.initial && prevInitialRef.current !== coreOptions.initial) {
-      prevInitialRef.current = coreOptions.initial;
+    // Only *supplied* props are forwarded: a prop that is absent (or `undefined`)
+    // must not reset a value the runtime was created with (e.g. a caller-owned
+    // runtime created with its own `initialMode`).
+    const update: ThemeConfigurationUpdate<T> = {};
+    if (runtimeOptions.themes !== undefined) update.themes = runtimeOptions.themes as readonly T[];
+    if (runtimeOptions.defaultTheme !== undefined) update.defaultTheme = runtimeOptions.defaultTheme;
+    if (runtimeOptions.initialFamily !== undefined) update.initialFamily = runtimeOptions.initialFamily;
+    if (runtimeOptions.initialMode !== undefined) update.initialMode = runtimeOptions.initialMode;
+    if (runtimeOptions.initial !== undefined) update.initial = runtimeOptions.initial;
+    if (runtimeOptions.transition !== undefined) update.transition = runtimeOptions.transition;
+    if (runtimeOptions.scheduled !== undefined) update.scheduled = runtimeOptions.scheduled;
 
-      const { selection, theme } = coreOptions.initial;
-
-      // When the selection is "system" the selection controller's system
-      // binding owns the resolved store theme (it already applied it during
-      // runtime creation). Forcing the SSR-rendered light theme here would
-      // override the client's OS-preference resolution and leave the page
-      // stuck on light until the OS preference changes.
-      if (
-        selection.mode !== "system" &&
-        resolvedRuntime.store.get().name !== theme.name
-      ) {
-        resolvedRuntime.store.set(theme);
-      }
-
-      if (selection.family !== resolvedRuntime.selection.getFamily()) {
-        resolvedRuntime.selection.setFamily(selection.family);
-      }
-      if (selection.mode !== resolvedRuntime.selection.getMode()) {
-        resolvedRuntime.selection.setMode(selection.mode);
-      }
+    // The runtime validates and value-compares the transition update; an
+    // identity change on `runtime.transition` means it was actually applied, so
+    // the provider's own bindings (which the runtime does not own) are pushed
+    // the new value. This reuses the runtime's comparison instead of
+    // re-implementing it here.
+    const transitionBefore = resolvedRuntime.transition;
+    resolvedRuntime.configure(update);
+    if (resolvedRuntime.transition !== transitionBefore) {
+      domBindingRef.current?.setTransition(resolvedRuntime.transition);
+      cssBindingRef.current?.setTransition(resolvedRuntime.transition);
     }
-  }, [ownsRuntime, resolvedRuntime, coreOptions.initial]);
+  }, [
+    resolvedRuntime,
+    runtimeOptions.themes,
+    runtimeOptions.defaultTheme,
+    runtimeOptions.initialFamily,
+    runtimeOptions.initialMode,
+    runtimeOptions.initial,
+    runtimeOptions.transition,
+    runtimeOptions.scheduled,
+  ]);
 
   // The bootstrap above owns the first paint. Set up the live bindings after
   // mount so their initialization cannot compete with the browser's first
@@ -235,7 +242,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
       document.head &&
       coreOptions.persistence !== null &&
       coreOptions.themes?.length &&
-      !document.getElementById("theme-kit-bootstrap")
+      !document.getElementById("themvora-bootstrap")
     ) {
       const bootstrap = createThemeBootstrapScript({
         themes: coreOptions.themes,
@@ -251,7 +258,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
       });
       if (bootstrap) {
         const script = document.createElement("script");
-        script.id = "theme-kit-bootstrap";
+        script.id = "themvora-bootstrap";
         script.text = bootstrap;
         document.head.appendChild(script);
       }
@@ -278,6 +285,17 @@ export function ThemeProvider<T extends ThemeDefinition>({
             // onBeforeSwap; subscribing here too would fire a second,
             // competing startViewTransition. Otherwise the DOM binding owns its updates.
             subscribe: !cssBindingDrivesDom,
+            // Mirror the visitor's selection onto `data-theme-selection-mode` /
+            // `data-theme-selection-family`. The provider owns the DOM binding
+            // (the runtime is created with `dom: false`), so without this the
+            // selection attributes would be whatever the pre-paint bootstrap or
+            // SSR layout wrote and would never track a client-side change — the
+            // resolved `data-theme-mode`/`-family` cannot recover a `"system"`
+            // selection. Passing the selection source (rather than deriving it
+            // from the store) is also required for correctness: a mode change
+            // that resolves to the same theme emits no store change. This mirrors
+            // the runtime's own binding and `Themvora` (vanilla.ts).
+            selection: resolvedRuntime.selection,
             ...(resolvedTransition !== undefined ? { transition: resolvedTransition } : {}),
           });
 
@@ -290,9 +308,14 @@ export function ThemeProvider<T extends ThemeDefinition>({
             ...(domBinding ? { onBeforeSwap: domBinding.apply } : {}),
           });
 
+    domBindingRef.current = domBinding;
+    cssBindingRef.current = cssBinding;
+
     return () => {
       domBinding?.destroy();
       cssBinding?.destroy();
+      domBindingRef.current = null;
+      cssBindingRef.current = null;
     };
   }, [resolvedRuntime, domOptions, cssOptions]);
 
@@ -327,20 +350,20 @@ export function ThemeProvider<T extends ThemeDefinition>({
   );
 
   return (
-    <ThemeKitContext.Provider value={value}>
+    <ThemeContext.Provider value={value}>
       {children}
-    </ThemeKitContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 
 /**
- * Get the active Theme Kit runtime from context. Throws when used outside a
+ * Get the active Themvora runtime from context. Throws when used outside a
  * \`ThemeProvider\`. Pass the theme tuple element type to type the runtime's
  * store/selection against your registry — any registry works, so the built-in
  * set is used here to keep the example self-contained:
  *
  * \`\`\`ts
- * import { getBuiltInThemes } from "@theme-kit/core";
+ * import { getBuiltInThemes } from "@themvora/core";
  *
  * const themes = getBuiltInThemes();
  * const runtime = useThemeRuntime<typeof themes[number]>();
@@ -350,7 +373,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
  * @see {@link useTheme}
  */
 export function useThemeRuntime<T extends ThemeDefinition>() {
-  const context = useContext(ThemeKitContext);
+  const context = useContext(ThemeContext);
 
   if (!context) {
     throw new Error("useThemeRuntime must be used inside ThemeProvider.");

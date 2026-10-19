@@ -1,7 +1,7 @@
-import type { AdapterStrategy } from "@theme-kit/core";
+import type { AdapterStrategy } from "@themvora/core";
 
-export const SHADCN_STYLE_ID = "@theme-kit/shadcn";
-export const SHADCN_VARIABLES_STYLE_ID = "theme-kit-shadcn-variables";
+export const SHADCN_STYLE_ID = "@themvora/shadcn";
+export const SHADCN_VARIABLES_STYLE_ID = "themvora-shadcn-variables";
 
 /**
  * Options for the shadcn/ui adapter.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getInitialThemeState } from "../src/server";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 const themes = [
   defineTheme({

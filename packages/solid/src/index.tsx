@@ -1,5 +1,5 @@
 /**
- * Theme Kit Solid integration.
+ * Themvora Solid integration.
  *
  * Provides the `ThemeProvider`, `ThemeScope`, `ThemeScrollbar`, and
  * `ThemeInspector` components, the `useTheme*` hooks, and the SSR
@@ -19,6 +19,8 @@ import {
   createScopedThemeBinding,
   createThemeBootstrapScript,
   EMPTY_THEME_SCHEDULE_STATE,
+  findGeneratedTheme,
+  resolveGeneratedTheme,
   type OverlayScrollbarOptions,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
@@ -36,7 +38,16 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
+import {
+  resolveIconOptions,
+  resolveScrollbarOptions,
+  type ScrollbarAppearanceOptions,
+  type ScrollbarGroupedOptions,
+  type ScrollbarBehaviorOptions,
+  type ScrollbarIconOptions,
+  type ScrollbarScopeOptions,
+} from "@themvora/core";
 import {
   createComponent,
   createContext,
@@ -46,6 +57,7 @@ import {
   createEffect,
   onMount,
   onCleanup,
+  type Accessor,
   type JSX,
 } from "solid-js";
 import { insert } from "solid-js/web";
@@ -72,7 +84,7 @@ interface ThemeContextValue<T extends ThemeDefinition> {
   runtime: ThemeRuntime<T>;
 }
 
-const ThemeKitContext = createContext<ThemeContextValue<any> | null>(null);
+const ThemeContext = createContext<ThemeContextValue<any> | null>(null);
 
 /**
  * Returns the active {@link ThemeRuntime} from the nearest {@link ThemeProvider}.
@@ -90,7 +102,7 @@ const ThemeKitContext = createContext<ThemeContextValue<any> | null>(null);
  * @see {@link useThemeValue}
  */
 export function useThemeRuntime<T extends ThemeDefinition>() {
-  const ctx = useContext(ThemeKitContext) as ThemeContextValue<T> | undefined;
+  const ctx = useContext(ThemeContext) as ThemeContextValue<T> | undefined;
   if (!ctx) {
     throw new Error("useThemeRuntime must be used within a ThemeProvider");
   }
@@ -152,6 +164,69 @@ export function useThemeTokens<T extends ThemeDefinition>() {
   });
 
   return tokens;
+}
+
+/**
+ * Reactive access to the theme produced by `generateTheme()` and registered
+ * with the provider, as a Solid signal.
+ *
+ * Resolves the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`); shipped presets never qualify. When
+ * both halves of one `generateTheme()` call are registered, the signal tracks
+ * the theme the active selection resolves to. The subscription is disposed on
+ * component cleanup.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection; if
+ * the generated theme is later removed, the same error is raised at the next
+ * reactive read rather than a stale theme being returned.
+ *
+ * @returns A Solid signal holding the registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when no generated theme is
+ *   registered; `TV_GENERATION_THEME_AMBIGUOUS` when several are and the active
+ *   selection does not identify one.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useGeneratedTheme<T extends ThemeDefinition>(): Accessor<T> {
+  const runtime = useThemeRuntime<T>();
+
+  // Eager initial resolution preserves the documented mount-time error contract.
+  resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+
+  const [current, setCurrent] = createSignal<T | null>(
+    findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T).theme,
+  );
+
+  onMount(() => {
+    // React to the registry too: a `runtime.use(pack)` install adds generated
+    // themes without touching the store or selection. Never throws — a settled
+    // missing state is stored as null and surfaced on read.
+    const update = () => {
+      setCurrent(() =>
+        findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T).theme,
+      );
+    };
+    const unsubStore = runtime.store.subscribe(update);
+    const unsubRegistry = runtime.registry.subscribe(update);
+    onCleanup(() => {
+      unsubStore();
+      unsubRegistry();
+    });
+  });
+
+  // Read-time resolution: throws the documented error when the settled state is
+  // missing/ambiguous, and reads the signal so Solid re-runs on any change.
+  return () => {
+    const theme = current();
+    if (theme === null) {
+      resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+    }
+    return theme!;
+  };
 }
 
 /**
@@ -222,7 +297,7 @@ export function useThemeFamily() {
  *
  * @example
  * ```tsx
- * import { useTheme } from "@theme-kit/solid";
+ * import { useTheme } from "@themvora/solid";
  *
  * function ThemeToggle() {
  *   const { mode, setMode, toggleTheme } = useTheme();
@@ -474,7 +549,7 @@ export function useThemeSchedule<T extends ThemeDefinition = ThemeDefinition>() 
  *
  * @example
  * ```tsx
- * import { ThemeProvider } from "@theme-kit/solid";
+ * import { ThemeProvider } from "@themvora/solid";
  *
  * function App() {
  *   return (
@@ -502,7 +577,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
   // NOTE: we deliberately do NOT destructure `children` out of `props`. In JSX,
   // `children` is a getter that instantiates the child subtree the moment it is
   // read; reading it during setup (e.g. via rest destructuring or a spread)
-  // would render the children BEFORE the ThemeKit context exists, making
+  // would render the children BEFORE the Themvora context exists, making
   // `useTheme`/`useContext` fail with "must be used within a ThemeProvider".
   const extRuntime = props.runtime;
   const ownsRuntime = !extRuntime;
@@ -510,7 +585,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
   // Build the runtime options by copying prop-by-prop, skipping `runtime` and
   // `children` so the children getter is never evaluated during setup. (A rest
   // destructure or object spread would read the `children` getter, which
-  // instantiates the child subtree before the ThemeKit context exists.)
+  // instantiates the child subtree before the Themvora context exists.)
   const runtimeOptions = {} as Omit<ThemeProviderProps<T>, "runtime" | "children">;
   const propsRecord = props as unknown as Record<string, unknown>;
   for (const key of Object.keys(props)) {
@@ -556,8 +631,35 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
 
   const resolvedRuntime = runtimeInstance()!;
 
-  let domBinding: { destroy(): void } | null = null;
-  let cssBinding: { destroy(): void } | null = null;
+  // Live configuration: forward changed props to the runtime, which
+  // re-resolves centrally. The props are read *inside* the effect so Solid
+  // tracks them — the eager copy above is deliberately non-reactive — and only
+  // supplied props are forwarded, so an absent prop cannot reset a value the
+  // runtime was created with.
+  createEffect(() => {
+    if (!resolvedRuntime) return;
+    const update: Record<string, unknown> = {};
+    if (props.themes !== undefined) update.themes = props.themes;
+    if (props.defaultTheme !== undefined) update.defaultTheme = props.defaultTheme;
+    if (props.initialFamily !== undefined) update.initialFamily = props.initialFamily;
+    if (props.initialMode !== undefined) update.initialMode = props.initialMode;
+    if (props.initial !== undefined) update.initial = props.initial;
+    if (props.transition !== undefined) update.transition = props.transition;
+    if (props.scheduled !== undefined) update.scheduled = props.scheduled;
+
+    // The runtime owns validation/comparison; an identity change on
+    // `runtime.transition` means the new options were applied, so the
+    // provider's own bindings (created on mount) are pushed them too.
+    const transitionBefore = resolvedRuntime.transition;
+    resolvedRuntime.configure(update);
+    if (resolvedRuntime.transition !== transitionBefore) {
+      domBinding?.setTransition?.(resolvedRuntime.transition);
+      cssBinding?.setTransition?.(resolvedRuntime.transition);
+    }
+  });
+
+  let domBinding: { setTransition?(transition: unknown): void; destroy(): void } | null = null;
+  let cssBinding: { setTransition?(transition: unknown): void; destroy(): void } | null = null;
 
   onMount(() => {
     if (typeof window !== "undefined") {
@@ -571,7 +673,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
         document.head &&
         runtimeOptions.persistence !== null &&
         (runtimeOptions.themes as readonly ThemeDefinition[] | undefined)?.length &&
-        !document.getElementById("theme-kit-bootstrap")
+        !document.getElementById("themvora-bootstrap")
       ) {
         const bootstrap = createThemeBootstrapScript({
           themes: runtimeOptions.themes as any,
@@ -581,7 +683,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
         });
         if (bootstrap) {
           const script = document.createElement("script");
-          script.id = "theme-kit-bootstrap";
+          script.id = "themvora-bootstrap";
           script.textContent = bootstrap;
           document.head.appendChild(script);
         }
@@ -617,7 +719,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
     }
   });
 
-  return createComponent(ThemeKitContext.Provider, {
+  return createComponent(ThemeContext.Provider, {
     value: { runtime: resolvedRuntime },
     // Lazy getter: the Provider (Solid's createProvider) resolves children
     // inside `children(() => props.children)` — i.e. AFTER the context value
@@ -706,6 +808,7 @@ export function ThemeScope(props: ThemeScopeProps) {
   let ref: HTMLDivElement | null = null;
   let binding: ReturnType<typeof createScopedThemeBinding> | null = null;
   let unsubscribeStore: (() => void) | null = null;
+  let unsubscribeThemes: (() => void) | null = null;
 
   // The scope's base selection. `theme` wins over `family`/`mode`. When neither
   // is given, the scope mirrors the provider's selection inside its own
@@ -775,8 +878,10 @@ export function ThemeScope(props: ThemeScopeProps) {
   insert(wrapper, () => props.children);
 
   onMount(() => {
+    // The runtime's own list, not a copy: `configure()` replaces its contents
+    // in place, and a copied array would keep resolving removed themes.
     binding = createScopedThemeBinding(
-      combinedThemes(),
+      runtime.themes,
       wrapper,
       withGlobalMode(baseSelection(), runtime.selection.getMode()),
       {
@@ -813,11 +918,19 @@ export function ThemeScope(props: ThemeScopeProps) {
       if ("name" in base || base.mode !== undefined) return;
       binding.update(withGlobalMode(base, runtime.selection.getMode()));
     });
+
+    // Follow the provider's catalog: a `themes` change that preserves the
+    // active theme never reaches the store subscription above.
+    unsubscribeThemes = runtime.registry.subscribe(() => {
+      binding?.refresh();
+    });
   });
 
   onCleanup(() => {
     unsubscribeStore?.();
     unsubscribeStore = null;
+    unsubscribeThemes?.();
+    unsubscribeThemes = null;
     binding?.destroy();
     binding = null;
   });
@@ -831,47 +944,29 @@ export function ThemeScope(props: ThemeScopeProps) {
  * Extends {@link OverlayScrollbarOptions} so the scrollbar can be configured
  * with the same options used by `createOverlayScrollbar`.
  */
-export interface ThemeScrollbarProps extends OverlayScrollbarOptions {
+export interface ThemeScrollbarProps extends ScrollbarGroupedOptions {
+  /** Grouped settings - the canonical form; a flat option wins over it. */
+  behavior?: ScrollbarBehaviorOptions;
+  appearance?: ScrollbarAppearanceOptions;
+  scope?: ScrollbarScopeOptions;
+  /** Arrow button icons: the arrow entry covers all four directions
+   *  (per-direction entries win), plus the shared glyph size in CSS px. */
+  icons?: ScrollbarIconOptions<string>;
   /** The subtree the scrollbar is applied to. */
   children?: JSX.Element;
 }
 
 function pickOptions(props: ThemeScrollbarProps): OverlayScrollbarOptions {
-  const opts: OverlayScrollbarOptions = {};
-  if (props.autoHide !== undefined) opts.autoHide = props.autoHide;
-  if (props.hoverExpand !== undefined) opts.hoverExpand = props.hoverExpand;
-  if (props.draggable !== undefined) opts.draggable = props.draggable;
-  if (props.clickToJump !== undefined) opts.clickToJump = props.clickToJump;
-  if (props.smooth !== undefined) opts.smooth = props.smooth;
-  if (props.overscroll !== undefined) opts.overscroll = props.overscroll;
-  if (props.arrows !== undefined) opts.arrows = props.arrows;
-  if (props.arrowIcon !== undefined) opts.arrowIcon = props.arrowIcon;
-  if (props.arrowUpIcon !== undefined) opts.arrowUpIcon = props.arrowUpIcon;
-  if (props.arrowDownIcon !== undefined) opts.arrowDownIcon = props.arrowDownIcon;
-  if (props.arrowLeftIcon !== undefined) opts.arrowLeftIcon = props.arrowLeftIcon;
-  if (props.arrowRightIcon !== undefined) opts.arrowRightIcon = props.arrowRightIcon;
-  if (props.thickness !== undefined) opts.thickness = props.thickness;
-  if (props.hoverThickness !== undefined)
-    opts.hoverThickness = props.hoverThickness;
-  if (props.radius !== undefined) opts.radius = props.radius;
-  if (props.minThumbSize !== undefined) opts.minThumbSize = props.minThumbSize;
-  if (props.offset !== undefined) opts.offset = props.offset;
-  if (props.trackOpacity !== undefined) opts.trackOpacity = props.trackOpacity;
-  if (props.thumbOpacity !== undefined) opts.thumbOpacity = props.thumbOpacity;
-  if (props.duration !== undefined) opts.duration = props.duration;
-  if (props.animationDuration !== undefined)
-    opts.animationDuration = props.animationDuration;
-  if (props.axes !== undefined) opts.axes = props.axes;
-  if (props.touch !== undefined) opts.touch = props.touch;
-  if (props.thumbColor !== undefined) opts.thumbColor = props.thumbColor;
-  if (props.trackColor !== undefined) opts.trackColor = props.trackColor;
-  if (props.activeThumbColor !== undefined)
-    opts.activeThumbColor = props.activeThumbColor;
-  if (props.thumbHoverColor !== undefined)
-    opts.thumbHoverColor = props.thumbHoverColor;
-  if (props.zIndex !== undefined) opts.zIndex = props.zIndex;
-  if (props.dir !== undefined) opts.dir = props.dir;
-  return opts;
+  // The public API is the groups; the icons group maps onto the engine's
+  // arrow options.
+  return {
+    ...resolveScrollbarOptions({
+      behavior: props.behavior,
+      appearance: props.appearance,
+      scope: props.scope,
+    }),
+    ...resolveIconOptions(props.icons),
+  };
 }
 
 /**
@@ -918,7 +1013,7 @@ export function ThemeScrollbar(props: ThemeScrollbarProps) {
 
 // -- ThemeInspector ---------------------------------------------------------
 
-import { ThemeKitInspector } from "@theme-kit/web";
+import { ThemvoraInspector } from "@themvora/web";
 
 /**
  * Build the blocking zero-flash `<head>` script for a SolidJS app (SSR or SPA).
@@ -940,7 +1035,7 @@ export function createSolidThemeBootstrapScript<T extends ThemeDefinition>(
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "theme-kit-inspector": HTMLAttributes<HTMLElement> & {
+      "themvora-inspector": HTMLAttributes<HTMLElement> & {
         bottom?: string;
         right?: string;
         size?: string;
@@ -955,7 +1050,7 @@ declare module "solid-js" {
  *
  * Configures the floating theme inspector's position, size, and z-index, plus
  * optional `class` and `style` forwarded to the underlying
- * `<theme-kit-inspector>` element.
+ * `<themvora-inspector>` element.
  */
 export interface ThemeInspectorProps {
   /** Distance from the bottom of the viewport, in px. Default 104. */
@@ -966,16 +1061,16 @@ export interface ThemeInspectorProps {
   size?: number;
   /** Z-index for the floating toggle and panel. Default 9999. */
   zIndex?: number;
-  /** Forwarded to the underlying <theme-kit-inspector> element. */
+  /** Forwarded to the underlying <themvora-inspector> element. */
   class?: string;
-  /** Inline styles forwarded to the underlying <theme-kit-inspector> element. */
+  /** Inline styles forwarded to the underlying <themvora-inspector> element. */
   style?: string;
 }
 
 /**
  * Renders the floating theme inspector for the active runtime.
  *
- * Defines and mounts the `<theme-kit-inspector>` custom element, forwarding the
+ * Defines and mounts the `<themvora-inspector>` custom element, forwarding the
  * given position, size, z-index, `class`, and `style` props. The inspector
  * reads the active theme from the runtime and lets users inspect and switch
  * themes at runtime.
@@ -986,9 +1081,9 @@ export interface ThemeInspectorProps {
  * @see {@link useTheme}
  */
 export function ThemeInspector(props: ThemeInspectorProps) {
-  ThemeKitInspector.define();
+  ThemvoraInspector.define();
   return (
-    <theme-kit-inspector
+    <themvora-inspector
       {...(props.bottom != null ? { bottom: String(props.bottom) } : {})}
       {...(props.right != null ? { right: String(props.right) } : {})}
       {...(props.size != null ? { size: String(props.size) } : {})}

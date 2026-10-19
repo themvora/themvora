@@ -1,12 +1,12 @@
 ---
 title: "Keeping every tab in sync: multi-window theming without a backend"
 date: 2026-07-21
-description: "How Theme Kit synchronizes theme changes across tabs and windows using BroadcastChannel, SharedWorker and StorageEvent — with a graceful cascade of fallbacks."
+description: "How Themvora synchronizes theme changes across tabs and windows using BroadcastChannel, SharedWorker and StorageEvent — with a graceful cascade of fallbacks."
 tags: sync, broadcastchannel, sharedworker, storageevent
 ---
 
 When a user flips to dark mode in one tab, every other open tab of your app
-should follow instantly — no refresh, no polling, no backend. Theme Kit ships
+should follow instantly — no refresh, no polling, no backend. Themvora ships
 three transport strategies and a cascade that picks the best one available.
 
 ## The cascade
@@ -22,7 +22,7 @@ that works:
    everywhere, including older browsers.
 
 ```ts
-import { createThemeRuntime, createMultiWindowSync } from "@theme-kit/core";
+import { createThemeRuntime, createMultiWindowSync } from "@themvora/core";
 
 const runtime = createThemeRuntime({});
 const sync = createMultiWindowSync({

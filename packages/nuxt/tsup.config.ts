@@ -31,7 +31,7 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   outDir: "dist",
-  external: ["nuxt", "vue", "@theme-kit/core", "@theme-kit/vue", "@nuxt/kit", "@nuxt/schema", "#app", "#imports"],
+  external: ["nuxt", "vue", "@themvora/core", "@themvora/vue", "@nuxt/kit", "@nuxt/schema", "#app", "#imports"],
   async onSuccess() {
     copyComponents();
   },

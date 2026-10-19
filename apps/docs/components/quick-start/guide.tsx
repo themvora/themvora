@@ -113,7 +113,7 @@ export function QuickStartGuide({
           Pick your framework
         </h2>
         <p className="opacity-70 text-sm mb-5 max-w-2xl">
-          Theme Kit ships a built-in neutral theme, so you can skip defining
+          Themvora ships a built-in neutral theme, so you can skip defining
           tokens entirely and still get a complete, toggleable light/dark theme.
           These snippets are the whole setup.
         </p>
@@ -166,7 +166,7 @@ export function QuickStartGuide({
           <p className="opacity-70 text-xs mt-2">
             <a
               href={`/framework-guides/astro#${astroGuide.choose.paths[reactShape ? 1 : 0].id}`}
-              className="text-primary no-underline hover:underline"
+              className="text-foreground no-underline underline hover:decoration-foreground"
             >
               Read the full Astro guide →
             </a>
@@ -180,7 +180,7 @@ export function QuickStartGuide({
         </h2>
         <p className="opacity-70 text-sm mb-4 max-w-2xl">
           {reactShape
-            ? "The same Theme Kit packages, plus the React renderer Astro needs to hydrate an island."
+            ? "The same Themvora packages, plus the React renderer Astro needs to hydrate an island."
             : fw.extraPackages?.length
               ? "Install the core package, the integration, and the runtime adapter the snippets below use."
               : "Install the core package and the adapter for your framework."}
@@ -194,8 +194,8 @@ export function QuickStartGuide({
         </h2>
         <p className="opacity-70 text-sm mb-4 max-w-2xl">
           {astroSetup
-            ? "Three files. theme.config.ts declares the themes and the starting mode, the integration config registers themeKit(), and the layout mounts the provider that server-renders the themed <html>."
-            : "Theme Kit ships the built-in themes, so there is nothing to define yet. Mount the provider and you have a working light/dark theme."}
+            ? "Three files. theme.config.ts declares the themes and the starting mode, the integration config registers themvora(), and the layout mounts the provider that server-renders the themed <html>."
+            : "Themvora ships the built-in themes, so there is nothing to define yet. Mount the provider and you have a working light/dark theme."}
         </p>
         {astroSetup ? (
           astroSetup.map((snippet, index) => (

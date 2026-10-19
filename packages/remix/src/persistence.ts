@@ -2,7 +2,7 @@ import type {
   ThemeDefinition,
   ThemeSelectionPersistenceAdapter,
   ThemeSelectionState,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 
 /**
@@ -102,7 +102,7 @@ function readCookieSelection(fingerprint: string | null): ThemeSelectionState | 
  *
  * @example
  * ```ts
- * import { createRemixThemePersistence } from "@theme-kit/remix";
+ * import { createRemixThemePersistence } from "@themvora/remix";
  *
  * const persistence = createRemixThemePersistence(myThemes, "light", {
  *   key: "my-theme-selection",
@@ -112,7 +112,7 @@ function readCookieSelection(fingerprint: string | null): ThemeSelectionState | 
  * @remarks
  * Returns `null` during SSR (no `window`), so the runtime falls back to its
  * default persistence behavior on the server. The cookie contract matches
- * `@theme-kit/next` and `@theme-kit/nuxt`.
+ * `@themvora/next` and `@themvora/nuxt`.
  *
  * @see {@link ThemeProvider}
  * @see {@link ThemeHead}

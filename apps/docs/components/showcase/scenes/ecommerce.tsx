@@ -261,7 +261,7 @@ export function EcommerceComposition({ chrome = true }: CompositionProps = {}) {
                 <CardHead
                   title="Your cart"
                   hint="2 items"
-                  right={<span className="text-[10px] text-primary">Edit</span>}
+                  right={<span className="text-[10px] text-foreground">Edit</span>}
                 />
                 <ul className="space-y-2 m-0 p-0 list-none">
                   {[

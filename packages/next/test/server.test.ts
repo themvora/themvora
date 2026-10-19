@@ -8,7 +8,7 @@ vi.mock("next/headers", () => {
 
 import { cookies } from "next/headers";
 import { getInitialThemeState } from "../src/server";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 const defaultOptions = {
   themes: [

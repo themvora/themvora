@@ -21,7 +21,8 @@ const mountExamples: Record<
   react: frameworkSnippet(
     "tsx",
     "App.tsx",
-    `import { ThemeProvider } from "@theme-kit/react";
+    `import { ThemeProvider } from "@themvora/react";
+import { themes } from "./themes";
 
 export function App() {
   return (
@@ -30,11 +31,11 @@ export function App() {
       defaultTheme="mint-light"
       scheduled={{
         enabled: true,
-        // auto-detected from the visitor's timezone
-        timeZone: "Asia/Kathmandu",
+        // Omit latitude/longitude to resolve the visitor's own location
+        // from their timezone.
       }}
     >
-      <ThemeSwitcher />
+      <YourApp />
     </ThemeProvider>
   );
 }`,
@@ -43,9 +44,11 @@ export function App() {
     "tsx",
     "app/layout.tsx",
     `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@themvora/next";
+import { themes } from "./themes";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
       themes={themes}
@@ -61,7 +64,7 @@ export default function RootLayout({ children }) {
     "vue",
     "App.vue",
     `<script setup>
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 import { themes } from "./themes";
 </script>
 
@@ -79,12 +82,14 @@ import { themes } from "./themes";
     "ts",
     "nuxt.config.ts",
     `// nuxt.config.ts
+import { themes } from "./themes";
+
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "mint-light",
-    scheduled={{ enabled: true }}
+    scheduled: { enabled: true },
   },
 });`,
   ),
@@ -92,7 +97,7 @@ export default defineNuxtConfig({
     "svelte",
     "App.svelte",
     `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
   import { themes } from "./themes";
 </script>
 
@@ -107,7 +112,8 @@ export default defineNuxtConfig({
   solid: frameworkSnippet(
     "tsx",
     "App.tsx",
-    `import { ThemeProvider } from "@theme-kit/solid";
+    `import { ThemeProvider } from "@themvora/solid";
+import { themes } from "./themes";
 
 export function App() {
   return (
@@ -124,14 +130,16 @@ export function App() {
   angular: frameworkSnippet(
     "ts",
     "app.config.ts",
-    `import { provideThemeKit } from "@theme-kit/angular";
+    `import type { ApplicationConfig } from "@angular/core";
+import { provideTheme } from "@themvora/angular";
+import { themes } from "./themes";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({
+    provideTheme({
       themes,
       defaultTheme: "mint-light",
-      scheduled={{ enabled: true }}
+      scheduled: { enabled: true },
     }),
   ],
 };`,
@@ -140,45 +148,44 @@ export const appConfig: ApplicationConfig = {
     "html",
     "index.html",
     `<script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-  import { themes } from "./themes.js";
-
-  defineCustomElements();
-  const provider = document.querySelector("theme-kit-provider");
-  provider.setAttribute("themes", JSON.stringify(themes));
-  provider.setAttribute("default-theme", "mint-light");
-  provider.setAttribute(
-    "scheduled",
-    JSON.stringify({enabled: true})
-  );
+  // Registers every <themvora-*> element and their stylesheet.
+  import "@themvora/web";
 </script>
 
-<theme-kit-provider>
+<!-- The schedule is an attribute like every other provider option, so it can be
+     declared before the element upgrades. Omit latitude/longitude to resolve
+     the visitor's own location from their timezone. -->
+<themvora-provider
+  default-theme="mint-light"
+  scheduled='{"latitude":27.7172,"longitude":85.324,"lightTheme":"mint-light","darkTheme":"mint-dark"}'
+>
   <your-app></your-app>
-</theme-kit-provider>`,
+</themvora-provider>`,
   ),
   astro: frameworkSnippet(
     "astro",
     "src/pages/index.astro",
     `---
-import { ThemeProviderClient } from "@theme-kit/astro/client";
-import { themes } from "virtual:theme-kit-themes";
+// The schedule engine attaches its timer on the client, so an island owns it.
+// This is the Astro + React path — add @astrojs/react if the project does not
+// have it yet. The Astro-only path (provider.astro + ThemeToggle.astro) has no
+// client runtime to schedule.
+import Provider from "@themvora/astro/provider.astro";
+import { ThemeProviderClient } from "@themvora/astro/client";
+import themeConfig from "../../theme.config";
 ---
 
-<ThemeProviderClient
-  themes={themes}
-  defaultTheme="mint-light"
-  scheduled={{ enabled: true }}
-/>
-<ThemeSwitcher client:load />`,
+<Provider config={themeConfig}>
+  <ThemeProviderClient scheduled={{ enabled: true }} client:load />
+</Provider>`,
   ),
   tailwind: frameworkSnippet(
     "css",
     "globals.css",
     `@import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 
-/* Theme Kit schedules via the core runtime. Wire it in your
+/* Themvora schedules via the core runtime. Wire it in your
    framework shell (React/Vue/etc.) with createThemeRuntime({
    scheduled: {} }) — light/dark themes adapt to the current family and
    coordinates auto-detect from each visitor's timezone.
@@ -187,7 +194,7 @@ import { themes } from "virtual:theme-kit-themes";
   remix: frameworkSnippet(
     "tsx",
     "app/root.tsx",
-    `import { ThemeProvider } from "@theme-kit/remix";
+    `import { ThemeProvider } from "@themvora/remix";
 import { themes } from "./themes";
 
 export default function App() {
@@ -213,8 +220,11 @@ const controllerExamples: Record<
 > = {
   react: frameworkSnippet(
     "tsx",
-    "ScheduleToggle.jsx",
-    `import { useThemeSchedule } from "@theme-kit/react";
+    "ScheduleToggle.tsx",
+    `import { useThemeSchedule } from "@themvora/react";
+
+// Any IANA zone works — this short list is only for the picker below.
+const TIME_ZONES = ["", "Asia/Kathmandu", "Europe/Helsinki", "America/New_York"];
 
 export function ScheduleToggle() {
   const schedule = useThemeSchedule();
@@ -243,7 +253,7 @@ export function ScheduleToggle() {
         onChange={(e) => schedule?.set({ timeZone: e.target.value })}
       >
         <option value="">Auto (my location)</option>
-        {timeZones.map((zone) => (
+        {TIME_ZONES.filter(Boolean).map((zone) => (
           <option key={zone} value={zone}>{zone}</option>
         ))}
       </select>
@@ -256,7 +266,7 @@ export function ScheduleToggle() {
     "components/schedule-toggle.tsx",
     `// components/schedule-toggle.tsx
 "use client";
-import { useThemeSchedule } from "@theme-kit/next/client";
+import { useThemeSchedule } from "@themvora/next/client";
 
 export function ScheduleToggle() {
   const schedule = useThemeSchedule();
@@ -285,7 +295,7 @@ export function ScheduleToggle() {
     "vue",
     "ScheduleToggle.vue",
     `<script setup>
-import { useThemeSchedule } from "@theme-kit/vue";
+import { useThemeSchedule } from "@themvora/vue";
 // state is a Ref — access it with .value in <script>, auto-unwrapped
 // when destructured in the template.
 const schedule = useThemeSchedule();
@@ -334,24 +344,30 @@ const { state } = schedule;
     "svelte",
     "ScheduleToggle.svelte",
     `<script>
-  import { useThemeSchedule, getThemeSchedule } from "@theme-kit/svelte";
+  import { useThemeSchedule, getThemeSchedule } from "@themvora/svelte";
 
-  const schedule = useThemeSchedule();
+  // A readable store, or null when the provider has no \`scheduled\` option.
+  // Auto-subscribe with the \`$\` prefix: \`$scheduleState.enabled\`.
+  const scheduleState = useThemeSchedule();
   const controller = getThemeSchedule();
 </script>
 
-<button
-  onclick={() => ($schedule.enabled ? controller?.disable() : controller?.enable())}
->
-  {$schedule.enabled ? "Disable" : "Enable"} schedule
-</button>
-<p>Status: {$schedule.status}</p>
-<p>Timezone: {$schedule.timeZone ?? "auto-detected"}</p>`,
+{#if scheduleState}
+  <button
+    onclick={() => ($scheduleState.enabled ? controller?.disable() : controller?.enable())}
+  >
+    {$scheduleState.enabled ? "Disable" : "Enable"} schedule
+  </button>
+  <p>Status: {$scheduleState.status}</p>
+  <p>Timezone: {$scheduleState.timeZone ?? "auto-detected"}</p>
+{:else}
+  <p>No schedule configured on the provider.</p>
+{/if}`,
   ),
   solid: frameworkSnippet(
     "tsx",
     "ScheduleToggle.jsx",
-    `import { useThemeSchedule } from "@theme-kit/solid";
+    `import { useThemeSchedule } from "@themvora/solid";
 
 function ScheduleToggle() {
   const schedule = useThemeSchedule();
@@ -378,7 +394,7 @@ function ScheduleToggle() {
     "ts",
     "schedule-toggle.ts",
     `import { Component, computed } from "@angular/core";
-import { injectThemeSchedule } from "@theme-kit/angular";
+import { injectThemeSchedule } from "@themvora/angular";
 
 @Component({
   selector: "app-schedule-toggle",
@@ -407,7 +423,7 @@ export class ScheduleToggleComponent {
   web: frameworkSnippet(
     "ts",
     "schedule.ts",
-    `import { getThemeSchedule } from "@theme-kit/web";
+    `import { getThemeSchedule } from "@themvora/web";
 
 // Web Components expose the same reactive accessor as the hooks.
 // Returns null when the provider has no scheduled option configured.
@@ -423,24 +439,26 @@ schedule?.set({ autoDetectLocation: true });             // back to auto-detecti
     "astro",
     "ScheduleToggle.astro",
     `---
-const { useThemeSchedule } = await import("@theme-kit/astro");
+// No server-side schedule access: the engine attaches its timer on the client,
+// so the control is a client script.
 ---
 <button id="schedule-toggle">Enable schedule</button>
 
-<script type="module">
-  const { useThemeSchedule } = await import("@theme-kit/astro/client");
+<script>
+  import { useThemeSchedule } from "@themvora/astro/client";
+
   const schedule = useThemeSchedule();
 
-  document.getElementById("schedule-toggle").addEventListener("click", () =>
-    schedule?.state?.enabled ? schedule?.disable() : schedule?.enable()
-  );
+  document.getElementById("schedule-toggle").addEventListener("click", () => {
+    schedule?.state?.enabled ? schedule?.disable() : schedule?.enable();
+  });
   // schedule.set({ timeZone: "Asia/Kathmandu" }) repositions at runtime.
 </script>`,
   ),
   tailwind: frameworkSnippet(
     "ts",
     "schedule.ts",
-    `import { createThemeRuntime } from "@theme-kit/core";
+    `import { createThemeRuntime } from "@themvora/core";
 import { themes } from "./themes";
 
 // Tailwind is a CSS layer — scheduling runs in the core runtime
@@ -454,16 +472,16 @@ const runtime = createThemeRuntime({
   },
 });
 
-runtime.schedule.enable();
-runtime.schedule.disable();
-runtime.schedule.set({ timeZone: "Australia/Sydney" });`,
+runtime.schedule?.enable();
+runtime.schedule?.disable();
+runtime.schedule?.set({ timeZone: "Australia/Sydney" });`,
   ),
   remix: frameworkSnippet(
     "tsx",
     "schedule-toggle.tsx",
     `// app/routes/schedule-toggle.tsx
 "use client";
-import { useThemeSchedule } from "@theme-kit/remix";
+import { useThemeSchedule } from "@themvora/remix";
 
 export default function ScheduleToggle() {
   const schedule = useThemeSchedule();
@@ -546,7 +564,7 @@ export function SunriseSunsetGuide({
             switcher and the schedule uses{" "}
             <code className="mono text-[0.9em]">plum-light</code> /{" "}
             <code className="mono text-[0.9em]">plum-dark</code> — and falls
-            back to Theme Kit&apos;s neutral{" "}
+            back to Themvora&apos;s neutral{" "}
             <code className="mono text-[0.9em]">light</code> /{" "}
             <code className="mono text-[0.9em]">dark</code> themes when the
             current theme has no family counterpart. The resolved pair
@@ -558,7 +576,7 @@ export function SunriseSunsetGuide({
           <p>
             <strong className="opacity-100">No coordinates required.</strong>{" "}
             When you omit <code className="mono text-[0.9em]">latitude</code>{" "}
-            and <code className="mono text-[0.9em]">longitude</code>, Theme Kit
+            and <code className="mono text-[0.9em]">longitude</code>, Themvora
             resolves the location from the visitor&apos;s IANA timezone (via{" "}
             <code className="mono text-[0.9em]">
               Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -699,6 +717,22 @@ export function SunriseSunsetGuide({
             </tbody>
           </table>
         </div>
+        <Callout className="mt-3">
+          <strong>Live configuration</strong>
+          <span className="mx-1 opacity-40">|</span>
+          The <code className="mono text-[0.9em]">scheduled</code> prop is
+          reconciled in place — changing it after mount installs, repositions or
+          replaces the schedule without recreating the runtime or resetting the
+          active theme and history. Pass{" "}
+          <code className="mono text-[0.9em]">scheduled={"{false}"}</code> to
+          remove it: <code className="mono text-[0.9em]">runtime.schedule</code>{" "}
+          becomes <code className="mono text-[0.9em]">null</code> and its timers
+          and listeners are disposed. An unusable option (a non-positive{" "}
+          <code className="mono text-[0.9em]">checkInterval</code>, an
+          out-of-range coordinate) is reported as{" "}
+          <code className="mono text-[0.9em]">TV_CONFIG_OPTION_INVALID</code>,
+          and the previous schedule is kept.
+        </Callout>
       </section>
 
       <section id="semantics" className="scroll-mt-24 mb-10">

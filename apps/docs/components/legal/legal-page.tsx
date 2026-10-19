@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { docsUrl } from "../../lib/site";
-
-const wrapperClass =
-  "mx-auto max-w-3xl px-6 py-14 sm:py-20";
+import {
+  PageMasthead,
+  PROSE_MEASURE,
+  STANDALONE_SHELL,
+} from "../page-shell";
 
 export function LegalShell({
   children,
@@ -17,13 +19,17 @@ export function LegalShell({
   lead: ReactNode;
 }) {
   return (
-    <div className={wrapperClass}>
-      <header className="mb-10 border-b border-border pb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">{heading}</h1>
-        <p className="mt-2 text-sm opacity-60">Last updated: {updated}</p>
-        <p className="mt-4 text-base leading-relaxed opacity-80">{lead}</p>
-      </header>
-      <div className="space-y-6 text-[15px] leading-relaxed">{children}</div>
+    <div className={STANDALONE_SHELL}>
+      <PageMasthead
+        title={heading}
+        meta={`Last updated: ${updated}`}
+        lead={lead}
+      />
+      <div
+        className={`${PROSE_MEASURE} space-y-8 text-[15px] leading-relaxed`}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -39,7 +45,7 @@ export function LegalSection({
 }) {
   return (
     <section id={id} className="scroll-mt-28">
-      <h2 className="text-lg font-semibold tracking-tight mb-2">{heading}</h2>
+      <h2 className="text-lg font-semibold tracking-tight mb-3">{heading}</h2>
       {children}
     </section>
   );

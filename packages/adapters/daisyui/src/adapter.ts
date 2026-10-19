@@ -4,8 +4,8 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveAdapterSource } from "@themvora/adapters";
 import { generateDaisyVariables } from "./generator";
 import { injectCSS, removeCSS, toCSS } from "./inject";
 import {
@@ -33,7 +33,7 @@ export interface CreateDaisyAdapterOptions extends DaisyAdapterOptions {
  * Creates a daisyUI adapter.
  *
  * The adapter is a DOM-only, framework-free adapter: it depends only on
- * `@theme-kit/core` and the DOM. On install it injects the daisyUI
+ * `@themvora/core` and the DOM. On install it injects the daisyUI
  * compatibility stylesheet (when enabled) and a `<style>` element of CSS
  * variables derived from the active theme, then subscribes to the runtime
  * store and rewrites the variables whenever the theme selection changes. It
@@ -46,7 +46,7 @@ export interface CreateDaisyAdapterOptions extends DaisyAdapterOptions {
  *
  * @example
  * ```ts
- * import { createDaisyAdapter } from "@theme-kit/daisyui";
+ * import { createDaisyAdapter } from "@themvora/daisyui";
  *
  * runtime.installAdapter(createDaisyAdapter());
  * ```
@@ -94,7 +94,7 @@ export function createDaisyAdapter<T extends ThemeDefinition>(
         }),
       ),
     );
-    styleEl.setAttribute("data-theme-kit", "daisyui");
+    styleEl.setAttribute("data-themvora", "daisyui");
 
     unsubscribe = runtime.store.subscribe(() => {
       apply(runtime.store.get());

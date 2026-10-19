@@ -1,7 +1,7 @@
-import type { AdapterStrategy } from "@theme-kit/core";
+import type { AdapterStrategy } from "@themvora/core";
 
-export const OPEN_PROPS_STYLE_ID = "@theme-kit/open-props";
-export const OPEN_PROPS_VARIABLES_STYLE_ID = "theme-kit-open-props-variables";
+export const OPEN_PROPS_STYLE_ID = "@themvora/open-props";
+export const OPEN_PROPS_VARIABLES_STYLE_ID = "themvora-open-props-variables";
 
 /**
  * Options for the Open Props adapter.

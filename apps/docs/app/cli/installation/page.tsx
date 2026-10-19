@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/cli/installation") },
   title: "Install the CLI",
   description:
-    "Install @theme-kit/cli globally, on demand with npx, or in one project. Verify the executable from a separate directory.",
+    "Install @themvora/cli globally, on demand with npx, or in one project. Verify the executable from a separate directory.",
 };
 
 export default function Page() {

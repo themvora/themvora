@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { defineTheme } from "@theme-kit/core";
+import { Suspense } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { defineTheme } from "@themvora/core";
+
+vi.mock("next/headers", () => ({ cookies: vi.fn() }));
+import { cookies } from "next/headers";
 import { ThemeProvider } from "../src/layout";
 import { computeFingerprint } from "../src/fingerprint";
 
@@ -59,7 +63,33 @@ function findBlockingScript(node: Node): string | null {
   return findBlockingScript(node.props?.children);
 }
 
+/** Depth-first search for the `<Suspense>` boundary in the rendered tree. */
+function findSuspense(node: Node): Node | null {
+  if (!node || typeof node !== "object") return null;
+
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findSuspense(child);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (node.type === Suspense) return node;
+
+  return findSuspense(node.props?.children);
+}
+
 async function render() {
+  // Model Next's server cookie store from the test's cookie jar, so this test
+  // exercises the same persisted selection in both server resolution and script.
+  vi.mocked(cookies).mockResolvedValue({
+    get: (name: string) => {
+      const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+      return match ? { value: decodeURIComponent(match[1]!) } : undefined;
+    },
+  } as never);
+
   // `defaultTheme` is part of the fingerprint, so it must match the value the
   // cookie fingerprint was computed with or the script rejects the cookies.
   const element = await ThemeProvider({
@@ -129,7 +159,7 @@ function run(script: string): DomState {
   };
 }
 
-describe("@theme-kit/next ThemeProvider — blocking script", () => {
+describe("@themvora/next ThemeProvider — blocking script", () => {
   it("emits the pre-paint script in <head>", async () => {
     const { script } = await render();
 
@@ -138,6 +168,30 @@ describe("@theme-kit/next ThemeProvider — blocking script", () => {
     expect(script).toContain("theme-family");
     expect(script).toContain("theme-fingerprint");
     expect(script).toContain("prefers-color-scheme");
+  });
+
+  it("renders a request-independent shell and defers the cookie read behind Suspense", () => {
+    clearCookies();
+    vi.mocked(cookies).mockClear();
+
+    // The document shell resolves from the configured default alone — it is
+    // synchronous and reads no request data — so the hosting route stays
+    // prerenderable under Next's Cache Components with no route opt-out.
+    const element = ThemeProvider({
+      children: null,
+      themes,
+      defaultTheme: "mint-light",
+    });
+
+    expect(element).toBeTruthy();
+    expect(vi.mocked(cookies)).not.toHaveBeenCalled();
+
+    const suspense = findSuspense(element);
+    expect(
+      suspense,
+      "ThemeProvider must defer the cookie read behind a <Suspense> boundary",
+    ).toBeTruthy();
+    expect(suspense.props.fallback).toBeTruthy();
   });
 
   it("agrees with the server-rendered data-theme on a first visit", async () => {
@@ -179,10 +233,36 @@ describe("@theme-kit/next ThemeProvider — blocking script", () => {
       expect(String(element.props[attribute])).toBe(el.getAttribute(attribute));
     }
 
-    // The contract is satisfied by emitting the attributes, not by opting the
-    // element out of the diff. Suppressing here would hide a real regression in
-    // the same place later.
-    expect(element.props.suppressHydrationWarning).toBeUndefined();
+    // The document shell is request-independent, so it always names the
+    // configured default while the blocking script may rewrite the attributes
+    // from the persisted cookie. React's hydration attribute diff is therefore
+    // suppressed on `<html>` — the element the script owns.
+    expect(element.props.suppressHydrationWarning).toBe(true);
+  });
+
+  it("keeps the shell static and lets the bootstrap apply the persisted selection", async () => {
+    clearCookies();
+    setOSDark(false);
+    setCookies({
+      "theme-mode": "dark",
+      "theme-family": "ocean",
+      "theme-fingerprint": fingerprint,
+    });
+    const { element, script } = await render();
+
+    // The document shell is request-independent (so the route stays
+    // prerenderable under Cache Components), so it names the configured default.
+    // The persisted selection is applied before the first frame by the blocking
+    // script — and, server-side, by the Suspense-gated resolver that hands the
+    // resolved selection to the client runtime.
+    expect(element.props["data-theme"]).toBe("mint-light");
+    expect(element.props["data-theme-mode"]).toBe("light");
+
+    const dom = run(script);
+    expect(dom.theme).toBe("ocean-dark");
+    expect(dom.mode).toBe("dark");
+    expect(dom.family).toBe("ocean");
+    expect(element.props.suppressHydrationWarning).toBe(true);
   });
 
   it("ignores the OS on a first visit and paints the resolved default", async () => {

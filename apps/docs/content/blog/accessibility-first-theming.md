@@ -1,7 +1,7 @@
 ---
 title: "Accessibility-first theming: contrast checks and CVD simulation"
 date: 2026-07-07
-description: "How Theme Kit's accessibility toolkit keeps themes readable — WCAG contrast ratios, full-theme audits and color-vision-deficiency simulation — all at runtime."
+description: "How Themvora's accessibility toolkit keeps themes readable — WCAG contrast ratios, full-theme audits and color-vision-deficiency simulation — all at runtime."
 tags: accessibility, wcag, contrast, cvd
 ---
 
@@ -16,7 +16,7 @@ color-vision problems *before* your users do.
 AA/AAA thresholds:
 
 ```ts
-import { getContrastRatio, validateThemeContrast } from "@theme-kit/core";
+import { getContrastRatio, validateThemeContrast } from "@themvora/core";
 
 getContrastRatio("#111111", "#ffffff"); // → 19.56
 const audit = validateThemeContrast(theme); // full AA/AAA audit
@@ -29,7 +29,7 @@ text-on-primary, borders, and more — and returns a structured report of
 failures:
 
 ```ts
-import { validateThemeContrast } from "@theme-kit/core";
+import { validateThemeContrast } from "@themvora/core";
 
 const result = validateThemeContrast(theme, { themes: [theme] });
 // { valid: false, checks: [{ foregroundToken, backgroundToken,
@@ -45,14 +45,14 @@ entire theme. Combined with the runtime, you can preview *exactly* what a user
 with CVD sees:
 
 ```ts
-import { simulateThemeForCVD } from "@theme-kit/core";
+import { simulateThemeForCVD } from "@themvora/core";
 
 const deuteranopic = simulateThemeForCVD(theme, "deuteranopia");
 ```
 
 ## Built-in accessibility profiles
 
-For teams that need guaranteed contrast, Theme Kit ships `getAccessibilityProfiles`
+For teams that need guaranteed contrast, Themvora ships `getAccessibilityProfiles`
 with **High Contrast** and **Large Text** presets — drop them in as theme packs
 and let users opt in.
 

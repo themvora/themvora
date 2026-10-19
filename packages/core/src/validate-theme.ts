@@ -66,7 +66,7 @@ function collectMissing(
     if (obj?.[key] === undefined) {
       const tokenPath = `${path}.${key}`;
       issues.push({
-        code: "TK_THEME_TOKEN_MISSING",
+        code: "TV_THEME_TOKEN_MISSING",
         type: "missing",
         path: tokenPath,
         message: `Missing token: \`${tokenPath}\``,
@@ -95,7 +95,7 @@ export interface ValidateThemeOptions {
 }
 
 /**
- * Validate a theme definition against the Theme Kit schema.
+ * Validate a theme definition against the Themvora schema.
  *
  * Checks that the definition declares a `tokens` object and that every required
  * semantic colour token is present. It deliberately does **not** resolve token
@@ -133,7 +133,7 @@ export function validateTheme(
 
   if (!tokens) {
     issues.push({
-      code: "TK_THEME_TOKEN_MISSING",
+      code: "TV_THEME_TOKEN_MISSING",
       type: "missing",
       path: "tokens",
       message: "Missing `tokens` — theme has no token definitions",

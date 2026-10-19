@@ -1,5 +1,5 @@
 /**
- * Theme Kit adapter toolkit.
+ * Themvora adapter toolkit.
  *
  * Shared utilities for building library adapters: the `AdapterSource`
  * contract, token readers (`readToken`, `readNested`, font/radius/breakpoint

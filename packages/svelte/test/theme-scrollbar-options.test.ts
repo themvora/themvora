@@ -4,13 +4,13 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mount, flushSync } from "svelte";
-import * as core from "@theme-kit/core";
-import type { ThemeDefinition } from "@theme-kit/core";
+import * as core from "@themvora/core";
+import type { ThemeDefinition } from "@themvora/core";
 
 // Count how often the overlay engine is constructed. The engine resolves its
 // options once, at creation, so "the options changed" can only mean "the
 // overlay was rebuilt".
-vi.mock("@theme-kit/core", async (importOriginal) => {
+vi.mock("@themvora/core", async (importOriginal) => {
   const actual = await importOriginal<typeof core>();
   return {
     ...actual,
@@ -37,7 +37,7 @@ const themes: ThemeDefinition[] = [
 ];
 
 const consumerSource = `<script>
-  import { ThemeProvider, ThemeScrollbar } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScrollbar } from "@themvora/svelte";
   let { runtime, themes } = $props();
   let thickness = $state(6);
   let autoHide = $state(true);
@@ -50,7 +50,7 @@ const consumerSource = `<script>
 </script>
 
 <ThemeProvider {runtime} {themes}>
-  <ThemeScrollbar {thickness} {autoHide} />
+  <ThemeScrollbar appearance={{ thickness }} behavior={{ autoHide }} />
 </ThemeProvider>
 `;
 

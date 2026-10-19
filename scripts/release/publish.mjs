@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Publish the Theme Kit packages to npm in dependency order.
+ * Publish the Themvora packages to npm in dependency order.
  *
  * Usage:
  *   node scripts/release/publish.mjs --dry-run        # plan + preflight, publishes nothing
@@ -17,7 +17,7 @@
  * version-boundary summary rather than a single number.
  *
  * What this script guarantees:
- *  - Publishes with `--access public` (every package is scoped `@theme-kit/*`).
+ *  - Publishes with `--access public` (every package is scoped `@themvora/*`).
  *  - Publishes in dependency order (topological over workspace deps + peers), so
  *    every package's rewritten dependencies already exist on the registry.
  *  - Uses `pnpm publish`, never `npm publish`: pnpm rewrites `workspace:^` to the
@@ -38,6 +38,7 @@ import { createInterface } from "node:readline";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(join(here, "..", ".."));
+const PUBLISH_SCOPE = "@themvora/";
 
 /**
  * Run a command and capture its output.
@@ -52,7 +53,7 @@ const repoRoot = resolve(join(here, "..", ".."));
 function capture(cmd, cwd = repoRoot) {
   const tmp = join(
     tmpdir(),
-    `theme-kit-publish-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`,
+    `themvora-publish-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`,
   );
   let ok = true;
   try {
@@ -122,12 +123,20 @@ for (const base of ["packages", join("packages", "adapters")]) {
     try {
       json = JSON.parse(readFileSync(pkgPath, "utf8"));
     } catch (err) {
-      failures.push(`${base}/${entry}/package.json is not valid JSON: ${err.message}`);
+      failures.push(
+        `${base}/${entry}/package.json is not valid JSON: ${err.message}`,
+      );
       continue;
     }
     if (json.private) continue;
     if (!json.name || !json.version) {
       failures.push(`${base}/${entry} is publishable but has no name/version`);
+      continue;
+    }
+    if (!json.name.startsWith(PUBLISH_SCOPE)) {
+      failures.push(
+        `${base}/${entry}: refusing to publish ${json.name} — expected ${PUBLISH_SCOPE}*`,
+      );
       continue;
     }
     packages.push({ dir, name: json.name, version: json.version, json });
@@ -188,9 +197,14 @@ async function registryLatest(name) {
 
 /** Minimal range check: caret, tilde, comparison, exact, `*`. */
 function cmp(a, b) {
-  const pa = String(a).split(/[.-]/).map((x) => Number(x) || 0);
-  const pb = String(b).split(/[.-]/).map((x) => Number(x) || 0);
-  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  const pa = String(a)
+    .split(/[.-]/)
+    .map((x) => Number(x) || 0);
+  const pb = String(b)
+    .split(/[.-]/)
+    .map((x) => Number(x) || 0);
+  for (let i = 0; i < 3; i++)
+    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
   return 0;
 }
 function satisfies(version, range) {
@@ -199,11 +213,14 @@ function satisfies(version, range) {
     .trim()
     .split("||")
     .some((part) => {
-      const m = part.trim().match(/^(\^|~|>=|>|<=|<|=)?\s*v?(\d+\.\d+\.\d+.*)$/);
+      const m = part
+        .trim()
+        .match(/^(\^|~|>=|>|<=|<|=)?\s*v?(\d+\.\d+\.\d+.*)$/);
       if (!m) return true;
       const [, op, ver] = m;
       const c = cmp(version, ver);
-      if (op === "^") return String(version).split(".")[0] === ver.split(".")[0] && c >= 0;
+      if (op === "^")
+        return String(version).split(".")[0] === ver.split(".")[0] && c >= 0;
       if (op === "~") {
         const [vmaj, vmin] = String(version).split(".").map(Number);
         const [maj, min] = ver.split(".").map(Number);
@@ -222,7 +239,9 @@ for (const pkg of ordered) {
 
   // 1. Build output must exist — this script never builds.
   if (!existsSync(distDir) || readdirSync(distDir).length === 0) {
-    failures.push(`${pkg.name}: no build output at ${pkg.dir}/dist — run the build first`);
+    failures.push(
+      `${pkg.name}: no build output at ${pkg.dir}/dist — run the build first`,
+    );
   }
 
   // 2. A package that emits its own manifest (ng-packagr) must agree on the
@@ -237,14 +256,16 @@ for (const pkg of ordered) {
         );
       }
     } catch (err) {
-      failures.push(`${pkg.name}: dist/package.json is not valid JSON: ${err.message}`);
+      failures.push(
+        `${pkg.name}: dist/package.json is not valid JSON: ${err.message}`,
+      );
     }
   }
 
   // 3. Internal deps must use caret ranges (`workspace:^`), never an exact pin —
   //    `audit-packages` enforces the same rule at release:audit.
   for (const [dep, range] of Object.entries(pkg.json.dependencies ?? {})) {
-    if (!dep.startsWith("@theme-kit/")) continue;
+    if (!dep.startsWith("@themvora/")) continue;
     if (range === "workspace:*") {
       failures.push(
         `${pkg.name}: "${dep}": "${range}" is an exact pin — use "workspace:^" (VERSIONING.md)`,
@@ -312,23 +333,31 @@ for (const pkg of ordered) {
 const byVersion = new Map();
 for (const pkg of ordered) {
   if (!byVersion.has(pkg.version)) byVersion.set(pkg.version, []);
-  byVersion.get(pkg.version).push(pkg.name.replace("@theme-kit/", ""));
+  byVersion.get(pkg.version).push(pkg.name.replace("@themvora/", ""));
 }
 
-console.log(`\nPublish plan — ${ordered.length} packages, in dependency order:\n`);
+console.log(
+  `\nPublish plan — ${ordered.length} packages, in dependency order:\n`,
+);
 for (const pkg of ordered) {
   const state = registry.get(pkg.name);
   const tags = [
     state.published ? "already published" : "",
-    state.latest && cmp(pkg.version, state.latest) < 0 ? `registry latest ${state.latest}` : "",
+    state.latest && cmp(pkg.version, state.latest) < 0
+      ? `registry latest ${state.latest}`
+      : "",
   ].filter(Boolean);
-  console.log(`  ${`${pkg.name}@${pkg.version}`.padEnd(38)}${tags.join(" · ")}`);
+  console.log(
+    `  ${`${pkg.name}@${pkg.version}`.padEnd(38)}${tags.join(" · ")}`,
+  );
 }
 
 console.log("\nVersion boundary:");
 for (const version of [...byVersion.keys()].sort((a, b) => cmp(b, a))) {
   const list = byVersion.get(version).sort();
-  console.log(`  ${version.padEnd(8)} ${String(list.length).padStart(2)}  ${list.join(", ")}`);
+  console.log(
+    `  ${version.padEnd(8)} ${String(list.length).padStart(2)}  ${list.join(", ")}`,
+  );
 }
 
 const toPublish = ordered.filter((p) => !registry.get(p.name).published);
@@ -377,7 +406,8 @@ if (runVerify) {
 const who = capture("npm whoami");
 if (!who.ok || !who.out.trim()) {
   console.error("\nNot authenticated with npm. Run `npm login` first.");
-  if (who.out.trim()) console.error(`  npm said: ${who.out.trim().split("\n")[0]}`);
+  if (who.out.trim())
+    console.error(`  npm said: ${who.out.trim().split("\n")[0]}`);
   process.exit(1);
 }
 console.log(`\nAuthenticated as: ${who.out.trim()}`);
@@ -439,6 +469,8 @@ for (const pkg of ordered) {
 
 console.log(`\nPublished ${ok} new, skipped ${skipped} already-published.`);
 console.log("\nNext steps:");
-console.log("  git tag v<version> && git push --follow-tags   # tag the commit you published");
-console.log("  npm install -g @theme-kit/cli && theme-kit --version");
-console.log("  cd <clean dir> && npm install @theme-kit/core @theme-kit/react");
+console.log(
+  "  git tag v<version> && git push --follow-tags   # tag the commit you published",
+);
+console.log("  npm install -g @themvora/cli && themvora --version");
+console.log("  cd <clean dir> && npm install @themvora/core @themvora/react");

@@ -120,6 +120,61 @@ describe("createThemeBootstrapScript", () => {
 
     window.localStorage.removeItem("my-key");
   });
+
+  it("clears inline variables the resolved theme does not define", () => {
+    // The SSR shell only knows the default theme, and a Themvora preset may
+    // define fewer token groups than it does (presets ship no `code` group).
+    // The script must remove the groups the resolved theme omits, or the
+    // shell's stale values shadow a `var(--theme-code-*, fallback)` rule and the
+    // page keeps the default theme's syntax colours after a reload.
+    const appThemes = [
+      defineTheme({
+        name: "app-light",
+        meta: { family: "app", mode: "light" },
+        tokens: {
+          colors: { background: "#ffffff" },
+          code: { background: "#f6f7fc" },
+        },
+      }),
+      defineTheme({
+        name: "app-dark",
+        meta: { family: "app", mode: "dark" },
+        tokens: {
+          colors: { background: "#000000" },
+          code: { background: "#101014" },
+        },
+      }),
+      defineTheme({
+        name: "mint-light",
+        meta: { family: "mint", mode: "light" },
+        tokens: { colors: { background: "#e9f3ee" } },
+      }),
+      defineTheme({
+        name: "mint-dark",
+        meta: { family: "mint", mode: "dark" },
+        tokens: { colors: { background: "#111814" } },
+      }),
+    ] as const;
+
+    // What the shell wrote inline, from the default (`app`) theme.
+    const el = document.documentElement;
+    el.style.setProperty("--theme-code-background", "#f6f7fc");
+
+    window.localStorage.setItem(
+      "theme-selection",
+      JSON.stringify({ mode: "dark", family: "mint" }),
+    );
+
+    runScript(createThemeBootstrapScript({ themes: appThemes }));
+
+    // `mint` defines no `code` group, so the stale default value is gone and the
+    // CSS fallback chain takes over; the resolved theme's own vars are applied.
+    expect(el.style.getPropertyValue("--theme-code-background")).toBe("");
+    expect(el.style.getPropertyValue("--theme-color-background")).toBe("#111814");
+
+    window.localStorage.removeItem("theme-selection");
+    el.removeAttribute("style");
+  });
 });
 
 describe("darkModeCSSTemplate", () => {

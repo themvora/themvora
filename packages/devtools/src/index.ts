@@ -1,5 +1,5 @@
 /**
- * Theme Kit devtools.
+ * Themvora devtools.
  *
  * Provides the runtime plugin (`createDevToolsPlugin`) that records
  * theme-change entries and performance measurements per runtime, the
@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-import type { ThemeRuntime, ThemeDefinition } from "@theme-kit/core";
+import type { ThemeRuntime, ThemeDefinition } from "@themvora/core";
 import { createDevToolsInspector } from "./inspector";
 import { createDevToolsPanel } from "./panel";
 import type { DevToolsInspector, DevToolsEntry, DevToolsPerformanceEntry, DevToolsInspectorOptions, DevToolsState } from "./types";
@@ -17,11 +17,11 @@ export { createDevToolsInspector, createDevToolsPanel };
 export type { DevToolsInspector, DevToolsEntry, DevToolsPerformanceEntry, DevToolsInspectorOptions, DevToolsState };
 
 /**
- * Creates a Theme Kit devtools plugin.
+ * Creates a Themvora devtools plugin.
  *
  * The plugin binds an inspector to each runtime it is applied to, records
  * theme-change events and performance measurements, and registers the
- * inspector on `window.__THEME_KIT_DEVTOOLS__` in the browser. Use it with the
+ * inspector on `window.__THEMVORA_DEVTOOLS__` in the browser. Use it with the
  * runtime's plugin system.
  *
  * @param options Optional limits for the inspector's retained entries.
@@ -30,8 +30,8 @@ export type { DevToolsInspector, DevToolsEntry, DevToolsPerformanceEntry, DevToo
  *
  * @example
  * ```ts
- * import { createDevToolsPlugin } from "@theme-kit/devtools";
- * import { createThemeRuntime, getBuiltInThemes } from "@theme-kit/core";
+ * import { createDevToolsPlugin } from "@themvora/devtools";
+ * import { createThemeRuntime, getBuiltInThemes } from "@themvora/core";
  *
  * const runtime = createThemeRuntime({
  *   themes: getBuiltInThemes(),
@@ -57,10 +57,10 @@ export function createDevToolsPlugin<T extends ThemeDefinition>(options?: DevToo
 
       if (typeof window !== "undefined") {
         const win = window as any;
-        if (!win.__THEME_KIT_DEVTOOLS__) {
-          win.__THEME_KIT_DEVTOOLS__ = new Set();
+        if (!win.__THEMVORA_DEVTOOLS__) {
+          win.__THEMVORA_DEVTOOLS__ = new Set();
         }
-        win.__THEME_KIT_DEVTOOLS__.add(inspector);
+        win.__THEMVORA_DEVTOOLS__.add(inspector);
       }
 
       const unsub = runtime.lifecycle.on("beforeThemeChange", () => {

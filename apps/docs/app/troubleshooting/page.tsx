@@ -12,13 +12,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/troubleshooting") },
   title: "Troubleshooting",
   description:
-    "Common issues and fixes when working with Theme Kit: flash of unstyled content, hydration mismatches, theme persistence, CSS variable binding, and more.",
+    "Common issues and fixes when working with Themvora: flash of unstyled content, hydration mismatches, theme persistence, CSS variable binding, and more.",
 };
 
 const foucFix = {
   lang: "tsx",
   title: "layout.tsx — bootstrap script in <head>",
-  code: `import { createThemeBootstrapScript, getBuiltInThemes } from "@theme-kit/core";
+  code: `import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
 
 export default function RootLayout({ children }) {
   return (
@@ -50,7 +50,7 @@ export default function RootLayout({ children }) {
 const persistenceFix = {
   lang: "ts",
   title: "runtime — persistence plugin with a custom key",
-  code: `import { createThemeRuntime, createPersistencePlugin } from "@theme-kit/core";
+  code: `import { createThemeRuntime, createPersistencePlugin } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -61,7 +61,7 @@ const runtime = createThemeRuntime({
 const cssVarsFix = {
   lang: "tsx",
   title: "provider — cssVariables binding enabled",
-  code: `import { ThemeProvider } from "@theme-kit/react";
+  code: `import { ThemeProvider } from "@themvora/react";
 
 export default function RootLayout({ children }) {
   return (
@@ -83,8 +83,8 @@ const hydrationFix = {
 // 2. Pass it as defaultTheme to the provider
 // 3. Render the attributes the bootstrap script writes, so React finds nothing
 //    the script added that the server did not already declare
-import { createThemeBootstrapScript, getBuiltInThemes } from "@theme-kit/core";
-import { ThemeProvider } from "@theme-kit/react";
+import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
+import { ThemeProvider } from "@themvora/react";
 
 const themes = getBuiltInThemes();
 const resolvedTheme = themes.find((t) => t.name === "mint-light")!;
@@ -126,8 +126,8 @@ const flickerFix = {
   title: "layout.tsx — provider wraps the router",
   code: `// Ensure the ThemeProvider is ABOVE the router so the runtime
 // survives client-side navigation without re-mounting.
-import { createThemeBootstrapScript, getBuiltInThemes } from "@theme-kit/core";
-import { ThemeProvider } from "@theme-kit/react";
+import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
+import { ThemeProvider } from "@themvora/react";
 
 export default function RootLayout({ children }) {
   return (
@@ -162,7 +162,7 @@ export default function RootLayout({ children }) {
 const scopedFix = {
   lang: "tsx",
   title: "page.tsx — wrapping a subtree with ThemeScope",
-  code: `import { ThemeScope } from "@theme-kit/react";
+  code: `import { ThemeScope } from "@themvora/react";
 
 export default function DashboardPage() {
   return (
@@ -195,20 +195,20 @@ const transitionsFix = {
 const moduleNotFoundFix = {
   lang: "bash",
   title: "terminal — pin matching versions",
-  code: `# Ensure @theme-kit/core and the framework integration share
+  code: `# Ensure @themvora/core and the framework integration share
 # the exact same version — mismatched versions cause module
 # resolution failures.
 
-npm install @theme-kit/core@latest @theme-kit/react@latest
+npm install @themvora/core@latest @themvora/react@latest
 
 # Or with pnpm
-pnpm add @theme-kit/core@latest @theme-kit/react@latest`,
+pnpm add @themvora/core@latest @themvora/react@latest`,
 };
 
 const a11yFix = {
   lang: "ts",
   title: "audit — validate contrast at build time",
-  code: `import { validateThemeContrast } from "@theme-kit/core";
+  code: `import { validateThemeContrast } from "@themvora/core";
 
 // validateThemeContrast checks one theme on its own; pass a themes option
 // (e.g. getBuiltInThemes()) to resolve \`extends\` chains first.
@@ -231,7 +231,7 @@ if (!result.valid) {
 const multiWindowFix = {
   lang: "ts",
   title: "runtime — explicit multi-window sync",
-  code: `import { createThemeRuntime, createMultiWindowSync } from "@theme-kit/core";
+  code: `import { createThemeRuntime, createMultiWindowSync } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -268,7 +268,7 @@ export default function TroubleshootingPage() {
           description={
             <>
               Run into something unexpected? This page covers the most common
-              issues developers encounter when integrating Theme Kit and how to
+              issues developers encounter when integrating Themvora and how to
               resolve them quickly.
             </>
           }
@@ -379,12 +379,12 @@ export default function TroubleshootingPage() {
           <Callout variant="tip" className="mt-3">
             On the App Router you do not have to do either by hand:{" "}
             <code className="mono text-[0.9em]">ThemeProvider</code> from{" "}
-            <code className="mono text-[0.9em]">@theme-kit/next</code> renders{" "}
+            <code className="mono text-[0.9em]">@themvora/next</code> renders{" "}
             <code className="mono text-[0.9em]">&lt;html&gt;</code> itself and
             renders every attribute the bootstrap script writes, so there is
             nothing for React to report. The snippet below is the manual{" "}
-            <code className="mono text-[0.9em]">@theme-kit/core</code> +
-            <code className="mono text-[0.9em]">@theme-kit/react</code> setup,
+            <code className="mono text-[0.9em]">@themvora/core</code> +
+            <code className="mono text-[0.9em]">@themvora/react</code> setup,
             where <code className="mono text-[0.9em]">&lt;html&gt;</code> is
             yours.
           </Callout>
@@ -473,15 +473,15 @@ export default function TroubleshootingPage() {
         <section id="module-not-found" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={8}
-            desc="Your bundler throws a Module Not Found error for @theme-kit packages."
+            desc="Your bundler throws a Module Not Found error for @themvora packages."
           >
             Build Error: Module Not Found
           </SectionHeading>
           <Callout>
             This typically happens when{" "}
-            <code className="mono text-[0.9em]">@theme-kit/core</code> and the
+            <code className="mono text-[0.9em]">@themvora/core</code> and the
             framework integration (e.g.{" "}
-            <code className="mono text-[0.9em]">@theme-kit/react</code>) are on
+            <code className="mono text-[0.9em]">@themvora/react</code>) are on
             different versions. The packages share internal modules and must be
             the exact same version. Reinstall both packages at the latest version.
           </Callout>
@@ -505,7 +505,7 @@ export default function TroubleshootingPage() {
             Theme tokens must meet WCAG contrast ratios for the text sizes
             where they are used. Use{" "}
             <code className="mono text-[0.9em]">validateThemeContrast()</code>{" "}
-            from <code className="mono text-[0.9em]">@theme-kit/core</code> to
+            from <code className="mono text-[0.9em]">@themvora/core</code> to
             audit every token pair at build time and catch failures before they
             reach production.
           </Callout>
@@ -526,7 +526,7 @@ export default function TroubleshootingPage() {
             Multi-Window Out of Sync
           </SectionHeading>
           <Callout>
-            Theme Kit uses{" "}
+            Themvora uses{" "}
             <code className="mono text-[0.9em]">BroadcastChannel</code> to sync
             theme changes across tabs, and falls back to a SharedWorker and
             then to window <code className="mono text-[0.9em]">storage</code>{" "}

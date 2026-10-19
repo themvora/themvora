@@ -17,7 +17,7 @@ export const contentType = OG_CONTENT_TYPE;
 export default function OpengraphImage() {
   return renderOgCard({
     eyebrow: "Documentation",
-    title: "Theme Kit",
+    title: "Themvora",
     description:
       "One runtime, every framework. Semantic tokens, zero-flash SSR, and adapters for the UI libraries you already use.",
   });

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ThemeScope, useTheme, useThemeRuntime } from "@theme-kit/next/client";
-import type { ThemeDefinition } from "@theme-kit/core";
+import { ThemeScope, useTheme, useThemeRuntime } from "@themvora/next/client";
+import type { ThemeDefinition } from "@themvora/core";
 
 type PreviewMode = "light" | "dark";
 
@@ -85,7 +85,7 @@ function groupByFamily(themes: readonly ThemeDefinition[]): PresetGroup[] {
 
 /**
  * One card per theme family. Each card previews its own family through
- * `ThemeScope`, so the preset's real Theme Kit colors apply inside the card
+ * `ThemeScope`, so the preset's real Themvora colors apply inside the card
  * and the light/dark toggle is local to that card — it never touches the
  * global runtime. "Use this theme" is the only thing that does: it applies the
  * previewed family *and* mode to the whole documentation site.
@@ -127,7 +127,7 @@ export function PresetCards() {
         <h2 className="font-semibold">Theme presets</h2>
         <p className="max-w-2xl text-xs opacity-60">
           Every card previews one preset family using that family&apos;s real
-          Theme Kit tokens, with its own light/dark toggle — switching a card
+          Themvora tokens, with its own light/dark toggle — switching a card
           never changes the site. “Use this theme” is what applies it: the whole
           documentation site switches to the previewed family and mode.
         </p>

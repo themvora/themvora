@@ -2,7 +2,7 @@
 import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { ThemeProvider, useSetThemeMode, useTheme, useThemeMode } from "../src";
 
 function Demo() {
@@ -224,11 +224,11 @@ describe("ThemeProvider", () => {
       );
     });
 
-    const script = document.getElementById("theme-kit-bootstrap");
+    const script = document.getElementById("themvora-bootstrap");
     expect(script).toBeTruthy();
     expect(script?.textContent ?? "").toContain("colorScheme");
     // Injecting twice (e.g. StrictMode remount) must not duplicate
-    const count = [...document.querySelectorAll("script#theme-kit-bootstrap")].length;
+    const count = [...document.querySelectorAll("script#themvora-bootstrap")].length;
     expect(count).toBe(1);
 
     act(() => {
@@ -236,5 +236,88 @@ describe("ThemeProvider", () => {
     });
 
     document.body.removeChild(container);
+  });
+
+  // Regression: the provider owns the DOM binding (the runtime is created with
+  // `dom: false`), so it must hand the binding the selection source. Without it
+  // `data-theme-selection-mode` / `-family` stayed at whatever the pre-paint
+  // bootstrap or SSR layout wrote and never tracked a client-side change — the
+  // resolved `data-theme-mode`/`-family` cannot recover a `"system"` selection.
+  // Exercised with a caller-owned runtime, which is the shape the Next.js
+  // `ClientThemeProvider` uses.
+  it("keeps data-theme-selection-* in sync with live changes", async () => {
+    const themes = [
+      defineTheme({ name: "mint-light", meta: { family: "mint", mode: "light" } }),
+      defineTheme({ name: "mint-dark", meta: { family: "mint", mode: "dark" } }),
+      defineTheme({ name: "ocean-light", meta: { family: "ocean", mode: "light" } }),
+      defineTheme({ name: "ocean-dark", meta: { family: "ocean", mode: "dark" } }),
+    ];
+
+    const runtime = createThemeRuntime({
+      themes,
+      defaultTheme: "mint-light",
+      initialMode: "light",
+      initialFamily: "mint",
+      persistence: null,
+      broadcast: null,
+      dom: false,
+      cssVariables: false,
+    });
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const flush = () =>
+      new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r(null))),
+      );
+
+    act(() => {
+      root.render(
+        <ThemeProvider runtime={runtime}>
+          <Demo />
+        </ThemeProvider>,
+      );
+    });
+
+    const html = document.documentElement;
+    expect(html.getAttribute("data-theme")).toBe("mint-light");
+    expect(html.getAttribute("data-theme-selection-mode")).toBe("light");
+    expect(html.getAttribute("data-theme-selection-family")).toBe("mint");
+
+    // A live family change moves both the resolved theme and the selection.
+    act(() => {
+      runtime.selection.setFamily("ocean");
+    });
+    await flush();
+    expect(html.getAttribute("data-theme")).toBe("ocean-light");
+    expect(html.getAttribute("data-theme-family")).toBe("ocean");
+    expect(html.getAttribute("data-theme-selection-family")).toBe("ocean");
+    expect(html.getAttribute("data-theme-selection-mode")).toBe("light");
+
+    // A live mode change moves the resolved mode and the selection mode.
+    act(() => {
+      runtime.selection.setMode("dark");
+    });
+    await flush();
+    expect(html.getAttribute("data-theme")).toBe("ocean-dark");
+    expect(html.getAttribute("data-theme-mode")).toBe("dark");
+    expect(html.getAttribute("data-theme-selection-mode")).toBe("dark");
+    expect(html.getAttribute("data-theme-selection-family")).toBe("ocean");
+
+    act(() => {
+      root.unmount();
+    });
+    document.body.removeChild(container);
+    for (const attribute of [
+      "data-theme",
+      "data-theme-mode",
+      "data-theme-family",
+      "data-theme-selection-mode",
+      "data-theme-selection-family",
+    ]) {
+      html.removeAttribute(attribute);
+    }
   });
 });

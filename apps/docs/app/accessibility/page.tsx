@@ -14,13 +14,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/accessibility") },
   title: "Accessibility",
   description:
-    "How Theme Kit handles accessibility: contrast and CVD simulation, focus rings, prefers-reduced-motion, color-scheme, keyboard navigation and scrollbar behavior.",
+    "How Themvora handles accessibility: contrast and CVD simulation, focus rings, prefers-reduced-motion, color-scheme, keyboard navigation and scrollbar behavior.",
 };
 
 const reducedMotionSnippet = {
   lang: "ts",
   title: "core — reduced-motion in the transition engine",
-  code: `import { createThemeRuntime } from "@theme-kit/core";
+  code: `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -55,7 +55,7 @@ export default function AccessibilityPage() {
           title="Theming that respects people"
           description={
             <>
-              Theme Kit treats accessibility as a first-class runtime concern:
+              Themvora treats accessibility as a first-class runtime concern:
               WCAG contrast and CVD simulation, theme-aware focus rings,
               <code className="mono text-[0.9em]"> prefers-reduced-motion</code>,
               <code className="mono text-[0.9em]"> color-scheme</code> sync, and
@@ -68,7 +68,7 @@ export default function AccessibilityPage() {
         <section id="lab" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={1}
-            desc="Contrast ratios and color-vision-deficiency simulations computed from the active theme by @theme-kit/core — toggle the family above to see it re-run live."
+            desc="Contrast ratios and color-vision-deficiency simulations computed from the active theme by @themvora/core — toggle the family above to see it re-run live."
           >
             Live lab
           </SectionHeading>
@@ -169,7 +169,7 @@ export default function AccessibilityPage() {
               <p className="text-xs opacity-60 leading-relaxed">
                 Theme pickers, toggles and scopes are plain interactive
                 elements: tab to focus, Enter/Space to activate. Nothing in
-                Theme Kit intercepts or reorders keyboard navigation.
+                Themvora intercepts or reorders keyboard navigation.
               </p>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function AccessibilityPage() {
           </p>
           <p className="mt-3 text-sm">
             <Link href="/api-reference/core" className="underline">
-              @theme-kit/core API reference
+              @themvora/core API reference
             </Link>
           </p>
         </section>

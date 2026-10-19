@@ -1,9 +1,11 @@
 ## Live Theme Generation
 
-`generateTheme()` produces a complete light + dark theme pair from a single seed hex color. It converts the seed to HSL, then derives secondary, muted, accent, border, and ring colors by adjusting saturation and lightness — low saturation for muted tones, shifted hue for accent, and the raw seed for `primary`/`ring`.
+`generateTheme()` produces a complete light + dark theme pair from a single seed hex color. It converts the seed to **OKLCH**, then derives secondary, muted, accent, card, popover, input, border and ring colors by adjusting lightness and chroma — low chroma for muted tones, shifted hue for accent, and the seed itself for `primary`/`ring`.
+
+OKLCH rather than HSL because its lightness is perceptually uniform: equal steps read as equal steps, so a generated ramp looks even instead of bunching up at the ends. Contrast is then solved against the declared contract rather than approximated.
 
 ```ts
-import { generateTheme, mergeTokens } from "@theme-kit/core";
+import { generateTheme, mergeTokens } from "@themvora/core";
 
 const { light, dark } = generateTheme({ seed: "#6366f1", family: "indigo" });
 
@@ -24,7 +26,7 @@ The `family` parameter controls the theme name prefix (`"indigo-light"` / `"indi
 `validateTheme()` checks that every required semantic color token is defined. Pass a theme list to resolve `extends` chains before validation.
 
 ```ts
-import { validateTheme } from "@theme-kit/core";
+import { validateTheme } from "@themvora/core";
 
 const result = validateTheme(childTheme, { themes: [baseTheme, childTheme] });
 // { valid: boolean, issues: [{ type: "missing", path: "colors.destructive", message: "..." }] }
@@ -35,7 +37,7 @@ The required color keys are: `background`, `foreground`, `card`, `cardForeground
 Use in CI:
 
 ```ts
-import { getBuiltInThemes, validateTheme } from "@theme-kit/core";
+import { getBuiltInThemes, validateTheme } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 const failures = themes
@@ -53,7 +55,7 @@ if (failures.length > 0) {
 Version your themes with a linear migration chain. `registerMigration()` declares a step between two versions; `migrateTheme()` walks the chain from the current version to the target.
 
 ```ts
-import { registerMigration, migrateTheme } from "@theme-kit/core";
+import { registerMigration, migrateTheme } from "@themvora/core";
 
 registerMigration({
   from: "1.0.0",
@@ -124,7 +126,7 @@ tokens: {
 Resolution walks the token tree — references first, then expressions, then derived calls. Utilities:
 
 ```ts
-import { flattenTokens, resolveTokens } from "@theme-kit/core";
+import { flattenTokens, resolveTokens } from "@themvora/core";
 
 const flat = flattenTokens(myTheme.tokens);       // { "colors.primary": "#6366f1", ... }
 const deep = resolveTokens(myTheme.tokens);        // returns a new ThemeTokens tree
@@ -135,7 +137,7 @@ const deep = resolveTokens(myTheme.tokens);        // returns a new ThemeTokens 
 Plugins implement the `ThemePlugin` interface and are registered via the `plugins` option or `runtime.registry.use()`.
 
 ```ts
-import type { ThemePlugin } from "@theme-kit/core";
+import type { ThemePlugin } from "@themvora/core";
 
 const watermarkPlugin: ThemePlugin = {
   name: "watermark",
@@ -169,7 +171,7 @@ const watermarkPlugin: ThemePlugin = {
 Priority controls execution order — lower numbers run first. `transformTokens` is called for every theme change and receives the merged token tree; it must return the modified tree. Plugins can be added/removed at runtime:
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
+import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   plugins: [watermarkPlugin],
@@ -259,7 +261,7 @@ import {
   simulateCVD,
   simulateThemeForCVD,
   validateThemeContrast,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // pre-built accessibility themes
 const profiles = getAccessibilityProfiles();
@@ -294,8 +296,105 @@ if (!result.valid) {
 }
 ```
 
+## Live runtime configuration
+
+Every configuration input below is reconciled through one shared contract:
+`runtime.configure(update)`. The framework providers forward changed props to
+it; nothing recreates the runtime, reloads the page, or resets the active theme,
+selection, persistence or history.
+
+Precedence and validation live in the runtime, not in the adapters, so React,
+Vue, Svelte, Solid, Web Components, Astro, Next and Nuxt all behave the same
+way. Only the *inputs the caller supplied* are applied: omitting a prop leaves
+its current value alone, so a provider that never sets `transition` cannot
+reset a transition configured at creation.
+
+### Reactivity
+
+| Configuration | Scope | Applies live | When it takes effect | SSR / bootstrap | Validation |
+| --- | --- | --- | --- | --- | --- |
+| `themes` | provider | Yes | Immediately after the change is observed; selection is re-resolved atomically | Initial catalog is resolved on the server | Empty/all-invalid → neutral fallback + `TV_THEME_NEUTRAL_FALLBACK` |
+| `defaultTheme` | provider | Yes | Immediately (only when the selection has to be re-resolved) | Server resolves it for first paint | Unknown name resolves to the fallback |
+| `initialFamily` / `initialMode` | provider | Yes | Immediately | Server resolves them for first paint | Unknown family → `TV_THEME_FAMILY_UNKNOWN` |
+| `initial` | provider | Yes | Immediately (an SSR-resolved selection) | Read on the server to render the first paint | Unresolvable selection is ignored |
+| `transition` | provider (runtime) | Yes | The **next** theme change; the current theme is not re-applied | Client-only — never part of bootstrap | `duration` must be a finite number `>= 0`; `easing` a non-empty string, else `TV_CONFIG_OPTION_INVALID` and the previous setting is kept |
+| `scheduled` | provider (runtime) | Yes | Immediately: installs, reconfigures in place, or tears down | Disabled on the server (no `window`) | `checkInterval > 0`, `skipApplyMs >= 0`, `latitude ∈ [-90, 90]`, `longitude ∈ [-180, 180]`; else `TV_CONFIG_OPTION_INVALID`. Unregistered theme names → `TV_SCHEDULE_THEME_UNRESOLVED` |
+| `ThemeScrollbar` options | component | Yes | The overlay is rebuilt with the new options | Client-only | Passed through to the overlay engine |
+| `ThemeScope` props (`theme`, `family`, `mode`, `transition`, …) | component | Yes | Immediately | The scope's variables are emitted into SSR markup | Same rules as the provider |
+
+### Precedence between the selection inputs
+
+The runtime resolves one selection from four inputs, in this order:
+
+1. **A persisted selection** (localStorage, or the SSR cookie/bridge) — the visitor's own choice wins over everything.
+2. **`initial`** — an SSR-resolved selection. It is used when it resolves against the current catalog, and **ignored** when it does not (a deploy between the server render and hydration can leave the client with a theme the server no longer has).
+3. **`initialFamily` / `initialMode`** — explicit selections. They override the corresponding half of `defaultTheme`, so `defaultTheme="plum-dark"` with `initialMode="light"` resolves to `plum-light`.
+4. **`defaultTheme`**, then the catalog's first theme — the fallback.
+
+An unknown `initialFamily` is reported (`TV_THEME_FAMILY_UNKNOWN`) and resolves to a registered family; an unknown `defaultTheme` resolves to the catalog's first theme.
+
+### Catalog changes reach the scopes too
+
+`themes` is not just a provider input: it is the catalog every scope, family
+selector and readout resolves against. A catalog change that preserves the
+active theme produces **no theme change**, so `store.subscribe()` cannot report
+it — a scope would otherwise keep rendering a theme the runtime had dropped.
+The runtime therefore exposes the catalog as its own signal:
+
+| Consumer | Signal |
+| --- | --- |
+| Framework providers, custom consumers | `runtime.registry.subscribe(() => …)` — fires once per atomic catalog change (`configure({ themes })`, `runtime.use(pack)`, `runtime.restore()`), after the store and the selection are updated |
+| `<themvora-scope>`, `<themvora-select>` and the other elements | The same signal, subscribed by the element base class |
+| Page code listening for the DOM event | `themes-change` on `<themvora-provider>` (`detail.themes`), dispatched on a microtask after the change applies |
+
+Every framework `ThemeScope` subscribes to it and re-resolves in place, so a
+scope whose theme leaves the catalog moves to the catalog's first theme — the
+same fallback an unknown name gets — instead of keeping stale variables. The
+runtime also keeps one catalog array and updates it in place, so a consumer
+that captured `runtime.themes` sees later changes rather than a snapshot.
+
+### Enabling and disabling after mount
+
+```tsx
+// React — the same prop names exist on every provider.
+<ThemeProvider transition={{ enabled: false, duration: 600 }}>
+  <App />
+</ThemeProvider>
+
+// Later, without a reload or remount: turn transitions on.
+<ThemeProvider transition={{ duration: 600 }}>
+  <App />
+</ThemeProvider>
+```
+
+- **Disable transitions:** `transition={false}` (or `transition={{ enabled: false }}`). The next theme change is instant, and the persistent `:root` transition rule is removed so later variable swaps cannot interpolate through it.
+- **Re-enable:** pass `transition` again — the next theme change animates.
+- **Remove a schedule:** `scheduled={false}`. `runtime.schedule` becomes `null` and every timer/listener the schedule owned is disposed.
+- **Install a schedule after mount:** pass `scheduled={{ … }}`; it is created once and reconfigured in place on later changes.
+- **Remove the scrollbar feature:** unmount `<ThemeScrollbar />`; the overlay, its observers and its DOM nodes are removed with it (the native scrollbar returns).
+
+### Invalid input
+
+An unusable transition/scheduling option skips **only its own subsystem** and
+keeps the previous setting there — a defined state — and reports a
+`TV_CONFIG_OPTION_INVALID` warning naming the option and the value. Unrelated
+subsystems in the same update still apply. Diagnostics are deduplicated, so a
+provider that forwards the same invalid value on every render logs it once.
+
+### Imperative configuration
+
+Framework-free code (and adapters built on `createThemeRuntime`) can drive the
+same contract directly:
+
+```ts
+runtime.configure({ transition: { enabled: true, duration: 600 } });
+runtime.configure({ scheduled: false });
+runtime.transition; // live view of the current transition options
+runtime.schedule;   // live view of the schedule controller (or null)
+```
+
 ## API reference
 
 Every export used above is generated from source JSDoc — this guide links it rather than duplicating it.
 
-- [@theme-kit/core API reference](/api-reference/core)
+- [@themvora/core API reference](/api-reference/core)

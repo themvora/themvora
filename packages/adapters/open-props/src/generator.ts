@@ -2,10 +2,10 @@ import type {
   AdapterPlugin,
   AdapterPluginContext,
   ThemeTokens,
-} from "@theme-kit/core";
-import { resolveTokens } from "@theme-kit/core";
-import type { AdapterResolvedTheme } from "@theme-kit/adapters";
-import { readColor, readFontFamily, readToken } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveTokens } from "@themvora/core";
+import type { AdapterResolvedTheme } from "@themvora/adapters";
+import { readColor, readFontFamily, readToken } from "@themvora/adapters";
 import { resolveOpenPropsTheme, deriveOpenPropsColors } from "./tokens";
 import { createOpenPropsRefineContext } from "./refine";
 
@@ -93,7 +93,7 @@ export function generateOpenPropsVariables(
 
 /**
  * Programmatic alternative to `open-props.css`. Returns concrete Open Props
- * CSS variable values for a given set of Theme Kit tokens.
+ * CSS variable values for a given set of Themvora tokens.
  *
  * @deprecated prefer `generateOpenPropsVariables` or `createOpenPropsAdapter`.
  */

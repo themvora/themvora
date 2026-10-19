@@ -3,9 +3,9 @@ import {
   serializeThemeBootstrapScript,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
-import { themeKitCookieNames } from "./cookies";
+import { themvoraCookieNames } from "./cookies";
 
 /**
  * Options for {@link createNuxtThemeBootstrapScript}. Describes the theme
@@ -41,14 +41,14 @@ export interface NuxtThemeBootstrapOptions<T extends ThemeDefinition> {
 
 /**
  * Generate the blocking, inline bootstrap script that applies the persisted
- * theme before first paint — the same zero-flash guarantee `@theme-kit/next`
+ * theme before first paint — the same zero-flash guarantee `@themvora/next`
  * ships.
  *
  * The script reads the four theme cookies (same contract as Next), validates
  * the config fingerprint, resolves the theme for the effective mode
  * (`"system"` is resolved against `prefers-color-scheme`), and writes the CSS
  * variables plus DOM effects onto `document.documentElement`. It delegates to
- * the shared `@theme-kit/core` applier (`buildBootstrapPlan` +
+ * the shared `@themvora/core` applier (`buildBootstrapPlan` +
  * `serializeThemeBootstrapScript`), so every SSR integration emits the same
  * correct script and cannot drift from the client runtime contract.
  *
@@ -74,9 +74,9 @@ export function createNuxtThemeBootstrapScript<T extends ThemeDefinition>(
     {
       kind: "cookies",
       names: {
-        mode: themeKitCookieNames.mode,
-        family: themeKitCookieNames.family,
-        fingerprint: themeKitCookieNames.fingerprint,
+        mode: themvoraCookieNames.mode,
+        family: themvoraCookieNames.family,
+        fingerprint: themvoraCookieNames.fingerprint,
       },
     },
     { fingerprint: computeFingerprint(themes, defaultTheme) },

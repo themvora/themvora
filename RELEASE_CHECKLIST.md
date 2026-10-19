@@ -1,6 +1,6 @@
 # Release Checklist
 
-The maintainer procedure for preparing, verifying and publishing a Theme Kit
+The maintainer procedure for preparing, verifying and publishing a Themvora
 release. This is the checklist; the **enforced** gates are the scripts it names,
 and `docs/reference/README.md` documents each one in full.
 
@@ -113,7 +113,7 @@ Only after every box above is ticked and the tree is intentionally reconciled.
 
 ## Reference — the current release
 
-Theme Kit **2.0.0** enforces the dependency-isolation contract. Adapter
+Themvora **2.0.0** enforces the dependency-isolation contract. Adapter
 framework bindings moved off the framework-package roots and off the adapter root
 entries, which removed public exports from **12 packages**, so those ship 2.0.0.
 The packages that did not break keep their own version:

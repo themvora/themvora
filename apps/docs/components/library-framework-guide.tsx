@@ -32,15 +32,6 @@ export function LibraryFrameworkGuide({
 
   return (
     <>
-      <section id="install" className="scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight">Installation</h2>
-        <p className="text-sm opacity-70 mt-1 mb-3">
-          Install the adapter alongside{" "}
-          <code className="mono text-[0.9em]">@theme-kit/core</code> (or a
-          framework integration that provides the runtime).
-        </p>
-        <InstallCommand commands={installCommands} />
-      </section>
 
       <section id="pick-framework" className="mt-10 scroll-mt-24">
         <h2 className="text-lg font-semibold tracking-tight">

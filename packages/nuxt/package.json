@@ -1,5 +1,5 @@
 {
-  "name": "@theme-kit/nuxt",
+  "name": "@themvora/nuxt",
   "license": "MIT",
   "version": "2.0.0",
   "type": "module",
@@ -24,8 +24,8 @@
     "vue": "^3.4.0"
   },
   "dependencies": {
-    "@theme-kit/core": "workspace:^",
-    "@theme-kit/vue": "workspace:^"
+    "@themvora/core": "workspace:^",
+    "@themvora/vue": "workspace:^"
   },
   "devDependencies": {
     "@nuxt/kit": "^3.10.0",
@@ -34,14 +34,14 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
-  "description": "Nuxt module for Theme Kit: SSR, cookies, and zero-flash theming.",
+  "description": "Nuxt module for Themvora: SSR, cookies, and zero-flash theming.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/themekit-dev/theme-kit.git"
+    "url": "git+https://github.com/themvora/themvora.git"
   },
-  "homepage": "https://theme-kit-dev.vercel.app",
+  "homepage": "https://themvora-dev.vercel.app",
   "bugs": {
-    "url": "https://github.com/themekit-dev/theme-kit/issues"
+    "url": "https://github.com/themvora/themvora/issues"
   },
   "keywords": [
     "theme",

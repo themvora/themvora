@@ -1,5 +1,5 @@
-## @theme-kit/shadcn/factory
-> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+## @themvora/shadcn/factory
+> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -7,7 +7,7 @@
 Creates a shadcn/ui adapter.
 
 The adapter is a DOM-only, framework-free adapter: it depends only on
-`@theme-kit/core` and the DOM. On install it injects the shadcn/ui
+`@themvora/core` and the DOM. On install it injects the shadcn/ui
 compatibility stylesheet (when enabled) and a `<style>` element of CSS
 variables derived from the active theme, then subscribes to the runtime
 store and rewrites the variables whenever the theme selection changes. It
@@ -24,7 +24,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 **Returns** `ThemeAdapter<T>` — A `ThemeAdapter` for shadcn/ui.
 
 ```ts
-import { createShadcnAdapter } from "@theme-kit/shadcn";
+import { createShadcnAdapter } from "@themvora/shadcn";
 
 runtime.installAdapter(createShadcnAdapter());
 ```

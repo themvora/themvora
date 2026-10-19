@@ -11,4 +11,4 @@ export {
   useScopedTheme,
   ThemeInspector,
   ThemeModeButton,
-} from "@theme-kit/react";
+} from "@themvora/react";

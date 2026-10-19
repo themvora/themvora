@@ -3,7 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     // Node / build-time: the integration and the server helpers. Imports
-    // `node:url` and `@theme-kit/core/config`, so it must NOT be imported from
+    // `node:url` and `@themvora/core/config`, so it must NOT be imported from
     // anything a browser bundles — see `src/runtime.ts`.
     index: "src/index.ts",
     // Browser, framework-neutral: `getThemeController()` and the DOM contract.
@@ -21,7 +21,7 @@ export default defineConfig({
     "react",
     "react-dom",
     "astro",
-    "@theme-kit/core",
-    "@theme-kit/web",
+    "@themvora/core",
+    "@themvora/web",
   ],
 });

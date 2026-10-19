@@ -51,7 +51,7 @@ function collect() {
     const deps = Object.keys(pkg.dependencies ?? {});
     const peers = Object.keys(pkg.peerDependencies ?? {});
     const internalDeps = [...new Set([...deps, ...peers])]
-      .filter((d) => d.startsWith("@theme-kit/"))
+      .filter((d) => d.startsWith("@themvora/"))
       .sort();
 
     const exportsMap = pkg.exports && typeof pkg.exports === "object" ? pkg.exports : {};
@@ -64,10 +64,10 @@ function collect() {
       version: pkg.version ?? "0.0.0",
       dir,
       description: pkg.description ?? "",
-      // `@theme-kit/adapters` lives in packages/adapters/shared.
+      // `@themvora/adapters` lives in packages/adapters/shared.
       repoDir: dir === "adapters/shared" ? "packages/adapters/shared" : `packages/${dir}`,
       internalDeps,
-      externalPeers: peers.filter((d) => !d.startsWith("@theme-kit/")).sort(),
+      externalPeers: peers.filter((d) => !d.startsWith("@themvora/")).sort(),
       subpaths,
       hasBin: !!pkg.bin,
       entry: pkg.main ?? "./dist/index.js",
@@ -110,7 +110,7 @@ function render(rows) {
  *
  * Produced by \`apps/docs/scripts/generate-package-graph.mjs\` from the
  * \`package.json\` manifests under \`packages/\`. Regenerate with
- * \`pnpm --filter @theme-kit/docs packages:generate\`; \`packages:check\` fails
+ * \`pnpm --filter @themvora/docs packages:generate\`; \`packages:check\` fails
  * when this drifts.
  *
  * Consumed by \`/package-map\` and merged with the editorial layer in
@@ -118,7 +118,7 @@ function render(rows) {
  */
 
 export type PackageGraphEntry = {
-  /** Published package name, e.g. \`@theme-kit/core\`. */
+  /** Published package name, e.g. \`@themvora/core\`. */
   name: string;
   version: string;
   /** Directory under \`packages/\`, e.g. \`adapters/mui\`. */
@@ -126,9 +126,9 @@ export type PackageGraphEntry = {
   /** Repository path, e.g. \`packages/adapters/mui\`. */
   repoDir: string;
   description: string;
-  /** Other @theme-kit packages this one depends on (dependencies + peerDependencies). */
+  /** Other @themvora packages this one depends on (dependencies + peerDependencies). */
   internalDeps: string[];
-  /** @theme-kit packages that depend on this one. */
+  /** @themvora packages that depend on this one. */
   usedBy: string[];
   /** Third-party peer dependencies (react, vue, tailwindcss, …). */
   externalPeers: string[];
@@ -161,7 +161,7 @@ function main() {
   if (check) {
     if (current !== next) {
       console.error(
-        "lib/generated/package-graph.ts is out of date. Run: pnpm --filter @theme-kit/docs packages:generate",
+        "lib/generated/package-graph.ts is out of date. Run: pnpm --filter @themvora/docs packages:generate",
       );
       process.exit(1);
     }

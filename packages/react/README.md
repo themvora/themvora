@@ -1,6 +1,78 @@
-# @theme-kit/react
+# @themvora/react
 
-React 18/19 integration for Theme Kit. Provider + hooks over the framework-agnostic `@theme-kit/core` runtime.
+## Install
+
+```bash
+npm install @themvora/core @themvora/react
+```
+
+`@themvora/react` builds on `@themvora/core` and a framework integration, so those are installed explicitly rather than relied on transitively.
+
+React 18/19 integration for Themvora. Provider + hooks over the framework-agnostic `@themvora/core` runtime.
+
+## Set up
+
+```tsx
+import { ThemeProvider } from "@themvora/react";
+import { themes } from "./theme/themes";
+
+export function App() {
+  return (
+    <ThemeProvider themes={themes} defaultTheme="mint-light">
+      <Page />
+    </ThemeProvider>
+  );
+}
+```
+
+## Add a small UI
+
+A heading, a card and a button. The button reads the current theme and changes
+it — nothing is styled yet.
+
+```tsx
+import { useTheme } from "@themvora/react";
+
+export function Page() {
+  const { theme, mode, toggleTheme } = useTheme();
+
+  return (
+    <main className="page">
+      <h1>Themvora</h1>
+      <p>
+        {theme.name} · {mode}
+      </p>
+      <button onClick={toggleTheme}>Toggle theme</button>
+      <section className="card">
+        <h2>Themed card</h2>
+        <p>Nothing is styled yet.</p>
+      </section>
+    </main>
+  );
+}
+```
+
+## Style it with Themvora tokens
+
+Themvora emits one CSS variable per token, so your own classes read the active
+theme without any per-theme CSS:
+
+```css
+.page {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.card {
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+  padding: var(--theme-spacing-4);
+}
+```
+
+Nothing is re-rendered on a switch — the variables change and the styles follow.
 
 ## Define themes
 
@@ -9,7 +81,7 @@ runtime resolves a `family` + `mode` selection to one of these names.
 
 ```ts
 // theme/themes.ts
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 export const themes = [
   defineTheme({
@@ -35,7 +107,7 @@ pair is used, which is the quickest way to see it working.
 ## Reference snippet
 
 ```tsx
-import { ThemeProvider, useTheme } from "@theme-kit/react";
+import { ThemeProvider, useTheme } from "@themvora/react";
 import { themes } from "./theme/themes";
 
 export function App() {
@@ -62,7 +134,7 @@ For a client-rendered Vite/SPA app, mount the provider at the app root:
 
 ```tsx
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 import { themes } from "./theme/themes";
 
 createRoot(document.getElementById("root")!).render(
@@ -81,7 +153,7 @@ root helper that owns the root boundary and flushes **only the first** commit
 synchronously, so the very first frame is already the themed UI:
 
 ```tsx
-import { createThemeRoot } from "@theme-kit/react";
+import { createThemeRoot } from "@themvora/react";
 import { themes } from "./theme/themes";
 
 const handle = createThemeRoot({
@@ -97,7 +169,7 @@ const handle = createThemeRoot({
 The `render({ runtime })` callback is the application's full composition —
 arbitrary provider trees (MUI, Chakra, React Query, Redux, Router, …) stay
 entirely under the application's control, and can derive their configuration
-from the Theme Kit runtime:
+from the Themvora runtime:
 
 ```tsx
 render: ({ runtime }) => (
@@ -113,11 +185,11 @@ The handle exposes `root` (the underlying React root), `runtime` (the runtime
 created for this root), and `unmount()`. Only the initial render is flushed;
 subsequent renders keep React's normal concurrent scheduling.
 
-Use it when you want Theme Kit to own the root initialization boundary —
+Use it when you want Themvora to own the root initialization boundary —
 reload-sensitive demos, blank-frame-sensitive apps, or apps whose providers
-need the Theme Kit runtime at composition time. **SSR/SSG apps must not use
+need the Themvora runtime at composition time. **SSR/SSG apps must not use
 it** — server-rendered HTML is hydrated with `hydrateRoot()` or a framework
-integration (`@theme-kit/next`, `@theme-kit/remix`), never replaced by a fresh
+integration (`@themvora/next`, `@themvora/remix`), never replaced by a fresh
 `createRoot`.
 
 ## Hooks
@@ -130,5 +202,5 @@ integration (`@theme-kit/next`, `@theme-kit/remix`), never replaced by a fresh
 
 ## Documentation
 
-Full API reference and guides: [Theme Kit docs](https://theme-kit-dev.vercel.app).
-All packages: [npm](https://www.npmjs.com/org/theme-kit).
+Full API reference and guides: [Themvora docs](https://themvora-dev.vercel.app).
+All packages: [npm](https://www.npmjs.com/org/themvora).

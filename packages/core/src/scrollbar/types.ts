@@ -9,6 +9,31 @@
 
 export type ScrollbarAxis = "vertical" | "horizontal";
 
+/**
+ * Per-side rail offsets, in px.
+ *
+ * Each side is the distance from that container edge to the rail. Any side left
+ * out falls back to the component default (`4`). Pass a plain number instead to
+ * inset every side equally.
+ */
+export interface ScrollbarOffsetSides {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
+/** The rail offset: one inset for every side, or per-side values. */
+export type ScrollbarOffset = number | ScrollbarOffsetSides;
+
+/** Resolved rail offsets, all four sides. @internal */
+export interface ScrollbarInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 /** Direction of a single arrow button on an axis strip. */
 export type ScrollbarArrowDir = "up" | "down" | "left" | "right";
 
@@ -83,8 +108,22 @@ export interface OverlayScrollbarOptions {
   radius?: number;
   /** Minimum thumb travel size. Default `32`. */
   minThumbSize?: number;
-  /** Gap between the thumb and the container edge in px. Default `2`. */
-  offset?: number;
+  /** Arrow glyph size in CSS px, for all four directions (the built-in CSS
+   *  triangle and custom icons alike). Clamped to the button's usable area, so
+   *  it can never overflow an unusually thin rail. Omitted keeps the existing
+   *  default sizing. Adapters surface this as `icons.size`. */
+  iconSize?: number;
+  /** Distance from the container edges to the rail. A number insets every side
+   *  equally; an object sets individual sides, with omitted sides defaulting to
+   *  the component default (`4`, except `left`, which defaults to `0`). A side
+   *  set to `0` gets no inset — the rail sits flush against that edge, like a
+   *  native scrollbar.
+   *
+   *  The rail follows the writing direction (a vertical rail sits on the
+   *  inline-end edge), so in RTL it uses `left`. The content is kept clear of
+   *  the rail by the native scrollbar gutter the component reserves, not by
+   *  extra padding, so no content width is taken and nothing reflows. */
+  offset?: ScrollbarOffset;
   /** Track strip opacity (0 = invisible). Default `0.25`. */
   trackOpacity?: number;
   /** Thumb opacity while visible. Default `0.7`. */
@@ -105,10 +144,12 @@ export interface OverlayScrollbarOptions {
   thumbHoverColor?: string;
   /** Z-index for the overlay strips. Defaults to the tracked container's own
    *  `z-index` (so the scrollbar stays inside its container's stacking order —
-   *  e.g. below a sticky header). The document scrollbar defaults to `55`
-   *  (above typical sticky headers, below full-screen modal backdrops) and
-   *  containers without a z-index default to `30`. Overriding lets you force
-   *  scrollbars above fixed headers/modals if you need to. */
+   *  e.g. a rail inside a sticky header never floats above that header).
+   *  Containers that declare no z-index get `0`; the document scrollbar gets
+   *  `55`, which is above typical sticky headers (50) and below full-screen
+   *  modal backdrops (60) — the window bar is chrome, so a fixed header must
+   *  not hide it. Overriding lets you force scrollbars above fixed
+   *  headers/modals if you need to. */
   zIndex?: number;
   /** CSS transition duration (ms) for thickness/opacity/color. Default `250`. */
   duration?: number;
@@ -170,7 +211,15 @@ export interface ScrollbarOptionsResolved {
   hoverThickness: number;
   radius: number;
   minThumbSize: number;
-  offset: number;
+  /** Requested arrow glyph size in px, or `undefined` to keep the default. */
+  iconSize: number | undefined;
+  /** Resolved rail insets (all four sides). */
+  insets: ScrollbarInsets;
+  /** Transparent separation reserved on the content-facing side of the strip,
+   *  in px, so the visible track/thumb never sits flush against the content.
+   *  The strip's hit area covers this band but the band itself carries no
+   *  paint and no pointer events, so content beneath it stays interactive. */
+  gap: number;
   trackOpacity: number;
   thumbOpacity: number;
   thumbColor: string | undefined;

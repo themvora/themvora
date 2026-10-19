@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Published-tarball install matrix for Theme Kit dependency isolation.
+ * Published-tarball install matrix for Themvora dependency isolation.
  *
  * For every row below, this creates a disposable project under
  * release-test/dependency-matrix/.work/<id>, installs the package from its
  * REAL PACKED TARBALL (produced by scripts/release/pack-verify.mjs into
  * release-test/tarballs/*.tgz), and then asserts that the resolved production
- * tree contains exactly the expected `@theme-kit/*` set and none of the
+ * tree contains exactly the expected `@themvora/*` set and none of the
  * forbidden framework/design-system packages beyond those the row allows.
  *
  * Why this catches what the source-level audit cannot: the source audit BFSes
@@ -17,7 +17,7 @@
  *
  * Usage: node release-test/dependency-matrix/run.mjs
  * Env:
- *   TK_MATRIX_REUSE_TARBALLS=1   skip packing; reuse existing tarballs
+ *   TV_MATRIX_REUSE_TARBALLS=1   skip packing; reuse existing tarballs
  * Exit: 0 when every row passes, non-zero on any failure (release gate).
  */
 
@@ -72,35 +72,35 @@ function isForbidden(name) {
   return FORBIDDEN.some((m) => matches(m, name));
 }
 
-const shortName = (name) => name.replace(/^@theme-kit\//, "");
+const shortName = (name) => name.replace(/^@themvora\//, "");
 
 // --- install matrix -----------------------------------------------------------
 // id → { pkg, extra (npm specs installed alongside), expected (short names),
 //        allowed (forbidden matchers the row allows), neutral (zero third-party) }
 const MATRIX = [
-  { id: "core", pkg: "@theme-kit/core", extra: [], expected: ["core"], allowed: [], neutral: true },
-  { id: "web", pkg: "@theme-kit/web", extra: [], expected: ["core", "web"], allowed: [], neutral: true },
-  { id: "cli", pkg: "@theme-kit/cli", extra: [], expected: ["core", "cli"], allowed: [], neutral: true },
-  { id: "devtools", pkg: "@theme-kit/devtools", extra: [], expected: ["core", "devtools"], allowed: [], neutral: true },
-  { id: "tailwind", pkg: "@theme-kit/tailwind", extra: ["tailwindcss@4"], expected: ["core", "tailwind"], allowed: ["tailwindcss"] },
-  { id: "react", pkg: "@theme-kit/react", extra: ["react@19", "react-dom@19"], expected: ["core", "react"], allowed: ["react", "react-dom"] },
-  { id: "vue", pkg: "@theme-kit/vue", extra: ["vue@3"], expected: ["core", "web", "vue"], allowed: ["vue"] },
-  { id: "svelte", pkg: "@theme-kit/svelte", extra: ["svelte@5"], expected: ["core", "web", "svelte"], allowed: ["svelte"] },
-  { id: "solid", pkg: "@theme-kit/solid", extra: ["solid-js@1"], expected: ["core", "web", "solid"], allowed: ["solid-js"] },
+  { id: "core", pkg: "@themvora/core", extra: [], expected: ["core"], allowed: [], neutral: true },
+  { id: "web", pkg: "@themvora/web", extra: [], expected: ["core", "web"], allowed: [], neutral: true },
+  { id: "cli", pkg: "@themvora/cli", extra: [], expected: ["core", "cli"], allowed: [], neutral: true },
+  { id: "devtools", pkg: "@themvora/devtools", extra: [], expected: ["core", "devtools"], allowed: [], neutral: true },
+  { id: "tailwind", pkg: "@themvora/tailwind", extra: ["tailwindcss@4"], expected: ["core", "tailwind"], allowed: ["tailwindcss"] },
+  { id: "react", pkg: "@themvora/react", extra: ["react@19", "react-dom@19"], expected: ["core", "react"], allowed: ["react", "react-dom"] },
+  { id: "vue", pkg: "@themvora/vue", extra: ["vue@3"], expected: ["core", "web", "vue"], allowed: ["vue"] },
+  { id: "svelte", pkg: "@themvora/svelte", extra: ["svelte@5"], expected: ["core", "web", "svelte"], allowed: ["svelte"] },
+  { id: "solid", pkg: "@themvora/solid", extra: ["solid-js@1"], expected: ["core", "web", "solid"], allowed: ["solid-js"] },
   // @angular/common is installed explicitly alongside @angular/core so npm does
   // not auto-install a mismatched latest `@angular/common` (both are required
-  // peers of @theme-kit/angular; @angular/common itself is not a forbidden class).
-  { id: "angular", pkg: "@theme-kit/angular", extra: ["@angular/core@19", "@angular/common@19"], expected: ["core", "web", "angular"], allowed: ["@angular/core", "tslib"] },
-  { id: "astro", pkg: "@theme-kit/astro", extra: ["astro@5"], expected: ["core", "web", "astro"], allowed: ["astro"] },
-  { id: "next", pkg: "@theme-kit/next", extra: ["next@15", "react@19", "react-dom@19"], expected: ["core", "react", "next"], allowed: ["next", "react", "react-dom"] },
-  { id: "remix", pkg: "@theme-kit/remix", extra: ["@remix-run/react@2", "@remix-run/node@2", "react@19", "react-dom@19"], expected: ["core", "react", "remix"], allowed: ["@remix-run/*", "react", "react-dom"] },
-  // nuxt → vue → web, so the correct @theme-kit closure includes web too.
-  { id: "nuxt", pkg: "@theme-kit/nuxt", extra: ["nuxt@3", "vue@3"], expected: ["core", "vue", "web", "nuxt"], allowed: ["nuxt", "vue"] },
-  // KEY: installing shadcn with no framework must not pull react (or @theme-kit/react).
-  { id: "shadcn", pkg: "@theme-kit/shadcn", extra: [], expected: ["core", "adapters", "shadcn"], allowed: [] },
-  { id: "shadcn-react", pkg: "@theme-kit/shadcn", extra: ["react@19", "react-dom@19"], expected: ["core", "adapters", "shadcn"], allowed: ["react", "react-dom"] },
-  { id: "unocss", pkg: "@theme-kit/unocss", extra: ["unocss@66"], expected: ["core", "adapters", "unocss"], allowed: ["@unocss/*", "unocss"] },
-  { id: "mui", pkg: "@theme-kit/mui", extra: ["@mui/material@9", "@emotion/react@11", "@emotion/styled@11", "react@19", "react-dom@19"], expected: ["core", "adapters", "mui"], allowed: ["@mui/*", "@emotion/*", "react", "react-dom"] },
+  // peers of @themvora/angular; @angular/common itself is not a forbidden class).
+  { id: "angular", pkg: "@themvora/angular", extra: ["@angular/core@19", "@angular/common@19"], expected: ["core", "web", "angular"], allowed: ["@angular/core", "tslib"] },
+  { id: "astro", pkg: "@themvora/astro", extra: ["astro@5"], expected: ["core", "web", "astro"], allowed: ["astro"] },
+  { id: "next", pkg: "@themvora/next", extra: ["next@15", "react@19", "react-dom@19"], expected: ["core", "react", "next"], allowed: ["next", "react", "react-dom"] },
+  { id: "remix", pkg: "@themvora/remix", extra: ["@remix-run/react@2", "@remix-run/node@2", "react@19", "react-dom@19"], expected: ["core", "react", "remix"], allowed: ["@remix-run/*", "react", "react-dom"] },
+  // nuxt → vue → web, so the correct @themvora closure includes web too.
+  { id: "nuxt", pkg: "@themvora/nuxt", extra: ["nuxt@3", "vue@3"], expected: ["core", "vue", "web", "nuxt"], allowed: ["nuxt", "vue"] },
+  // KEY: installing shadcn with no framework must not pull react (or @themvora/react).
+  { id: "shadcn", pkg: "@themvora/shadcn", extra: [], expected: ["core", "adapters", "shadcn"], allowed: [] },
+  { id: "shadcn-react", pkg: "@themvora/shadcn", extra: ["react@19", "react-dom@19"], expected: ["core", "adapters", "shadcn"], allowed: ["react", "react-dom"] },
+  { id: "unocss", pkg: "@themvora/unocss", extra: ["unocss@66"], expected: ["core", "adapters", "unocss"], allowed: ["@unocss/*", "unocss"] },
+  { id: "mui", pkg: "@themvora/mui", extra: ["@mui/material@9", "@emotion/react@11", "@emotion/styled@11", "react@19", "react-dom@19"], expected: ["core", "adapters", "mui"], allowed: ["@mui/*", "@emotion/*", "react", "react-dom"] },
 ];
 
 // --- helpers ------------------------------------------------------------------
@@ -125,7 +125,7 @@ function tarballFor(pkgName, versions) {
   const short = shortName(pkgName);
   const version = versions.get(pkgName)?.version;
   if (!version) throw new Error(`no workspace version for ${pkgName}`);
-  const file = join(tarballsDir, `theme-kit-${short}-${version}.tgz`);
+  const file = join(tarballsDir, `themvora-${short}-${version}.tgz`);
   if (!existsSync(file)) {
     throw new Error(`missing tarball ${file} — run scripts/release/pack-verify.mjs first`);
   }
@@ -153,7 +153,7 @@ function collectInstalled(nodeModulesDir) {
         continue;
       }
       if (e.name.startsWith("@")) {
-        stack.push(full); // scope dir (e.g. @theme-kit) → descend to real packages
+        stack.push(full); // scope dir (e.g. @themvora) → descend to real packages
         continue;
       }
       const pj = join(full, "package.json");
@@ -218,8 +218,8 @@ function looksLikeRegistryFailure(text) {
 }
 
 function packTarballs() {
-  if (process.env.TK_MATRIX_REUSE_TARBALLS === "1") {
-    console.log("Reusing existing tarballs (TK_MATRIX_REUSE_TARBALLS=1).\n");
+  if (process.env.TV_MATRIX_REUSE_TARBALLS === "1") {
+    console.log("Reusing existing tarballs (TV_MATRIX_REUSE_TARBALLS=1).\n");
     return;
   }
   console.log("Packing tarballs via scripts/release/pack-verify.mjs ...");
@@ -263,21 +263,21 @@ function main() {
     writeFileSync(
       join(rowDir, "package.json"),
       JSON.stringify(
-        { name: `tk-matrix-${row.id}`, version: "0.0.0", private: true, type: "module" },
+        { name: `tv-matrix-${row.id}`, version: "0.0.0", private: true, type: "module" },
         null,
         2,
       ) + "\n",
       "utf8",
     );
 
-    // Install the full @theme-kit closure from LOCAL tarballs so npm resolves
+    // Install the full @themvora closure from LOCAL tarballs so npm resolves
     // transitive workspace deps against the LOCAL (refactored) graph rather than
     // the registry. The published 1.3.0 registry metadata still predates the
-    // dependency-isolation refactor in places (e.g. @theme-kit/vue@1.3.0 still
+    // dependency-isolation refactor in places (e.g. @themvora/vue@1.3.0 still
     // lists open-props/bootstrap/shadcn/daisyui), so a single-tarball install
     // would otherwise observe the stale registry graph instead of the tarball
     // under test. Third-party peers still resolve from the registry as intended.
-    const closureTarballs = row.expected.map((short) => tarballFor(`@theme-kit/${short}`, versions));
+    const closureTarballs = row.expected.map((short) => tarballFor(`@themvora/${short}`, versions));
     const installArgs = ["install", ...closureTarballs, ...row.extra, "--no-audit", "--no-fund", "--no-package-lock", "--ignore-scripts"];
 
     let install = runNpm(installArgs, rowDir);
@@ -321,24 +321,24 @@ function main() {
     }
     writeFileSync(join(rowDir, "npm-ls.json"), ls.stdout || ls.stderr || "", "utf8");
 
-    const themeKitFound = [...installed].filter((n) => n.startsWith("@theme-kit/")).map(shortName).sort();
+    const themvoraFound = [...installed].filter((n) => n.startsWith("@themvora/")).map(shortName).sort();
     const expectedSorted = [...row.expected].sort();
-    const themeKitExtra = themeKitFound.filter((n) => !expectedSorted.includes(n));
-    const themeKitMissing = expectedSorted.filter((n) => !themeKitFound.includes(n));
+    const themvoraExtra = themvoraFound.filter((n) => !expectedSorted.includes(n));
+    const themvoraMissing = expectedSorted.filter((n) => !themvoraFound.includes(n));
 
     const forbiddenFound = [...installed].filter(isForbidden).sort();
     const unexpected = forbiddenFound.filter((n) => !row.allowed.some((m) => matches(m, n)));
 
-    const thirdParty = [...installed].filter((n) => !n.startsWith("@theme-kit/"));
-    const neutralViolations = row.neutral ? thirdParty.filter((n) => !n.startsWith("tk-matrix-")) : [];
+    const thirdParty = [...installed].filter((n) => !n.startsWith("@themvora/"));
+    const neutralViolations = row.neutral ? thirdParty.filter((n) => !n.startsWith("tv-matrix-")) : [];
 
-    const lsThemeKit = lsNames
-      ? [...lsNames].filter((n) => n.startsWith("@theme-kit/")).map(shortName).sort()
+    const lsThemvora = lsNames
+      ? [...lsNames].filter((n) => n.startsWith("@themvora/")).map(shortName).sort()
       : null;
 
     const ok =
-      themeKitExtra.length === 0 &&
-      themeKitMissing.length === 0 &&
+      themvoraExtra.length === 0 &&
+      themvoraMissing.length === 0 &&
       unexpected.length === 0 &&
       neutralViolations.length === 0;
 
@@ -346,13 +346,13 @@ function main() {
       id: row.id,
       pkg: row.pkg,
       status: ok ? "PASS" : "FAIL",
-      themeKitFound,
-      themeKitExtra,
-      themeKitMissing,
+      themvoraFound,
+      themvoraExtra,
+      themvoraMissing,
       unexpected,
       neutralViolations,
       legacyPeerDeps,
-      lsThemeKit,
+      lsThemvora,
       lsError,
     };
     results.push(result);
@@ -363,7 +363,7 @@ function main() {
   console.log(
     [
       "ROW".padEnd(13),
-      "EXPECTED @theme-kit".padEnd(22),
+      "EXPECTED @themvora".padEnd(22),
       "UNEXPECTED".padEnd(34),
       "RESULT",
     ].join(" "),
@@ -377,8 +377,8 @@ function main() {
     let detail = "";
     if (r.status === "FAIL") {
       const parts = [];
-      if (r.themeKitExtra?.length) parts.push(`+@theme-kit/{${r.themeKitExtra.join(", ")}}`);
-      if (r.themeKitMissing?.length) parts.push(`-@theme-kit/{${r.themeKitMissing.join(", ")}}`);
+      if (r.themvoraExtra?.length) parts.push(`+@themvora/{${r.themvoraExtra.join(", ")}}`);
+      if (r.themvoraMissing?.length) parts.push(`-@themvora/{${r.themvoraMissing.join(", ")}}`);
       if (r.unexpected?.length) parts.push(`forbidden {${r.unexpected.join(", ")}}`);
       if (r.neutralViolations?.length) parts.push(`third-party {${r.neutralViolations.join(", ")}}`);
       detail = parts.join("; ") || "see log";
@@ -398,8 +398,8 @@ function main() {
     if (r.status !== "PASS" && r.error) {
       console.log(`          ${r.error.replace(/\r?\n/g, "\n          ")}`);
     }
-    if (r.lsThemeKit && r.lsThemeKit.join(",") !== (r.themeKitFound ?? []).join(",")) {
-      console.log(`          note: npm ls @theme-kit set {${r.lsThemeKit.join(", ")}} differs from physical walk {${(r.themeKitFound ?? []).join(", ")}}`);
+    if (r.lsThemvora && r.lsThemvora.join(",") !== (r.themvoraFound ?? []).join(",")) {
+      console.log(`          note: npm ls @themvora set {${r.lsThemvora.join(", ")}} differs from physical walk {${(r.themvoraFound ?? []).join(", ")}}`);
     }
   }
 

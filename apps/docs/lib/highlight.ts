@@ -20,24 +20,24 @@ import astro from "shiki/langs/astro.mjs";
 import yaml from "shiki/langs/yaml.mjs";
 import diff from "shiki/langs/diff.mjs";
 
-// A single "theme" whose colors are theme-kit CSS variables. That way the
+// A single "theme" whose colors are themvora CSS variables. That way the
 // exact same markup renders with the active theme's tokens — it follows the
 // user's theme (light, dark, preset, brand, scoped, whatever) instead of a
 // hardcoded GitHub palette, so syntax stays readable on every surface. The
-// concrete colors live in globals.css under `--tk-syntax-*` (one place to
-// tweak), and `--tk-code-bg` keeps the code surface subtly on-top of the
+// concrete colors live in globals.css under `--tv-syntax-*` (one place to
+// tweak), and `--tv-code-bg` keeps the code surface subtly on-top of the
 // theme's `muted`/`background` tokens.
-const themeKitSyntaxTheme = {
-  name: "theme-kit",
+const themvoraSyntaxTheme = {
+  name: "themvora",
   type: "light", // palette is CSS variables, so mode is irrelevant
-  fg: "var(--tk-syntax-plain)",
-  bg: "var(--tk-code-bg)",
+  fg: "var(--tv-syntax-plain)",
+  bg: "var(--tv-code-bg)",
   colors: {},
   tokenColors: [
     // Comments & docs
     {
       scope: ["comment", "punctuation.definition.comment", "markup.quote"],
-      settings: { foreground: "var(--tk-syntax-comment)", fontStyle: "italic" },
+      settings: { foreground: "var(--tv-syntax-comment)", fontStyle: "italic" },
     },
 
     // Keywords, control flow, storage modifiers
@@ -57,14 +57,14 @@ const themeKitSyntaxTheme = {
         "constant.language",
         "keyword.operator.expression",
       ],
-      settings: { foreground: "var(--tk-syntax-keyword)", fontStyle: "bold" },
+      settings: { foreground: "var(--tv-syntax-keyword)", fontStyle: "bold" },
     },
 
     // Operators & punctuation that aren't keywords stay plain-ish but get a
     // dedicated tone so they don't compete with identifiers.
     {
       scope: ["keyword.operator", "punctuation.separator", "punctuation.delimiter"],
-      settings: { foreground: "var(--tk-syntax-operator)" },
+      settings: { foreground: "var(--tv-syntax-operator)" },
     },
 
     // Strings, templates, escapes, interpolations
@@ -85,7 +85,7 @@ const themeKitSyntaxTheme = {
         "punctuation.definition.string",
         "punctuation.definition.template-expression",
       ],
-      settings: { foreground: "var(--tk-syntax-string)" },
+      settings: { foreground: "var(--tv-syntax-string)" },
     },
 
     // Functions, methods, property accessors
@@ -100,7 +100,7 @@ const themeKitSyntaxTheme = {
         "support.macro",
         "parameter.function-call",
       ],
-      settings: { foreground: "var(--tk-syntax-function)" },
+      settings: { foreground: "var(--tv-syntax-function)" },
     },
 
     // Types, classes, interfaces, structs, enums, tags
@@ -115,7 +115,7 @@ const themeKitSyntaxTheme = {
         "entity.other.inherited-class",
         "meta.type",
       ],
-      settings: { foreground: "var(--tk-syntax-type)" },
+      settings: { foreground: "var(--tv-syntax-type)" },
     },
 
     // HTML / JSX / Vue / Astro tags — tag name plus the surrounding angle
@@ -129,7 +129,7 @@ const themeKitSyntaxTheme = {
         "punctuation.definition.tag.begin",
         "punctuation.definition.tag.end",
       ],
-      settings: { foreground: "var(--tk-syntax-tag)" },
+      settings: { foreground: "var(--tv-syntax-tag)" },
     },
 
     // HTML / JSX attribute names get a softer but distinct tone.
@@ -139,18 +139,18 @@ const themeKitSyntaxTheme = {
         "entity.other.attribute-name.html",
         "entity.other.attribute-name.jsx",
       ],
-      settings: { foreground: "var(--tk-syntax-attr)" },
+      settings: { foreground: "var(--tv-syntax-attr)" },
     },
 
     // Variables, properties, and generic identifiers keep the default
     // foreground but bindings get a subtle distinct tone.
     {
       scope: ["variable", "variable.other", "variable.parameter"],
-      settings: { foreground: "var(--tk-syntax-variable)" },
+      settings: { foreground: "var(--tv-syntax-variable)" },
     },
     {
       scope: ["variable.object.property", "variable.other.property", "meta.property"],
-      settings: { foreground: "var(--tk-syntax-property)" },
+      settings: { foreground: "var(--tv-syntax-property)" },
     },
 
     // Numbers & generic constants (true/false/null are handled as keywords
@@ -162,42 +162,42 @@ const themeKitSyntaxTheme = {
         "constant.numeric.float",
         "constant.character",
       ],
-      settings: { foreground: "var(--tk-syntax-number)" },
+      settings: { foreground: "var(--tv-syntax-number)" },
     },
 
     // Markup (markdown / html / astro inline markup)
     {
       scope: ["markup.heading", "markup.bold", "markup.link", "markup.inserted"],
-      settings: { foreground: "var(--tk-syntax-keyword)", fontStyle: "bold" },
+      settings: { foreground: "var(--tv-syntax-keyword)", fontStyle: "bold" },
     },
     {
       scope: ["markup.italic"],
-      settings: { foreground: "var(--tk-syntax-plain)", fontStyle: "italic" },
+      settings: { foreground: "var(--tv-syntax-plain)", fontStyle: "italic" },
     },
     {
       scope: ["markup.fenced_code", "markup.raw", "markup.inline.raw", "markup.code"],
-      settings: { foreground: "var(--tk-syntax-plain)" },
+      settings: { foreground: "var(--tv-syntax-plain)" },
     },
 
     // Diff lines get their own dedicated tones so + / - / ! jumps out.
     {
       scope: ["markup.inserted", "diff.inserted"],
-      settings: { foreground: "var(--tk-syntax-diff-add)" },
+      settings: { foreground: "var(--tv-syntax-diff-add)" },
     },
     {
       scope: ["markup.deleted", "diff.deleted"],
-      settings: { foreground: "var(--tk-syntax-diff-remove)" },
+      settings: { foreground: "var(--tv-syntax-diff-remove)" },
     },
     {
       scope: ["diff.header", "meta.diff.header"],
-      settings: { foreground: "var(--tk-syntax-keyword)", fontStyle: "bold" },
+      settings: { foreground: "var(--tv-syntax-keyword)", fontStyle: "bold" },
     },
 
     // Errors / deprecated are the only tokens that deliberately leave the
     // brand palette, so mistakes stay unmistakable.
     {
       scope: ["invalid", "invalid.illegal"],
-      settings: { foreground: "var(--tk-syntax-danger)" },
+      settings: { foreground: "var(--tv-syntax-danger)" },
     },
   ],
 };
@@ -205,7 +205,7 @@ const themeKitSyntaxTheme = {
 const highlighter = createHighlighterCoreSync({
   // An empty `settings` array makes Shiki strip per-token `tokenColors`, so we
   // omit it and assert the raw shape (TextMate themes don't require `settings`).
-  themes: [themeKitSyntaxTheme as unknown as ThemeRegistrationAny],
+  themes: [themvoraSyntaxTheme as unknown as ThemeRegistrationAny],
   langs: [js, ts, jsx, tsx, bash, sh, json, css, html, md, vue, svelte, astro, yaml, diff],
   engine: createJavaScriptRegexEngine(),
 });
@@ -253,7 +253,7 @@ export type HighlightOptions = {
   preClassName?: string;
 };
 
-function themeKitTransformer({
+function themvoraTransformer({
   lineNumbers,
   highlightLines,
 }: {
@@ -261,7 +261,7 @@ function themeKitTransformer({
   highlightLines: Set<number>;
 }) {
   return {
-    name: "theme-kit:syntax",
+    name: "themvora:syntax",
 
     code(element: any) {
       if (lineNumbers) {
@@ -307,8 +307,8 @@ export function highlightCode(code: string, lang?: string, options?: HighlightOp
 
   const html = highlighter.codeToHtml(code, {
     lang: language,
-    theme: "theme-kit",
-    transformers: [themeKitTransformer({ lineNumbers, highlightLines })],
+    theme: "themvora",
+    transformers: [themvoraTransformer({ lineNumbers, highlightLines })],
   });
 
   return html;

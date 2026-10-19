@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { createOpenPropsAdapter } from "../src";
 
 const themes = [
@@ -52,7 +52,7 @@ describe("open-props adapter lifecycle", () => {
     const adapter = createOpenPropsAdapter({ injectCSS: false });
     const handle = runtime.adapters.use(adapter);
 
-    const styleEl = document.getElementById("theme-kit-open-props-variables") as HTMLStyleElement;
+    const styleEl = document.getElementById("themvora-open-props-variables") as HTMLStyleElement;
     expect(styleEl).toBeTruthy();
     expect(styleEl.textContent).toContain("#ffffff");
 
@@ -60,10 +60,10 @@ describe("open-props adapter lifecycle", () => {
     expect(styleEl.textContent).toContain("#1a1a1a");
 
     handle.dispose();
-    expect(document.getElementById("theme-kit-open-props-variables")).toBeNull();
+    expect(document.getElementById("themvora-open-props-variables")).toBeNull();
 
     runtime.selection.setMode("light");
-    expect(document.getElementById("theme-kit-open-props-variables")).toBeNull();
+    expect(document.getElementById("themvora-open-props-variables")).toBeNull();
 
     runtime.destroy();
   });
@@ -75,6 +75,6 @@ describe("open-props adapter lifecycle", () => {
 
     runtime.destroy();
     expect(() => handle.dispose()).not.toThrow();
-    expect(document.getElementById("theme-kit-open-props-variables")).toBeNull();
+    expect(document.getElementById("themvora-open-props-variables")).toBeNull();
   });
 });

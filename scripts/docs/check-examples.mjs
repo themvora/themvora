@@ -4,7 +4,7 @@
  *
  * Why this exists next to `scripts/release/snippet-audit.mjs`:
  *
- *   snippet-audit answers "does every documented `@theme-kit/*` import exist in
+ *   snippet-audit answers "does every documented `@themvora/*` import exist in
  *   the shipped API manifest?" — i.e. it catches **drift**. It says nothing
  *   about whether the example around that import is usable. A snippet can import
  *   three real symbols and still be impossible to run, because it also reaches
@@ -24,7 +24,7 @@
  *      is on the authored allowlist (`examples-allowlist.json`), so an example
  *      cannot quietly assume a dependency the reader was never told to install.
  *   C. framework consistency — a snippet must not mix framework bindings
- *      (`@theme-kit/vue` + `@theme-kit/react`), and a file whose extension names
+ *      (`@themvora/vue` + `@themvora/react`), and a file whose extension names
  *      a framework (`.vue`, `.svelte`, `.component.ts`) must not import another
  *      framework's binding.
  *   D. binding completeness — a snippet that *uses* the `themes` identifier must
@@ -94,7 +94,7 @@ const reportAll = process.argv.includes("--report");
 // --- framework bindings ------------------------------------------------------
 
 /**
- * Which framework a `@theme-kit/*` binding belongs to. `neutral` bindings
+ * Which framework a `@themvora/*` binding belongs to. `neutral` bindings
  * (core, vite, cli, devtools) can appear anywhere.
  */
 const BINDING_FRAMEWORK = {
@@ -151,7 +151,7 @@ function isCodeEntry(entry) {
   return /\b(?:import|export)\b[\s\S]{0,200}?\bfrom\b|\brequire\s*\(|<[A-Z][A-Za-z0-9]*[\s/>]/.test(entry.code ?? "");
 }
 
-const frameworkOfBinding = (pkg) => BINDING_FRAMEWORK[pkg.replace("@theme-kit/", "").split("/")[0]] ?? null;
+const frameworkOfBinding = (pkg) => BINDING_FRAMEWORK[pkg.replace("@themvora/", "").split("/")[0]] ?? null;
 
 // --- helpers -----------------------------------------------------------------
 
@@ -162,7 +162,7 @@ const allowedPrefixes = allowlist.specifierPrefixes ?? [];
 /** A specifier that is a package name rather than an alias, URL or interpolation. */
 function isExternalSpecifier(specifier) {
   if (isRelativeSpecifier(specifier)) return false;
-  if (specifier.startsWith("@theme-kit/")) return false;
+  if (specifier.startsWith("@themvora/")) return false;
   if (specifier.includes("${")) return false; // template-literal placeholder
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(specifier)) return false; // https:, data:, node:
   if (isNodeBuiltin(specifier)) return false;
@@ -399,18 +399,18 @@ for (const root of roots) {
       }
 
       // --- C. framework consistency ------------------------------------------
-      const themeKitFrameworks = new Map();
+      const themvoraFrameworks = new Map();
       for (const { specifier } of imports) {
-        if (!specifier.startsWith("@theme-kit/")) continue;
+        if (!specifier.startsWith("@themvora/")) continue;
         const fw = frameworkOfBinding(specifier);
-        if (fw && fw !== "neutral") themeKitFrameworks.set(fw, specifier);
+        if (fw && fw !== "neutral") themvoraFrameworks.set(fw, specifier);
       }
-      const distinct = [...themeKitFrameworks.keys()].filter((f) => !ISLAND_HOSTS.has(f));
+      const distinct = [...themvoraFrameworks.keys()].filter((f) => !ISLAND_HOSTS.has(f));
       if (distinct.length > 1) {
         add(
           "C",
           page,
-          `${selfName ?? "(anonymous snippet)"} → ${distinct.map((f) => themeKitFrameworks.get(f)).join(" + ")}`,
+          `${selfName ?? "(anonymous snippet)"} → ${distinct.map((f) => themvoraFrameworks.get(f)).join(" + ")}`,
           `one snippet mixes ${distinct.length} framework bindings (${distinct.join(", ")})`,
         );
       }
@@ -420,7 +420,7 @@ for (const root of roots) {
           .sort((a, b) => b.length - a.length)[0];
         const permitted = ext ? EXT_FRAMEWORKS[ext] : null;
         if (permitted) {
-          for (const [fw, specifier] of themeKitFrameworks) {
+          for (const [fw, specifier] of themvoraFrameworks) {
             if (permitted.includes(fw) || ISLAND_HOSTS.has(fw)) continue;
             add(
               "C",

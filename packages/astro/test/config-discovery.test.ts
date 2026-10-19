@@ -12,7 +12,7 @@
  * and a silent fall back to the built-in themes. The DOM tests live in
  * `integration.test.ts`; these need the real Node globals.
  *
- * The fixture lives inside this package on purpose: `loadThemeKitConfig`
+ * The fixture lives inside this package on purpose: `loadThemvoraConfig`
  * resolves Vite through whichever framework hosts it, and from here `astro` —
  * and therefore Vite — is reachable by walking up to
  * `packages/astro/node_modules`. A fixture in a temp directory outside the
@@ -22,7 +22,7 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { themeKit } from "../src/integration";
+import { themvora } from "../src/integration";
 
 interface SetupOptions {
   injectScript(stage: string, content: string): void;
@@ -36,7 +36,7 @@ const FIXTURE_ROOT = pathToFileURL(
 /** Runs the hook against a given root and collects the injections. */
 async function injectAtRoot(root: URL) {
   const injected: { stage: string; content: string }[] = [];
-  const hook = themeKit().hooks["astro:config:setup"] as unknown as (
+  const hook = themvora().hooks["astro:config:setup"] as unknown as (
     setup: SetupOptions,
   ) => void | Promise<void>;
 
@@ -50,11 +50,11 @@ async function injectAtRoot(root: URL) {
   return injected;
 }
 
-describe("themeKit integration — config discovery", () => {
+describe("themvora integration — config discovery", () => {
   it("transports the discovered config to the runtime", async () => {
     const injected = await injectAtRoot(FIXTURE_ROOT);
     const transport = injected.find((entry) =>
-      entry.content.includes("__THEME_KIT_CONFIG__"),
+      entry.content.includes("__THEMVORA_CONFIG__"),
     );
 
     expect(transport).toBeDefined();
@@ -65,7 +65,7 @@ describe("themeKit integration — config discovery", () => {
     // are deliberately not serialized into the page.
     const payload = JSON.parse(
       transport!.content
-        .replace(/^window\.__THEME_KIT_CONFIG__=/, "")
+        .replace(/^window\.__THEMVORA_CONFIG__=/, "")
         .replace(/;$/, ""),
     ) as Record<string, unknown>;
 
@@ -100,7 +100,7 @@ describe("themeKit integration — config discovery", () => {
     );
 
     expect(
-      injected.some((entry) => entry.content.includes("__THEME_KIT_CONFIG__")),
+      injected.some((entry) => entry.content.includes("__THEMVORA_CONFIG__")),
     ).toBe(true);
   });
 
@@ -109,7 +109,7 @@ describe("themeKit integration — config discovery", () => {
     const injected = await injectAtRoot(pathToFileURL(import.meta.dirname));
 
     expect(
-      injected.some((entry) => entry.content.includes("__THEME_KIT_CONFIG__")),
+      injected.some((entry) => entry.content.includes("__THEMVORA_CONFIG__")),
     ).toBe(false);
     expect(injected.some((entry) => entry.content.includes("fp!=="))).toBe(true);
   });

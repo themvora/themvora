@@ -1,15 +1,15 @@
 /**
- * React island entry for Theme Kit's Astro integration
- * (`@theme-kit/astro/client`).
+ * React island entry for Themvora's Astro integration
+ * (`@themvora/astro/client`).
  *
  * This is the **only** entry that depends on React. Import it explicitly when
  * you chose a React island in your Astro project:
  *
  * ```tsx
- * import { ThemeProviderClient, useTheme } from "@theme-kit/astro/client";
+ * import { ThemeProviderClient, useTheme } from "@themvora/astro/client";
  * ```
  *
- * The framework-neutral root entry (`@theme-kit/astro`) does not import React,
+ * The framework-neutral root entry (`@themvora/astro`) does not import React,
  * so projects that use Astro components only never pull a client framework
  * runtime into their bundle.
  *
@@ -29,7 +29,7 @@ import {
   type ThemePlugin,
   type ThemeRuntimeOptions,
   type ThemeTransitionOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { getGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
 import { createAstroThemePersistence } from "./persistence";
 
@@ -58,8 +58,8 @@ export interface ThemeProviderClientProps<T extends ThemeDefinition> {
    * Mode used when nothing is persisted.
    *
    * @remarks
-   * **Usually unnecessary.** `themeKit()` transports `theme.config.ts` to the
-   * browser as `window.__THEME_KIT_CONFIG__`, `initialMode` included, and this
+   * **Usually unnecessary.** `themvora()` transports `theme.config.ts` to the
+   * browser as `window.__THEMVORA_CONFIG__`, `initialMode` included, and this
    * island reads it — so the runtime already resolves the mode the application
    * declared once, and there is nothing to mirror by hand. Pass this only to
    * override the configuration for this island.
@@ -141,7 +141,7 @@ function writeCookie(name: string, value: string) {
  * @example
  * ```astro
  * ---
- * import { ThemeProviderClient } from "@theme-kit/astro/client";
+ * import { ThemeProviderClient } from "@themvora/astro/client";
  * ---
  * <ThemeProviderClient client:load initial={initial} />
  * ```
@@ -265,6 +265,32 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
 
   const { runtime } = entry;
 
+  // Live configuration. The `entry` memo runs once (the runtime is created or
+  // adopted exactly once); this forwards subsequent prop changes to it so a
+  // mounted island reacts without a reload. Only supplied props are forwarded.
+  useEffect(() => {
+    const update: Record<string, unknown> = {};
+    if (resolvedThemes !== undefined) update.themes = resolvedThemes;
+    if (resolvedDefaultTheme !== undefined) update.defaultTheme = resolvedDefaultTheme;
+    if (resolvedInitialMode !== undefined) update.initialMode = resolvedInitialMode;
+    if (resolvedInitialFamily !== undefined) update.initialFamily = resolvedInitialFamily;
+    if (initial !== undefined) update.initial = initial;
+    // The island owns the runtime (it passes `dom`/`cssVariables` through), so
+    // the runtime reconciles its own bindings and schedule on these updates.
+    if (transition !== undefined) update.transition = transition;
+    if (scheduled !== undefined) update.scheduled = scheduled;
+    runtime.configure(update);
+  }, [
+    runtime,
+    resolvedThemes,
+    resolvedDefaultTheme,
+    resolvedInitialMode,
+    resolvedInitialFamily,
+    initial,
+    transition,
+    scheduled,
+  ]);
+
   useEffect(() => {
     const unsubscribe = runtime.store.subscribe((theme) => {
       writeCookie("theme-name", String(theme.name));
@@ -290,6 +316,7 @@ export {
   useThemeRuntime,
   useTheme,
   useThemeValue,
+  useGeneratedTheme,
   useThemeMode,
   useThemeFamily,
   useSetThemeMode,
@@ -299,7 +326,7 @@ export {
   useThemeHistory,
   useThemeSchedule,
   // `hooks.ts` implemented these all along but the client entry never
-  // re-exported them, so they were unreachable from `@theme-kit/astro/client`
+  // re-exported them, so they were unreachable from `@themvora/astro/client`
   // while their React/Vue siblings had them.
   useThemeBatch,
   useThemeSnapshot,

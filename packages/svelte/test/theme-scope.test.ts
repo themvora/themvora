@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mount, unmount, flushSync } from "svelte";
-import { createThemeRuntime, type ThemeDefinition } from "@theme-kit/core";
+import { createThemeRuntime, type ThemeDefinition } from "@themvora/core";
 
 const themes: ThemeDefinition[] = [
   {
@@ -30,7 +30,7 @@ const themes: ThemeDefinition[] = [
 ];
 
 const consumerSource = `<script>
-  import { ThemeProvider, ThemeScope } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScope } from "@themvora/svelte";
   export let themes = [];
   export let runtime = null;
   export let scopeTheme = "forest-dark";
@@ -144,7 +144,7 @@ describe("compiled consumer e2e", () => {
     ];
 
     const source = `<script>
-  import { ThemeProvider, ThemeScope } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScope } from "@themvora/svelte";
   export let themes = [];
   export let local = [];
   export let runtime = null;

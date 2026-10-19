@@ -1,13 +1,13 @@
-## @theme-kit/daisyui
-Theme Kit DaisyUI adapter — framework-neutral entry.
+## @themvora/daisyui
+Themvora DaisyUI adapter — framework-neutral entry.
 
 Exports the React-free `createDaisyAdapter` factory (also available from
-`@theme-kit/daisyui/factory`), the `createDaisyVariables` generator, and the
+`@themvora/daisyui/factory`), the `createDaisyVariables` generator, and the
 `injectDaisyCSS` helper. Framework wrappers live on their own subpaths:
-`useDaisyTheme(runtime)` on `@theme-kit/daisyui/react`, and equivalent
+`useDaisyTheme(runtime)` on `@themvora/daisyui/react`, and equivalent
 composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
 
-> Generated from `packages/daisyui/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/daisyui/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -15,7 +15,7 @@ composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
 Creates a daisyUI adapter.
 
 The adapter is a DOM-only, framework-free adapter: it depends only on
-`@theme-kit/core` and the DOM. On install it injects the daisyUI
+`@themvora/core` and the DOM. On install it injects the daisyUI
 compatibility stylesheet (when enabled) and a `<style>` element of CSS
 variables derived from the active theme, then subscribes to the runtime
 store and rewrites the variables whenever the theme selection changes. It
@@ -32,7 +32,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 **Returns** `ThemeAdapter<T>` — A `ThemeAdapter` for daisyUI.
 
 ```ts
-import { createDaisyAdapter } from "@theme-kit/daisyui";
+import { createDaisyAdapter } from "@themvora/daisyui";
 
 runtime.installAdapter(createDaisyAdapter());
 ```
@@ -42,7 +42,7 @@ runtime.installAdapter(createDaisyAdapter());
 
 ### `createDaisyVariables(tokens): Record<string, string>`
 Programmatic alternative to `daisyui.css`. Returns concrete daisyUI 5 CSS
-variable values for a given set of Theme Kit tokens.
+variable values for a given set of Themvora tokens.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |

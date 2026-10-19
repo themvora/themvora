@@ -348,7 +348,7 @@ describe("resolveScopedThemePrePaint", () => {
   it("marks system-mode family selections and emits a media-query block", () => {
     const sel = { family: "plum", mode: "system" as const };
     const result = resolveScopedThemePrePaint(themes, sel, {
-      selector: "[data-tk='scope']",
+      selector: "[data-tv='scope']",
     });
 
     expect(result.systemBased).toBe(true);
@@ -363,7 +363,7 @@ describe("resolveScopedThemePrePaint", () => {
         "--color-primary": "#7c3aed",
       }),
     );
-    expect(result.css).toContain("[data-tk='scope']");
+    expect(result.css).toContain("[data-tv='scope']");
     expect(result.css).toContain("@media (prefers-color-scheme: dark)");
     // The dark block switches the family's dark theme values.
     const darkBlock = result.css!.split(
@@ -413,7 +413,7 @@ describe("resolveScopedThemePrePaint", () => {
       family: "plum",
       mode: "system",
     });
-    expect(result.css).toContain("[data-theme-kit-scope]");
+    expect(result.css).toContain("[data-themvora-scope]");
   });
 });
 

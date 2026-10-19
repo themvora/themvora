@@ -1,8 +1,8 @@
 /**
- * Svelte composable for the Bootstrap adapter (`@theme-kit/bootstrap/svelte`).
+ * Svelte composable for the Bootstrap adapter (`@themvora/bootstrap/svelte`).
  *
  * `useBootstrapTheme(runtime, options?)` installs the Bootstrap adapter onto
- * an explicitly provided Theme Kit runtime and disposes it on unmount.
+ * an explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createBootstrapAdapter } from "./adapter";
 
@@ -36,10 +36,10 @@ export interface UseAdapterOptions {
  * theme changes.
  *
  * Must be called during component initialization, passing the runtime from
- * your Theme Kit provider (e.g. `getThemeRuntime()` from `@theme-kit/svelte`):
+ * your Themvora provider (e.g. `getThemeRuntime()` from `@themvora/svelte`):
  *
  * ```ts
- * import { useBootstrapTheme } from "@theme-kit/bootstrap/svelte";
+ * import { useBootstrapTheme } from "@themvora/bootstrap/svelte";
  *
  * useBootstrapTheme(runtime);
  * ```
@@ -47,7 +47,7 @@ export interface UseAdapterOptions {
  * The adapter installs synchronously (guarded on `window`, so it is SSR-safe)
  * and is disposed via Svelte's effect tree.
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

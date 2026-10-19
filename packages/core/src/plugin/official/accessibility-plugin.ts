@@ -22,7 +22,7 @@ export interface AccessibilityPluginOptions {
  *
  * The plugin runs a WCAG contrast check on the active theme after every theme
  * change and reports any violations that fail AA normal contrast, either by
- * emitting a `TK_A11Y_CONTRAST_VIOLATION` diagnostic or by invoking the
+ * emitting a `TV_A11Y_CONTRAST_VIOLATION` diagnostic or by invoking the
  * `onViolation` callback.
  *
  * @param options - Accessibility configuration.
@@ -62,7 +62,7 @@ export function createAccessibilityPlugin<T extends ThemeDefinition>(
       if (!result.valid && failed.length > 0) {
         emitDiagnostic(
           createDiagnostic({
-            code: "TK_A11Y_CONTRAST_VIOLATION",
+            code: "TV_A11Y_CONTRAST_VIOLATION",
             level: warnOnly ? "warning" : "error",
             message:
               `Theme "${theme.name}" has ${failed.length} contrast ` +

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseCookieHeader,
   encodeCookieValue,
-  themeKitCookieNames,
+  themvoraCookieNames,
 } from "../src/server/cookies";
 import { computeFingerprint } from "../src/server/fingerprint";
 import {
@@ -13,7 +13,7 @@ import {
   createNuxtThemeBootstrapScript,
   cssVariablesStyle,
 } from "../src/server/bootstrap";
-import type { ThemeDefinition } from "@theme-kit/core";
+import type { ThemeDefinition } from "@themvora/core";
 
 const themes: ThemeDefinition[] = [
   {
@@ -95,9 +95,9 @@ describe("resolveThemeFromCookies", () => {
 
   it("reads a valid mode cookie and resolves the matching theme", () => {
     const cookies = {
-      [themeKitCookieNames.mode]: "dark",
-      [themeKitCookieNames.family]: "forest",
-      [themeKitCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
+      [themvoraCookieNames.mode]: "dark",
+      [themvoraCookieNames.family]: "forest",
+      [themvoraCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
     };
     const resolution = resolveThemeFromCookies({ ...base, cookies });
     expect(resolution.selection.mode).toBe("dark");
@@ -106,8 +106,8 @@ describe("resolveThemeFromCookies", () => {
 
   it("ignores invalid mode cookie values", () => {
     const cookies = {
-      [themeKitCookieNames.mode]: "neon",
-      [themeKitCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
+      [themvoraCookieNames.mode]: "neon",
+      [themvoraCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
     };
     const resolution = resolveThemeFromCookies({ ...base, cookies });
     expect(resolution.selection.mode).toBe("system");
@@ -115,9 +115,9 @@ describe("resolveThemeFromCookies", () => {
 
   it("rejects cookies when the fingerprint is stale", () => {
     const cookies = {
-      [themeKitCookieNames.mode]: "dark",
-      [themeKitCookieNames.family]: "forest",
-      [themeKitCookieNames.fingerprint]: "an-old-config",
+      [themvoraCookieNames.mode]: "dark",
+      [themvoraCookieNames.family]: "forest",
+      [themvoraCookieNames.fingerprint]: "an-old-config",
     };
     const resolution = resolveThemeFromCookies({ ...base, cookies });
     // stale config → ignore cookies → fall back to system/light
@@ -130,10 +130,10 @@ describe("resolveThemeFromCookies", () => {
     // fingerprint does not invalidate the selection. The server has to apply the
     // same rule or the two disagree: the server would render the fallback theme
     // while the script painted the persisted one, which React reports as a
-    // hydration mismatch. Same rule as `@theme-kit/remix`.
+    // hydration mismatch. Same rule as `@themvora/remix`.
     const cookies = {
-      [themeKitCookieNames.mode]: "dark",
-      [themeKitCookieNames.family]: "forest",
+      [themvoraCookieNames.mode]: "dark",
+      [themvoraCookieNames.family]: "forest",
     };
     const resolution = resolveThemeFromCookies({ ...base, cookies });
     expect(resolution.selection.mode).toBe("dark");
@@ -145,8 +145,8 @@ describe("resolveThemeFromCookies", () => {
       ...base,
       initialFamily: "forest",
       cookies: {
-        [themeKitCookieNames.mode]: "dark",
-        [themeKitCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
+        [themvoraCookieNames.mode]: "dark",
+        [themvoraCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
       },
     });
     expect(resolution.selection.family).toBe("forest");
@@ -189,7 +189,7 @@ describe("createNuxtThemeBootstrapScript", () => {
         },
         setAttribute: (k: string, v: string) => { (effects.attrs ??= {})[k] = v; },
       },
-      cookie: `${themeKitCookieNames.mode}=dark; ${themeKitCookieNames.family}=forest; ${themeKitCookieNames.fingerprint}=${computeFingerprint(themes, "forest-light")}`,
+      cookie: `${themvoraCookieNames.mode}=dark; ${themvoraCookieNames.family}=forest; ${themvoraCookieNames.fingerprint}=${computeFingerprint(themes, "forest-light")}`,
       matchMedia: () => ({ matches: false }),
     };
     const vm = require("node:vm");
@@ -253,7 +253,7 @@ describe("createNuxtThemeBootstrapScript — fallback identity", () => {
   });
 
   it("names the resolved default theme, not a synthetic placeholder", () => {
-    // The legacy Nuxt script wrote `data-theme="theme-kit-default-light"` — a
+    // The legacy Nuxt script wrote `data-theme="themvora-default-light"` — a
     // name no theme in the registry has. The client runtime writes the real
     // theme name, so the pre-paint script has to as well.
     const dom = executeScript(script);
@@ -266,7 +266,7 @@ describe("createNuxtThemeBootstrapScript — fallback identity", () => {
 
   it("writes the resolved family when the persisted family is unknown", () => {
     const dom = executeScript(script, {
-      cookie: `${themeKitCookieNames.mode}=dark; ${themeKitCookieNames.family}=plum; ${themeKitCookieNames.fingerprint}=${fingerprint}`,
+      cookie: `${themvoraCookieNames.mode}=dark; ${themvoraCookieNames.family}=plum; ${themvoraCookieNames.fingerprint}=${fingerprint}`,
     });
 
     expect(dom.attrs["data-theme"]).toBe("forest-dark");

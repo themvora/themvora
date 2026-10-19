@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { ThemeProvider } from "../src/provider";
 import { ThemeModeButton } from "../src/theme-mode-button";
 import { useThemeMode, useThemeTokens, useThemeSchedule } from "../src/hooks";

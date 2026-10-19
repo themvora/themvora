@@ -1,5 +1,5 @@
 import React, { type ReactNode } from "react";
-import type { ThemeDefinition } from "@theme-kit/core";
+import type { ThemeDefinition } from "@themvora/core";
 import { useThemeFamily, useThemeMode, useThemeValue } from "./hooks";
 
 /**
@@ -45,7 +45,7 @@ export interface ThemeReadoutProps {
  * Two attributes make that work, and this component is the reason callers do not
  * have to know about them:
  *
- * - `data-tk-readout` marks the node as bootstrap-owned, so the end-of-body
+ * - `data-tv-readout` marks the node as bootstrap-owned, so the end-of-body
  *   patch script (see `createThemeReadoutScript`) writes the resolved value into
  *   it.
  * - `suppressHydrationWarning` tells React that this text node is intentionally
@@ -65,7 +65,7 @@ export interface ThemeReadoutProps {
  *
  * A value that is not one of the three semantic kinds — a resolved CSS variable,
  * say — is not covered here. Use the raw contract for that:
- * `data-tk-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
+ * `data-tv-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
  * on the element that renders the value.
  *
  * @see {@link ThemeReadoutKind}
@@ -80,7 +80,7 @@ export function ThemeReadout({ kind, fallback = null, className }: ThemeReadoutP
     kind === "theme" ? String(theme.name) : kind === "mode" ? mode : family;
 
   return (
-    <span className={className} data-tk-readout={kind} suppressHydrationWarning>
+    <span className={className} data-tv-readout={kind} suppressHydrationWarning>
       {value ?? fallback}
     </span>
   );

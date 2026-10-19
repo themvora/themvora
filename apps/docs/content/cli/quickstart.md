@@ -3,26 +3,47 @@
 ## Prerequisites
 - Node.js 22+
 - npm, pnpm, yarn, or bun installed
-- No Theme Kit project setup required to start
+- No Themvora project setup required to start
 
 A complete five-minute workflow: generate a theme from a seed, validate it,
-inspect it, and export CSS variables — then wire the JSON into a Theme Kit
+inspect it, and export CSS variables — then wire the JSON into a Themvora
 provider.
+
+## Two ways to start
+
+This page follows the **file** path: produce a theme, check it, and hand it to
+your app. If you would rather the CLI set the project up for you — scaffold it,
+wire the provider, and verify it builds — start with [`init`](/cli/init) instead:
+
+```bash
+themvora init my-app --framework react --preset mint
+```
+
+Both paths end in the same place: the same `ThemeDefinition` objects, consumed
+by the same provider.
 
 ## 1. Install
 
 ```bash
-npm install -g @theme-kit/cli
+npm install -g @themvora/cli
 # or, without installing:
-npx --yes @theme-kit/cli ...
+npx --yes @themvora/cli ...
 ```
 
 ## 2. Generate
 
+Not sure what to generate? List the canonical registries first — the identifiers
+they print are exactly the ones the generator accepts:
+
+```bash
+themvora list presets
+themvora list brands
+```
+
 Derive a complete **light + dark pair** from one seed color:
 
 ```bash
-theme-kit generate \
+themvora generate \
   --seed "#6366f1" \
   --family indigo \
   --output theme.json
@@ -32,11 +53,18 @@ theme-kit generate \
 `indigo-dark`). The generator also derives the secondary, muted, accent,
 border, ring, destructive, and background/foreground colors from the seed.
 
+Or start from a curated recipe instead of a raw colour:
+
+```bash
+themvora generate --preset mint --output theme.json
+themvora generate --brand apple --output theme.json
+```
+
 Omit `--output` to print the JSON to stdout, or ask for one mode only:
 
 ```bash
-theme-kit generate --seed "#6366f1" --mode light --output light.json
-theme-kit generate --seed "#6366f1" --mode dark  --output dark.json
+themvora generate --seed "#6366f1" --mode light --output light.json
+themvora generate --seed "#6366f1" --mode dark  --output dark.json
 ```
 
 The default `--mode both` writes a `{ light, dark }` pair — one definition per
@@ -78,7 +106,7 @@ mode, each carrying its own `meta` (family + mode) and token set:
 ## 3. Validate
 
 ```bash
-theme-kit validate theme.json
+themvora validate theme.json
 # ✓ Theme is valid: indigo-light + indigo-dark
 ```
 
@@ -86,7 +114,7 @@ theme-kit validate theme.json
 references, and contrast. It returns exit code `3` when validation fails:
 
 ```bash
-theme-kit validate theme.json
+themvora validate theme.json
 # ✗ Theme is invalid: indigo-dark
 #   - Missing token: `colors.primary`
 ```
@@ -94,7 +122,7 @@ theme-kit validate theme.json
 ## 4. Inspect
 
 ```bash
-theme-kit inspect theme.json
+themvora inspect theme.json
 # Theme 1: indigo-light
 # Mode: light
 # Family: indigo
@@ -105,7 +133,7 @@ theme-kit inspect theme.json
 ## 5. Export for another system
 
 ```bash
-theme-kit export theme.json --format css --output theme.css
+themvora export theme.json --format css --output theme.css
 ```
 
 ```css
@@ -121,7 +149,7 @@ The JSON the CLI writes is exactly what a provider consumes:
 
 ```tsx
 // React / Next.js
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 import raw from "./theme.json";
 
 const themes = raw.light ? [raw.light, raw.dark] : [raw];
@@ -131,8 +159,23 @@ export function App() {
 }
 ```
 
-See [Commands](/cli/generate) for each command's options, or
-[Workflows](/cli/workflows) for a full authoring loop.
+If you would rather not wire this by hand, [`init`](/cli/init) writes that
+provider, a `theme.config.ts`, and the zero-flash bootstrap for you — and then
+runs your project's own build to prove it works.
+
+## Where to go next
+
+The five steps above are the file workflow. From here:
+
+| You want to | Use |
+| ----------- | --- |
+| Compare two themes before choosing | [`diff`](/cli/diff) |
+| Understand where a theme came from | [`explain`](/cli/explain) |
+| Gate a theme on the quality scorecard | [`audit`](/cli/audit) |
+| Set a project up | [`init`](/cli/init) |
+| Add a second theme to a project | [`add`](/cli/add) |
+| Check a project's health | [`doctor`](/cli/doctor) |
+| Complete commands in your shell | [`completion`](/cli/completion) |
 
 ## Next Steps
 - [Run in CI](./ci)
@@ -140,6 +183,6 @@ See [Commands](/cli/generate) for each command's options, or
 - [Migrate legacy themes](./migrate)
 
 ## Related
-- [Theme Kit Quick Start](../quickstart)
+- [Themvora Quick Start](../quickstart)
 - [Custom Themes](../../custom-themes)
 - [Adapters Guide](../../adapters)

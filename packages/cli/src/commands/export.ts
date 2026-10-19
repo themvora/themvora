@@ -1,9 +1,10 @@
-import { themeToCSSVariables, type ThemeDefinition } from "@theme-kit/core";
+import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { writeFileSync } from "node:fs";
 import { getString } from "../utils.js";
 import type { ParsedArgs } from "../utils.js";
 import { UsageError } from "../exit-codes.js";
 import { readThemeJSON, isThemePair } from "../theme-shared.js";
+import { status } from "../output.js";
 
 function cssBlock(selector: string, map: Record<string, string>): string {
   const lines = Object.entries(map)
@@ -52,9 +53,9 @@ export async function cmdExport(args: ParsedArgs) {
 
     if (output) {
       writeFileSync(output, css, "utf-8");
-      console.log(`CSS exported to ${output}`);
+      status(`CSS exported to ${output}`);
     } else {
-      console.log(css);
+      process.stdout.write(`${css}\n`);
     }
   } else if (format === "json") {
     const data = isThemePair(parsed)
@@ -68,9 +69,9 @@ export async function cmdExport(args: ParsedArgs) {
 
     if (output) {
       writeFileSync(output, json, "utf-8");
-      console.log(`JSON exported to ${output}`);
+      status(`JSON exported to ${output}`);
     } else {
-      console.log(json);
+      process.stdout.write(`${json}\n`);
     }
   } else {
     throw new UsageError(`unknown format "${format}" — use "css" or "json"`);

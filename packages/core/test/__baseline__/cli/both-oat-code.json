@@ -1,0 +1,138 @@
+{
+  "light": {
+    "name": "oat-light",
+    "meta": {
+      "family": "oat",
+      "mode": "light",
+      "label": "Oat Light",
+      "order": 10,
+      "generation": {
+        "kind": "generated",
+        "algorithm": "semantic-v2",
+        "seed": "#d97706",
+        "contrast": {
+          "text": 4.5,
+          "largeText": 3,
+          "ui": 3
+        }
+      }
+    },
+    "tokens": {
+      "colors": {
+        "background": "#f5f1ee",
+        "foreground": "#1e1a17",
+        "muted": "#ebe7e4",
+        "mutedForeground": "#686462",
+        "card": "#fefaf7",
+        "cardForeground": "#1e1a17",
+        "popover": "#faf5f3",
+        "popoverForeground": "#1e1a17",
+        "primary": "#c66b00",
+        "primaryForeground": "#15110e",
+        "secondary": "#e9e2de",
+        "secondaryForeground": "#272321",
+        "accent": "#a38204",
+        "accentForeground": "#15110e",
+        "destructive": "#cc2827",
+        "destructiveForeground": "#fffbf8",
+        "success": "#0a8234",
+        "successForeground": "#fffbf8",
+        "border": "#ddd8d4",
+        "input": "#8b8683",
+        "ring": "#bf6700"
+      },
+      "radius": {
+        "lg": "8px"
+      },
+      "code": {
+        "background": "#ffffff",
+        "foreground": "#0f172a",
+        "border": "#e2e8f0",
+        "comment": "#64748b",
+        "keyword": "#804300",
+        "string": "#00635e",
+        "number": "#6e5000",
+        "function": "#5d4785",
+        "variable": "#0f172a",
+        "type": "#00557d",
+        "property": "#0f172a",
+        "operator": "#0f172a",
+        "punctuation": "#475569",
+        "tag": "#804300",
+        "attribute": "#115f28",
+        "lineNumber": "#64748b",
+        "selection": "#d977064d",
+        "highlight": "#f1f5f9",
+        "gutter": "#f8fafc"
+      }
+    }
+  },
+  "dark": {
+    "name": "oat-dark",
+    "meta": {
+      "family": "oat",
+      "mode": "dark",
+      "label": "Oat Dark",
+      "order": 20,
+      "generation": {
+        "kind": "generated",
+        "algorithm": "semantic-v2",
+        "seed": "#d97706",
+        "contrast": {
+          "text": 4.5,
+          "largeText": 3,
+          "ui": 3
+        }
+      }
+    },
+    "tokens": {
+      "colors": {
+        "background": "#0f0d0b",
+        "foreground": "#f2eeeb",
+        "muted": "#262321",
+        "mutedForeground": "#a8a4a1",
+        "card": "#1d1a18",
+        "cardForeground": "#f2eeeb",
+        "popover": "#211e1c",
+        "popoverForeground": "#f2eeeb",
+        "primary": "#d97f2b",
+        "primaryForeground": "#15110e",
+        "secondary": "#2b2723",
+        "secondaryForeground": "#ebe7e4",
+        "accent": "#b5942d",
+        "accentForeground": "#15110e",
+        "destructive": "#f27166",
+        "destructiveForeground": "#15110e",
+        "success": "#60c473",
+        "successForeground": "#15110e",
+        "border": "#36322f",
+        "input": "#6d6966",
+        "ring": "#d97f2b"
+      },
+      "radius": {
+        "lg": "8px"
+      },
+      "code": {
+        "background": "#0f172a",
+        "foreground": "#e2e8f0",
+        "border": "#1e293b",
+        "comment": "#94a3b8",
+        "keyword": "#ef9548",
+        "string": "#40c5bc",
+        "number": "#d5a642",
+        "function": "#b6a0e5",
+        "variable": "#e2e8f0",
+        "type": "#63abd9",
+        "property": "#e2e8f0",
+        "operator": "#e2e8f0",
+        "punctuation": "#cbd5e1",
+        "tag": "#ef9548",
+        "attribute": "#6eb67a",
+        "lineNumber": "#94a3b8",
+        "selection": "#d977064d",
+        "highlight": "#1e293b",
+        "gutter": "#020617"
+      }
+    }
+  }
+}

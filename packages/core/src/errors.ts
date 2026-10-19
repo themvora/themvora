@@ -17,10 +17,10 @@ export interface ThemeErrorOptions {
 }
 
 /**
- * The error type thrown by Theme Kit for theme-related failures.
+ * The error type thrown by Themvora for theme-related failures.
  *
  * Extends the native `Error` and sets `name` to `"ThemeError"` so callers can
- * distinguish Theme Kit failures from other errors via `instanceof` or the
+ * distinguish Themvora failures from other errors via `instanceof` or the
  * `name` property. The `message` carries the human-readable failure detail.
  *
  * When the failure corresponds to a diagnostic, the error also carries the
@@ -31,7 +31,7 @@ export interface ThemeErrorOptions {
  * @example
  * ```ts
  * const diagnostic = createDiagnostic({
- *   code: "TK_MODE_INVALID",
+ *   code: "TV_MODE_INVALID",
  *   level: "warning",
  *   message: 'setMode() received an unknown mode "purple".',
  *   context: { api: "setMode", property: "mode", received: "purple" },
@@ -44,7 +44,7 @@ export interface ThemeErrorOptions {
  * @see {@link ThemeError.fromDiagnostic}
  */
 export class ThemeError extends Error {
-  /** Stable diagnostic code, or `undefined` for a plain Theme Kit failure. */
+  /** Stable diagnostic code, or `undefined` for a plain Themvora failure. */
   readonly code?: ThemeDiagnosticCode;
 
   /** Structured context describing the failure, when available. */

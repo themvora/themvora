@@ -1,6 +1,6 @@
-# Contributing to Theme Kit
+# Contributing to Themvora
 
-Theme Kit's documentation is **a tested, copy/pasteable representation of the
+Themvora's documentation is **a tested, copy/pasteable representation of the
 shipped ecosystem**. That means docs are never a fifth source of truth and are
 never edited "to look right" — they are generated from, or verified against, the
 shipped packages.
@@ -115,7 +115,7 @@ node scripts/docs/release-gate.mjs --full --dynamic    # everything (§9 end to 
 ```
 
 `--full` adds the offline example verify (typecheck + render), the docs build and
-Audit H. It needs a headless Chromium (Playwright cache or `THEME_KIT_CHROME`)
+Audit H. It needs a headless Chromium (Playwright cache or `THEMVORA_CHROME`)
 and the `ws` package; Audit H fails rather than skips in that mode.
 
 `--dynamic` adds the strongest example check — pack the declared packages,
@@ -174,7 +174,7 @@ example rather than inventing the shape.
 ## Anti-patterns (blocked by CI)
 
 - A doc page referencing a symbol not in `capabilities.ts`.
-- A snippet importing `@theme-kit/core` without declaring it in its install block.
+- A snippet importing `@themvora/core` without declaring it in its install block.
 - A "minimal" example that requires the reader to invent `themes.ts`,
   `provider.ts`, or `runtime.ts`.
 - The same non-trivial code appearing in two places without a canonical source.

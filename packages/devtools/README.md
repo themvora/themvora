@@ -1,11 +1,11 @@
-# @theme-kit/devtools
-Development tools and runtime inspector for Theme Kit.
+# @themvora/devtools
+Development tools and runtime inspector for Themvora.
 ## Install
 ```bash
-npm install @theme-kit/devtools
+npm install @themvora/devtools
 ```
 ## Documentation
-Full API reference and guides: [Theme Kit docs](https://theme-kit-dev.vercel.app).
-All packages: [npm](https://www.npmjs.com/org/theme-kit).
+Full API reference and guides: [Themvora docs](https://themvora-dev.vercel.app).
+All packages: [npm](https://www.npmjs.com/org/themvora).
 ## License
 MIT

@@ -1,5 +1,5 @@
 /**
- * Builds the tiny script that carries Theme Kit's resolved state across an
+ * Builds the tiny script that carries Themvora's resolved state across an
  * Astro client-side navigation (`<ClientRouter />`).
  *
  * A client navigation is not a hard reload: Astro parses the next page into a
@@ -7,7 +7,7 @@
  * the live root. Because the pre-paint bootstrap is byte-identical on every
  * page, Astro's script de-duplication marks it as already-executed, so it does
  * **not** run again — and the live root's theme state (the `dark` /
- * `tk-scrollbar` classes, the inline theme variables and the `data-theme*`
+ * `tv-scrollbar` classes, the inline theme variables and the `data-theme*`
  * attributes written by the bootstrap or the runtime) would be replaced by
  * whatever that page was built with.
  *
@@ -22,7 +22,7 @@
  *
  * @returns The inline script string to emit in the document `<head>`.
  *
- * @see {@link themeKit}
+ * @see {@link themvora}
  * @see `createBlockingScript`
  */
 export function createNavigationScript(): string {
@@ -34,9 +34,9 @@ export function createNavigationScript(): string {
     "var src=document.documentElement,dst=nd.documentElement;" +
     "var cls=src.classList;" +
     "if(cls.contains('dark')){dst.classList.add('dark');}else{dst.classList.remove('dark');}" +
-    "if(cls.contains('tk-scrollbar')){dst.classList.add('tk-scrollbar');" +
-    "var st=document.getElementById('tk-scrollbar-style');" +
-    "if(st&&!nd.getElementById('tk-scrollbar-style')){" +
+    "if(cls.contains('tv-scrollbar')){dst.classList.add('tv-scrollbar');" +
+    "var st=document.getElementById('tv-scrollbar-style');" +
+    "if(st&&!nd.getElementById('tv-scrollbar-style')){" +
     "nd.head.appendChild(nd.importNode(st,true));}}" +
     "var attrs=['data-theme','data-theme-family','data-theme-mode'];" +
     "for(var i=0;i<attrs.length;i++){" +

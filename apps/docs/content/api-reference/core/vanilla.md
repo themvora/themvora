@@ -1,22 +1,23 @@
-## @theme-kit/core/vanilla
-Theme Kit vanilla runtime — a thin imperative wrapper over the core
+## @themvora/core/vanilla
+Themvora vanilla runtime — a thin imperative wrapper over the core
 runtime for plain-JavaScript applications.
 
-Imported from the `@theme-kit/core/vanilla` subpath. Avoids React
+Imported from the `@themvora/core/vanilla` subpath. Avoids React
 dependency entirely and exposes the same runtime, DOM, CSS-variable, and
-transition machinery through a `ThemeKit` facade.
+transition machinery through a `Themvora` facade.
 
-> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `generateTheme(options): GeneratedThemePair`
 Generate a cohesive light/dark theme pair from a single seed color.
 
-The seed drives the primary, accent, and supporting surface colors; the
-foreground colors are chosen for contrast so generated themes stay
-accessible regardless of the seed's lightness. When `withCode` is set, a
-matching syntax-highlighting palette is also produced.
+Light and dark are generated **independently** from the same identity — the
+dark theme is not an inversion of the light one — so the brand hue survives
+the mode change. Every semantic pair is solved to the contrast contract with a
+safety margin before the theme is returned, and the seed is recorded in
+`meta.generation` as provenance.
 
 **See also:** `validateTheme`, `defineTheme`
 
@@ -34,13 +35,13 @@ const { light, dark } = generateTheme({ seed: "#d97706", family: "brand" });
 
 ## Classes
 
-### `class ThemeKit`
-Framework-free drop-in theming with `@theme-kit/core`.
+### `class Themvora`
+Framework-free drop-in theming with `@themvora/core`.
 
 ```js
-import { ThemeKit } from "@theme-kit/core/vanilla";
+import { Themvora } from "@themvora/core/vanilla";
 
-const kit = new ThemeKit();
+const kit = new Themvora();
 kit.setMode("dark");
 kit.setFamily("plum");
 kit.on("themeChange", (theme) => console.log(theme.name));
@@ -48,7 +49,7 @@ kit.on("themeChange", (theme) => console.log(theme.name));
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `constructor` | `ThemeKit` | — |
+| `constructor` | `Themvora` | — |
 | `family` | `void` | — |
 | `mode` | `void` | — |
 | `registry` | `void` | — |
@@ -65,7 +66,7 @@ kit.on("themeChange", (theme) => console.log(theme.name));
 | `toggleTheme` | `void` | — |
 | `update` | `void` | — |
 | `use` | `void` | — |
-| `init` | `ThemeKit` | — |
+| `init` | `Themvora` | — |
 
 ---
 
@@ -87,8 +88,11 @@ Options for generateTheme.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
+| `algorithm` (optional) | `string` | Generation algorithm to use. Omitted means the current algorithm. Present so a caller can pin a shipped theme to the algorithm that produced it. |
+| `contrast` (optional) | `"AA"` | Contrast level to solve for. Only `"AA"` is implemented; it is also the default, so omitting this changes nothing. The type deliberately admits no other value rather than accepting one and quietly ignoring it. |
 | `family` (optional) | `string` | Theme family name used for the generated themes' `meta.family` and names. |
 | `seed` | `string` | Hex color seed (e.g. `"#d97706"`) that drives the generated palette. |
+| `style` (optional) | `GenerationStyle` | Visual language to generate in. Omitted means `"balanced"`, which is the behavior existing callers already get. |
 | `withCode` (optional) | `boolean` | Also generate a `tokens.code` block (syntax-highlighting colors) alongside the color tokens. Opt-in — most themes don't need code tokens. |
 
 ---
@@ -109,22 +113,6 @@ A theme definition: a name plus optional metadata and token values.
 ---
 
 
-### `ThemeKitOptions`
-Options for creating a ThemeKit instance.
-
-| Member | Type | Description |
-| ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `string` | Default theme name when no persisted selection exists. |
-| `initialFamily` (optional) | `string` | Initial family. Ignored if a theme was previously persisted in localStorage. |
-| `initialMode` (optional) | `ThemeMode` | Initial mode: `"light"`, `"dark"`, or `"system"`. Ignored if a theme was previously persisted in localStorage. |
-| `scheduled` (optional) | `false \| ScheduledThemeOptions<ThemeDefinition<string>>` | Sunrise/sunset solar scheduling config. Automatically applies light/dark themes at sunrise/sunset. |
-| `target` (optional) | `HTMLElement \| Document` | Target element for CSS custom properties and `data-theme` attributes. Defaults to `document.documentElement`. |
-| `themes` (optional) | `readonly ThemeDefinition<string>[]` | Custom set of themes. Defaults to all built-in themes. |
-| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme transition config. `false` disables transitions, `true` enables defaults, an object customizes the transition. |
-
----
-
-
 ### `ThemeRegistry<T extends ThemeDefinition>`
 A collection of registered theme definitions with deduplication,
 inheritance-ready metadata stamps, and family queries.
@@ -135,6 +123,7 @@ and token references happens separately via resolveTheme.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `themes` | `void` | — |
+| `batch` | `void` | — |
 | `clear` | `void` | — |
 | `destroy` | `void` | — |
 | `get` | `T \| undefined` | — |
@@ -145,6 +134,7 @@ and token references happens separately via resolveTheme.
 | `register` | `boolean` | — |
 | `registerMany` | `number` | — |
 | `replace` | `boolean` | — |
+| `subscribe` | `__type(): void` | — |
 | `unregister` | `boolean` | — |
 | `use` | `void` | — |
 
@@ -170,6 +160,22 @@ Top-level groups map to CSS variable namespaces (`--theme-colors-*`,
 | `spacing` (optional) | `Record<string, string>` | Spacing scale values (typically CSS lengths). |
 | `typography` (optional) | `{ fontFamilies?: Record<string, string>; fontSizes?: Record<string, string>; lineHeights?: Record<string, string> }` | Typography scale values. |
 | `zIndex` (optional) | `Record<string, string>` | Z-index values. |
+
+---
+
+
+### `ThemvoraOptions`
+Options for creating a Themvora instance.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `defaultTheme` (optional) | `string` | Default theme name when no persisted selection exists. |
+| `initialFamily` (optional) | `string` | Initial family. Ignored if a theme was previously persisted in localStorage. |
+| `initialMode` (optional) | `ThemeMode` | Initial mode: `"light"`, `"dark"`, or `"system"`. Ignored if a theme was previously persisted in localStorage. |
+| `scheduled` (optional) | `false \| ScheduledThemeOptions<ThemeDefinition<string>>` | Sunrise/sunset solar scheduling config. Automatically applies light/dark themes at sunrise/sunset. |
+| `target` (optional) | `HTMLElement \| Document` | Target element for CSS custom properties and `data-theme` attributes. Defaults to `document.documentElement`. |
+| `themes` (optional) | `readonly ThemeDefinition<string>[]` | Custom set of themes. Defaults to all built-in themes. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme transition config. `false` disables transitions, `true` enables defaults, an object customizes the transition. |
 
 ---
 

@@ -1,5 +1,17 @@
 import type { ThemeDefinition } from "./model/theme";
 import type { ThemeTokens } from "./model/tokens";
+import {
+  emitInvalidOptionDiagnostic,
+  emitNeutralFallbackDiagnostic,
+  emitScheduledThemeUnresolvedDiagnostic,
+  emitUnknownFamilyDiagnostic,
+  isSelectionResolvable,
+  isUsableTheme,
+  normalizeThemeCatalog,
+  resolveEffectiveConfiguration,
+  type InvalidOption,
+} from "./configuration";
+import { getThemeFamilies } from "./model/selection";
 import { createThemeStore } from "./createThemeStore";
 import { mergeTokens } from "./model";
 import { resolveTokens } from "./resolve";
@@ -37,16 +49,28 @@ import {
 import {
   createThemeSchedule,
   type ThemeSchedule,
+  type ThemeScheduleSetOptions,
 } from "./adapters/schedule";
 
 import type { ThemeMode } from "./model/theme";
 import type { ThemeSelectionState } from "./model/selection";
 import type { ThemeStore } from "./types";
-import type { ThemeTransitionOptions } from "./transition";
-import { createThemeHistory, type ThemeHistory, type HistoryEntry } from "./history";
+import {
+  DEFAULT_THEME_TRANSITION,
+  type ThemeTransitionOptions,
+} from "./transition";
+import {
+  createThemeHistory,
+  type ThemeHistory,
+  type HistoryEntry,
+} from "./history";
 import { cloneThemeValue } from "./utils/clone";
 import { createThemeLifecycle, type ThemeLifecycle } from "./lifecycle";
-import { createPluginManager, type ThemePlugin, type PluginManager } from "./plugin";
+import {
+  createPluginManager,
+  type ThemePlugin,
+  type PluginManager,
+} from "./plugin";
 
 /**
  * Configures the runtime's automatic sunrise/sunset scheduling.
@@ -86,13 +110,15 @@ export interface ScheduledThemeOptions<T extends ThemeDefinition> {
 }
 
 /**
- * Configuration for creating a Theme Kit runtime.
+ * Configuration for creating a Themvora runtime.
  *
  * Every option is optional; the runtime falls back to built-in themes,
  * localStorage persistence, and default bindings when an option is omitted.
  * @see {@link createThemeRuntime}
  */
-export interface ThemeRuntimeOptions<T extends ThemeDefinition> extends ThemeRegistryOptions<T> {
+export interface ThemeRuntimeOptions<
+  T extends ThemeDefinition,
+> extends ThemeRegistryOptions<T> {
   /**
    * Explicit initial theme resolution, bypassing default + persistence
    * based resolution.
@@ -162,7 +188,7 @@ export interface ThemeRuntimeOptions<T extends ThemeDefinition> extends ThemeReg
    * Transition configuration. `true` enables transitions with defaults,
    * `false` disables them, and an object provides explicit options.
    *
-   * @defaultValue disabled (transitions off unless enabled)
+   * @defaultValue enabled (transitions on unless disabled)
    */
   transition?: boolean | ThemeTransitionOptions;
 
@@ -191,7 +217,9 @@ export interface ThemeRuntimeOptions<T extends ThemeDefinition> extends ThemeReg
  * Produced by {@link ThemeRuntime.snapshot} and accepted by
  * {@link ThemeRuntime.restore} for time-travel and state transfer.
  */
-export interface ThemeRuntimeSnapshot<T extends ThemeDefinition = ThemeDefinition> {
+export interface ThemeRuntimeSnapshot<
+  T extends ThemeDefinition = ThemeDefinition,
+> {
   /** The active theme definition. */
   theme: T;
   /** The active selection (family + mode). */
@@ -226,8 +254,9 @@ export interface ThemeRuntimeSnapshot<T extends ThemeDefinition = ThemeDefinitio
  *
  * @see {@link ThemeRuntime.initial}
  */
-export interface ThemeRuntimeInitial<T extends ThemeDefinition>
-  extends InitialThemeResolution<T> {
+export interface ThemeRuntimeInitial<
+  T extends ThemeDefinition,
+> extends InitialThemeResolution<T> {
   /** Whether {@link ThemeHistory.undo} would have an effect on the server. */
   canUndo: boolean;
   /** Whether {@link ThemeHistory.redo} would have an effect on the server. */
@@ -246,7 +275,49 @@ export interface ThemeRuntimeInitial<T extends ThemeDefinition>
 }
 
 /**
- * A Theme Kit runtime — the single entry point for theming one application
+ * A live configuration change for a runtime.
+ *
+ * This is the subset of {@link ThemeRuntimeOptions} that can change while the
+ * runtime stays mounted. Each framework adapter forwards its changed props here
+ * — the runtime owns normalization, validation, precedence and notification, so
+ * the adapters share one contract instead of each re-implementing selection.
+ *
+ * @typeParam T - The theme definition type used by the application.
+ *
+ * @see {@link ThemeRuntime.configure}
+ */
+export interface ThemeConfigurationUpdate<T extends ThemeDefinition> {
+  /**
+   * The effective theme catalog. Omit to leave the current catalog unchanged.
+   * An empty or all-invalid array resolves to the canonical neutral fallback.
+   */
+  themes?: readonly T[] | undefined;
+  /** Fallback theme name when nothing else is given. */
+  defaultTheme?: T["name"] | undefined;
+  /** Initial family, used when the effective selection is re-resolved. */
+  initialFamily?: string | undefined;
+  /** Initial mode, used when the effective selection is re-resolved. */
+  initialMode?: ThemeMode | undefined;
+  /** An explicit initial resolution (SSR-resolved selection). Wins when changed. */
+  initial?: InitialThemeResolution<T> | undefined;
+  /**
+   * Transition configuration. Omit to leave the current setting unchanged;
+   * `false` disables transitions from the next theme change on; `true` or an
+   * options object enables/reconfigures them. Applied to the runtime's live
+   * DOM/CSS bindings without rebuilding them and without touching the current
+   * theme.
+   */
+  transition?: boolean | ThemeTransitionOptions | undefined;
+  /**
+   * Sunrise/sunset scheduling. Omit to leave the current schedule unchanged;
+   * `false` tears it down (`runtime.schedule` becomes `null`); an options
+   * object installs one or reconfigures the existing one in place.
+   */
+  scheduled?: false | ScheduledThemeOptions<T> | undefined;
+}
+
+/**
+ * A Themvora runtime — the single entry point for theming one application
  * boundary.
  *
  * A runtime owns theme selection, token resolution, persistence bindings,
@@ -283,6 +354,11 @@ export interface ThemeRuntime<T extends ThemeDefinition> {
 
   /**
    * Live view of the registered themes.
+   *
+   * One array, kept in place: a consumer that reads it once and holds the
+   * reference still sees a later `configure()`, and a consumer that reads it on
+   * every change does not miss one. `configure()` replaces its contents rather
+   * than swapping the reference.
    */
   readonly themes: readonly T[];
 
@@ -302,13 +378,20 @@ export interface ThemeRuntime<T extends ThemeDefinition> {
   adapters: AdapterRegistry<T>;
 
   /** The sunrise/sunset scheduling controller created from the `scheduled`
-   *  runtime option. `null` when the runtime was created without one. */
-  schedule: ThemeSchedule | null;
+   *  runtime option. `null` when the runtime was created without one.
+   *
+   *  Live: re-read after {@link ThemeRuntime.configure} with a `scheduled`
+   *  update — the schedule is created, reconfigured in place, or torn down
+   *  depending on the value. */
+  readonly schedule: ThemeSchedule | null;
 
   /** The resolved theme-transition options the runtime was created with
    *  (`undefined` when none were supplied). Components like `ThemeScope` read
-   *  this so scoped theme changes inherit the same transition as the provider. */
-  transition?: ThemeTransitionOptions;
+   *  this so scoped theme changes inherit the same transition as the provider.
+   *
+   *  Live: {@link ThemeRuntime.configure} with a `transition` update replaces
+   *  this value and pushes it into the runtime's live DOM/CSS bindings. */
+  readonly transition?: ThemeTransitionOptions | undefined;
 
   /**
    * Merges token overrides into the active theme and applies the result.
@@ -319,6 +402,28 @@ export interface ThemeRuntime<T extends ThemeDefinition> {
    * @param tokens Partial tokens to merge into the active theme.
    */
   update(tokens: Partial<ThemeTokens>): void;
+
+  /**
+   * Applies a live configuration change without recreating the runtime.
+   *
+   * Normalizes the catalog (empty/invalid → the canonical neutral fallback),
+   * re-resolves the selection using the documented precedence, applies the new
+   * theme and notifies subscribers — atomically, so no consumer observes a new
+   * catalog with old colors. A no-op when nothing that affects the resolved
+   * theme changed.
+   *
+   * Also reconciles the transition and scheduling subsystems: a `transition`
+   * update is pushed into the live DOM/CSS bindings (never resetting the
+   * current theme or history), and a `scheduled` update creates, reconfigures,
+   * or tears down the schedule. Each subsystem is only touched when its own
+   * input changed, so a transition-only update never rebuilds the registry and
+   * a scheduling-only update never resets theme history.
+   *
+   * @param update The changed configuration inputs.
+   *
+   * @see {@link ThemeConfigurationUpdate}
+   */
+  configure(update: ThemeConfigurationUpdate<T>): void;
 
   /**
    * Installs a theme pack (registry `use`) and refreshes the runtime's
@@ -404,13 +509,21 @@ export function createDefaultPersistence(): ThemeSelectionPersistenceAdapter | n
 
   return {
     get() {
-      try { return parseState(storage!.getItem(key)); } catch { return null; }
+      try {
+        return parseState(storage!.getItem(key));
+      } catch {
+        return null;
+      }
     },
     set(value) {
-      try { storage!.setItem(key, JSON.stringify(value)); } catch {}
+      try {
+        storage!.setItem(key, JSON.stringify(value));
+      } catch {}
     },
     remove() {
-      try { storage!.removeItem(key); } catch {}
+      try {
+        storage!.removeItem(key);
+      } catch {}
     },
     subscribe(listener) {
       const handler = (event: StorageEvent) => {
@@ -428,7 +541,24 @@ function createDefaultBroadcast(): ThemeSelectionBroadcastAdapter | null {
 }
 
 /**
- * Creates an independent Theme Kit runtime — the single entry point for
+ * Normalize the public `transition` option into the concrete options the
+ * bindings consume: `undefined` stays `undefined` (no transition configured),
+ * `true` becomes the empty options object (defaults), `false` becomes an
+ * explicitly disabled transition, and an object is used as-is.
+ *
+ * Shared by runtime creation and `configure()` so a live update and the initial
+ * value are interpreted identically.
+ */
+function resolveTransitionConfig(
+  value: boolean | ThemeTransitionOptions | undefined,
+): ThemeTransitionOptions | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "object") return value;
+  return value ? {} : { enabled: false };
+}
+
+/**
+ * Creates an independent Themvora runtime — the single entry point for
  * theming.
  *
  * The runtime wires together the theme store, selection controller
@@ -462,11 +592,28 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   // built-in themes rather than throw on `options.themes`.
   options: ThemeRuntimeOptions<T> = {},
 ): ThemeRuntime<T> {
-  const initialThemes = options.themes !== undefined
-    ? [...options.themes]
-    : [...(getBuiltInThemes() as unknown as T[])];
+  const initialThemes: T[] =
+    options.themes !== undefined
+      ? [...normalizeThemeCatalog(options.themes as readonly T[])]
+      : [...(getBuiltInThemes() as unknown as T[])];
+
+  // A caller who supplied a collection with nothing usable gets the neutral
+  // fallback *and* a diagnostic — a silent substitution would hide the mistake.
+  if (options.themes !== undefined && !options.themes.some(isUsableTheme)) {
+    emitNeutralFallbackDiagnostic();
+  }
+
+  // An explicitly requested family that the catalog does not have is reported
+  // by the resolver below (`resolveInitialTheme` → `resolveEffectiveConfiguration`),
+  // which knows the family it actually chose. Reporting it here as well would
+  // win the diagnostic dedupe with a *less* accurate message — the resolved
+  // family is not known yet at this point.
   const registry = createThemeRegistry<T>({ themes: initialThemes });
-  const themes: T[] = [...registry.list()];
+  // Aliased to the registry's internal array, so `runtime.themes`,
+  // `runtime.registry.themes` and a reference a consumer captured earlier are
+  // the same array. Every catalog mutation (`configure`, `use`, `restore`, or a
+  // direct `registry.register` / `unregister`) writes into it.
+  const themes: T[] = registry.themes as T[];
 
   const pluginManager = createPluginManager<T>();
   if (options.plugins) {
@@ -534,7 +681,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
           mode: adoptBootstrap.selection.mode,
           prefersDark,
         })
-      : options.initial ??
+      : (options.initial ??
         resolveInitialTheme({
           themes,
 
@@ -547,7 +694,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
           ...(initialMode !== undefined ? { mode: initialMode } : {}),
 
           prefersDark,
-        });
+        }));
 
   // The resolution a **server render** produces. Same inputs as above, minus
   // the two things a server does not have: a persisted selection (no storage)
@@ -594,21 +741,36 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
   const lifecycleController = createThemeLifecycle<T>();
 
-  const historyController = createThemeHistory(store);
+  // A server render must not read the clock. Next.js's Cache Components refuse
+  // to prerender a client component that calls `Date.now()` — and a Next
+  // prerender constructs this runtime — so the history is stamped with `0`
+  // there, which is the same value the synthesised server history above uses.
+  // On a client the clock is the real one.
+  const historyController = createThemeHistory(
+    store,
+    typeof document === "undefined" ? { now: () => 0 } : {},
+  );
 
-  const transitionOpt =
-    options.transition === undefined
-      ? undefined
-      : typeof options.transition === "object"
-        ? options.transition
-        : options.transition === true
-          ? {}
-          : { enabled: false };
+  // Live: `configure({ transition })` replaces this and pushes it into the
+  // bindings, so it is `let`, not `const`.
+  let transitionOpt = resolveTransitionConfig(options.transition);
 
   const domOptions = mergeDOMOptions(options.dom, transitionOpt);
   const cssVarOptions = mergeCSSOptions(options.cssVariables, transitionOpt);
 
-  const schedule = createScheduleController(
+  // A binding's `transition` can come from two places: an explicit
+  // `dom.transition` / `cssVariables.transition` (which wins) or the runtime's
+  // top-level `transition` (the fallback). Only the fallback is ours to
+  // reconcile — an explicit value belongs to the caller and must not be
+  // overwritten by a later `transition` update.
+  const domTransitionExplicit =
+    options.dom !== false && options.dom?.transition !== undefined;
+  const cssTransitionExplicit =
+    options.cssVariables !== false &&
+    options.cssVariables?.transition !== undefined;
+
+  // Live: reconciled by `configure({ scheduled })`.
+  let scheduleHandle = createScheduleController(
     store,
     themes,
     options.scheduled,
@@ -631,7 +793,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
         : {}),
     ...(view ? { view } : {}),
     onSyncApply: () => {
-      schedule?.setLastSyncTime(Date.now());
+      scheduleHandle?.setLastSyncTime(Date.now());
     },
   });
 
@@ -660,7 +822,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   // Without this, `data-theme` flipped in one task and the palette in the next.
   // A paint landing between them showed the new theme's identity over the old
   // theme's colours: the page announced `oat-light` while still painting the
-  // dark background, and a `[data-tk-readout]` label disagreed with the pixels
+  // dark background, and a `[data-tv-readout]` label disagreed with the pixels
   // beside it. Because it depends on where the compositor commits, it looked
   // like the theme state was "fluctuating" rather than failing every time.
   //
@@ -678,13 +840,12 @@ export function createThemeRuntime<T extends ThemeDefinition>(
       })
     : null;
 
-  const cssVariablesBinding =
-    cssVarOptions
-      ? createCSSVariablesBinding(store, {
-          ...cssVarOptions,
-          ...(domBinding ? { onBeforeSwap: domBinding.apply } : {}),
-        })
-      : null;
+  const cssVariablesBinding = cssVarOptions
+    ? createCSSVariablesBinding(store, {
+        ...cssVarOptions,
+        ...(domBinding ? { onBeforeSwap: domBinding.apply } : {}),
+      })
+    : null;
 
   // Safety net for the one combination the flags above cannot see: an explicit
   // `dom.target` makes the DOM binding possible while the CSS binding still
@@ -698,30 +859,48 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   function wirePluginHooks() {
     for (const plugin of pluginManager.list()) {
       if (plugin.onBeforeThemeChange) {
-        lifecycleController.on("beforeThemeChange", plugin.onBeforeThemeChange as (data: unknown) => void);
+        lifecycleController.on(
+          "beforeThemeChange",
+          plugin.onBeforeThemeChange as (data: unknown) => void,
+        );
       }
       if (plugin.onAfterThemeChange) {
-        lifecycleController.on("afterThemeChange", plugin.onAfterThemeChange as (data: unknown) => void);
+        lifecycleController.on(
+          "afterThemeChange",
+          plugin.onAfterThemeChange as (data: unknown) => void,
+        );
       }
       if (plugin.onBeforePersist) {
-        lifecycleController.on("beforePersist", plugin.onBeforePersist as (data: unknown) => void);
+        lifecycleController.on(
+          "beforePersist",
+          plugin.onBeforePersist as (data: unknown) => void,
+        );
       }
       if (plugin.onAfterPersist) {
-        lifecycleController.on("afterPersist", plugin.onAfterPersist as (data: unknown) => void);
+        lifecycleController.on(
+          "afterPersist",
+          plugin.onAfterPersist as (data: unknown) => void,
+        );
       }
       if (plugin.onBeforeApply) {
-        lifecycleController.on("beforeApply", plugin.onBeforeApply as (data: unknown) => void);
+        lifecycleController.on(
+          "beforeApply",
+          plugin.onBeforeApply as (data: unknown) => void,
+        );
       }
       if (plugin.onAfterApply) {
-        lifecycleController.on("afterApply", plugin.onAfterApply as (data: unknown) => void);
+        lifecycleController.on(
+          "afterApply",
+          plugin.onAfterApply as (data: unknown) => void,
+        );
       }
     }
   }
 
   function use(pack: ThemePack<T>): void {
+    // `registry.use` writes into the array `themes` aliases, so there is
+    // nothing left to sync.
     registry.use(pack);
-    themes.length = 0;
-    themes.push(...registry.list());
   }
 
   function mergeDOMOptions(
@@ -769,22 +948,26 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
   function restore(snap: ThemeRuntimeSnapshot<T>): void {
     updatingFromRuntime = true;
-    store.batch(() => {
-      registry.clear();
-      for (const theme of snap.registry.themes) {
-        registry.register(theme);
-      }
-      themes.length = 0;
-      themes.push(...registry.list());
+    // One atomic registry transaction: the clear() + re-register sequence emits a
+    // single coherent notification (flushed after the store/selection below are
+    // updated), instead of one empty and N partial states.
+    registry.batch(() => {
+      store.batch(() => {
+        // `clear` + `registerMany` write into the array `themes` aliases.
+        registry.clear();
+        for (const theme of snap.registry.themes) {
+          registry.register(theme);
+        }
 
-      historyController.clear();
+        historyController.clear();
 
-      store.set(cloneThemeValue(snap.theme) as T, { force: true });
-      previousTheme = store.get();
-      selectionController.setMode(snap.selection.mode);
-      if (snap.selection.family) {
-        selectionController.setFamily(snap.selection.family);
-      }
+        store.set(cloneThemeValue(snap.theme) as T, { force: true });
+        previousTheme = store.get();
+        selectionController.setMode(snap.selection.mode);
+        if (snap.selection.family) {
+          selectionController.setFamily(snap.selection.family);
+        }
+      });
     });
     updatingFromRuntime = false;
   }
@@ -792,12 +975,476 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   let updatingFromRuntime = false;
   let previousTheme = store.get();
 
+  // ---- live configuration --------------------------------------------------
+
+  let appliedConfig: ThemeConfigurationUpdate<T> & { themes: readonly T[] } = {
+    themes: initialThemes,
+    defaultTheme: options.defaultTheme,
+    initialFamily: options.initialFamily,
+    initialMode: options.initialMode,
+    initial: options.initial,
+  };
+
+  // The transition/scheduling inputs as last applied. Held separately from the
+  // catalog/selection state above because they are independent subsystems:
+  // changing one must not read as a change to the other (see `configure`).
+  let appliedTransition = transitionOpt;
+  let appliedScheduled: false | ScheduledThemeOptions<T> | undefined =
+    options.scheduled;
+
+  function sameCatalog(a: readonly T[], b: readonly T[]): boolean {
+    return (
+      a.length === b.length && a.every((theme, index) => theme === b[index])
+    );
+  }
+
+  function sameStringList(
+    a: readonly string[] | undefined,
+    b: readonly string[] | undefined,
+  ): boolean {
+    if (a === b) return true;
+    if (!a || !b || a.length !== b.length) return false;
+    return a.every((value, index) => value === b[index]);
+  }
+
+  function samePreset(
+    a: ThemeTransitionOptions["preset"],
+    b: ThemeTransitionOptions["preset"],
+  ): boolean {
+    if (a === b) return true;
+    return sameStringList(
+      Array.isArray(a) ? a : undefined,
+      Array.isArray(b) ? b : undefined,
+    );
+  }
+
+  /**
+   * Structural equality for transition options.
+   *
+   * Adapters build a fresh options object each render, so identity comparison
+   * is useless; comparing the known fields is enough and deliberately avoids a
+   * generic deep compare of the whole runtime configuration.
+   *
+   * Each field is compared against its default so `{}` and
+   * `{ duration: 300 }` are treated as equivalent — the planner merges
+   * `DEFAULT_THEME_TRANSITION` underneath either way.
+   */
+  function sameTransition(
+    a: ThemeTransitionOptions | undefined,
+    b: ThemeTransitionOptions | undefined,
+  ): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return (
+      (a.enabled ?? true) === (b.enabled ?? true) &&
+      (a.duration ?? DEFAULT_THEME_TRANSITION.duration) ===
+        (b.duration ?? DEFAULT_THEME_TRANSITION.duration) &&
+      (a.easing ?? DEFAULT_THEME_TRANSITION.easing) ===
+        (b.easing ?? DEFAULT_THEME_TRANSITION.easing) &&
+      (a.useViewTransition ?? DEFAULT_THEME_TRANSITION.useViewTransition) ===
+        (b.useViewTransition ?? DEFAULT_THEME_TRANSITION.useViewTransition) &&
+      samePreset(a.preset, b.preset) &&
+      sameStringList(
+        a.properties ?? DEFAULT_THEME_TRANSITION.properties,
+        b.properties ?? DEFAULT_THEME_TRANSITION.properties,
+      )
+    );
+  }
+
+  /** Structural equality for the flat scheduled-options object. */
+  function sameScheduled(
+    a: false | ScheduledThemeOptions<T> | undefined,
+    b: false | ScheduledThemeOptions<T> | undefined,
+  ): boolean {
+    if (a === b) return true;
+    if (a === false || b === false || !a || !b) return false;
+    return (
+      a.lightTheme === b.lightTheme &&
+      a.darkTheme === b.darkTheme &&
+      a.latitude === b.latitude &&
+      a.longitude === b.longitude &&
+      a.timeZone === b.timeZone &&
+      a.autoDetectLocation === b.autoDetectLocation &&
+      a.checkInterval === b.checkInterval &&
+      a.skipApplyMs === b.skipApplyMs &&
+      a.enabled === b.enabled
+    );
+  }
+
+  /**
+   * Push a new transition configuration into the live bindings.
+   *
+   * Touches only `transitionOpt` and the bindings' own transition value — never
+   * the store, the selection, or history. A transition change *is not* a theme
+   * change: it must not append a history entry or emit a theme-change event.
+   */
+  function applyTransitionConfig(
+    next: ThemeTransitionOptions | undefined,
+  ): void {
+    transitionOpt = next;
+    if (domBinding && !domTransitionExplicit) domBinding.setTransition(next);
+    if (cssVariablesBinding && !cssTransitionExplicit) {
+      cssVariablesBinding.setTransition(next);
+    }
+  }
+
+  /**
+   * Map the public `scheduled` options onto the schedule controller's canonical
+   * `set()` input. `lightTheme`/`darkTheme` are always supplied (presence-based)
+   * so an omitted name clears an earlier explicit one and returns to family
+   * derivation; coordinates follow `set()`'s explicit-coordinate > timezone >
+   * auto-detect precedence.
+   */
+  function scheduledSetOptions(
+    next: ScheduledThemeOptions<T>,
+  ): ThemeScheduleSetOptions {
+    const opts: ThemeScheduleSetOptions = {
+      lightTheme: next.lightTheme,
+      darkTheme: next.darkTheme,
+    };
+    if (next.latitude !== undefined) opts.latitude = next.latitude;
+    if (next.longitude !== undefined) opts.longitude = next.longitude;
+    if (next.timeZone !== undefined) opts.timeZone = next.timeZone;
+    if (next.checkInterval !== undefined)
+      opts.checkInterval = next.checkInterval;
+    if (next.skipApplyMs !== undefined) opts.skipApplyMs = next.skipApplyMs;
+    if (next.enabled !== undefined) opts.enabled = next.enabled;
+    const hasCoordinates =
+      next.latitude !== undefined ||
+      next.longitude !== undefined ||
+      next.timeZone !== undefined;
+    if (!hasCoordinates && next.autoDetectLocation !== false) {
+      opts.autoDetectLocation = true;
+    }
+    return opts;
+  }
+
+  /**
+   * Reconcile the schedule against a new `scheduled` input: create it,
+   * reconfigure the existing one in place through the controller's canonical
+   * `set()` (reusing its live binding and listeners), or tear it down. Never
+   * leaves two schedulers active.
+   */
+  function reconcileSchedule(next: false | ScheduledThemeOptions<T>): void {
+    if (next === false) {
+      scheduleHandle?.destroy();
+      scheduleHandle = null;
+      return;
+    }
+    if (!scheduleHandle) {
+      scheduleHandle = createScheduleController(store, themes, next);
+      return;
+    }
+    scheduleHandle.set(scheduledSetOptions(next));
+  }
+
+  /**
+   * The first unusable transition option, or `null` when the configuration is
+   * usable. Kept to the numeric/string fields the runtime actually reads — no
+   * attempt to validate CSS timing-function grammar.
+   */
+  function invalidTransitionOption(
+    options: ThemeTransitionOptions,
+  ): InvalidOption | null {
+    if (
+      options.duration !== undefined &&
+      (!Number.isFinite(options.duration) || options.duration < 0)
+    ) {
+      return {
+        property: "transition.duration",
+        received: options.duration,
+        expected: "a finite number of milliseconds >= 0",
+      };
+    }
+    if (
+      options.easing !== undefined &&
+      (typeof options.easing !== "string" || options.easing.trim().length === 0)
+    ) {
+      return {
+        property: "transition.easing",
+        received: options.easing,
+        expected: "a non-empty CSS timing function",
+      };
+    }
+    return null;
+  }
+
+  /**
+   * The first unusable scheduling option, or `null` when the configuration is
+   * usable.
+   */
+  function invalidScheduledOption(
+    options: ScheduledThemeOptions<T>,
+  ): InvalidOption | null {
+    const { checkInterval, skipApplyMs, latitude, longitude } = options;
+    if (
+      checkInterval !== undefined &&
+      (!Number.isFinite(checkInterval) || checkInterval <= 0)
+    ) {
+      return {
+        property: "scheduled.checkInterval",
+        received: checkInterval,
+        expected: "a finite number of milliseconds > 0",
+      };
+    }
+    if (
+      skipApplyMs !== undefined &&
+      (!Number.isFinite(skipApplyMs) || skipApplyMs < 0)
+    ) {
+      return {
+        property: "scheduled.skipApplyMs",
+        received: skipApplyMs,
+        expected: "a finite number of milliseconds >= 0",
+      };
+    }
+    if (
+      latitude !== undefined &&
+      (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)
+    ) {
+      return {
+        property: "scheduled.latitude",
+        received: latitude,
+        expected: "a number in [-90, 90]",
+      };
+    }
+    if (
+      longitude !== undefined &&
+      (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)
+    ) {
+      return {
+        property: "scheduled.longitude",
+        received: longitude,
+        expected: "a number in [-180, 180]",
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Warn when a reconciled schedule names a theme the catalog does not hold.
+   * Only reported when a name was actually supplied and not found — a catalog
+   * that simply has no built-in `light`/`dark` pair is a different situation and
+   * is not a mistake in the scheduling configuration.
+   */
+  function reportUnresolvedSchedule(next: ScheduledThemeOptions<T>): void {
+    if (!scheduleHandle) return;
+    if (scheduleHandle.lightTheme && scheduleHandle.darkTheme) return;
+    const missing = (name: string | undefined) =>
+      name !== undefined && !themes.some((theme) => theme.name === name);
+    if (missing(next.lightTheme) || missing(next.darkTheme)) {
+      emitScheduledThemeUnresolvedDiagnostic(next);
+    }
+  }
+
+  function configure(update: ThemeConfigurationUpdate<T>): void {
+    // 1. Normalize the effective catalog. `undefined` means "leave it alone";
+    //    an empty or all-invalid collection resolves to the neutral fallback.
+    //
+    // "Leave it alone" means the *live* catalog, not the last one `configure()`
+    // applied: `use(pack)` registers themes without going through `configure`,
+    // so `appliedConfig.themes` can be behind the registry. Comparing against it
+    // made two mistakes — a selection-only update looked like a catalog change
+    // (dropping a pack the caller never touched), and re-supplying the previous
+    // catalog after a `use()` looked like a no-op (so a pack could not be
+    // removed). The registry is the only honest reference for "what is
+    // registered right now".
+    let nextThemes: readonly T[];
+    if (update.themes === undefined) {
+      nextThemes = themes;
+    } else {
+      const hadUsable = update.themes.some(isUsableTheme);
+      nextThemes = normalizeThemeCatalog(update.themes as readonly T[]);
+      if (!hadUsable) emitNeutralFallbackDiagnostic();
+    }
+
+    const catalogChanged = !sameCatalog(nextThemes, themes);
+
+    // A configuration input is "changed" only when the caller *supplied* it
+    // (`hasOwn`), so a provider that omits a prop (or forwards `undefined` for
+    // one it never received) does not reset a value the runtime was created
+    // with. Supplied-and-different merges over the applied value.
+    const has = (key: keyof ThemeConfigurationUpdate<T>) =>
+      Object.prototype.hasOwnProperty.call(update, key);
+
+    const nextDefaultTheme = has("defaultTheme")
+      ? update.defaultTheme
+      : appliedConfig.defaultTheme;
+    const nextInitialFamily = has("initialFamily")
+      ? update.initialFamily
+      : appliedConfig.initialFamily;
+    const nextInitialMode = has("initialMode")
+      ? update.initialMode
+      : appliedConfig.initialMode;
+
+    // Compare `initial` by value, not identity: adapters legitimately build a
+    // fresh object each render, and re-applying an identical resolution every
+    // render would be churn.
+    //
+    // A supplied `initial` is only a change when the catalog can actually
+    // resolve it. An SSR handoff can legitimately name a theme the client
+    // catalog no longer contains (a deploy between the server render and
+    // hydration), and the documented contract is that such a selection is
+    // *ignored* — it must not be treated as a re-resolution request, or the
+    // visitor's current selection is silently replaced by `themes[0]`.
+    const initial = update.initial;
+    const previousInitial = appliedConfig.initial;
+    const initialUsable =
+      initial !== undefined &&
+      isSelectionResolvable(nextThemes, initial.selection);
+    const initialChanged =
+      initialUsable &&
+      (previousInitial === undefined ||
+        String(initial.theme?.name) !== String(previousInitial.theme?.name) ||
+        initial.selection.mode !== previousInitial.selection.mode ||
+        initial.selection.family !== previousInitial.selection.family);
+
+    const selectionPropsChanged =
+      nextDefaultTheme !== appliedConfig.defaultTheme ||
+      nextInitialFamily !== appliedConfig.initialFamily ||
+      nextInitialMode !== appliedConfig.initialMode;
+
+    // Transition/scheduling inputs are diffed independently of the catalog so
+    // that, e.g., a transition-only update never looks like a selection change.
+    const transitionConfig = has("transition")
+      ? resolveTransitionConfig(update.transition)
+      : appliedTransition;
+    const transitionChanged =
+      has("transition") && !sameTransition(transitionConfig, appliedTransition);
+
+    // `undefined` cannot express "remove the schedule" (that is `false`), so an
+    // explicitly-undefined value is treated as "not supplied".
+    const scheduledSupplied =
+      has("scheduled") && update.scheduled !== undefined;
+    const scheduledChanged =
+      scheduledSupplied && !sameScheduled(update.scheduled, appliedScheduled);
+
+    // Nothing at all changed → no work, no notification.
+    if (
+      !catalogChanged &&
+      !initialChanged &&
+      !selectionPropsChanged &&
+      !transitionChanged &&
+      !scheduledChanged
+    ) {
+      return;
+    }
+
+    // Reconcile the independent subsystems first, so a change that also
+    // re-resolves the theme adopts the new transition and schedule. Neither
+    // call touches the store, the selection, or history — a transition update
+    // is not a theme change and must not append a history entry.
+    //
+    // An unusable option skips *only* its own subsystem and keeps the previous
+    // setting there (a defined state), with a deduplicated warning; the update
+    // is not partially applied to unrelated subsystems.
+    if (transitionChanged) {
+      const invalid = invalidTransitionOption(transitionConfig ?? {});
+      if (invalid) {
+        emitInvalidOptionDiagnostic(invalid);
+      } else {
+        applyTransitionConfig(transitionConfig);
+        appliedTransition = transitionConfig;
+      }
+    }
+    if (scheduledChanged) {
+      const nextScheduled = update.scheduled as
+        false | ScheduledThemeOptions<T>;
+      const invalid =
+        nextScheduled === false ? null : invalidScheduledOption(nextScheduled);
+      if (invalid) {
+        emitInvalidOptionDiagnostic(invalid);
+      } else {
+        reconcileSchedule(nextScheduled);
+        appliedScheduled = update.scheduled;
+        if (nextScheduled !== false) reportUnresolvedSchedule(nextScheduled);
+      }
+    }
+
+    // No catalog/selection work to do → done (e.g. a transition-only update
+    // must leave the active theme and history untouched).
+    if (!catalogChanged && !initialChanged && !selectionPropsChanged) return;
+
+    const previous = selectionController.getSelection();
+    let nextSelection: ThemeSelectionState;
+
+    if (
+      initialChanged &&
+      update.initial &&
+      isSelectionResolvable(nextThemes, update.initial.selection)
+    ) {
+      nextSelection = update.initial.selection;
+    } else {
+      // Preserve a still-valid selection when *only* the catalog changed AND no
+      // explicit selection was requested — so a catalog update does not silently
+      // move the user off their theme, while a requested family that has just
+      // become resolvable is still honoured.
+      const requestedFamily = nextInitialFamily;
+      const preserve =
+        catalogChanged &&
+        !selectionPropsChanged &&
+        !initialChanged &&
+        !(requestedFamily !== undefined && requestedFamily !== previous.family);
+      nextSelection = resolveEffectiveConfiguration({
+        themes: nextThemes,
+        defaultTheme: preserve ? undefined : nextDefaultTheme,
+        initialFamily: preserve ? undefined : nextInitialFamily,
+        initialMode: preserve ? undefined : nextInitialMode,
+        prefersDark,
+        previousSelection: previous,
+        preservePrevious: preserve,
+      }).selection;
+    }
+
+    // 2. Apply atomically: one registry notification, one store notification,
+    //    so a consumer never sees the new catalog with the old colors.
+    //
+    // The registry is only rewritten when the catalog actually changed. A
+    // selection-only update (a changed `defaultTheme`, say) used to re-register
+    // the whole catalog anyway, which re-stamped every theme's metadata, handed
+    // consumers brand-new theme objects with the same names, and fired the
+    // registry notification — so a catalog signal was indistinguishable from a
+    // configuration churn, and scopes re-resolved on every render.
+    updatingFromRuntime = true;
+    registry.batch(() => {
+      store.batch(() => {
+        if (catalogChanged) {
+          // `clear` + `registerMany` write straight into the array `themes`
+          // aliases, so the live view is current the moment the batch ends.
+          registry.clear();
+          registry.registerMany(nextThemes);
+        }
+        selectionController.applyState(nextSelection);
+        previousTheme = store.get();
+      });
+    });
+    updatingFromRuntime = false;
+
+    appliedConfig = {
+      themes: nextThemes,
+      defaultTheme: nextDefaultTheme,
+      initialFamily: nextInitialFamily,
+      initialMode: nextInitialMode,
+      // Only a resolution the catalog accepted is remembered. Storing an
+      // unusable one would make the *same* object look "already applied" once
+      // the catalog gains that family, so the update would be skipped exactly
+      // when it had become valid.
+      initial: initialUsable ? initial : appliedConfig.initial,
+    };
+  }
+
   const unsubscribeStoreSelection = store.subscribe((theme) => {
     if (updatingFromRuntime) return;
     if (theme === previousTheme) return;
-    lifecycleController.emit("beforeThemeChange", { current: previousTheme, next: theme });
-    lifecycleController.emit("beforePersist", { selection: selectionController.getSelection() });
-    lifecycleController.emit("afterPersist", { selection: selectionController.getSelection() });
+    lifecycleController.emit("beforeThemeChange", {
+      current: previousTheme,
+      next: theme,
+    });
+    lifecycleController.emit("beforePersist", {
+      selection: selectionController.getSelection(),
+    });
+    lifecycleController.emit("afterPersist", {
+      selection: selectionController.getSelection(),
+    });
     lifecycleController.emit("afterThemeChange", { theme });
     previousTheme = theme;
   });
@@ -809,14 +1456,24 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     initial,
     registry,
     get themes(): readonly T[] {
-      return registry.list();
+      // The runtime's own list, kept in place. Returning a fresh array per read
+      // (`registry.list()`) meant a consumer that captured `runtime.themes`
+      // held a snapshot that never reflected a later `configure()` — which is
+      // exactly how a scoped theme ended up rendering a theme the catalog no
+      // longer had. The registry exposes its internal array the same way, so
+      // the two views now agree on identity.
+      return themes;
     },
     selection: selectionController,
     history: historyController,
     lifecycle: lifecycleController,
     adapters: null as unknown as AdapterRegistry<T>,
-    schedule,
-    ...(transitionOpt !== undefined ? { transition: transitionOpt } : {}),
+    get schedule(): ThemeSchedule | null {
+      return scheduleHandle;
+    },
+    get transition(): ThemeTransitionOptions | undefined {
+      return transitionOpt;
+    },
 
     update(tokens: Partial<ThemeTokens>) {
       const current = store.get();
@@ -834,33 +1491,39 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
       updatingFromRuntime = true;
       lifecycleController.emit("beforeThemeChange", { current, next });
-      lifecycleController.emit("beforePersist", { selection: selectionController.getSelection() });
+      lifecycleController.emit("beforePersist", {
+        selection: selectionController.getSelection(),
+      });
       store.set(next, { force: true });
       previousTheme = next;
       updatingFromRuntime = false;
-      lifecycleController.emit("afterPersist", { selection: selectionController.getSelection() });
+      lifecycleController.emit("afterPersist", {
+        selection: selectionController.getSelection(),
+      });
       lifecycleController.emit("afterThemeChange", { theme: next });
     },
 
     use,
 
+    configure,
+
     batch,
     snapshot,
     restore,
 
-     destroy() {
+    destroy() {
       unsubscribeStoreSelection();
       pluginManager.destroy();
       selectionController.destroy();
       historyController.destroy();
       domBinding?.destroy();
       cssVariablesBinding?.destroy();
-      schedule?.destroy();
+      scheduleHandle?.destroy();
       adapterRegistry?.destroy();
       registry.destroy();
       lifecycleController.destroy();
     },
-   };
+  };
 
   for (const plugin of pluginManager.list()) {
     plugin.onRuntimeCreated?.(runtime);
@@ -908,8 +1571,6 @@ function createScheduleController<T extends ThemeDefinition>(
     ...(scheduled.skipApplyMs !== undefined
       ? { skipApplyMs: scheduled.skipApplyMs }
       : {}),
-    ...(scheduled.enabled !== undefined
-      ? { enabled: scheduled.enabled }
-      : {}),
+    ...(scheduled.enabled !== undefined ? { enabled: scheduled.enabled } : {}),
   });
 }

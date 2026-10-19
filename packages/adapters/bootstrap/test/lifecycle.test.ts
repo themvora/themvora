@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { createBootstrapAdapter } from "../src";
 
 const themes = [
@@ -53,7 +53,7 @@ describe("bootstrap adapter lifecycle", () => {
     const handle = runtime.adapters.use(adapter);
 
     // 1. install → a tagged style element with the CSS variables exists
-    const styleEl = document.getElementById("theme-kit-bootstrap-variables") as HTMLStyleElement;
+    const styleEl = document.getElementById("themvora-bootstrap-variables") as HTMLStyleElement;
     expect(styleEl).toBeTruthy();
     const lightText = styleEl.textContent ?? "";
     expect(lightText).toContain("#ffffff"); // light background
@@ -67,10 +67,10 @@ describe("bootstrap adapter lifecycle", () => {
 
     // 3. cleanup → the style element is removed and not recreated
     handle.dispose();
-    expect(document.getElementById("theme-kit-bootstrap-variables")).toBeNull();
+    expect(document.getElementById("themvora-bootstrap-variables")).toBeNull();
 
     runtime.selection.setMode("light");
-    expect(document.getElementById("theme-kit-bootstrap-variables")).toBeNull();
+    expect(document.getElementById("themvora-bootstrap-variables")).toBeNull();
 
     runtime.destroy();
   });
@@ -82,6 +82,6 @@ describe("bootstrap adapter lifecycle", () => {
 
     runtime.destroy();
     expect(() => handle.dispose()).not.toThrow();
-    expect(document.getElementById("theme-kit-bootstrap-variables")).toBeNull();
+    expect(document.getElementById("themvora-bootstrap-variables")).toBeNull();
   });
 });

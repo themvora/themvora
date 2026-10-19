@@ -39,7 +39,7 @@ const frameworkAdapterEntries = () => [
 const PACKAGES = [
   {
     slug: "core",
-    name: "@theme-kit/core",
+    name: "@themvora/core",
     entries: [
       { page: null, entry: "src/index.ts" },
       { page: "vanilla", entry: "src/vanilla.ts" },
@@ -50,53 +50,53 @@ const PACKAGES = [
       { page: "config", entry: "src/config.ts" },
     ],
   },
-  { slug: "react", name: "@theme-kit/react", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "next", name: "@theme-kit/next", entries: [
+  { slug: "react", name: "@themvora/react", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "next", name: "@themvora/next", entries: [
     { page: null, entry: "src/index.ts" },
     { page: "client", entry: "src/client.ts" },
   ] },
-  { slug: "vue", name: "@theme-kit/vue", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "svelte", name: "@theme-kit/svelte", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "solid", name: "@theme-kit/solid", entries: [{ page: null, entry: "src/index.tsx" }] },
-  { slug: "angular", name: "@theme-kit/angular", entries: [{ page: null, entry: "src/public-api.ts" }] },
-  { slug: "web", name: "@theme-kit/web", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "tailwind", name: "@theme-kit/tailwind", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "astro", name: "@theme-kit/astro", entries: [
+  { slug: "vue", name: "@themvora/vue", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "svelte", name: "@themvora/svelte", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "solid", name: "@themvora/solid", entries: [{ page: null, entry: "src/index.tsx" }] },
+  { slug: "angular", name: "@themvora/angular", entries: [{ page: null, entry: "src/public-api.ts" }] },
+  { slug: "web", name: "@themvora/web", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "tailwind", name: "@themvora/tailwind", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "astro", name: "@themvora/astro", entries: [
     { page: null, entry: "src/index.ts" },
     // The node-side / build-time entry. Kept separate from the root entry
     // because it uses node builtins and must never reach a browser bundle.
     { page: "runtime", entry: "src/runtime.ts" },
     { page: "client", entry: "src/client.tsx" },
   ] },
-  { slug: "nuxt", name: "@theme-kit/nuxt", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "remix", name: "@theme-kit/remix", entries: [
+  { slug: "nuxt", name: "@themvora/nuxt", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "remix", name: "@themvora/remix", entries: [
     { page: null, entry: "src/index.ts" },
     { page: "server", entry: "src/server/index.ts" },
   ] },
-  { slug: "cli", name: "@theme-kit/cli", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "devtools", name: "@theme-kit/devtools", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "cli", name: "@themvora/cli", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "devtools", name: "@themvora/devtools", entries: [{ page: null, entry: "src/index.ts" }] },
 
   // Adapter integrations (the shared toolkit plus every published adapter).
   // `dir` points at packages/adapters/<name>, because they do not live
   // directly under packages/.
-  { slug: "mui", name: "@theme-kit/mui", dir: "adapters/mui", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "chakra", name: "@theme-kit/chakra", dir: "adapters/chakra", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "antd", name: "@theme-kit/antd", dir: "adapters/antd", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "mantine", name: "@theme-kit/mantine", dir: "adapters/mantine", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "unocss", name: "@theme-kit/unocss", dir: "adapters/unocss", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "mui", name: "@themvora/mui", dir: "adapters/mui", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "chakra", name: "@themvora/chakra", dir: "adapters/chakra", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "antd", name: "@themvora/antd", dir: "adapters/antd", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "mantine", name: "@themvora/mantine", dir: "adapters/mantine", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "unocss", name: "@themvora/unocss", dir: "adapters/unocss", entries: [{ page: null, entry: "src/index.ts" }] },
   {
     slug: "adapters",
-    name: "@theme-kit/adapters",
+    name: "@themvora/adapters",
     dir: "adapters/shared",
     entries: [
       { page: null, entry: "src/index.ts" },
       { page: "react", entry: "src/react.ts" },
     ],
   },
-  { slug: "shadcn", name: "@theme-kit/shadcn", dir: "adapters/shadcn", entries: frameworkAdapterEntries() },
-  { slug: "bootstrap", name: "@theme-kit/bootstrap", dir: "adapters/bootstrap", entries: frameworkAdapterEntries() },
-  { slug: "daisyui", name: "@theme-kit/daisyui", dir: "adapters/daisyui", entries: frameworkAdapterEntries() },
-  { slug: "open-props", name: "@theme-kit/open-props", dir: "adapters/open-props", entries: frameworkAdapterEntries() },
+  { slug: "shadcn", name: "@themvora/shadcn", dir: "adapters/shadcn", entries: frameworkAdapterEntries() },
+  { slug: "bootstrap", name: "@themvora/bootstrap", dir: "adapters/bootstrap", entries: frameworkAdapterEntries() },
+  { slug: "daisyui", name: "@themvora/daisyui", dir: "adapters/daisyui", entries: frameworkAdapterEntries() },
+  { slug: "open-props", name: "@themvora/open-props", dir: "adapters/open-props", entries: frameworkAdapterEntries() },
 ];
 
 const TYPE_ALIAS_KIND = 2097152;
@@ -602,7 +602,7 @@ async function generateEntry(pkg, entry, tmpJson) {
   const related = links.length
     ? `\n## Related docs\n\n${links.join("\n")}\n`
     : "";
-  return `## ${heading}${moduleIntro}\n> Generated from \`packages/${pkg.slug}/src\` by \`apps/docs/scripts/generate-api-reference.mjs\`. Do not edit by hand — run \`pnpm --filter @theme-kit/docs api:generate\`.\n\n${body}${related}`;
+  return `## ${heading}${moduleIntro}\n> Generated from \`packages/${pkg.slug}/src\` by \`apps/docs/scripts/generate-api-reference.mjs\`. Do not edit by hand — run \`pnpm --filter @themvora/docs api:generate\`.\n\n${body}${related}`;
 }
 
 /** Every `.md` under a directory, recursively. */
@@ -639,7 +639,7 @@ async function main() {
   for (const pkg of PACKAGES) {
     if (pkgFilter && !pkgFilter.includes(pkg.slug)) continue;
     for (const entry of pkg.entries) {
-      const tmpJson = join(process.env.TEMP ?? "/tmp", `theme-kit-api-${pkg.slug}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+      const tmpJson = join(process.env.TEMP ?? "/tmp", `themvora-api-${pkg.slug}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
       try {
         const md = await generateEntry(pkg, entry, tmpJson);
         const outFile = entry.page

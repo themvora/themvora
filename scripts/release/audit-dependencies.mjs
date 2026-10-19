@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dependency-isolation release audit for Theme Kit.
+ * Dependency-isolation release audit for Themvora.
  *
  * Enforces the TARGET dependency policy in scripts/release/dependency-policy.json
  * (NOT the current graph — this audit is expected to fail until the dependency
@@ -21,16 +21,16 @@
  *  - third-party isolation: framework runtimes and design-system libraries
  *    (react, vue, @mui/*, tailwindcss, ...) must only ever appear in
  *    `peerDependencies` — never in dependencies/optionalDependencies/
- *    bundledDependencies (third-party-runtime). `@theme-kit/core` must have
+ *    bundledDependencies (third-party-runtime). `@themvora/core` must have
  *    no deps or peers at all.
- *  - transitive graph: BFS over workspace `@theme-kit/*` dependencies starting
+ *  - transitive graph: BFS over workspace `@themvora/*` dependencies starting
  *    from each package's *disallowed* direct deps. A package is blamed for
  *    framework/adapter packages its own disallowed edges pull in (transitive,
- *    with the full chain, e.g. @theme-kit/vue -> @theme-kit/shadcn ->
- *    @theme-kit/react). Packages pulled in through ALLOWED edges are the
+ *    with the full chain, e.g. @themvora/vue -> @themvora/shadcn ->
+ *    @themvora/react). Packages pulled in through ALLOWED edges are the
  *    responsibility of that edge's own audit (trust boundary), so e.g. nuxt is
  *    not blamed for whatever vue's subtree contains.
- *  - source import boundary: every `@theme-kit/*` import in src/** must resolve
+ *  - source import boundary: every `@themvora/*` import in src/** must resolve
  *    (subpaths normalized) to the package itself or an allowed dependency
  *    (source-import).
  *
@@ -200,14 +200,14 @@ function matchesForbiddenThirdParty(policy, name) {
   return false;
 }
 
-// "@theme-kit/adapters/react" -> "@theme-kit/adapters"; "react" -> "react"
+// "@themvora/adapters/react" -> "@themvora/adapters"; "react" -> "react"
 function basePackageName(spec) {
   const parts = spec.split("/");
   return spec.startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
 }
 
 function shortName(name) {
-  return name.replace(/^@theme-kit\//, "");
+  return name.replace(/^@themvora\//, "");
 }
 
 function pairingType(pkgCat, depCat) {
@@ -327,7 +327,7 @@ function runAudit(policy) {
             "framework-leak": "framework package hard-depends on a DIFFERENT framework package",
             "adapter-leak": "framework package must not depend on adapter packages",
             "adapter-dep": "adapter depends on another adapter",
-            "framework-dep": "adapter must not hard-depend on @theme-kit/react or any framework package",
+            "framework-dep": "adapter must not hard-depend on @themvora/react or any framework package",
             "unapproved-dep": `workspace dep not in allowedDependencies [${allowedList}]`,
           }[type];
           push(violations, {
@@ -412,10 +412,10 @@ function runAudit(policy) {
       // import), not arbitrary quoted strings such as Angular InjectionToken
       // descriptions.
       const IMPORT_RE = [
-        /\bfrom\s*["'](@theme-kit\/[^"']+)["']/g,
-        /\bimport\s*\(\s*["'](@theme-kit\/[^"']+)["']\s*\)/g,
-        /\bimport\s+["'](@theme-kit\/[^"']+)["']/g,
-        /\brequire\s*\(\s*["'](@theme-kit\/[^"']+)["']\s*\)/g,
+        /\bfrom\s*["'](@themvora\/[^"']+)["']/g,
+        /\bimport\s*\(\s*["'](@themvora\/[^"']+)["']\s*\)/g,
+        /\bimport\s+["'](@themvora\/[^"']+)["']/g,
+        /\brequire\s*\(\s*["'](@themvora\/[^"']+)["']\s*\)/g,
       ];
       for (const file of walkFiles(srcDir)) {
         if (!/\.(ts|tsx|js|mjs|cjs|svelte|vue|astro)$/.test(file)) continue;
@@ -531,7 +531,7 @@ writeFileSync(
       generatedAt: new Date().toISOString(),
       policy: POLICY_REL,
       methodology:
-        "transitive closure = BFS over workspace @theme-kit/* dependencies (dependencies + optionalDependencies) in package.json; pnpm-lock.yaml is not consulted",
+        "transitive closure = BFS over workspace @themvora/* dependencies (dependencies + optionalDependencies) in package.json; pnpm-lock.yaml is not consulted",
       packagesAudited: packages.length,
       violations,
       summary,

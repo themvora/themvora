@@ -1,11 +1,11 @@
-## @theme-kit/adapters
-Theme Kit adapter toolkit.
+## @themvora/adapters
+Themvora adapter toolkit.
 
 Shared utilities for building library adapters: the `AdapterSource`
 contract, token readers (`readToken`, `readNested`, font/radius/breakpoint
 readers), and color math (`hexToRgb`, `rgbToHex`, `mixHex`, `mixColors`).
 
-> Generated from `packages/adapters/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/adapters/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 

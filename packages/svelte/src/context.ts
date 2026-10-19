@@ -1,5 +1,5 @@
 import { getContext } from "svelte";
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
 
 /**
  * Context key the provider installs the runtime under.
@@ -8,7 +8,7 @@ import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
  * without importing the barrel — a component that imported `index.ts` would
  * create a cycle, since the barrel exports the component.
  */
-export const ThemeKitKey = Symbol("theme-kit");
+export const ThemeKey = Symbol("themvora");
 
 /**
  * Reads the runtime the nearest `ThemeProvider` installed.
@@ -16,7 +16,7 @@ export const ThemeKitKey = Symbol("theme-kit");
  * @throws If called outside a `ThemeProvider`.
  */
 export function getThemeRuntime<T extends ThemeDefinition>() {
-  const runtime = getContext<ThemeRuntime<T>>(ThemeKitKey);
+  const runtime = getContext<ThemeRuntime<T>>(ThemeKey);
   if (!runtime) {
     throw new Error("getThemeRuntime must be used within a ThemeProvider");
   }

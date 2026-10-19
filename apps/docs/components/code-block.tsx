@@ -19,7 +19,7 @@ export function CodeBlock({
   html: string;
   code: string;
   language: string;
-  filename?: string;
+  filename?: string | undefined;
   className?: string;
   bordered?: boolean;
   showLineNumbers?: boolean;
@@ -79,7 +79,7 @@ export function CodeBlock({
               ? "true"
               : "false"
         }
-        className={canCollapse && !expanded ? "code-block-collapsed" : undefined}
+        className={`code-block-content${canCollapse && !expanded ? " code-block-collapsed" : ""}`}
       />
       {canCollapse ? (
         <button

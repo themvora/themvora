@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { createShadcnAdapter } from "../src";
 
 const themes = [
@@ -81,7 +81,7 @@ describe("shadcn adapter lifecycle", () => {
     const handle = runtime.adapters.use(adapter);
 
     // After install a style element with the shadcn variables exists
-    const styleEl = document.querySelector('[data-theme-kit="shadcn"]') as HTMLStyleElement;
+    const styleEl = document.querySelector('[data-themvora="shadcn"]') as HTMLStyleElement;
     expect(styleEl).toBeTruthy();
     expect(styleEl.textContent).toContain("#ffffff"); // light background
     expect(styleEl.textContent).toContain("#0a0a0a"); // light foreground
@@ -93,11 +93,11 @@ describe("shadcn adapter lifecycle", () => {
 
     // 3. cleanup — uninstall
     handle.dispose();
-    expect(document.querySelector('[data-theme-kit="shadcn"]')).toBeNull();
+    expect(document.querySelector('[data-themvora="shadcn"]')).toBeNull();
 
     // 4. store subscription is cleaned up — no style element is recreated after uninstall
     runtime.selection.setMode("light");
-    expect(document.querySelector('[data-theme-kit="shadcn"]')).toBeNull();
+    expect(document.querySelector('[data-themvora="shadcn"]')).toBeNull();
 
     runtime.destroy();
   });
@@ -116,6 +116,6 @@ describe("shadcn adapter lifecycle", () => {
     runtime.destroy();
     // After destroy, uninstall must be a no-op (the registry already uninstalled it)
     expect(() => handle.dispose()).not.toThrow();
-    expect(document.querySelector('[data-theme-kit="shadcn"]')).toBeNull();
+    expect(document.querySelector('[data-themvora="shadcn"]')).toBeNull();
   });
 });

@@ -11,8 +11,8 @@ export default defineConfig({
   external: [
     "react",
     "react-dom",
-    "@theme-kit/core",
-    "@theme-kit/adapters",
+    "@themvora/core",
+    "@themvora/adapters",
     "@mui/material",
     "@emotion/react",
     "@emotion/styled",

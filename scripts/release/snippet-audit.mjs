@@ -5,10 +5,10 @@
  *
  * Extracts every code snippet embedded in the docs pages (CodeBlock code=
  * template literals and FrameworkTabs examples) plus every fenced code block
- * in the markdown guides, parses the `import ... from "@theme-kit/*"`
+ * in the markdown guides, parses the `import ... from "@themvora/*"`
  * statements, and verifies each imported symbol exists in the frozen public
  * API manifest (scripts/release/api-manifest.json). Also verifies subpath
- * imports (e.g. "@theme-kit/core/vanilla") resolve to a declared exports
+ * imports (e.g. "@themvora/core/vanilla") resolve to a declared exports
  * subpath.
  *
  * Framework-aware rules (the "docs must not become a museum of old framework
@@ -17,11 +17,11 @@
  *  - `astro:island-directive` — every `client:*` directive in an Astro snippet
  *    must be a real Astro client directive with a valid value.
  *  - `astro:root-import` — a snippet may only take framework-neutral symbols
- *    from the `@theme-kit/astro` root; React symbols (island, hooks,
- *    `ThemeScope`) must come from `@theme-kit/astro/client`. Enforced by the
+ *    from the `@themvora/astro` root; React symbols (island, hooks,
+ *    `ThemeScope`) must come from `@themvora/astro/client`. Enforced by the
  *    manifest check, restated here so the intent is explicit.
  *  - `remix:server-boundary` — `getInitialThemeState` must be imported from
- *    `@theme-kit/remix/server`, never the package root.
+ *    `@themvora/remix/server`, never the package root.
  *  - `framework:obsolete-bootstrap` — `createThemeRoot()` is a React-SPA-only
  *    helper; it must not appear in Astro/Remix/Next snippets.
  *
@@ -62,8 +62,8 @@ const manifest = JSON.parse(
 // example-completeness gate read the docs through the same lens.
 
 function checkImport({ pkg, name, dynamic }) {
-  const parts = pkg.replace("@theme-kit/", "").split("/");
-  const base = `@theme-kit/${parts[0]}`; // e.g. @theme-kit/core
+  const parts = pkg.replace("@themvora/", "").split("/");
+  const base = `@themvora/${parts[0]}`; // e.g. @themvora/core
   const subpath = parts.length > 1 ? `./${parts.slice(1).join("/")}` : ".";
 
   const entry = manifest[base];
@@ -79,7 +79,7 @@ function checkImport({ pkg, name, dynamic }) {
 
   // Subpath imports: verify the subpath is declared AND that it actually
   // exports the symbol. Verifying only that the subpath exists is how
-  // `ThemeTransitionOptions from "@theme-kit/next/client"` survived: the
+  // `ThemeTransitionOptions from "@themvora/next/client"` survived: the
   // subpath is real, the symbol is not in it.
   if (subpath !== ".") {
     const declared = entry.exports.subpaths.includes(subpath);
@@ -156,10 +156,10 @@ const VALID_CLIENT_DIRECTIVES = new Set([
 ]);
 
 const FRAMEWORK_BOOTSTRAP_PKGS = new Set([
-  "@theme-kit/astro",
-  "@theme-kit/remix",
-  "@theme-kit/next",
-  "@theme-kit/nuxt",
+  "@themvora/astro",
+  "@themvora/remix",
+  "@themvora/next",
+  "@themvora/nuxt",
 ]);
 
 // Returns [{ import, ok, detail }] for the framework-aware rules.
@@ -187,29 +187,29 @@ function checkFrameworkRules(snippet, isAstro) {
   }
 
   // remix:server-boundary — the Remix server helper must come from /server.
-  const isRemixSnippet = imports.some((i) => i.pkg.startsWith("@theme-kit/remix"));
+  const isRemixSnippet = imports.some((i) => i.pkg.startsWith("@themvora/remix"));
   if (isRemixSnippet) {
     for (const imp of imports) {
-      if (imp.name === "getInitialThemeState" && imp.pkg !== "@theme-kit/remix/server") {
+      if (imp.name === "getInitialThemeState" && imp.pkg !== "@themvora/remix/server") {
         results.push({
           import: `getInitialThemeState from "${imp.pkg}"`,
           ok: false,
-          detail: `must be imported from "@theme-kit/remix/server", not "${imp.pkg}"`,
+          detail: `must be imported from "@themvora/remix/server", not "${imp.pkg}"`,
         });
       }
     }
   }
 
   // astro:root-import — the React-free Astro root must not be combined with a
-  // React runtime import; React belongs behind `@theme-kit/astro/client`.
-  const usesAstroRoot = imports.some((i) => i.pkg === "@theme-kit/astro");
+  // React runtime import; React belongs behind `@themvora/astro/client`.
+  const usesAstroRoot = imports.some((i) => i.pkg === "@themvora/astro");
   if (usesAstroRoot) {
-    const reactRuntime = snippet.match(/from\s*["'](react|react-dom|@theme-kit\/react)["']/);
+    const reactRuntime = snippet.match(/from\s*["'](react|react-dom|@themvora\/react)["']/);
     if (reactRuntime) {
       results.push({
         import: `react runtime "${reactRuntime[1]}"`,
         ok: false,
-        detail: `the @theme-kit/astro root is framework-neutral; take React from "@theme-kit/astro/client"`,
+        detail: `the @themvora/astro root is framework-neutral; take React from "@themvora/astro/client"`,
       });
     }
   }

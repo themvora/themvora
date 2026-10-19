@@ -1,6 +1,7 @@
 import {
   inject,
   DestroyRef,
+  computed,
   type Signal,
   signal,
 } from "@angular/core";
@@ -14,32 +15,32 @@ import type {
   ThemeLifecycleEventName,
   ThemeScheduleState,
   ThemeScheduleSetOptions,
-} from "@theme-kit/core";
-import { EMPTY_THEME_SCHEDULE_STATE } from "@theme-kit/core";
-import { THEME_KIT_RUNTIME, THEME_KIT_SCOPED_RUNTIME } from "./tokens";
+} from "@themvora/core";
+import { EMPTY_THEME_SCHEDULE_STATE, resolveGeneratedTheme } from "@themvora/core";
+import { THEME_RUNTIME, THEME_SCOPED_RUNTIME } from "./tokens";
 
 function resolveRuntime<T extends ThemeDefinition>(): ThemeRuntime<T> {
   const runtime =
-    inject(THEME_KIT_SCOPED_RUNTIME, { optional: true }) ??
-    inject(THEME_KIT_RUNTIME);
+    inject(THEME_SCOPED_RUNTIME, { optional: true }) ??
+    inject(THEME_RUNTIME);
   if (!runtime) {
     throw new Error(
-      "No ThemeKit runtime found. Ensure provideThemeKit() is included in your providers.",
+      "No Themvora runtime found. Ensure provideTheme() is included in your providers.",
     );
   }
   return runtime as ThemeRuntime<T>;
 }
 
 /**
- * Injects the active Theme Kit runtime.
+ * Injects the active Themvora runtime.
  *
  * May be called from an Angular injection context. Resolves the scoped runtime
  * when inside a {@link ThemeScopeDirective}, otherwise the environment runtime
- * provided by {@link provideThemeKit}. Throws if no runtime is provided.
+ * provided by {@link provideTheme}. Throws if no runtime is provided.
  *
  * @returns The active {@link ThemeRuntime}.
  *
- * @see {@link provideThemeKit}
+ * @see {@link provideTheme}
  * @see {@link injectTheme}
  */
 export function injectThemeRuntime<T extends ThemeDefinition = ThemeDefinition>(): ThemeRuntime<T> {
@@ -119,6 +120,67 @@ export function injectTheme<T extends ThemeDefinition = ThemeDefinition>(): Sign
   destroyRef.onDestroy(unsub);
 
   return state.asReadonly();
+}
+
+/**
+ * Injects the theme produced by `generateTheme()` and registered with the
+ * provider, as a read-only signal.
+ *
+ * Resolves the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`); shipped presets never qualify. When
+ * both halves of one `generateTheme()` call are registered, the signal tracks
+ * the theme the active selection resolves to, and unsubscribes automatically
+ * when the injector is destroyed.
+ *
+ * May be called from an Angular injection context.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection; if
+ * the generated theme is later removed, the same error is raised at the next
+ * reactive read rather than a stale theme being returned.
+ *
+ * @returns A read-only `Signal<T>` holding the registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when no generated theme is
+ *   registered; `TV_GENERATION_THEME_AMBIGUOUS` when several are and the active
+ *   selection does not identify one.
+ *
+ * @example
+ * ```ts
+ * const generated = injectGeneratedTheme();
+ * effect(() => console.log(generated().name));
+ * ```
+ *
+ * @see {@link injectTheme}
+ */
+export function injectGeneratedTheme<T extends ThemeDefinition = ThemeDefinition>(): Signal<T> {
+  const runtime = resolveRuntime<T>();
+  const destroyRef = inject(DestroyRef);
+  const version = signal(0);
+
+  // Eager initial resolution preserves the documented inject-time error contract.
+  resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+
+  // Lazy: recomputes when read after a bump, so a settled missing/ambiguous state
+  // throws at the read (render) — never inside a subscription callback.
+  const theme = computed<T>(() => {
+    version();
+    return resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+  });
+
+  // React to the registry too: a `runtime.use(pack)` install adds generated
+  // themes without touching the store or selection.
+  const bump = () => version.update((value) => value + 1);
+  const unsubStore = runtime.store.subscribe(bump);
+  const unsubRegistry = runtime.registry.subscribe(bump);
+  destroyRef.onDestroy(() => {
+    unsubStore();
+    unsubRegistry();
+  });
+
+  return theme;
 }
 
 /**

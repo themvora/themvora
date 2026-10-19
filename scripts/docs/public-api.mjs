@@ -53,34 +53,34 @@ const CLASSES = [
 
 /**
  * Package role defaults. A package's role is a property of the package, not of
- * a symbol: every export of `@theme-kit/core` is core runtime surface, every
+ * a symbol: every export of `@themvora/core` is core runtime surface, every
  * export of a framework package is framework surface.
  */
 const ROLES = {
-  "@theme-kit/core": { role: "core", class: "CORE_PUBLIC" },
-  "@theme-kit/web": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/react": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/next": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/vue": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/nuxt": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/svelte": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/solid": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/angular": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/astro": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/remix": { role: "framework", class: "FRAMEWORK_PUBLIC" },
-  "@theme-kit/tailwind": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/mui": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/chakra": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/antd": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/mantine": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/shadcn": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/bootstrap": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/daisyui": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/open-props": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/unocss": { role: "adapter", class: "ADAPTER_PUBLIC" },
-  "@theme-kit/adapters": { role: "adapter-toolkit", class: "LOW_LEVEL_PUBLIC" },
-  "@theme-kit/cli": { role: "tooling", class: "LOW_LEVEL_PUBLIC" },
-  "@theme-kit/devtools": { role: "tooling", class: "LOW_LEVEL_PUBLIC" },
+  "@themvora/core": { role: "core", class: "CORE_PUBLIC" },
+  "@themvora/web": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/react": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/next": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/vue": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/nuxt": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/svelte": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/solid": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/angular": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/astro": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/remix": { role: "framework", class: "FRAMEWORK_PUBLIC" },
+  "@themvora/tailwind": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/mui": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/chakra": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/antd": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/mantine": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/shadcn": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/bootstrap": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/daisyui": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/open-props": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/unocss": { role: "adapter", class: "ADAPTER_PUBLIC" },
+  "@themvora/adapters": { role: "adapter-toolkit", class: "LOW_LEVEL_PUBLIC" },
+  "@themvora/cli": { role: "tooling", class: "LOW_LEVEL_PUBLIC" },
+  "@themvora/devtools": { role: "tooling", class: "LOW_LEVEL_PUBLIC" },
 };
 
 /**
@@ -89,7 +89,7 @@ const ROLES = {
  * package's normal surface".
  */
 const OVERRIDES = {
-  "@theme-kit/react:createThemeRoot": {
+  "@themvora/react:createThemeRoot": {
     class: "LOW_LEVEL_PUBLIC",
     reason: "React-SPA-only bootstrap helper (see .workbuddy-ai/memory/MEMORY.md)",
   },

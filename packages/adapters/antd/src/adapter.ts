@@ -2,7 +2,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import type { ThemeConfig } from "antd";
 import { createAntdTheme } from "./theme";
 import type { AntdAdapterOptions } from "./defaults";
@@ -36,7 +36,7 @@ export interface AntdThemeAdapter<T extends ThemeDefinition>
 }
 
 /**
- * Runtime-owned Ant Design adapter. On install it subscribes to the Theme Kit
+ * Runtime-owned Ant Design adapter. On install it subscribes to the Themvora
  * store and rebuilds the `ThemeConfig` whenever the active theme changes. The
  * generated config is available through `getSnapshot` for React consumption.
  *

@@ -1,12 +1,12 @@
-// CLI consumer test — installs @theme-kit/cli from the published tarball and
-// exercises the shipped `theme-kit` bin as a real external consumer would.
+// CLI consumer test — installs @themvora/cli from the published tarball and
+// exercises the shipped `themvora` bin as a real external consumer would.
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const bin = join(here, "node_modules", ".bin", process.platform === "win32" ? "theme-kit.cmd" : "theme-kit");
+const bin = join(here, "node_modules", ".bin", process.platform === "win32" ? "themvora.cmd" : "themvora");
 const themeFile = join(here, "theme.json");
 const brokenFile = join(here, "broken-theme.json");
 const missingFile = join(here, "does-not-exist.json");
@@ -17,7 +17,7 @@ let pass = 0;
 let fail = 0;
 
 function run(args, { expectExit = 0, expectOut = [], expectErr = [] } = {}) {
-  const label = `theme-kit ${args.join(" ")}`;
+  const label = `themvora ${args.join(" ")}`;
   let code = 0;
   let combined = "";
   try {
@@ -52,13 +52,19 @@ function run(args, { expectExit = 0, expectOut = [], expectErr = [] } = {}) {
 }
 
 if (!existsSync(bin)) {
-  console.error(`✗ theme-kit bin not found at ${bin}`);
+  console.error(`✗ themvora bin not found at ${bin}`);
   process.exit(1);
 }
 
 // --- happy path ---
-run(["--version"], { expectOut: ["1.0.0"] });
-run(["-v"], { expectOut: ["1.0.0"] });
+// The published version is read from the installed package rather than pinned
+// here: a hardcoded literal goes stale on every release and fails the consumer
+// suite for a reason that has nothing to do with the CLI's behaviour.
+const installedVersion = JSON.parse(
+  readFileSync(join(here, "node_modules", "@themvora", "cli", "package.json"), "utf8"),
+).version;
+run(["--version"], { expectOut: [installedVersion] });
+run(["-v"], { expectOut: [installedVersion] });
 run(["--help"], { expectOut: ["Usage:", "generate", "validate"] });
 run(["generate", "--seed", "#ea580c", "--mode", "both"], {
   expectOut: ['"light"', '"dark"'],

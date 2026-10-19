@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateTheme } from "../src";
+import { generateTheme, getContrastRatio } from "../src";
 
 describe("generateTheme", () => {
   it("generates light and dark themes from a seed", () => {
@@ -93,17 +93,33 @@ describe("generateTheme", () => {
     expect(dark.meta?.order).toBe(20);
   });
 
-  it("picks a contrast-safe primary foreground for dark seeds", () => {
+  it("chooses the primary foreground by measured contrast, not a luminance guess", () => {
     const { light, dark } = generateTheme({ seed: "#3b82f6" });
 
-    expect(light.tokens?.colors?.primaryForeground).toBe("#ffffff");
-    expect(dark.tokens?.colors?.primaryForeground).toBe("#020617");
+    const lightPrimary = light.tokens?.colors?.primary as string;
+    const lightForeground = light.tokens?.colors?.primaryForeground as string;
+
+    // White on #3b82f6 measures 3.32:1 — below the 4.5 AA floor — so the darker
+    // ink is selected. The generator solves to its internal target (≥4.75), so
+    // this clears AA with margin. Asserting the *contrast* rather than a literal
+    // hex keeps the test meaningful as the OKLCH ink values evolve.
+    expect(getContrastRatio(lightForeground, lightPrimary)).toBeGreaterThanOrEqual(4.5);
+    expect(getContrastRatio(lightForeground, lightPrimary)).toBeGreaterThan(
+      getContrastRatio("#ffffff", lightPrimary),
+    );
+
+    const darkPrimary = dark.tokens?.colors?.primary as string;
+    const darkForeground = dark.tokens?.colors?.primaryForeground as string;
+    expect(getContrastRatio(darkForeground, darkPrimary)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("picks a dark primary foreground for light seeds", () => {
+  it("picks a readable primary foreground for light seeds", () => {
     const { light } = generateTheme({ seed: "#f59e0b" });
 
-    expect(light.tokens?.colors?.primaryForeground).toBe("#0f172a");
+    const primary = light.tokens?.colors?.primary as string;
+    const foreground = light.tokens?.colors?.primaryForeground as string;
+
+    expect(getContrastRatio(foreground, primary)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("produces valid hex colors", () => {

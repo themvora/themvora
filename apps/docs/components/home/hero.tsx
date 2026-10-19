@@ -6,12 +6,13 @@ import {
   useTheme,
   useThemeRuntime,
   useSetThemeFamily,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 import { Button } from "../ui/button";
 import { CodeBlock } from "../code-block";
 import { highlightCode } from "../../lib/highlight";
 import { frameworks } from "../../lib/frameworks";
 import { c, colorsOf, contrastRatio } from "../../lib/contrast";
+import { HeroScene } from "./hero-scene";
 import { PKG_VERSION_BADGE } from "../../lib/version";
 
 /** Tiny inline trend line for the stat tiles — decorative, token-colored. */
@@ -79,7 +80,7 @@ function DashboardPreview() {
           </div>
           <div>
             <div className="text-sm font-semibold leading-tight flex items-center gap-1.5">
-              Theme Kit
+              Themvora
               <span
                 className="w-1.5 h-1.5 rounded-full pulse-soft"
                 style={{ background: "var(--theme-color-success)" }}
@@ -272,7 +273,7 @@ function FamilyChips() {
     const result: string[] = [];
     for (const t of runtime.themes) {
       const f = t.meta?.family;
-      if (f && !seen.has(f) && !["theme-kit", "lab", "scope"].includes(f)) {
+      if (f && !seen.has(f) && !["themvora", "lab", "scope"].includes(f)) {
         seen.add(f);
         result.push(f);
       }
@@ -316,7 +317,7 @@ function LiveCodeSample() {
 
   const code = useMemo(
     () =>
-      `import { createThemeRuntime } from "@theme-kit/core";
+      `import { createThemeRuntime } from "@themvora/core";
 
 // Applied on this page right now: ${themeName}
 const runtime = createThemeRuntime();
@@ -333,7 +334,7 @@ runtime.selection.setMode("${currentMode}");      // swap light/dark`,
         code={code}
         language="tsx"
         filename={`Live · ${currentFamily} · ${currentMode}`}
-        className="rounded-xl !m-0"
+        className="rounded-xl m-0!"
       />
     </div>
   );
@@ -381,69 +382,93 @@ export function Hero() {
       </div>
       <div className="hero-orb hero-orb-1" aria-hidden />
       <div className="hero-orb hero-orb-2" aria-hidden />
+      {/*
+        The 3D colour field, and the readability veil above it. The layering is
+        the contract:
+
+          hero-aurora       the CSS atmosphere — the WebGL fallback, and the wash
+          hero-orb          two blurred CSS orbs — same
+          HeroScene         the 3D field; draws nothing when WebGL is unavailable
+          hero-scene-veil   the protected region, in the page's own background
+          hero-grid         the dot lattice
+          hero-vignette     the outer readability overlay
+
+        So a device without WebGL renders the CSS layers and still looks
+        deliberate, and the scene can never compete with the hero content because
+        two readability layers sit above it.
+      */}
+      <HeroScene />
+      <div className="hero-scene-veil" aria-hidden />
       <div className="hero-grid" aria-hidden />
       <div className="hero-vignette" aria-hidden />
 
-      <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-20 text-center">
-        <div className="fade-up fade-up-1 flex justify-center mb-6">
-          <span className="chip cursor-default">
-            <span
-              className="w-2 h-2 rounded-full pulse-soft"
-              style={{ background: "var(--theme-color-primary)" }}
-            />
-            Framework-agnostic theming
-          </span>
-        </div>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 pb-14 sm:pt-16 sm:pb-20">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:items-center lg:gap-14">
+          <div className="text-center lg:text-left">
+            <div className="fade-up fade-up-1 mb-6">
+              <span className="chip cursor-default">
+                <span
+                  className="w-2 h-2 rounded-full pulse-soft"
+                  style={{ background: "var(--theme-color-primary)" }}
+                />
+                Framework-agnostic theming
+              </span>
+            </div>
 
-        <h1 className="fade-up fade-up-2 text-4xl sm:text-6xl font-bold tracking-tight mb-5 text-balance">
-          The theming runtime for{" "}
-          <span className="gradient-text">modern applications.</span>
-        </h1>
+            <h1 className="fade-up fade-up-2 text-4xl sm:text-6xl font-bold tracking-tight mb-5 text-balance">
+              The theming runtime{" "}
+              <span className="hero-accent">for modern applications.</span>
+            </h1>
 
-        <p className="fade-up fade-up-3 mx-auto max-w-2xl text-base sm:text-lg opacity-70 mb-8 leading-relaxed text-balance">
-          Semantic tokens, theme families, SSR-safe hydration, smooth
-          transitions, scoped themes, and adapters — a runtime designed to stay
-          out of your way.
-        </p>
+            <p className="fade-up fade-up-3 mx-auto lg:mx-0 max-w-2xl lg:max-w-xl text-base sm:text-lg opacity-70 mb-8 leading-relaxed text-balance">
+              Semantic tokens, theme families, SSR-safe hydration, smooth
+              transitions, scoped themes, and adapters — a runtime designed to
+              stay out of your way.
+            </p>
 
-        <div className="fade-up fade-up-3 flex flex-wrap items-center justify-center gap-3 mb-10">
-          <Button href="/get-started" size="lg">
-            Get started
-          </Button>
-          <Button href="/theme-studio" variant="ghost" size="lg">
-            Explore themes
-          </Button>
-        </div>
+            <div className="fade-up fade-up-3 flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
+              <Button href="/get-started" size="lg">
+                Get started
+              </Button>
+              <Button href="/theme-studio" variant="ghost" size="lg">
+                Explore themes
+              </Button>
+            </div>
 
-        <div className="fade-up fade-up-3 mb-12 flex flex-col items-center gap-2">
-          {/*
+            <div className="fade-up fade-up-3 flex flex-col items-center lg:items-start gap-2">
+              {/*
             Framework-agnostic on purpose. This used to read
-            `@theme-kit/core @theme-kit/react`, which quietly framed Theme Kit as
+            `@themvora/core @themvora/react`, which quietly framed Themvora as
             a React library on the page that has to communicate the opposite —
-            React is one adapter among ten. `@theme-kit/<your-framework>` states
+            React is one adapter among ten. `@themvora/<your-framework>` states
             the shape: core, plus the adapter for whichever stack you use.
           */}
-          <code className="chip mono text-xs sm:text-sm px-4 py-2">
-            npm install @theme-kit/core @theme-kit/&lt;your-framework&gt;
-          </code>
-          <span className="text-xs opacity-60">
-            React · Next.js · Vue · Nuxt · Svelte · Solid · Angular · Astro ·
-            Remix · Web Components
-          </span>
-          <Link
-            href="/cli/quickstart"
-            className="text-xs opacity-60 hover:opacity-100 transition-opacity no-underline"
-          >
-            Build themes from the terminal with{" "}
-            <code className="mono">theme-kit generate</code> → Read CLI docs →
-          </Link>
+              <code className="chip mono text-xs sm:text-sm px-4 py-2">
+                npm install @themvora/core @themvora/&lt;your-framework&gt;
+              </code>
+              <span className="text-xs opacity-60">
+                React · Next.js · Vue · Nuxt · Svelte · Solid · Angular · Astro
+                · Remix · Web Components
+              </span>
+              <Link
+                href="/cli/quickstart"
+                className="text-xs opacity-60 hover:opacity-100 transition-opacity no-underline"
+              >
+                Build themes from the terminal with{" "}
+                <code className="mono">themvora generate</code> → Read CLI docs
+                →
+              </Link>
+            </div>
+          </div>
+
+          {/* `max-w-md` below `lg` keeps the card from stretching the full width
+              of a phone; the grid track constrains it above. */}
+          <div className="fade-up fade-up-4 w-full max-w-md mx-auto lg:max-w-none">
+            <DashboardPreview />
+          </div>
         </div>
 
-        <div className="fade-up fade-up-4 mb-6">
-          <DashboardPreview />
-        </div>
-
-        <div className="fade-up fade-up-4 mb-8 flex flex-col items-center gap-3">
+        <div className="fade-up fade-up-4 mt-14 sm:mt-20 mb-8 flex flex-col items-center gap-3">
           <p className="text-xs uppercase tracking-widest opacity-40 font-semibold">
             Palette —{" "}
             <span className="opacity-60 normal-case tracking-normal">

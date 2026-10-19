@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Package release audit for Theme Kit 1.0.0.
+ * Package release audit for Themvora 1.0.0.
  *
  * Verifies, for every workspace package:
  *  - package.json metadata (name, version, license, description, repository,
@@ -46,13 +46,6 @@ function globDirectories(pattern) {
   return entries.sort();
 }
 
-function readDir(p) {
-  try {
-    return readdirSync(p);
-  } catch {
-    return [];
-  }
-}
 
 const packages = [];
 for (const pattern of PKG_DIRS) {
@@ -67,15 +60,15 @@ for (const pattern of PKG_DIRS) {
 const byName = new Map(packages.map((p) => [p.json.name, p]));
 
 const FRAMEWORK_PKGS = new Set([
-  "@theme-kit/react",
-  "@theme-kit/next",
-  "@theme-kit/vue",
-  "@theme-kit/nuxt",
-  "@theme-kit/svelte",
-  "@theme-kit/solid",
-  "@theme-kit/angular",
-  "@theme-kit/astro",
-  "@theme-kit/remix",
+  "@themvora/react",
+  "@themvora/next",
+  "@themvora/vue",
+  "@themvora/nuxt",
+  "@themvora/svelte",
+  "@themvora/solid",
+  "@themvora/angular",
+  "@themvora/astro",
+  "@themvora/remix",
 ]);
 
 const FRAMEWORK_RUNTIMES = new Set([
@@ -105,7 +98,7 @@ const groupVersions = new Map();
 
 // Release groups come from .changeset/config.json `fixed`. Only packages that
 // genuinely share a compatibility contract are versioned together; everything
-// else versions independently, so a scoped break (e.g. @theme-kit/astro) does
+// else versions independently, so a scoped break (e.g. @themvora/astro) does
 // not force a major on unrelated packages.
 let releaseGroups = [];
 try {
@@ -169,7 +162,7 @@ for (const pkg of packages) {
     }
   }
 
-  // CLI version constant must match the package version (theme-kit --version)
+  // CLI version constant must match the package version (themvora --version)
   if (rel === "packages\\cli" || rel === "packages/cli") {
     const versionSrc = join(dir, "src", "version.ts");
     if (existsSync(versionSrc)) {
@@ -381,6 +374,7 @@ for (const [rel, checks] of [...byPkg.entries()].sort()) {
 console.log(`\n=== SUMMARY ===`);
 console.log(`Total checks: ${report.length}`);
 console.log(`Failures: ${fails.length}`);
+console.log(`Warnings: ${warns.length}`);
 console.log(`Failures by package:`);
 const failByPkg = new Map();
 for (const f of fails) {

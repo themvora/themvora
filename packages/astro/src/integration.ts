@@ -7,14 +7,14 @@ import {
   resolveInitialTheme,
   type PrePaintScrollbarOptions,
   type ThemeDefinition,
-  type ThemeKitConfig,
-  type ThemeKitThemeConfig,
+  type ThemvoraConfig,
+  type ThemvoraThemeConfig,
   type ThemeMode,
   toBootstrapConfig,
-} from "@theme-kit/core";
-// Build-time only: `@theme-kit/core/config` is a separate entry precisely so the
+} from "@themvora/core";
+// Build-time only: `@themvora/core/config` is a separate entry precisely so the
 // runtime entry never pulls in node builtins.
-import { loadThemeKitConfig } from "@theme-kit/core/config";
+import { loadThemvoraConfig } from "@themvora/core/config";
 import {
   buildThemeBootstrapPayload,
   createBlockingScript,
@@ -24,13 +24,13 @@ import { createNavigationScript } from "./navigation-script";
 import { computeFingerprint } from "./fingerprint";
 
 /**
- * Options for {@link themeKit}. Configures the theme registry the injected
+ * Options for {@link themvora}. Configures the theme registry the injected
  * bootstrap resolves against and the fallback selection used when no
  * persisted cookie is present.
  *
- * @see {@link themeKit}
+ * @see {@link themvora}
  */
-export interface ThemeKitIntegrationOptions {
+export interface ThemvoraIntegrationOptions {
   /**
    * The provider's theme configuration — the same object you pass to
    * `getInitialThemeState` and `provider.astro`.
@@ -43,17 +43,17 @@ export interface ThemeKitIntegrationOptions {
    * initial mode — a disagreement the visitor sees as a flash of the wrong
    * theme, with any theme-name readout contradicting the control that set it.
    */
-  config?: ThemeKitThemeConfig<ThemeDefinition>;
+  config?: ThemvoraThemeConfig<ThemeDefinition>;
   /**
    * The theme registry the bootstrap resolves against. Defaults to the
    * built-in neutral themes when omitted or empty.
    *
-   * @deprecated Pass {@link ThemeKitIntegrationOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraIntegrationOptions.config} instead.
    */
   themes?: readonly ThemeDefinition[];
   /**
    * Fallback theme name when no selection is persisted.
-   * @deprecated Pass {@link ThemeKitIntegrationOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraIntegrationOptions.config} instead.
    */
   defaultTheme?: string;
   /**
@@ -67,7 +67,7 @@ export interface ThemeKitIntegrationOptions {
    * owns the runtime, and a disagreement between them makes the runtime correct
    * the paint the script already produced.
    *
-   * @deprecated Pass {@link ThemeKitIntegrationOptions.config} instead — one
+   * @deprecated Pass {@link ThemvoraIntegrationOptions.config} instead — one
    * object, so there is nothing to mirror.
    */
   mode?: ThemeMode;
@@ -77,7 +77,7 @@ export interface ThemeKitIntegrationOptions {
    */
   injectBootstrap?: boolean;
   /**
-   * Hide the native scrollbar before first paint, so the Theme Kit overlay
+   * Hide the native scrollbar before first paint, so the Themvora overlay
    * scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame —
    * the same guarantee the Vite plugin and the Nuxt module provide.
    *
@@ -88,8 +88,8 @@ export interface ThemeKitIntegrationOptions {
    * @remarks
    * The injected script keeps native scrollbars on coarse-pointer devices
    * unless `touch` is set. Pass `scrollbar` to `provider.astro` instead when
-   * you want the `tk-scrollbar` class in the server-rendered HTML (no script,
-   * but then it applies to every device, like `@theme-kit/nuxt`).
+   * you want the `tv-scrollbar` class in the server-rendered HTML (no script,
+   * but then it applies to every device, like `@themvora/nuxt`).
    */
   scrollbar?: boolean | PrePaintScrollbarOptions;
   /**
@@ -173,9 +173,9 @@ function buildBootstrap(
   // statically, and without the guard a second install stacks a duplicate sheet.
   return (
     `${script};(function(){try{` +
-    `if(document.querySelector('style[data-theme-kit="system"]'))return;` +
+    `if(document.querySelector('style[data-themvora="system"]'))return;` +
     `var s=document.createElement("style");` +
-    `s.setAttribute("data-theme-kit","system");` +
+    `s.setAttribute("data-themvora","system");` +
     `s.textContent=${JSON.stringify(systemCss)};` +
     `document.head.appendChild(s)` +
     `}catch(e){}})()`
@@ -183,21 +183,21 @@ function buildBootstrap(
 }
 
 /**
- * Theme Kit Astro integration. Registers the pre-paint theme bootstrap with
+ * Themvora Astro integration. Registers the pre-paint theme bootstrap with
  * Astro so every page is themed before first paint (zero-flash), without
  * requiring a client-side framework runtime.
  *
- * @param options - The integration options (see {@link ThemeKitIntegrationOptions}).
+ * @param options - The integration options (see {@link ThemvoraIntegrationOptions}).
  * @returns An Astro integration to register in `astro.config.ts`.
  *
  * @example
  * ```ts
  * // astro.config.ts — register the integration. No theme data.
  * import { defineConfig } from "astro/config";
- * import themeKit from "@theme-kit/astro";
+ * import themvora from "@themvora/astro";
  *
  * export default defineConfig({
- *   integrations: [themeKit()],
+ *   integrations: [themvora()],
  * });
  * ```
  *
@@ -205,12 +205,12 @@ function buildBootstrap(
  * **Config discovery.** The integration finds the application's
  * `theme.config.ts` in Astro's root, trying `theme.config.ts`, `.tsx`, `.mts`,
  * `.mjs`, `.js` and `.cjs` in that order, and requires a default export — the
- * object {@link defineThemeKitConfig} returns. Passing `config` skips discovery
+ * object {@link defineThemvoraConfig} returns. Passing `config` skips discovery
  * and accepts either the object or a path to it.
  *
  * **Two consumers, one declaration.** The discovered configuration is projected
  * twice: {@link buildBootstrap} derives the blocking script from it, and the
- * same projection is injected as `window.__THEME_KIT_CONFIG__` from `<head>`.
+ * same projection is injected as `window.__THEMVORA_CONFIG__` from `<head>`.
  * The island reads that global instead of taking theme props, so the markup the
  * server renders and the markup the browser hydrates come from the same
  * registry — a mismatch there is visible as the panel repainting as the real
@@ -221,9 +221,9 @@ function buildBootstrap(
  * and nothing fails.
  *
  * The integration owns the framework/build boundary only. Server-rendering the
- * themed `<html>` element is handled by `@theme-kit/astro/provider.astro`, and
+ * themed `<html>` element is handled by `@themvora/astro/provider.astro`, and
  * interactive controls are opt-in islands — React users import the island from
- * `@theme-kit/astro/client`, which is the only entry that depends on React.
+ * `@themvora/astro/client`, which is the only entry that depends on React.
  *
  * The bootstrap is injected at the **`head-inline`** stage, and that choice is
  * load-bearing rather than incidental. `before-hydration` looks equivalent —
@@ -257,11 +257,11 @@ function buildBootstrap(
  * theme state would otherwise be replaced by the destination page's build-time
  * attributes.
  *
- * @see {@link ThemeKitIntegrationOptions}
+ * @see {@link ThemvoraIntegrationOptions}
  * @see `createBlockingScript`
  * @see `systemModeCSSTemplate`
  */
-export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegration {
+export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegration {
   // `config` is the provider's own configuration, so it wins outright rather
   // than merging: a value has exactly one source.
   /**
@@ -272,7 +272,7 @@ export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegra
    * @returns The options the bootstrap is built from.
    */
   function projectThemeOptions(
-    discovered: ThemeKitConfig<ThemeDefinition> | null | undefined,
+    discovered: ThemvoraConfig<ThemeDefinition> | null | undefined,
   ): { themes?: readonly ThemeDefinition[]; defaultTheme?: string; mode?: ThemeMode } {
     const source =
       discovered ??
@@ -307,7 +307,7 @@ export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegra
     options.navigation === false ? null : createNavigationScript();
 
   return {
-    name: "@theme-kit/astro",
+    name: "@themvora/astro",
     hooks: {
       "astro:config:setup": async ({ injectScript, config }) => {
         // Discover the application configuration the same way the Vite plugin
@@ -325,8 +325,8 @@ export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegra
 
         const discovered =
           options.config && typeof options.config === "object"
-            ? (options.config as ThemeKitConfig<ThemeDefinition>)
-            : await loadThemeKitConfig<ThemeDefinition>(
+            ? (options.config as ThemvoraConfig<ThemeDefinition>)
+            : await loadThemvoraConfig<ThemeDefinition>(
                 projectRoot,
                 typeof options.config === "string" ? options.config : undefined,
               );
@@ -336,7 +336,7 @@ export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegra
           // instead of taking the same values again as props.
           injectScript(
             "head-inline",
-            "window.__THEME_KIT_CONFIG__=" +
+            "window.__THEMVORA_CONFIG__=" +
               JSON.stringify(toBootstrapConfig(discovered)).replace(/</g, "\\u003c") +
               ";",
           );
@@ -368,4 +368,4 @@ export function themeKit(options: ThemeKitIntegrationOptions = {}): AstroIntegra
   };
 }
 
-export default themeKit;
+export default themvora;

@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@theme-kit/tailwind";
-@import "@theme-kit/core/scrollbar.css";
+@import "@themvora/tailwind";
+@import "@themvora/core/scrollbar.css";
 
 @theme {
   --breakpoint-sm: 640px;
@@ -71,7 +71,7 @@ body {
 }
 
 :root :focus-visible {
-  outline: 1.5px solid var(--theme-color-ring);
+  outline: 1.89px solid var(--theme-color-ring);
   outline-offset: 0.4px;
 }
 
@@ -216,22 +216,37 @@ body {
     color-mix(in srgb, var(--theme-color-primary) 35%, transparent);
 }
 
-.gradient-text {
-  background: linear-gradient(
-    120deg,
-    var(--theme-color-primary),
-    color-mix(
-      in srgb,
-      var(--theme-color-primary) 45%,
-      var(--theme-color-accent)
-    )
-  );
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gradient-shift 8s ease-in-out infinite;
+/*
+ * Brand accents for display text.
+ *
+ * These used to be a `primary -> accent` gradient clipped to the glyphs, which
+ * made the text itself the brand colour. That reads well in a theme whose
+ * `primary` happens to contrast the canvas and disappears in one where it does
+ * not — Slack dark puts `primary` on the canvas at 1.42:1, so the hero and the
+ * wordmark were the least legible things on the page.
+ *
+ * `primary` is an action and identity colour; `foreground` is the reading
+ * colour. So the glyphs are `foreground` and the brand is carried by a mark
+ * beside them: an underline for running text, a coloured offset shadow for a
+ * display numeral, where an underline would read as a stray rule.
+ *
+ * Large display text is not exempt from this. The WCAG large-text floor is 3:1,
+ * and 1.42 fails it too.
+ */
+.hero-accent {
+  color: var(--theme-color-foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--theme-color-primary);
+  text-decoration-thickness: 0.085em;
+  text-underline-offset: 0.1em;
 }
+
+.display-accent {
+  color: var(--theme-color-foreground);
+  text-shadow: 0.035em 0.035em 0
+    color-mix(in srgb, var(--theme-color-primary) 70%, transparent);
+}
+
 
 @keyframes gradient-shift {
   0% {
@@ -322,6 +337,69 @@ body {
     circle,
     color-mix(in srgb, var(--theme-color-primary) 45%, transparent),
     transparent 70%
+  );
+}
+
+/*
+ * The hero scene's readability veil.
+ *
+ * The brief makes text safety non-negotiable, so it is enforced by a layer that
+ * always runs rather than by hoping the 3D composition behaves. This washes the
+ * centre of the frame back toward the page colour and fades out toward the edges,
+ * where the geometry lives.
+ *
+ * It is drawn in `--theme-color-background`, so it is correct in every theme and
+ * both modes without the scene knowing anything about the theme — and where no
+ * scene is present it is simply invisible, because it is the background colour.
+ *
+ * Layering, from the bottom: hero-aurora · hero-orb · canvas · THIS · hero-grid ·
+ * hero-vignette · content. The veil is above the canvas and below the content,
+ * which is the only place it can do its job.
+ */
+/*
+ * The hero scene canvas.
+ *
+ * Mounted from the first render but transparent until the scene has drawn a real
+ * frame, then crossfaded in. Two things this buys:
+ *
+ * - **No layout shift.** The canvas is a stable, correctly-sized layer from the
+ *   start; only its opacity changes. Nothing is mounted late, so nothing moves.
+ * - **No visible shader compile.** `data-ready` is set from inside the render
+ *   loop *after* the first `renderer.render()`, so the fade begins once there is
+ *   something to fade to rather than while the GPU is still compiling.
+ *
+ * Underneath it, the CSS poster (`hero-aurora`, `hero-orb-1/2`) is already
+ * painted. The orbs sit upper-right and lower-left, which is where the scene's
+ * large forms are — so the crossfade reads as the same composition gaining
+ * depth, not as one image replacing another.
+ */
+.hero-scene-canvas {
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.hero-scene-canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+/* A viewer who asked for less motion gets the composition, not a fade. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-scene-canvas {
+    transition: none;
+  }
+}
+
+.hero-scene-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    78% 70% at 50% 47%,
+    var(--theme-color-background) 0%,
+    color-mix(in srgb, var(--theme-color-background) 92%, transparent) 38%,
+    color-mix(in srgb, var(--theme-color-background) 62%, transparent) 62%,
+    color-mix(in srgb, var(--theme-color-background) 24%, transparent) 80%,
+    transparent 94%
   );
 }
 
@@ -563,23 +641,26 @@ body {
 
 .code-block {
   position: relative;
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* The block itself never scrolls: the toolbar (filename, language, copy) is
+     pinned, and only the code pane below it scrolls horizontally. Scrolling the
+     whole block used to drag the filename and Copy button off-screen as soon as
+     a long line was revealed. */
+  overflow: hidden;
   margin: 1.1rem 0;
   border: 1px solid
     color-mix(in srgb, var(--theme-color-ring) 28%, var(--theme-color-border));
   border-radius: 0.6rem;
-  background: var(--tk-code-bg);
+  background: var(--tv-code-bg);
   box-shadow: 0 1px 3px
     color-mix(in srgb, var(--theme-color-foreground) 4%, transparent);
 
-  /* --tk-* are the single source of truth for syntax colors. They resolve
-     against the active theme-kit theme (any light/dark/preset/brand/scoped
+  /* --tv-* are the single source of truth for syntax colors. They resolve
+     against the active themvora theme (any light/dark/preset/brand/scoped
      theme) so snippets stay readable on every surface. Comfortable tweaks
      stop here. Each role maps to a *distinct* mix of semantic tokens so the
      palette stays harmonized with the theme while every syntax element stays
      distinguishable. */
-  --tk-code-bg: var(
+  --tv-code-bg: var(
     --theme-code-background,
     color-mix(
       in srgb,
@@ -587,16 +668,16 @@ body {
       var(--theme-color-background)
     )
   );
-  --tk-syntax-plain: var(
+  --tv-syntax-plain: var(
     --theme-code-foreground,
     var(--theme-color-foreground)
   );
-  --tk-syntax-comment: var(
+  --tv-syntax-comment: var(
     --theme-code-comment,
     color-mix(in srgb, var(--theme-color-foreground) 55%, transparent)
   );
-  --tk-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
-  --tk-syntax-operator: var(
+  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
+  --tv-syntax-operator: var(
     --theme-code-operator,
     color-mix(
       in srgb,
@@ -604,23 +685,23 @@ body {
       var(--theme-color-primary)
     )
   );
-  --tk-syntax-string: var(
+  --tv-syntax-string: var(
     --theme-code-string,
     color-mix(in srgb, var(--theme-color-primary) 70%, #10b981)
   );
-  --tk-syntax-function: var(
+  --tv-syntax-function: var(
     --theme-code-function,
     color-mix(in srgb, var(--theme-color-primary) 75%, #3b82f6)
   );
-  --tk-syntax-type: var(
+  --tv-syntax-type: var(
     --theme-code-type,
     color-mix(in srgb, var(--theme-color-primary) 70%, #8b5cf6)
   );
-  --tk-syntax-tag: var(
+  --tv-syntax-tag: var(
     --theme-code-tag,
     color-mix(in srgb, var(--theme-color-primary) 75%, #ec4899)
   );
-  --tk-syntax-attr: var(
+  --tv-syntax-attr: var(
     --theme-code-attribute,
     color-mix(
       in srgb,
@@ -628,11 +709,11 @@ body {
       var(--theme-color-primary)
     )
   );
-  --tk-syntax-variable: var(
+  --tv-syntax-variable: var(
     --theme-code-variable,
     var(--theme-color-foreground)
   );
-  --tk-syntax-property: var(
+  --tv-syntax-property: var(
     --theme-code-property,
     color-mix(
       in srgb,
@@ -640,17 +721,17 @@ body {
       var(--theme-color-primary)
     )
   );
-  --tk-syntax-number: var(
+  --tv-syntax-number: var(
     --theme-code-number,
     color-mix(in srgb, var(--theme-color-primary) 65%, #f97316)
   );
-  --tk-syntax-diff-add: color-mix(
+  --tv-syntax-diff-add: color-mix(
     in srgb,
     var(--theme-color-primary) 60%,
     var(--theme-color-foreground)
   );
-  --tk-syntax-diff-remove: var(--theme-color-destructive);
-  --tk-syntax-danger: var(--theme-color-destructive);
+  --tv-syntax-diff-remove: var(--theme-color-destructive);
+  --tv-syntax-danger: var(--theme-color-destructive);
 }
 
 /*
@@ -659,18 +740,18 @@ body {
   fallbacks above can drift into muddy, low-contrast territory — these
   overrides anchor each role's lightness to the theme's *foreground* (which is
   light in dark mode) so every syntax element stays readable. The .dark class
-  is set on <html> by the theme-kit provider.
+  is set on <html> by the themvora provider.
 */
 html.dark {
-  --tk-syntax-plain: var(
+  --tv-syntax-plain: var(
     --theme-code-foreground,
     var(--theme-color-foreground)
   );
-  --tk-syntax-comment: var(
+  --tv-syntax-comment: var(
     --theme-code-comment,
     color-mix(in srgb, var(--theme-color-foreground) 62%, transparent)
   );
-  --tk-syntax-keyword: var(
+  --tv-syntax-keyword: var(
     --theme-code-keyword,
     color-mix(
       in srgb,
@@ -678,7 +759,7 @@ html.dark {
       var(--theme-color-foreground)
     )
   );
-  --tk-syntax-operator: var(
+  --tv-syntax-operator: var(
     --theme-code-operator,
     color-mix(
       in srgb,
@@ -686,23 +767,23 @@ html.dark {
       var(--theme-color-foreground)
     )
   );
-  --tk-syntax-string: var(
+  --tv-syntax-string: var(
     --theme-code-string,
     color-mix(in srgb, var(--theme-color-primary) 40%, #4ade80)
   );
-  --tk-syntax-function: var(
+  --tv-syntax-function: var(
     --theme-code-function,
     color-mix(in srgb, var(--theme-color-primary) 45%, #60a5fa)
   );
-  --tk-syntax-type: var(
+  --tv-syntax-type: var(
     --theme-code-type,
     color-mix(in srgb, var(--theme-color-primary) 50%, #c084fc)
   );
-  --tk-syntax-tag: var(
+  --tv-syntax-tag: var(
     --theme-code-tag,
     color-mix(in srgb, var(--theme-color-primary) 45%, #f472b6)
   );
-  --tk-syntax-attr: var(
+  --tv-syntax-attr: var(
     --theme-code-attribute,
     color-mix(
       in srgb,
@@ -710,11 +791,11 @@ html.dark {
       var(--theme-color-primary)
     )
   );
-  --tk-syntax-variable: var(
+  --tv-syntax-variable: var(
     --theme-code-variable,
     var(--theme-color-foreground)
   );
-  --tk-syntax-property: var(
+  --tv-syntax-property: var(
     --theme-code-property,
     color-mix(
       in srgb,
@@ -722,11 +803,11 @@ html.dark {
       var(--theme-color-primary)
     )
   );
-  --tk-syntax-number: var(
+  --tv-syntax-number: var(
     --theme-code-number,
     color-mix(in srgb, var(--theme-color-primary) 40%, #fbbf24)
   );
-  --tk-syntax-diff-add: color-mix(
+  --tv-syntax-diff-add: color-mix(
     in srgb,
     var(--theme-color-success, var(--theme-color-primary)) 75%,
     var(--theme-color-foreground)
@@ -805,10 +886,17 @@ html.dark {
   );
 }
 
+/* The code pane owns horizontal scrolling. It needs a stable class, not
+   `:last-child`: once a collapsible block renders its "Show N more lines"
+   button, the pane is no longer the last child and lost this rule — which is
+   what let the overflowing <pre> widen the block and scroll the toolbar. The
+   `:last-child` selector stays for the hand-built blocks in the playground and
+   theme studio, which have no expand button. */
+.code-block-content,
 .code-block > div:last-child {
   overflow-x: auto;
   width: 100%;
-  background: var(--tk-code-bg);
+  background: var(--tv-code-bg);
 }
 
 .code-block pre.shiki {
@@ -816,8 +904,8 @@ html.dark {
   padding: 0.9rem 1.1rem;
   font-size: 0.82rem;
   line-height: 1.5;
-  color: var(--tk-syntax-plain);
-  background: var(--tk-code-bg);
+  color: var(--tv-syntax-plain);
+  background: var(--tv-code-bg);
   width: max-content;
   min-width: 100%;
   height: fit-content;
@@ -902,7 +990,7 @@ html.dark {
   background: linear-gradient(
     to bottom,
     transparent,
-    var(--tk-code-bg, var(--theme-color-muted))
+    var(--tv-code-bg, var(--theme-color-muted))
   );
   pointer-events: none;
 }
@@ -918,7 +1006,7 @@ html.dark {
   color: var(--theme-color-primary);
   background: color-mix(
     in srgb,
-    var(--tk-code-bg, var(--theme-color-muted)) 90%,
+    var(--tv-code-bg, var(--theme-color-muted)) 90%,
     var(--theme-color-background)
   );
   border-top: 1px solid
@@ -1175,7 +1263,6 @@ html.dark {
   .hero-aurora,
   .hero-grid,
   .hero-particle,
-  .gradient-text,
   .fade-up,
   .float-y,
   .pulse-soft,

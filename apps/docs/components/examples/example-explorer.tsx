@@ -164,14 +164,14 @@ function ConceptCard({ example }: { example: ExplorerConcept }) {
           </button>
           <Link
             href={example.docsHref}
-            className="text-xs text-primary hover:underline"
+            className="text-xs text-foreground underline hover:decoration-foreground"
           >
             Read the docs →
           </Link>
           {example.liveHref ? (
             <Link
               href={example.liveHref}
-              className="text-xs text-primary hover:underline"
+              className="text-xs text-foreground underline hover:decoration-foreground"
             >
               {example.liveLabel ?? "Try it live"} →
             </Link>
@@ -223,7 +223,7 @@ function ConceptCard({ example }: { example: ExplorerConcept }) {
               <ul className="space-y-1">
                 {example.files.map((f) => (
                   <li key={f} className="mono text-[12px]">
-                    <span className={f === example.entry ? "text-primary" : "opacity-70"}>
+                    <span className={f === example.entry ? "text-foreground" : "opacity-70"}>
                       {f}
                     </span>
                     {f === example.entry ? (
@@ -388,7 +388,7 @@ export function ExamplesExplorer({
               onClick={() => setPkg(pkg === p.id ? null : p.id)}
               count={p.count}
             >
-              {p.id.replace("@theme-kit/", "")}
+              {p.id.replace("@themvora/", "")}
             </Chip>
           ))}
         </div>
@@ -463,10 +463,10 @@ export function ExamplesExplorer({
                     Framework guide →
                   </Link>
                   <a
-                    href={`https://github.com/themekit-dev/theme-kit/tree/main/examples/${s.dir}`}
+                    href={`https://github.com/themvora/themvora/tree/main/examples/${s.dir}`}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-foreground underline hover:decoration-foreground"
                   >
                     Source ↗
                   </a>
@@ -485,7 +485,7 @@ export function ExamplesExplorer({
             <span className="mono text-sm opacity-40">{filteredConcepts.length}</span>
           </h2>
           <p className="text-sm opacity-70 mb-6 max-w-2xl">
-            Focused implementations of a single Theme Kit feature. Each one is a real
+            Focused implementations of a single Themvora feature. Each one is a real
             source tree in the repository — the code below is the file itself, read
             from <code className="mono text-[12px]">examples/</code>, not a
             transcription of it.

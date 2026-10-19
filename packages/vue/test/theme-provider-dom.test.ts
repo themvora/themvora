@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick } from "vue";
-import { defineTheme, createDOMBinding, createCSSVariablesBinding } from "@theme-kit/core";
+import { defineTheme, createDOMBinding, createCSSVariablesBinding } from "@themvora/core";
 import { ThemeProvider, useTheme } from "../src/index";
 
 const themes = [
@@ -55,7 +55,7 @@ describe("vue ThemeProvider DOM binding", () => {
 
   it("applies the theme to the document root on toggle", async () => {
     // Spy on the binding creation by checking it gets called
-    const domSpy = vi.spyOn(await import("@theme-kit/core"), "createDOMBinding");
+    const domSpy = vi.spyOn(await import("@themvora/core"), "createDOMBinding");
 
     mountApp();
     await nextTick();

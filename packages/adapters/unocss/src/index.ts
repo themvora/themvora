@@ -1,15 +1,15 @@
 /**
- * Theme Kit UnoCSS integration.
+ * Themvora UnoCSS integration.
  *
- * Provides the `presetThemeKit` UnoCSS preset and the `createUnoTheme`
- * adapter-source helper that map Theme Kit tokens to UnoCSS theme values.
+ * Provides the `presetThemvora` UnoCSS preset and the `createUnoTheme`
+ * adapter-source helper that map Themvora tokens to UnoCSS theme values.
  *
  * @packageDocumentation
  */
 import { definePreset, type Preset } from "@unocss/core";
-import type { ThemeTokens } from "@theme-kit/core";
-import type { AdapterSource } from "@theme-kit/adapters";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+import type { ThemeTokens } from "@themvora/core";
+import type { AdapterSource } from "@themvora/adapters";
+import { resolveAdapterSource } from "@themvora/adapters";
 
 function pair(name: string, fallback?: string): string {
   return fallback
@@ -22,15 +22,15 @@ function pairForeground(name: string): string {
 }
 
 /**
- * UnoCSS preset that exposes Theme Kit semantic tokens as utilities such as
+ * UnoCSS preset that exposes Themvora semantic tokens as utilities such as
  * `bg-primary`, `text-foreground`, `border-border`, `rounded-lg`, etc.
  * Values reference the live `--theme-*` variables, so they update at runtime.
  *
  * @see {@link createUnoTheme}
  */
-export function presetThemeKit(): Preset {
+export function presetThemvora(): Preset {
   return definePreset({
-    name: "@theme-kit/unocss",
+    name: "@themvora/unocss",
     theme: {
       colors: {
         background: pair("background"),
@@ -89,9 +89,9 @@ export function presetThemeKit(): Preset {
 
 /**
  * Returns a static UnoCSS theme object with concrete values for a given set of
- * Theme Kit tokens (useful for build-time generation instead of runtime vars).
+ * Themvora tokens (useful for build-time generation instead of runtime vars).
  *
- * @see {@link presetThemeKit}
+ * @see {@link presetThemvora}
  */
 export function createUnoTheme(source: AdapterSource) {
   const theme = resolveAdapterSource(source);

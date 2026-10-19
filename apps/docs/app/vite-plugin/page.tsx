@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const antiPatternSnippet = {
   lang: "tsx",
   title: "the duplication this replaces",
-  code: `themeKitVitePlugin({
+  code: `themvoraVitePlugin({
   themes,
   initialMode: "system",
 });
@@ -36,7 +36,7 @@ const antiPatternSnippet = {
 const declaredOnceSnippet = {
   lang: "tsx",
   title: "declared once, in theme.config.ts",
-  code: `themeKitVitePlugin();
+  code: `themvoraVitePlugin();
 
 <ThemeProvider>
   <App />
@@ -53,10 +53,10 @@ const declaredOnceSnippet = {
 const themeConfigSnippet = {
   lang: "ts",
   title: "theme.config.ts",
-  code: `import { defineThemeKitConfig } from "@theme-kit/core";
+  code: `import { defineThemvoraConfig } from "@themvora/core";
 import { themes } from "./src/themes";
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "mint-light",
   initialMode: "system",
@@ -68,7 +68,7 @@ export default defineThemeKitConfig({
  * Registration, per Vite-hosted framework.
  *
  * Every entry is the same one line in a different config file — that is the
- * point. The framework's own plugin stays as it was; Theme Kit's is appended.
+ * point. The framework's own plugin stays as it was; Themvora's is appended.
  */
 const registrationExamples = [
   {
@@ -77,10 +77,10 @@ const registrationExamples = [
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [react(), themeKitVitePlugin()],
+  plugins: [react(), themvoraVitePlugin()],
 });`,
   },
   {
@@ -89,10 +89,10 @@ export default defineConfig({
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [vue(), themeKitVitePlugin()],
+  plugins: [vue(), themvoraVitePlugin()],
 });`,
   },
   {
@@ -101,10 +101,10 @@ export default defineConfig({
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [svelte(), themeKitVitePlugin()],
+  plugins: [svelte(), themvoraVitePlugin()],
 });`,
   },
   {
@@ -113,10 +113,10 @@ export default defineConfig({
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [solid(), themeKitVitePlugin()],
+  plugins: [solid(), themvoraVitePlugin()],
 });`,
   },
   {
@@ -124,10 +124,10 @@ export default defineConfig({
     lang: "ts",
     filename: "astro.config.ts",
     code: `import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });`,
   },
   {
@@ -135,8 +135,8 @@ export default defineConfig({
     lang: "ts",
     filename: "nuxt.config.ts",
     code: `export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "mint-light",
     initialMode: "system",
@@ -148,10 +148,10 @@ export default defineConfig({
     lang: "ts",
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [themeKitVitePlugin()],
+  plugins: [themvoraVitePlugin()],
 });`,
   },
 ];
@@ -162,7 +162,7 @@ const registrationExamplesWithHtml = registrationExamples.map((example) => ({
 }));
 
 /**
- * The keys of `ThemeKitConfig`, derived from the shipped type rather than
+ * The keys of `ThemvoraConfig`, derived from the shipped type rather than
  * invented: the first six are exactly `ThemeBootstrapConfig` — the projection
  * both integrations serialize into the page.
  */
@@ -212,7 +212,7 @@ const themeConfigKeys = [
 const themesModuleSnippet = {
   lang: "ts",
   title: "src/themes.ts",
-  code: `import { defineTheme } from "@theme-kit/core";
+  code: `import { defineTheme } from "@themvora/core";
 
 export const themes = [
   defineTheme({
@@ -236,7 +236,7 @@ export const themes = [
 const providerSnippet = {
   lang: "tsx",
   title: "src/App.tsx",
-  code: `import { ThemeProvider, useTheme } from "@theme-kit/react";
+  code: `import { ThemeProvider, useTheme } from "@themvora/react";
 
 function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -254,10 +254,10 @@ export function App() {
 
 const optionsSnippet = {
   lang: "ts",
-  title: "themeKitVitePlugin — every option, at once",
-  code: `import { themeKitVitePlugin } from "@theme-kit/core/vite";
+  title: "themvoraVitePlugin — every option, at once",
+  code: `import { themvoraVitePlugin } from "@themvora/core/vite";
 
-themeKitVitePlugin({
+themvoraVitePlugin({
   config: "./src/theme.config.ts",
   scrollbar: true,
   syncFirstRender: true,
@@ -282,7 +282,7 @@ const pipelineSteps = [
     internal: false,
   },
   {
-    label: "themeKitVitePlugin()",
+    label: "themvoraVitePlugin()",
     detail:
       "Discovers the file and projects it with `toBootstrapConfig` — the six keys the pre-paint script can act on.",
     internal: false,
@@ -328,11 +328,11 @@ const pipelineSteps = [
 const configTroubleshooting = [
   {
     symptom: "I already have themes in vite.config.ts",
-    fix: "Move them to theme.config.ts and call themeKitVitePlugin() with no theme options. The theme options on the plugin are a deprecated escape hatch — when a config is discovered they are ignored, so leaving them in place means editing values that no longer take effect.",
+    fix: "Move them to theme.config.ts and call themvoraVitePlugin() with no theme options. The theme options on the plugin are a deprecated escape hatch — when a config is discovered they are ignored, so leaving them in place means editing values that no longer take effect.",
   },
   {
     symptom: "The plugin can't find my config",
-    fix: "Discovery looks for theme.config.ts (then .tsx, .mts, .mjs, .js, .cjs) in Vite's root — config.root, or process.cwd() when unset. If the file lives elsewhere, name it: themeKitVitePlugin({ config: \"./src/theme.config.ts\" }).",
+    fix: "Discovery looks for theme.config.ts (then .tsx, .mts, .mjs, .js, .cjs) in Vite's root — config.root, or process.cwd() when unset. If the file lives elsewhere, name it: themvoraVitePlugin({ config: \"./src/theme.config.ts\" }).",
   },
   {
     symptom: "My provider and the bootstrap disagree",
@@ -348,8 +348,8 @@ const configTroubleshooting = [
   },
 ];
 
-const discoveryWarnings = `[theme-kit] could not find Vite to load /app/theme.config.ts. Pass \`config\` explicitly, or declare \`vite\` as a dependency.
-[theme-kit] could not load /app/theme.config.ts: config must export or return an object`;
+const discoveryWarnings = `[themvora] could not find Vite to load /app/theme.config.ts. Pass \`config\` explicitly, or declare \`vite\` as a dependency.
+[themvora] could not load /app/theme.config.ts: config must export or return an object`;
 
 const bootstrapSnippet = {
   lang: "html",
@@ -357,8 +357,8 @@ const bootstrapSnippet = {
   code: `<!doctype html>
 <html lang="en">
   <head>
-    <!-- injected by themeKitVitePlugin(); the theme tables are collapsed to … -->
-    <script id="theme-kit-bootstrap">
+    <!-- injected by themvoraVitePlugin(); the theme tables are collapsed to … -->
+    <script id="themvora-bootstrap">
 (function(){try{
   var raw=localStorage.getItem("theme-selection");
   var sel=null;try{sel=raw?JSON.parse(raw):null;}catch(e){}
@@ -392,9 +392,10 @@ const bootstrapSnippet = {
 const ssrNextSnippet = {
   lang: "tsx",
   title: "app/layout.tsx — Next.js",
-  code: `import { ThemeProvider } from "@theme-kit/next";
+  code: `import type { ReactNode } from "react";
+import { ThemeProvider } from "@themvora/next";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="light">
       {children}
@@ -407,8 +408,8 @@ const ssrNuxtSnippet = {
   lang: "ts",
   title: "nuxt.config.ts — Nuxt",
   code: `export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "light",
     initialMode: "system",
   },
@@ -418,9 +419,10 @@ const ssrNuxtSnippet = {
 const ssrRemixSnippet = {
   lang: "tsx",
   title: "app/root.tsx — Remix",
-  code: `import { ThemeHead, ThemeProvider } from "@theme-kit/remix";
+  code: `import type { ReactNode } from "react";
+import { ThemeHead, ThemeProvider } from "@themvora/remix";
 
-export function Layout({ children }) {
+export function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
@@ -446,7 +448,7 @@ export default function VitePluginPage() {
           description={
             <>
               The{" "}
-              <code className="mono text-[0.9em]">themeKitVitePlugin</code>{" "}
+              <code className="mono text-[0.9em]">themvoraVitePlugin</code>{" "}
               injects a synchronous bootstrap script into your{" "}
               <code className="mono text-[0.9em]">index.html</code> at build
               time so the persisted theme is applied on the{" "}
@@ -464,8 +466,8 @@ export default function VitePluginPage() {
               href: "https://vitejs.dev/guide/",
             },
             {
-              label: "Theme Kit provider installed",
-              value: "@theme-kit/react, vue, svelte, or core/vanilla",
+              label: "Themvora provider installed",
+              value: "@themvora/react, vue, svelte, or core/vanilla",
               href: "/get-started",
             },
           ]}
@@ -479,7 +481,7 @@ export default function VitePluginPage() {
             Configuration
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            Theme Kit&apos;s Vite plugin connects your project-level Theme Kit
+            Themvora&apos;s Vite plugin connects your project-level Themvora
             configuration to Vite&apos;s HTML pipeline. It discovers{" "}
             <code className="mono text-[0.9em]">theme.config.ts</code> at the
             project root and injects the pre-paint bootstrap from it, so you do
@@ -604,7 +606,7 @@ export default function VitePluginPage() {
               See{" "}
               <Link
                 href="/architecture#configuration"
-                className="text-primary hover:underline"
+                className="text-foreground underline hover:decoration-foreground"
               >
                 Architecture → Configuration
               </Link>{" "}
@@ -707,7 +709,7 @@ export default function VitePluginPage() {
           <p className="text-sm opacity-80 leading-relaxed mb-4">
             Every framework below hosts its build on Vite, so the registration is
             the same call in a different config file. Your framework&apos;s own
-            plugin is untouched — Theme Kit&apos;s is appended to it. Astro and
+            plugin is untouched — Themvora&apos;s is appended to it. Astro and
             Nuxt register their own integration instead, because their module
             systems are the canonical configuration surface; both discover the
             same{" "}
@@ -718,7 +720,7 @@ export default function VitePluginPage() {
             <strong>Import path</strong>{" "}
             <span className="mx-1 opacity-40">|</span>
             The plugin is exported from{" "}
-            <code className="mono text-[0.9em]">@theme-kit/core/vite</code>,
+            <code className="mono text-[0.9em]">@themvora/core/vite</code>,
             not the main entry point. This keeps the core bundle clean when you
             only need the runtime.
           </Callout>
@@ -751,7 +753,7 @@ export default function VitePluginPage() {
           </SectionHeading>
           <Callout variant="neutral" title="Do you still need this?">
             <p className="text-sm leading-relaxed">
-              Since <code className="mono text-[0.9em]">@theme-kit/react</code>{" "}
+              Since <code className="mono text-[0.9em]">@themvora/react</code>{" "}
               (and Vue, Svelte, Solid) <strong>1.2.0</strong>, the providers are
               flash-proof out of the box — they inject the blocking bootstrap
               themselves before first paint. The vite plugin is only needed if
@@ -850,7 +852,7 @@ export default function VitePluginPage() {
             <li>
               Fills in any element marked{" "}
               <code className="mono text-[0.9em]">
-                data-tk-readout=&quot;theme&quot; | &quot;mode&quot; |
+                data-tv-readout=&quot;theme&quot; | &quot;mode&quot; |
                 &quot;family&quot; | &quot;var:&lt;name&gt;&quot;
               </code>
               . The script owns that element&apos;s text: it writes the value it
@@ -950,7 +952,7 @@ export default function VitePluginPage() {
             </div>
             <div className="divide-y divide-border text-sm">
               {[
-                ["config", "ThemeKitConfig | string", "Optional. Normally omitted: the plugin discovers theme.config.ts at the project root. Pass a path when the file lives elsewhere, or the config object itself. The object wins outright, and the deprecated inline theme options are ignored when it is present."],
+                ["config", "ThemvoraConfig | string", "Optional. Normally omitted: the plugin discovers theme.config.ts at the project root. Pass a path when the file lives elsewhere, or the config object itself. The object wins outright, and the deprecated inline theme options are ignored when it is present."],
                 ["scrollbar", "boolean | PrePaintScrollbarOptions", "Injects the pre-paint scrollbar script so the native bar is hidden from the first frame. Defaults to false."],
                 ["syncFirstRender", "boolean", "Commits React's first render synchronously, so the first painted frame is the app rather than an empty root. Defaults to true; ignored when React is absent."],
                 ["ssrEntry", "string | null", "Module exporting `render(): string`. Prerenders #root in the dev server, where unbundled modules would otherwise leave it empty for seconds. Defaults to \"/src/entry-server.tsx\"; pass null to opt out. Builds prerender separately."],

@@ -48,7 +48,7 @@ export interface DOMBindingOptions {
    *
    *  A paint landing in that window shows the new identity over the old
    *  palette: the document declares one theme while the page still renders the
-   *  other, so a `[data-tk-readout]` label and the colours behind it disagree.
+   *  other, so a `[data-tv-readout]` label and the colours behind it disagree.
    *  Whether a frame actually lands there depends on the compositor, which is
    *  why the symptom is intermittent rather than reproducible on every change.
    *

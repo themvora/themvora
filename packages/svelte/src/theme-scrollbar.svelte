@@ -2,7 +2,7 @@
   import {
     createOverlayScrollbar,
     createPrePaintScrollbarScript,
-  } from "@theme-kit/core";
+  } from "@themvora/core";
   import { getThemeRuntime } from "./context";
   import { pickOptions, type ThemeScrollbarProps } from "./scrollbar-options";
 
@@ -13,7 +13,7 @@
   // when the Vite plugin or an SSR adapter already emitted it, this no-ops.
   $effect.pre(() => {
     if (typeof document === "undefined" || !document.head) return;
-    if (document.getElementById("tk-scrollbar-style")) return;
+    if (document.getElementById("tv-scrollbar-style")) return;
     const script = document.createElement("script");
     script.text = createPrePaintScrollbarScript();
     document.head.appendChild(script);

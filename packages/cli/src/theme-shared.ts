@@ -1,4 +1,4 @@
-import type { ThemeDefinition } from "@theme-kit/core";
+import type { ThemeDefinition } from "@themvora/core";
 import { readFileSync } from "node:fs";
 
 /**

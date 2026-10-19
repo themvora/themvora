@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ThemeScope as VueThemeScope } from "@theme-kit/vue";
-import type { ThemeScopeProps } from "@theme-kit/vue";
+import { ThemeScope as VueThemeScope } from "@themvora/vue";
+import type { ThemeScopeProps } from "@themvora/vue";
 
 const props = defineProps<ThemeScopeProps>();
 

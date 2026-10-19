@@ -1,6 +1,6 @@
 "use client";
 
-import { ThemeInspector } from "@theme-kit/next/client";
+import { ThemeInspector } from "@themvora/next/client";
 
 export function SiteToolbar() {
   return (

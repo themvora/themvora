@@ -15,11 +15,11 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/devtools") },
   title: "DevTools",
   description:
-    "The @theme-kit/devtools extension — inspect the active theme, trace token changes, and debug transitions and adapters.",
+    "The @themvora/devtools extension — inspect the active theme, trace token changes, and debug transitions and adapters.",
 };
 
-const quickStartCode = `import { createThemeRuntime } from "@theme-kit/core";
-import { createDevToolsPlugin, createDevToolsPanel } from "@theme-kit/devtools";
+const quickStartCode = `import { createThemeRuntime } from "@themvora/core";
+import { createDevToolsPlugin, createDevToolsPanel } from "@themvora/devtools";
 
 const runtime = createThemeRuntime({
   themes,
@@ -75,7 +75,7 @@ document.body.appendChild(panel);`;
 
 const globalHookCode = `declare global {
   interface Window {
-    __THEME_KIT_DEVTOOLS__?: Set<{
+    __THEMVORA_DEVTOOLS__?: Set<{
       getState(): unknown;
       getEntries(): unknown[];
       getPerformance(): unknown[];
@@ -83,7 +83,7 @@ const globalHookCode = `declare global {
   }
 }
 
-for (const inspector of window.__THEME_KIT_DEVTOOLS__ ?? []) {
+for (const inspector of window.__THEMVORA_DEVTOOLS__ ?? []) {
   console.log(inspector.getState());
 }`;
 
@@ -123,10 +123,10 @@ export default function DevToolsPage() {
             </svg>
           }
           title="DevTools"
-          subtitle="@theme-kit/devtools"
+          subtitle="@themvora/devtools"
           description={
             <>
-              <code className="mono text-[0.9em]">@theme-kit/devtools</code>{" "}
+              <code className="mono text-[0.9em]">@themvora/devtools</code>{" "}
               ships an inspector, a plugin, and a ready-made panel for debugging
               every theme change. It records lifecycle events, performance
               timings, state snapshots and the flattened CSS-variable output of
@@ -139,7 +139,7 @@ export default function DevToolsPage() {
           items={[
             {
               label: "Package",
-              value: "@theme-kit/devtools",
+              value: "@themvora/devtools",
               href: "/packages/devtools",
             },
             {
@@ -174,7 +174,7 @@ export default function DevToolsPage() {
         <section id="create-devtools-plugin" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={2}
-            desc="A Theme Kit plugin that instantiates an inspector, binds it to the runtime and exposes it on window.__THEME_KIT_DEVTOOLS__ so extensions can find it."
+            desc="A Themvora plugin that instantiates an inspector, binds it to the runtime and exposes it on window.__THEMVORA_DEVTOOLS__ so extensions can find it."
           >
             createDevToolsPlugin(options)
           </SectionHeading>
@@ -268,7 +268,7 @@ export default function DevToolsPage() {
         <section id="global-hook" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={5}
-            desc="Every inspector registered via the plugin is added to a Set on window.__THEME_KIT_DEVTOOLS__ so a browser extension or your own code can enumerate and inspect all live runtimes."
+            desc="Every inspector registered via the plugin is added to a Set on window.__THEMVORA_DEVTOOLS__ so a browser extension or your own code can enumerate and inspect all live runtimes."
           >
             Global hook
           </SectionHeading>
@@ -332,7 +332,7 @@ export default function DevToolsPage() {
           </p>
           <p className="mt-3 text-sm">
             <Link href="/api-reference/devtools" className="underline">
-              @theme-kit/devtools API reference
+              @themvora/devtools API reference
             </Link>
           </p>
         </section>

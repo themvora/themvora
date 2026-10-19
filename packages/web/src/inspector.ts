@@ -2,15 +2,14 @@ import {
   themeToCSSVariables,
   type ThemeDefinition,
   type ThemeRuntime,
-} from "@theme-kit/core";
-import { findProviderRuntime } from "./utils";
-import { CustomElementBase } from "./custom-element-base";
+} from "@themvora/core";
+import { ThemvoraRuntimeConsumer } from "./runtime-consumer";
 
 /**
  * Framework-agnostic Theme Inspector.
  *
- * `<theme-kit-inspector>` works in any framework (or plain HTML): render it
- * inside a `<theme-kit-provider>` and it shows a floating toggle that opens a
+ * `<themvora-inspector>` works in any framework (or plain HTML): render it
+ * inside a `<themvora-provider>` and it shows a floating toggle that opens a
  * panel inspecting the active theme — identity, selection, tokens, and the
  * resolved CSS variables — live.
  *
@@ -75,7 +74,7 @@ function sectionHeader(label: string, count?: number): string {
 }
 
 /**
- * Custom element `<theme-kit-inspector>` that inspects the active theme.
+ * Custom element `<themvora-inspector>` that inspects the active theme.
  *
  * Framework-free (vanilla JS). Renders a floating toggle that opens a panel
  * showing the active theme's identity, selection, tokens, and resolved CSS
@@ -83,19 +82,34 @@ function sectionHeader(label: string, count?: number): string {
  * `right`, `size`, and `z-index` attributes.
  *
  * @remarks
- * Requires an ancestor `<theme-kit-provider>`. If the provider is not yet
+ * **Attributes.** All four are positional and optional:
+ *
+ * - `bottom` — distance from the bottom of the viewport, in px (default `104`).
+ * - `right` — distance from the right edge, in px (default `32`).
+ * - `size` — toggle button size, in px (default `40`).
+ * - `z-index` — stacking order of the toggle and panel (default `9999`).
+ *
+ * Non-numeric values are ignored in favour of the default.
+ *
+ * **Properties.** None of its own beyond the standard `HTMLElement` surface.
+ *
+ * **Events.** Dispatches nothing of its own.
+ *
+ * **Slots.** None — the panel is built from the runtime's data.
+ *
+ * Requires an ancestor `<themvora-provider>`. If the provider is not yet
  * initialized, it waits for the `theme-ready` event. `define()` is SSR-safe
  * and no-ops when `customElements` is unavailable.
  *
  * @example
  * ```html
- * <theme-kit-inspector bottom="24" right="24"></theme-kit-inspector>
+ * <themvora-inspector bottom="24" right="24"></themvora-inspector>
  * ```
  *
  * @see {@link defineCustomElements}
- * @see {@link ThemeKitProvider}
+ * @see {@link ThemvoraProvider}
  */
-export class ThemeKitInspector extends CustomElementBase {
+export class ThemvoraInspector extends ThemvoraRuntimeConsumer {
   static observedAttributes = ["bottom", "right", "size", "z-index"];
 
   private unsubscribe: (() => void) | null = null;
@@ -109,44 +123,40 @@ export class ThemeKitInspector extends CustomElementBase {
   private size = DEFAULT_SIZE;
   private zIndex = DEFAULT_Z_INDEX;
 
-  /** Lifecycle hook: parses attributes and initializes the inspector. */
-  connectedCallback() {
+  /** Lifecycle hook: parses attributes and follows the provider runtime. */
+  override connectedCallback() {
     this.parseAttributes();
-    const runtime = findProviderRuntime(this);
-    if (!runtime) {
-      // Listen on the document, not on `this`: <theme-kit-provider> dispatches
-      // theme-ready on itself with bubbles:true, which travels *up* and can never
-      // reach a descendant. A self-listener therefore only fired when the
-      // provider happened to initialise first.
-      document.addEventListener(
-        "theme-ready",
-        () => {
-          if (this.isConnected) this.init();
-        },
-        { once: true },
-      );
-      return;
-    }
-    this.init();
-  }
-
-  /** Lifecycle hook: unsubscribes and removes global listeners. */
-  disconnectedCallback() {
-    this.unsubscribe?.();
-    this.unsubscribe = null;
-    window.removeEventListener("keydown", this.handleKeydown);
-    document.removeEventListener("pointerdown", this.handlePointerDown);
-    this.innerHTML = "";
-    this.open = false;
+    super.connectedCallback();
   }
 
   /** Lifecycle hook: re-renders the inspector when an observed attribute changes. */
   attributeChangedCallback() {
     this.parseAttributes();
-    if (this.isConnected) {
-      const runtime = findProviderRuntime(this);
-      if (runtime) this.render(runtime);
-    }
+    const runtime = this.runtime;
+    if (this.isConnected && runtime) this.render(runtime);
+  }
+
+  protected override onRuntime(runtime: ThemeRuntime<ThemeDefinition>): void {
+    this.parseAttributes();
+    this.render(runtime);
+    this.unsubscribe = runtime.store.subscribe(() =>
+      this.updatePanel(runtime),
+    );
+    window.addEventListener("keydown", this.handleKeydown);
+    document.addEventListener("pointerdown", this.handlePointerDown);
+  }
+
+  /** Lifecycle hook: unsubscribes and removes global listeners. */
+  protected override onDetach(): void {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    window.removeEventListener("keydown", this.handleKeydown);
+    document.removeEventListener("pointerdown", this.handlePointerDown);
+    this.innerHTML = "";
+    this.toggleEl = null;
+    this.panelEl = null;
+    this.rootEl = null;
+    this.open = false;
   }
 
   private parseAttributes() {
@@ -154,17 +164,6 @@ export class ThemeKitInspector extends CustomElementBase {
     this.right = parseIntAttr(this.getAttribute("right"), DEFAULT_RIGHT);
     this.size = parseIntAttr(this.getAttribute("size"), DEFAULT_SIZE);
     this.zIndex = parseIntAttr(this.getAttribute("z-index"), DEFAULT_Z_INDEX);
-  }
-
-  private init() {
-    const runtime = findProviderRuntime(this);
-    if (!runtime) return;
-    this.render(runtime);
-    this.unsubscribe = runtime.store.subscribe(() =>
-      this.updatePanel(runtime),
-    );
-    window.addEventListener("keydown", this.handleKeydown);
-    document.addEventListener("pointerdown", this.handlePointerDown);
   }
 
   private render(runtime: ThemeRuntime<ThemeDefinition>) {
@@ -337,13 +336,13 @@ export class ThemeKitInspector extends CustomElementBase {
     this.close();
   };
 
-  static define(tag = "theme-kit-inspector") {
+  static define(tag = "themvora-inspector") {
     // SSR-safe: customElements only exists in the browser. Framework wrappers
     // (Vue, Solid, Angular, Astro, …) call define() from both server and
     // client environments, so this must be a no-op on the server.
     if (typeof customElements === "undefined") return;
     if (!customElements.get(tag)) {
-      customElements.define(tag, ThemeKitInspector);
+      customElements.define(tag, ThemvoraInspector);
     }
   }
 }

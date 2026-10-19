@@ -60,7 +60,7 @@ const variantConfig: Record<
     bg: "bg-success/5",
     text: "text-foreground/90",
     icon: "lucide:check-circle",
-    iconColor: "text-success",
+    iconColor: "text-foreground",
   },
   neutral: {
     border: "border-border",

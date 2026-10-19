@@ -15,10 +15,10 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/token-resolution") },
   title: "Token Resolution",
   description:
-    "How Theme Kit resolves token references, evaluates expressions, derives contrast-safe foreground colors, and the full resolution pipeline from base to final output.",
+    "How Themvora resolves token references, evaluates expressions, derives contrast-safe foreground colors, and the full resolution pipeline from base to final output.",
 };
 
-const tokenRefCode = `import { defineTheme } from "@theme-kit/core";
+const tokenRefCode = `import { defineTheme } from "@themvora/core";
 
 const theme = defineTheme({
   name: "brand",
@@ -38,7 +38,7 @@ const theme = defineTheme({
   },
 });`;
 
-const expressionsCode = `import { evaluateExpression, isExpression } from "@theme-kit/core";
+const expressionsCode = `import { evaluateExpression, isExpression } from "@themvora/core";
 
 // Numeric expressions with +, -, *, / and parentheses
 isExpression("16 + 8");        // true
@@ -63,7 +63,7 @@ const theme = defineTheme({
   },
 });`;
 
-const derivedCode = `import { defineTheme, contrast, auto } from "@theme-kit/core";
+const derivedCode = `import { defineTheme, contrast, auto } from "@themvora/core";
 
 const theme = defineTheme({
   name: "auto-contrast",
@@ -74,11 +74,11 @@ const theme = defineTheme({
       // "primaryForeground" → looks up "primary" → returns black or white
       primaryForeground: "auto()",
 
-      surface: "#f8fafc",
-      surfaceForeground: "auto()",
+      card: "#f8fafc",
+      cardForeground: "auto()",
 
-      danger: "#ef4444",
-      dangerForeground: "auto()",
+      destructive: "#ef4444",
+      destructiveForeground: "auto()",
     },
   },
 });
@@ -98,7 +98,7 @@ const manual = defineTheme({
 contrast("#3b82f6"); // "#000000" (luminance > 0.179)
 contrast("#000000"); // "#ffffff" (luminance <= 0.179)`;
 
-const resolutionOrderCode = `import { resolveTokens } from "@theme-kit/core";
+const resolutionOrderCode = `import { resolveTokens } from "@themvora/core";
 
 // Given a theme that uses all three mechanisms:
 const theme = {
@@ -123,7 +123,7 @@ const resolved = resolveTokens(theme);
 // resolved.colors.lightened       → "#4c9307" (numeric hex add)
 // resolved.colors.primaryForeground → "#000000"`;
 
-const apiResolveCode = `import { resolveTokens } from "@theme-kit/core";
+const apiResolveCode = `import { resolveTokens } from "@themvora/core";
 
 const tokens = {
   colors: {
@@ -144,7 +144,7 @@ const resolved = resolveTokens(tokens);
 // resolved.colors.foreground   → "#000000"
 // resolved.spacing.lg          → "24"`;
 
-const apiFlattenCode = `import { flattenTokens } from "@theme-kit/core";
+const apiFlattenCode = `import { flattenTokens } from "@themvora/core";
 
 const tokens = {
   colors: {
@@ -162,14 +162,14 @@ const flat = flattenTokens(tokens);
 //   "spacing.sm":              "8px",
 // }`;
 
-const apiHasRefsCode = `import { hasTokenReferences } from "@theme-kit/core";
+const apiHasRefsCode = `import { hasTokenReferences } from "@themvora/core";
 
 hasTokenReferences("$colors.primary");   // true
 hasTokenReferences("{spacing.sm}");      // true
 hasTokenReferences("8px + 4px");         // false
 hasTokenReferences("#3b82f6");           // false`;
 
-const apiEvaluateCode = `import { evaluateExpression } from "@theme-kit/core";
+const apiEvaluateCode = `import { evaluateExpression } from "@themvora/core";
 
 evaluateExpression("8 + 16");          // "24"
 evaluateExpression("2 * (12 + 4)px"); // "32px"
@@ -184,7 +184,7 @@ export default function TokenResolutionPage() {
           title="Token resolution"
           description={
             <>
-              Theme Kit tokens are more than static key-value pairs. A reference
+              Themvora tokens are more than static key-value pairs. A reference
               like <code className="mono text-[0.9em]">$colors.primary</code> is
               resolved at build time, expressions like{" "}
               <code className="mono text-[0.9em]">2 * 16px</code> are evaluated,
@@ -203,7 +203,7 @@ export default function TokenResolutionPage() {
               href: "/custom-themes",
             },
             {
-              label: "@theme-kit/core installed",
+              label: "@themvora/core installed",
               value: "Resolution utilities are part of core",
               href: "/packages/core",
             },

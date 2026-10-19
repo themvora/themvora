@@ -216,7 +216,7 @@ export default async function RecipePage({
               <>
                 Prefer not to install it? Run it without installing with{" "}
                 <code className="mono text-foreground">
-                  npx --yes @theme-kit/cli generate …
+                  npx --yes @themvora/cli generate …
                 </code>
                 . See the{" "}
                 <Link href="/cli/installation" className="text-primary hover:underline">
@@ -227,7 +227,7 @@ export default async function RecipePage({
             ) : (
               <>
                 Using a framework? Its adapter is a separate package — see the{" "}
-                <Link href="/framework-guides" className="text-primary hover:underline">
+                <Link href="/framework-guides" className="text-foreground underline hover:decoration-foreground">
                   framework guides
                 </Link>{" "}
                 for the provider setup, then come back for the pattern.
@@ -263,7 +263,7 @@ export default async function RecipePage({
               "Reduced-motion users see no animation if you enabled transitions.",
             ].map((item) => (
               <li key={item} className="flex gap-2.5">
-                <span aria-hidden className="text-primary shrink-0">
+                <span aria-hidden className="text-foreground shrink-0">
                   ✓
                 </span>
                 <span className="opacity-85">{item}</span>

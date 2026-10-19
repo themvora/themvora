@@ -40,7 +40,7 @@ export interface LibraryCompatibility {
 
 export const frameworkCompatibilityData: FrameworkCompatibility[] = [
   {
-    package: "@theme-kit/core",
+    package: "@themvora/core",
     framework: "Framework-agnostic",
     frameworkVersion: "N/A",
     ssr: "N/A",
@@ -54,7 +54,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Zero runtime dependencies. Provides core engine for all integrations.",
   },
   {
-    package: "@theme-kit/react",
+    package: "@themvora/react",
     framework: "React",
     frameworkVersion: "^19.0.0",
     ssr: "Client-only",
@@ -68,7 +68,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "SSR-safe but cannot server-render theme. Use Next.js adapter for SSR.",
   },
   {
-    package: "@theme-kit/next",
+    package: "@themvora/next",
     framework: "Next.js",
     frameworkVersion: "^15.5.22",
     ssr: "Full",
@@ -82,7 +82,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Server components read cookies, emit blocking script, render <html>. Zero-flash by default.",
   },
   {
-    package: "@theme-kit/vue",
+    package: "@themvora/vue",
     framework: "Vue 3",
     frameworkVersion: "^3.4.0",
     ssr: "Client-only",
@@ -96,7 +96,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Runtime created on onMounted. Use Nuxt adapter for SSR.",
   },
   {
-    package: "@theme-kit/svelte",
+    package: "@themvora/svelte",
     framework: "Svelte 5",
     frameworkVersion: "^5.0.0",
     ssr: "Client-only",
@@ -111,7 +111,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
       "SSR-safe; the bindings are skipped on the server. In SvelteKit, inline the bootstrap script in app.html for zero-flash.",
   },
   {
-    package: "@theme-kit/solid",
+    package: "@themvora/solid",
     framework: "Solid",
     frameworkVersion: "^1.8.0",
     ssr: "Client-only",
@@ -125,7 +125,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "SSR-safe; children not rendered on server.",
   },
   {
-    package: "@theme-kit/angular",
+    package: "@themvora/angular",
     framework: "Angular",
     frameworkVersion: ">=17.0.0",
     ssr: "Helpers",
@@ -139,7 +139,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Provides createBlockingScriptContent for SSR. Uses own bootstrap (not core's serializeThemeBootstrapScript).",
   },
   {
-    package: "@theme-kit/web",
+    package: "@themvora/web",
     framework: "Web Components",
     frameworkVersion: "N/A",
     ssr: "Client-only",
@@ -154,7 +154,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
       "Framework-free custom elements. Zero-flash needs the bootstrap script the Quick Start shows inlined in <head>.",
   },
   {
-    package: "@theme-kit/tailwind",
+    package: "@themvora/tailwind",
     framework: "Tailwind CSS v4",
     frameworkVersion: "^4.0.0",
     ssr: "N/A",
@@ -168,7 +168,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Maps semantic tokens to Tailwind utilities. Not a runtime package.",
   },
   {
-    package: "@theme-kit/astro",
+    package: "@themvora/astro",
     framework: "Astro",
     frameworkVersion: "^5.0.0",
     ssr: "Full",
@@ -182,7 +182,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Server-renders <html> shell. Supports partial hydration.",
   },
   {
-    package: "@theme-kit/nuxt",
+    package: "@themvora/nuxt",
     framework: "Nuxt 3",
     frameworkVersion: "^3.10.0",
     ssr: "Full",
@@ -196,7 +196,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     notes: "Module config, auto-imports, SSR bootstrap.",
   },
   {
-    package: "@theme-kit/remix",
+    package: "@themvora/remix",
     framework: "Remix",
     frameworkVersion: "^2.16.0",
     ssr: "Full",
@@ -207,14 +207,14 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     transitions: true,
     status: "Stable",
     lastVerified: "2026-09-24",
-    notes: "Server/client boundary. User must manually add tk-scrollbar class to <html>.",
+    notes: "Server/client boundary. User must manually add tv-scrollbar class to <html>.",
   },
 ];
 
 export const libraryCompatibilityData: LibraryCompatibility[] = [
   {
     library: "shadcn/ui",
-    package: "@theme-kit/shadcn",
+    package: "@themvora/shadcn",
     adapterType: "CSS-variable",
     frameworkSupport: "React+Vue+Svelte+Solid+Angular",
     cssVarPrefix: "--background, --primary, --card, etc. (no shared prefix)",
@@ -225,7 +225,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "Bootstrap",
-    package: "@theme-kit/bootstrap",
+    package: "@themvora/bootstrap",
     adapterType: "CSS-variable",
     frameworkSupport: "React+Vue+Svelte+Solid+Angular",
     cssVarPrefix: "--bs-*",
@@ -236,7 +236,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "daisyUI",
-    package: "@theme-kit/daisyui",
+    package: "@themvora/daisyui",
     adapterType: "CSS-variable",
     frameworkSupport: "React+Vue+Svelte+Solid+Angular",
     cssVarPrefix: "--color-*",
@@ -247,7 +247,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "Open Props",
-    package: "@theme-kit/open-props",
+    package: "@themvora/open-props",
     adapterType: "CSS-variable",
     frameworkSupport: "React+Vue+Svelte+Solid+Angular",
     cssVarPrefix: "--color-*, --brand, --size-*, --shadow-*, --radius-*, --font-*",
@@ -258,7 +258,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "MUI",
-    package: "@theme-kit/mui",
+    package: "@themvora/mui",
     adapterType: "Generated-theme",
     frameworkSupport: "React",
     cssVarPrefix: "Theme object",
@@ -269,7 +269,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "Chakra UI",
-    package: "@theme-kit/chakra",
+    package: "@themvora/chakra",
     adapterType: "Generated-theme",
     frameworkSupport: "React",
     cssVarPrefix: "Theme object",
@@ -280,7 +280,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "Ant Design",
-    package: "@theme-kit/antd",
+    package: "@themvora/antd",
     adapterType: "Generated-theme",
     frameworkSupport: "React",
     cssVarPrefix: "Theme object",
@@ -291,7 +291,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "Mantine",
-    package: "@theme-kit/mantine",
+    package: "@themvora/mantine",
     adapterType: "Generated-theme",
     frameworkSupport: "React",
     cssVarPrefix: "Theme object",
@@ -302,7 +302,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
   },
   {
     library: "UnoCSS",
-    package: "@theme-kit/unocss",
+    package: "@themvora/unocss",
     adapterType: "Preset",
     frameworkSupport: "All",
     cssVarPrefix: "References core --theme-* vars",

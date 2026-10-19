@@ -1,8 +1,8 @@
 /**
- * Theme Kit Vite plugin — injects the zero-flash bootstrap script and the
+ * Themvora Vite plugin — injects the zero-flash bootstrap script and the
  * pre-paint scrollbar CSS into the served HTML.
  *
- * Imported from the `@theme-kit/core/vite` subpath. Use with the Vite
+ * Imported from the `@themvora/core/vite` subpath. Use with the Vite
  * configuration of vanilla or framework apps that render HTML on the
  * server.
  *
@@ -10,19 +10,19 @@
  */
 import type { ThemeDefinition, ThemeMode } from "./model/theme";
 import { createThemeBootstrapScript, createThemeReadoutScript } from "./bootstrap";
-import { toBootstrapConfig, type ThemeKitConfig } from "./app-config";
-import { loadThemeKitConfig } from "./config-loader";
+import { toBootstrapConfig, type ThemvoraConfig } from "./app-config";
+import { loadThemvoraConfig } from "./config-loader";
 import { createPrePaintScrollbarScript } from "./scrollbar/pre-paint";
 
 /**
  * The deprecated inline form of the theme configuration: the registry, the
  * fallback theme, the initial mode/family, and the persistence key and prefix,
- * passed straight to {@link themeKitVitePlugin}.
+ * passed straight to {@link themvoraVitePlugin}.
  *
  * @typeParam T - The theme definition type used by the application.
  *
  * @deprecated Declare this once in `theme.config.ts` via
- * {@link defineThemeKitConfig} instead. The plugin discovers that file by
+ * {@link defineThemvoraConfig} instead. The plugin discovers that file by
  * convention, so there is nothing to pass — and passing it here as well is
  * exactly the duplication that lets the pre-paint script and the runtime drift
  * apart. A drift is visible: the script paints `system` while the runtime
@@ -30,9 +30,9 @@ import { createPrePaintScrollbarScript } from "./scrollbar/pre-paint";
  * visitor sees a flash. These options are still honoured when the app has no
  * discoverable config, so existing setups keep working.
  *
- * @see {@link themeKitVitePlugin}
+ * @see {@link themvoraVitePlugin}
  */
-export interface ThemeKitThemeConfig<T extends ThemeDefinition> {
+export interface ThemvoraThemeConfig<T extends ThemeDefinition> {
   /** The theme definitions registered with the runtime. */
   themes: readonly T[];
   /** Theme name to fall back to when no persisted selection exists. */
@@ -52,14 +52,14 @@ export interface ThemeKitThemeConfig<T extends ThemeDefinition> {
 }
 
 /**
- * Options for {@link themeKitVitePlugin}: where the application configuration
+ * Options for {@link themvoraVitePlugin}: where the application configuration
  * lives, plus the concerns that only exist at build time.
  *
  * @typeParam T - The theme definition type used by the application.
  *
- * @see {@link themeKitVitePlugin}
+ * @see {@link themvoraVitePlugin}
  */
-export interface ThemeKitVitePluginOptions<T extends ThemeDefinition> {
+export interface ThemvoraVitePluginOptions<T extends ThemeDefinition> {
   /**
    * The application's theme configuration, when discovery is not enough.
    *
@@ -71,23 +71,23 @@ export interface ThemeKitVitePluginOptions<T extends ThemeDefinition> {
    *
    * @example
    * ```ts
-   * import { themeKitVitePlugin } from "@theme-kit/core/vite";
+   * import { themvoraVitePlugin } from "@themvora/core/vite";
    *
    * export default defineConfig({
    *   plugins: [
    *     // Only when the file is not at the root.
-   *     themeKitVitePlugin({ config: "./config/theme.config.ts" }),
+   *     themvoraVitePlugin({ config: "./config/theme.config.ts" }),
    *   ],
    * });
    * ```
    *
-   * @see {@link ThemeKitThemeConfig}
+   * @see {@link ThemvoraThemeConfig}
    */
-  config?: ThemeKitThemeConfig<T> | string;
+  config?: ThemvoraThemeConfig<T> | string;
   /**
    * The theme definitions registered with the runtime.
    *
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead — the same
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead — the same
    * object the provider spreads. Declaring the registry here as well means the
    * pre-paint script and the runtime are configured independently, which is how
    * they drift.
@@ -95,34 +95,34 @@ export interface ThemeKitVitePluginOptions<T extends ThemeDefinition> {
   themes?: readonly T[];
   /**
    * Theme name to fall back to when no persisted selection exists.
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead.
    */
   defaultTheme?: T["name"];
   /**
    * Mode the pre-paint script uses when no persisted selection exists.
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead.
    */
   initialMode?: ThemeMode;
   /**
    * Family the pre-paint script uses when no persisted selection exists.
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead.
    */
   initialFamily?: string;
   /**
    * localStorage key holding the persisted theme selection.
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead.
    */
   storageKey?: string;
   /**
    * CSS custom property prefix.
-   * @deprecated Pass {@link ThemeKitVitePluginOptions.config} instead.
+   * @deprecated Pass {@link ThemvoraVitePluginOptions.config} instead.
    */
   prefix?: string;
   /** Hide native scrollbars before first paint by injecting the scrollbar
    *  pre-paint bootstrap script. `true` hides them (desktop), an options
    *  object keeps native bars on coarse-pointer devices unless `touch` is
    *  forced. Default `false` — the script is only needed when the page uses
-   *  the Theme Kit overlay scrollbar. */
+   *  the Themvora overlay scrollbar. */
   scrollbar?: boolean | import("./scrollbar/pre-paint").PrePaintScrollbarOptions;
   /**
    * Make React's first render commit synchronously, so the browser's first
@@ -152,7 +152,7 @@ export interface ThemeKitVitePluginOptions<T extends ThemeDefinition> {
    * only be closed by markup in the HTML, i.e. by prerendering.
    *
    * Set `false` to opt out. `createThemeRoot()` remains the explicit opt-in for
-   * apps that want Theme Kit to own the root outright.
+   * apps that want Themvora to own the root outright.
    */
   syncFirstRender?: boolean;
   /**
@@ -190,14 +190,14 @@ export interface ThemeKitVitePluginOptions<T extends ThemeDefinition> {
  * not need a hard dependency on `vite` types; the shape is assignable to
  * Vite's `IndexHtmlTransformResult` in Vite 4 through 8.
  */
-export interface ThemeKitViteInjectedTag {
+export interface ThemvoraViteInjectedTag {
   tag: string;
   attrs?: Record<string, string | boolean | undefined>;
   children?: string;
   injectTo?: "head" | "body" | "head-prepend" | "body-prepend";
 }
 
-export interface ThemeKitVitePlugin {
+export interface ThemvoraVitePlugin {
   name: string;
   enforce: "pre";
   transformIndexHtml(
@@ -205,9 +205,9 @@ export interface ThemeKitVitePlugin {
     ctx?: unknown,
   ):
     | string
-    | ThemeKitViteInjectedTag[]
-    | { html: string; tags: ThemeKitViteInjectedTag[] }
-    | Promise<string | ThemeKitViteInjectedTag[] | { html: string; tags: ThemeKitViteInjectedTag[] }>;
+    | ThemvoraViteInjectedTag[]
+    | { html: string; tags: ThemvoraViteInjectedTag[] }
+    | Promise<string | ThemvoraViteInjectedTag[] | { html: string; tags: ThemvoraViteInjectedTag[] }>;
   resolveId?(
     source: string,
     importer: string | undefined,
@@ -235,9 +235,9 @@ export interface ThemeKitVitePlugin {
  */
 const DEFAULT_SSR_ENTRY = "/src/entry-server.tsx";
 
-const REACT_DOM_CLIENT_ID = "virtual:theme-kit/react-dom-client";
+const REACT_DOM_CLIENT_ID = "virtual:themvora/react-dom-client";
 const RESOLVED_REACT_DOM_CLIENT_ID = "\0" + REACT_DOM_CLIENT_ID;
-const REACT_DOM_CLIENT_WRAPPER_ID = "virtual:theme-kit/react-dom-client-wrapper";
+const REACT_DOM_CLIENT_WRAPPER_ID = "virtual:themvora/react-dom-client-wrapper";
 const RESOLVED_REACT_DOM_CLIENT_WRAPPER_ID = "\0" + REACT_DOM_CLIENT_WRAPPER_ID;
 
 /**
@@ -254,7 +254,7 @@ const RESOLVED_REACT_DOM_CLIENT_WRAPPER_ID = "\0" + REACT_DOM_CLIENT_WRAPPER_ID;
 function buildShim(wrapperId: string): string {
   return [
     `export * from ${JSON.stringify(wrapperId)};`,
-    `export { __tkCreateRoot as createRoot } from ${JSON.stringify(wrapperId)};`,
+    `export { __tvCreateRoot as createRoot } from ${JSON.stringify(wrapperId)};`,
   ].join("\n");
 }
 
@@ -267,16 +267,16 @@ function buildShim(wrapperId: string): string {
  */
 function buildWrapper(clientId: string, reactDomId: string, coreId: string): string {
   return [
-    `import { createRoot as __tkRealCreateRoot } from ${JSON.stringify(clientId)};`,
-    `import { flushSync as __tkFlushSync } from ${JSON.stringify(reactDomId)};`,
-    `import { createSyncFirstRoot as __tkWrap } from ${JSON.stringify(coreId)};`,
+    `import { createRoot as __tvRealCreateRoot } from ${JSON.stringify(clientId)};`,
+    `import { flushSync as __tvFlushSync } from ${JSON.stringify(reactDomId)};`,
+    `import { createSyncFirstRoot as __tvWrap } from ${JSON.stringify(coreId)};`,
     // `onlyFirstRoot` keeps the flush out of React's commit phase: libraries
-    // legitimately call `createRoot` from an effect (Theme Kit's own
+    // legitimately call `createRoot` from an effect (Themvora's own
     // `ThemeScrollbar` does, once per arrow), and flushing there makes React log
     // "flushSync was called from inside a lifecycle method". The application's
     // own root is created at module scope, before anything renders, so it is
     // always the first one.
-    `export const __tkCreateRoot = __tkWrap(__tkRealCreateRoot, __tkFlushSync, { onlyFirstRoot: true });`,
+    `export const __tvCreateRoot = __tvWrap(__tvRealCreateRoot, __tvFlushSync, { onlyFirstRoot: true });`,
   ].join("\n");
 }
 
@@ -299,10 +299,10 @@ function isDependencyPath(id: string | undefined): boolean {
  * @example
  * ```ts
  * // vite.config.ts — nothing to configure beyond registering the plugin.
- * import { themeKitVitePlugin } from "@theme-kit/core/vite";
+ * import { themvoraVitePlugin } from "@themvora/core/vite";
  *
  * export default defineConfig({
- *   plugins: [react(), themeKitVitePlugin()],
+ *   plugins: [react(), themvoraVitePlugin()],
  * });
  * ```
  *
@@ -311,7 +311,7 @@ function isDependencyPath(id: string | undefined): boolean {
  * `theme.config.ts` in Vite's root (`config.root`, or `process.cwd()` when
  * unset), trying `theme.config.ts`, `.tsx`, `.mts`, `.mjs`, `.js` and `.cjs` in
  * that order. The file must have a default export — the object
- * {@link defineThemeKitConfig} returns. Discovery goes through Vite's own
+ * {@link defineThemvoraConfig} returns. Discovery goes through Vite's own
  * `loadConfigFromFile`, so a TypeScript config resolves its imports exactly as
  * `vite.config.ts` does.
  *
@@ -320,7 +320,7 @@ function isDependencyPath(id: string | undefined): boolean {
  * `scrollbar` is enabled, the pre-paint scrollbar CSS. The bootstrap payload is
  * the {@link ThemeBootstrapConfig} projection of the config — the registry, the
  * fallback theme, the initial mode/family, the storage key and the prefix. It is
- * also published to the browser as `window.__THEME_KIT_CONFIG__`, which is what
+ * also published to the browser as `window.__THEMVORA_CONFIG__`, which is what
  * lets the provider take no theme props.
  *
  * **Development.** `transformIndexHtml` runs on every dev page load, so the
@@ -340,12 +340,12 @@ function isDependencyPath(id: string | undefined): boolean {
  * discovered, the plugin warns and falls back to the built-in themes rather than
  * failing the build.
  *
- * @see {@link ThemeKitVitePluginOptions}
+ * @see {@link ThemvoraVitePluginOptions}
  */
-export function themeKitVitePlugin<T extends ThemeDefinition>(
-  options: ThemeKitVitePluginOptions<T> = {},
-): ThemeKitVitePlugin {
-  const name = "theme-kit:vite";
+export function themvoraVitePlugin<T extends ThemeDefinition>(
+  options: ThemvoraVitePluginOptions<T> = {},
+): ThemvoraVitePlugin {
+  const name = "themvora:vite";
   // The element `ssrEntry` fills. Vite's own template ships exactly
   // `<div id="root"></div>`, and the dev prerender only fires when that literal
   // is present — a different container simply keeps today's behaviour rather
@@ -359,10 +359,10 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
   // configuration — the same object the provider spreads — and the deprecated
   // inline options are ignored rather than merged, so there is exactly one
   // place a value can come from.
-  const themeOptions: ThemeKitThemeConfig<T> | ThemeKitVitePluginOptions<T> =
+  const themeOptions: ThemvoraThemeConfig<T> | ThemvoraVitePluginOptions<T> =
     options.config && typeof options.config === "object"
       ? options.config
-      : (options as ThemeKitVitePluginOptions<T>);
+      : (options as ThemvoraVitePluginOptions<T>);
 
   /**
    * Builds the bootstrap script.
@@ -372,17 +372,17 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
    *   options are only consulted when the app has none, so there is still one
    *   source per value.
    */
-  function getScript(resolved: ThemeKitConfig<ThemeDefinition> | null): string {
+  function getScript(resolved: ThemvoraConfig<ThemeDefinition> | null): string {
     if (script === null) {
       const source = resolved
         ? toBootstrapConfig(resolved)
-        : (themeOptions as ThemeKitThemeConfig<T>);
+        : (themeOptions as ThemvoraThemeConfig<T>);
       const themes = source.themes;
       if (!themes?.length) {
         throw new Error(
-          "[theme-kit] themeKitVitePlugin needs the theme registry: add a " +
+          "[themvora] themvoraVitePlugin needs the theme registry: add a " +
             "`theme.config.ts` at the project root, or pass `config` — the object " +
-            "`defineThemeKitConfig` returns (or a path to it). The deprecated " +
+            "`defineThemvoraConfig` returns (or a path to it). The deprecated " +
             "inline `themes` option still works.",
         );
       }
@@ -409,7 +409,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
 
   // The shim exists to fix a *browser* first paint, so it must never apply to
   // an SSR build. There it can do no good — nothing is painted — and it breaks
-  // one: `@theme-kit/react` imports `react-dom/client`, so an SSR bundle would
+  // one: `@themvora/react` imports `react-dom/client`, so an SSR bundle would
   // pull the shim in and evaluate it in Node.
   let isSsrBuild = false;
   let projectRoot = "";
@@ -424,7 +424,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
     "theme.config.cjs",
   ];
 
-  let appConfig: ThemeKitConfig<ThemeDefinition> | null | undefined;
+  let appConfig: ThemvoraConfig<ThemeDefinition> | null | undefined;
 
   /**
   /**
@@ -441,18 +441,18 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
    * dev server. Vite restarts on a `vite.config.ts` change, which is why the
    * plugin's own options do take effect immediately.
    */
-  async function resolveAppConfig(): Promise<ThemeKitConfig<ThemeDefinition> | null> {
+  async function resolveAppConfig(): Promise<ThemvoraConfig<ThemeDefinition> | null> {
     if (appConfig !== undefined) return appConfig;
 
     if (options.config && typeof options.config === "object") {
-      appConfig = options.config as ThemeKitConfig<ThemeDefinition>;
+      appConfig = options.config as ThemvoraConfig<ThemeDefinition>;
       return appConfig;
     }
 
-    appConfig = (await loadThemeKitConfig<ThemeDefinition>(
+    appConfig = (await loadThemvoraConfig<ThemeDefinition>(
       projectRoot,
       typeof options.config === "string" ? options.config : undefined,
-    )) as ThemeKitConfig<ThemeDefinition> | null;
+    )) as ThemvoraConfig<ThemeDefinition> | null;
     return appConfig;
   }
 
@@ -501,15 +501,15 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
             if (isSsrBuild) return null;
 
             const internal =
-              (resolveOptions as { custom?: { themeKitInternal?: boolean } } | undefined)
-                ?.custom?.themeKitInternal === true;
+              (resolveOptions as { custom?: { themvoraInternal?: boolean } } | undefined)
+                ?.custom?.themvoraInternal === true;
 
             // Our own resolution of the real module (see `load`). `skipSelf`
             // does not skip this plugin when resolution is initiated from `load`
             // in dev, and the call has no importer to key off — so the caller
             // marks itself instead. Without this the wrapper imports the shim,
             // which imports the wrapper: an unresolvable cycle that Vite reports
-            // as "Failed to resolve import virtual:theme-kit/react-dom-client"
+            // as "Failed to resolve import virtual:themvora/react-dom-client"
             // and then as an internal server error.
             if (internal) return null;
 
@@ -526,7 +526,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
             // wrapper imports it, and `skipSelf` does not skip this plugin when
             // resolution is initiated from `load` — so in dev the wrapper ended
             // up importing the shim, which imports the wrapper, and Vite
-            // reported "Failed to resolve import virtual:theme-kit/...".
+            // reported "Failed to resolve import virtual:themvora/...".
             // (Rollup's build-time `skipSelf` does behave, which is why only the
             // dev server broke.)
             if (
@@ -557,14 +557,14 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
             ) {
               return null;
             }
-            const internal = { custom: { themeKitInternal: true } };
+            const internal = { custom: { themvoraInternal: true } };
             const [client, reactDom, core] = await Promise.all([
               this.resolve("react-dom/client", undefined, { skipSelf: true, ...internal }),
               this.resolve("react-dom", undefined, { skipSelf: true, ...internal }),
-              this.resolve("@theme-kit/core", undefined, { skipSelf: true, ...internal }),
+              this.resolve("@themvora/core", undefined, { skipSelf: true, ...internal }),
             ]);
             if (!client || !reactDom || !core) {
-              // React (or Theme Kit itself) is not resolvable here. Fall back to
+              // React (or Themvora itself) is not resolvable here. Fall back to
               // the real module rather than failing the build: the shim only
               // exists to fix a React artifact.
               return id === RESOLVED_REACT_DOM_CLIENT_ID
@@ -585,10 +585,10 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
       // Return the plain `HtmlTagDescriptor[]` form of `transformIndexHtml`,
       // which is valid across Vite 4–8. (The old `{ tags, order }` object form
       // was dropped in Vite 6, where the object result requires `html`.)
-      const tags: ThemeKitViteInjectedTag[] = [
+      const tags: ThemvoraViteInjectedTag[] = [
         {
           tag: "script",
-          attrs: { id: "theme-kit-bootstrap" },
+          attrs: { id: "themvora-bootstrap" },
           children: getScript(resolved),
           injectTo: "head-prepend",
         },
@@ -597,7 +597,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
       if (scrollbar) {
         tags.push({
           tag: "script",
-          attrs: { id: "tk-scrollbar-bootstrap" },
+          attrs: { id: "tv-scrollbar-bootstrap" },
           children: scrollbar,
           injectTo: "head-prepend",
         });
@@ -609,9 +609,9 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
         // expressed in a global. Those stay provider props.
         tags.push({
           tag: "script",
-          attrs: { id: "theme-kit-config" },
+          attrs: { id: "themvora-config" },
           children:
-            "window.__THEME_KIT_CONFIG__=" +
+            "window.__THEMVORA_CONFIG__=" +
             JSON.stringify(toBootstrapConfig(resolved)).replace(/</g, "\\u003c") +
             ";",
           injectTo: "head-prepend",
@@ -624,9 +624,9 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
         // expressed in a global. Those stay provider props.
         tags.push({
           tag: "script",
-          attrs: { id: "theme-kit-config" },
+          attrs: { id: "themvora-config" },
           children:
-            "window.__THEME_KIT_CONFIG__=" +
+            "window.__THEMVORA_CONFIG__=" +
             JSON.stringify(toBootstrapConfig(resolved)).replace(/</g, "\u003c") +
             ";",
           injectTo: "head-prepend",
@@ -634,18 +634,18 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
       }
 
       // Bootstrap readouts, at the END of the body: elements marked
-      // `data-tk-readout` get the value the pre-paint script resolved. Without
+      // `data-tv-readout` get the value the pre-paint script resolved. Without
       // it, a prerendered readout shows whatever theme the prerender used (the
       // default) and only corrects when the app's JavaScript lands — which reads
       // as the UI "fluctuating" on reload, for as long as the bundle takes.
       tags.push({
         tag: "script",
-        attrs: { id: "theme-kit-readouts" },
+        attrs: { id: "themvora-readouts" },
         children: createThemeReadoutScript(),
         injectTo: "body",
       });
 
-      // Dev only: make Theme Kit's stylesheet render-blocking.
+      // Dev only: make Themvora's stylesheet render-blocking.
       //
       // Vite injects CSS through JavaScript in dev, so any server-rendered or
       // prerendered markup paints *unstyled* until that JS runs — a one-frame
@@ -655,7 +655,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
       if (devServer?.pluginContainer) {
         try {
           const css = await devServer.pluginContainer.resolveId(
-            "@theme-kit/core/scrollbar.css",
+            "@themvora/core/scrollbar.css",
             undefined,
             { skipSelf: true },
           );
@@ -669,7 +669,7 @@ export function themeKitVitePlugin<T extends ThemeDefinition>(
                 // `<link rel="stylesheet">` is not allowed to use — the browser
                 // refuses it. `?direct` returns the stylesheet itself.
                 href: "/@fs/" + css.id.replace(/\\/g, "/") + "?direct",
-                "data-theme-kit": "stylesheet",
+                "data-themvora": "stylesheet",
               },
               injectTo: "head",
             });

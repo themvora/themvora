@@ -1,30 +1,29 @@
-import { PRE_PAINT_SCROLLBAR_CSS, createOverlayScrollbar, type OverlayScrollbarOptions } from "@theme-kit/core";
-import { findProviderRuntime } from "./utils";
-import { CustomElementBase } from "./custom-element-base";
+import { PRE_PAINT_SCROLLBAR_CSS, createOverlayScrollbar, type OverlayScrollbarOptions, type ThemeDefinition, type ThemeRuntime } from "@themvora/core";
+import { ThemvoraRuntimeConsumer } from "./runtime-consumer";
 
 /**
  * Injects the pre-paint scrollbar-hiding CSS and class into the document.
  *
- * Framework-free (vanilla JS). Adds a `<style id="tk-scrollbar-style">` with
- * the pre-paint scrollbar CSS and the `tk-scrollbar` class to the document
+ * Framework-free (vanilla JS). Adds a `<style id="tv-scrollbar-style">` with
+ * the pre-paint scrollbar CSS and the `tv-scrollbar` class to the document
  * root so the native scrollbar is hidden before first paint. Idempotent and a
  * no-op on the server.
  *
- * @see {@link ThemeKitScrollbar}
+ * @see {@link ThemvoraScrollbar}
  * @see `createPrePaintScrollbarScript`
  */
 export function injectPrePaintScrollbarCSS(): void {
   if (typeof document === "undefined") return;
-  if (document.documentElement.classList.contains("tk-scrollbar")) return;
+  if (document.documentElement.classList.contains("tv-scrollbar")) return;
   const docEl = document.documentElement;
-  const existingStyle = document.getElementById("tk-scrollbar-style");
+  const existingStyle = document.getElementById("tv-scrollbar-style");
   if (!existingStyle) {
     const style = document.createElement("style");
-    style.id = "tk-scrollbar-style";
+    style.id = "tv-scrollbar-style";
     style.textContent = PRE_PAINT_SCROLLBAR_CSS;
     document.head.appendChild(style);
   }
-  docEl.classList.add("tk-scrollbar");
+  docEl.classList.add("tv-scrollbar");
 }
 
 function parseBool(value: string | null): boolean | undefined {
@@ -38,9 +37,20 @@ function parseNum(value: string | null): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** A comma-separated attribute (`include=".a, .b"`) as a list of selectors. */
+function parseList(value: string | null): string[] | undefined {
+  if (value === null) return undefined;
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : undefined;
+}
+
 function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
   const opts: OverlayScrollbarOptions = {};
   const autoHide = parseBool(el.getAttribute("auto-hide"));
+  const autoHideDelay = parseNum(el.getAttribute("auto-hide-delay"));
   const hoverExpand = parseBool(el.getAttribute("hover-expand"));
   const draggable = parseBool(el.getAttribute("draggable"));
   const clickToJump = parseBool(el.getAttribute("click-to-jump"));
@@ -57,7 +67,12 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
   const hoverThickness = parseNum(el.getAttribute("hover-thickness"));
   const radius = parseNum(el.getAttribute("radius"));
   const minThumbSize = parseNum(el.getAttribute("min-thumb-size"));
+  const iconSize = parseNum(el.getAttribute("icon-size"));
   const offset = parseNum(el.getAttribute("offset"));
+  const offsetTop = parseNum(el.getAttribute("offset-top"));
+  const offsetRight = parseNum(el.getAttribute("offset-right"));
+  const offsetBottom = parseNum(el.getAttribute("offset-bottom"));
+  const offsetLeft = parseNum(el.getAttribute("offset-left"));
   const trackOpacity = parseNum(el.getAttribute("track-opacity"));
   const thumbOpacity = parseNum(el.getAttribute("thumb-opacity"));
   const duration = parseNum(el.getAttribute("duration"));
@@ -69,6 +84,7 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
   const zIndex = parseNum(el.getAttribute("z-index"));
 
   if (autoHide !== undefined) opts.autoHide = autoHide;
+  if (autoHideDelay !== undefined) opts.autoHideDelay = autoHideDelay;
   if (hoverExpand !== undefined) opts.hoverExpand = hoverExpand;
   if (draggable !== undefined) opts.draggable = draggable;
   if (clickToJump !== undefined) opts.clickToJump = clickToJump;
@@ -85,7 +101,16 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
   if (hoverThickness !== undefined) opts.hoverThickness = hoverThickness;
   if (radius !== undefined) opts.radius = radius;
   if (minThumbSize !== undefined) opts.minThumbSize = minThumbSize;
-  if (offset !== undefined) opts.offset = offset;
+  if (iconSize !== undefined) opts.iconSize = iconSize;
+  // Per-side attributes win over the scalar `offset` when any is present.
+  const sides = {
+    ...(offsetTop !== undefined ? { top: offsetTop } : {}),
+    ...(offsetRight !== undefined ? { right: offsetRight } : {}),
+    ...(offsetBottom !== undefined ? { bottom: offsetBottom } : {}),
+    ...(offsetLeft !== undefined ? { left: offsetLeft } : {}),
+  };
+  if (Object.keys(sides).length > 0) opts.offset = sides;
+  else if (offset !== undefined) opts.offset = offset;
   if (trackOpacity !== undefined) opts.trackOpacity = trackOpacity;
   if (thumbOpacity !== undefined) opts.thumbOpacity = thumbOpacity;
   if (duration !== undefined) opts.duration = duration;
@@ -109,11 +134,16 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
       );
   }
 
+  const include = parseList(el.getAttribute("include"));
+  if (include) opts.include = include;
+  const exclude = parseList(el.getAttribute("exclude"));
+  if (exclude) opts.exclude = exclude;
+
   return opts;
 }
 
 /**
- * Phase 2 — ThemeKitScrollbar (Web Component): overlay only.
+ * Phase 2 — ThemvoraScrollbar (Web Component): overlay only.
  *
  * Creates the custom scrollbar overlay.
  *
@@ -122,7 +152,7 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
  *                        ↓ (Phase 1)
  *   connectedCallback  → create overlay → measure → attach listeners
  *                        ↓ (Phase 2)
- *   later              → add tk-scrollbar-ready
+ *   later              → add tv-scrollbar-ready
  *                        ↓ (Phase 3)
  *
  * Phase 1 is injected synchronously in `connectedCallback`. For static HTML
@@ -130,11 +160,37 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
  * runs before first paint. This component's injection is a fallback for
  * dynamically-inserted scrollbar elements (which may have already painted).
  *
- * @see {@link ThemeKitProvider}
+ * @remarks
+ * **Attributes.** Every option is an attribute; changing one rebuilds the
+ * overlay. Booleans are presence-based: present (any value except `false` or
+ * `0`) enables, absent or `false` disables. Numbers are unitless pixels.
+ *
+ * - Behaviour — `auto-hide`, `auto-hide-delay`, `hover-expand`, `draggable`,
+ *   `click-to-jump`, `smooth`, `overscroll`, `touch`.
+ * - Arrows — `arrows`, `arrow-icon`, `arrow-up-icon`, `arrow-down-icon`,
+ *   `arrow-left-icon`, `arrow-right-icon` (SVG markup or URL).
+ * - Geometry — `thickness`, `hover-thickness`, `radius`, `min-thumb-size`,
+ *   `icon-size`, `offset` (uniform inset), `offset-top`, `offset-right`,
+ *   `offset-bottom`, `offset-left` (per-side insets win over `offset`).
+ * - Motion and paint — `track-opacity`, `thumb-opacity`, `duration`,
+ *   `animation-duration`, `thumb-color`, `track-color`, `active-thumb-color`,
+ *   `thumb-hover-color`. Colors default to the active theme's tokens.
+ * - Placement — `z-index`, `dir` (`ltr` / `rtl` / `auto`), `axes`
+ *   (comma-separated `vertical` / `horizontal`), `include` / `exclude`
+ *   (comma-separated CSS selectors for the containers to track).
+ *
+ * **Properties.** None of its own beyond the standard `HTMLElement` surface.
+ *
+ * **Events.** Dispatches nothing of its own; it adds `tv-scrollbar-ready` to
+ * the element once the overlay is measured and attached.
+ *
+ * **Slots.** None — the element renders nothing into the document flow; the
+ * overlay it creates lives outside it.
+ *
+ * @see {@link ThemvoraProvider}
  */
-export class ThemeKitScrollbar extends CustomElementBase {
+export class ThemvoraScrollbar extends ThemvoraRuntimeConsumer {
   private handle: { destroy(): void } | null = null;
-  private initialized = false;
 
   /**
    * Every attribute `optionsFrom` reads.
@@ -146,6 +202,7 @@ export class ThemeKitScrollbar extends CustomElementBase {
   static get observedAttributes(): string[] {
     return [
       "auto-hide",
+      "auto-hide-delay",
       "hover-expand",
       "draggable",
       "click-to-jump",
@@ -162,7 +219,12 @@ export class ThemeKitScrollbar extends CustomElementBase {
       "hover-thickness",
       "radius",
       "min-thumb-size",
+      "icon-size",
       "offset",
+      "offset-top",
+      "offset-right",
+      "offset-bottom",
+      "offset-left",
       "track-opacity",
       "thumb-opacity",
       "duration",
@@ -174,64 +236,45 @@ export class ThemeKitScrollbar extends CustomElementBase {
       "z-index",
       "dir",
       "axes",
+      "include",
+      "exclude",
     ];
   }
 
   /** Lifecycle hook: rebuilds the overlay when a watched attribute changes. */
   attributeChangedCallback() {
-    // Before `connectedCallback` runs there is nothing to rebuild; the first
-    // `init()` reads the attributes as they are then.
-    if (!this.initialized) return;
-    this.handle?.destroy();
-    this.handle = null;
-    this.init();
+    // Before the runtime is attached there is nothing to rebuild; the first
+    // `onRuntime` reads the attributes as they are then.
+    const runtime = this.runtime;
+    if (!runtime || !this.isConnected) return;
+    this.rebuild(runtime);
   }
 
-  /** Lifecycle hook: injects pre-paint CSS and initializes the overlay. */
-  connectedCallback() {
-    if (this.initialized) return;
-    this.initialized = true;
-
-    const runtime = findProviderRuntime(this);
-    if (!runtime) {
-      // Listen on the document, not on `this`: <theme-kit-provider> dispatches
-      // theme-ready on itself with bubbles:true, which travels *up* and can never
-      // reach a descendant. A self-listener therefore only fired when the
-      // provider happened to initialise first.
-      document.addEventListener(
-        "theme-ready",
-        () => {
-          if (this.isConnected) this.init();
-        },
-        { once: true },
-      );
-      return;
-    }
-    this.init();
+  protected override onRuntime(runtime: ThemeRuntime<ThemeDefinition>): void {
+    this.rebuild(runtime);
   }
 
   /** Lifecycle hook: destroys the overlay scrollbar. */
-  disconnectedCallback() {
+  protected override onDetach(): void {
     this.handle?.destroy();
     this.handle = null;
   }
 
-  private init() {
-    const runtime = findProviderRuntime(this);
-    if (!runtime) return;
+  private rebuild(runtime: ThemeRuntime<ThemeDefinition>) {
+    this.handle?.destroy();
     this.handle = createOverlayScrollbar(
       runtime.store as any,
       optionsFrom(this),
     );
   }
 
-  static define(tag = "theme-kit-scrollbar") {
+  static define(tag = "themvora-scrollbar") {
     // SSR-safe: customElements only exists in the browser. Framework wrappers
     // (Vue, Solid, Angular, Astro, …) call define() from both server and client
     // environments, so this must be a no-op on the server.
     if (typeof customElements === "undefined") return;
     if (!customElements.get(tag)) {
-      customElements.define(tag, ThemeKitScrollbar);
+      customElements.define(tag, ThemvoraScrollbar);
     }
   }
 }

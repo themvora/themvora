@@ -49,6 +49,7 @@ const libraryLinks = [
 const tokensLinks = [
   { href: "/tokens", label: "Semantic Tokens" },
   { href: "/tokens/code", label: "Code Tokens" },
+  { href: "/tokens/semantic-roles", label: "Semantic Roles" },
 ];
 
 type SidebarLink = {
@@ -347,12 +348,37 @@ const cliTopLinks = [
   { href: "/cli/quickstart", label: "Quick Start" },
 ];
 
+// Every command in `packages/cli/src/command-schema.json`, in the order the CLI
+// reference lists them. Each one has its own page under `content/cli/`.
+//
+// The CLI group is one of the sections that enumerates every child route rather
+// than only its index page, so this list has to stay complete:
+// `scripts/docs/audits/audit-page-contracts.mjs` fails when a `/cli/*` route in
+// `docs-routes.ts` has no link here.
 const cliCommandLinks = [
   { href: "/cli/generate", label: "generate" },
+  { href: "/cli/list", label: "list" },
   { href: "/cli/validate", label: "validate" },
   { href: "/cli/inspect", label: "inspect" },
+  { href: "/cli/diff", label: "diff" },
+  { href: "/cli/explain", label: "explain" },
+  { href: "/cli/audit", label: "audit" },
+  { href: "/cli/doctor", label: "doctor" },
+  { href: "/cli/init", label: "init" },
+  { href: "/cli/add", label: "add" },
   { href: "/cli/migrate", label: "migrate" },
   { href: "/cli/export", label: "export" },
+  { href: "/cli/completion", label: "completion" },
+];
+
+// What those commands read: the canonical catalogs, each with its own page.
+// They get their own band rather than a slot in the command list — where the
+// prev/next path places them, right after `list` — because they are not
+// commands: they are the catalogs `list` prints and `generate` resolves against.
+const cliRegistryLinks = [
+  { href: "/cli/presets", label: "presets" },
+  { href: "/cli/brands", label: "brands" },
+  { href: "/cli/styles", label: "styles" },
 ];
 
 const cliBottomLinks = [
@@ -361,12 +387,28 @@ const cliBottomLinks = [
   { href: "/cli/reference", label: "Reference" },
 ];
 
+/** Section label inside a sidebar group ("Commands", "Registries"). */
+function NavBand({ label }: { label: string }) {
+  return (
+    <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-widest opacity-40">
+      {label}
+    </div>
+  );
+}
+
 function CliGroup({ pathname }: { pathname: string }) {
   return (
     <NavGroup
       label="CLI"
       pathname={pathname}
       inSection={pathname.startsWith("/cli")}
+      // 22 links plus two band labels: 900px measured in the browser at the
+      // default font size. The group collapses with an animated max-height, so
+      // the open height must clear the content height with room to spare or the
+      // tail of the list is clipped instead of shown — a few tens of pixels of
+      // unused max-height only shortens the animation's tail, a clipped link is
+      // invisible navigation.
+      maxHeight="max-h-[64rem]"
     >
       {cliTopLinks.map((link) => (
         <NavLink
@@ -378,10 +420,19 @@ function CliGroup({ pathname }: { pathname: string }) {
         />
       ))}
 
-      <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-widest opacity-40">
-        Commands
-      </div>
+      <NavBand label="Commands" />
       {cliCommandLinks.map((link) => (
+        <NavLink
+          key={link.href}
+          href={link.href}
+          label={link.label}
+          subtle
+          active={pathname === link.href}
+        />
+      ))}
+
+      <NavBand label="Registries" />
+      {cliRegistryLinks.map((link) => (
         <NavLink
           key={link.href}
           href={link.href}
@@ -557,7 +608,7 @@ export function DocsLayout({
 
   // Persist the mobile docs drawer's scroll position (like the desktop
   // sidebar) so a closed-and-reopened drawer lands where the reader left off.
-  const DRAWER_SCROLL_KEY = "tk-docs-drawer-scroll";
+  const DRAWER_SCROLL_KEY = "tv-docs-drawer-scroll";
 
   // Save on the true → false transition via useLayoutEffect: at that moment the
   // DOM still holds the pre-close scrollTop (the scroll event alone is racy —

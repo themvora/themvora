@@ -2,12 +2,12 @@
 
 import React from "react";
 import { MantineProvider } from "@mantine/core";
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
-import { useRuntimeThemeFactory } from "@theme-kit/adapters/react";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
+import { useRuntimeThemeFactory } from "@themvora/adapters/react";
 import { createMantineTheme } from "./theme";
 
 /**
- * Subscribes to a Theme Kit runtime and returns a Mantine theme that is rebuilt
+ * Subscribes to a Themvora runtime and returns a Mantine theme that is rebuilt
  * automatically whenever the active theme changes.
  */
 export function useMantineTheme<T extends ThemeDefinition>(runtime: ThemeRuntime<T>) {
@@ -18,7 +18,7 @@ export function useMantineTheme<T extends ThemeDefinition>(runtime: ThemeRuntime
  * Props for {@link MantineThemeProvider}.
  */
 export interface MantineThemeProviderProps<T extends ThemeDefinition> {
-  /** The Theme Kit runtime whose active theme drives the Mantine theme. */
+  /** The Themvora runtime whose active theme drives the Mantine theme. */
   runtime: ThemeRuntime<T>;
   /** The React subtree rendered inside Mantine's `MantineProvider`. */
   children: React.ReactNode;
@@ -26,8 +26,8 @@ export interface MantineThemeProviderProps<T extends ThemeDefinition> {
 
 /**
  * `<MantineThemeProvider runtime={runtime}>` — wraps Mantine's own
- * `MantineProvider` with a theme derived from Theme Kit's semantic tokens.
- * The Mantine color scheme is forced to match the active Theme Kit mode so
+ * `MantineProvider` with a theme derived from Themvora's semantic tokens.
+ * The Mantine color scheme is forced to match the active Themvora mode so
  * Mantine's built-in dark styles stay in sync.
  *
  * The provider owns the derived Mantine theme: it subscribes to the runtime
@@ -36,7 +36,7 @@ export interface MantineThemeProviderProps<T extends ThemeDefinition> {
  *
  * @example
  * ```tsx
- * import { MantineThemeProvider } from "@theme-kit/mantine";
+ * import { MantineThemeProvider } from "@themvora/mantine";
  *
  * <MantineThemeProvider runtime={runtime}>
  *   <App />

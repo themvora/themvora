@@ -6,8 +6,8 @@ export const libraryUseCases: Record<string, UseCase[]> = {
       title: "Mount the adapter on the runtime",
       desc: "Register the adapter so every theme change repaints `--shadcn-*` variables.",
       lang: "ts",
-      code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createShadcnAdapter } from "@theme-kit/shadcn";
+      code: `import { createThemeRuntime } from "@themvora/core";
+import { createShadcnAdapter } from "@themvora/shadcn";
 
 const runtime = createThemeRuntime();
 runtime.adapters.use(createShadcnAdapter());
@@ -31,8 +31,8 @@ runtime.selection.setMode("dark");`,
       title: "Mount the adapter on the runtime",
       desc: "The adapter generates `--bs-*` variables from the active theme.",
       lang: "ts",
-      code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createBootstrapAdapter } from "@theme-kit/bootstrap";
+      code: `import { createThemeRuntime } from "@themvora/core";
+import { createBootstrapAdapter } from "@themvora/bootstrap";
 
 const runtime = createThemeRuntime();
 runtime.adapters.use(createBootstrapAdapter());`,
@@ -53,14 +53,14 @@ runtime.selection.setMode("light");`,
       title: "Mount the adapter on the runtime",
       desc: "The adapter maps tokens to daisyUI variable names.",
       lang: "ts",
-      code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createDaisyAdapter } from "@theme-kit/daisyui";
+      code: `import { createThemeRuntime } from "@themvora/core";
+import { createDaisyAdapter } from "@themvora/daisyui";
 
 const runtime = createThemeRuntime();
 runtime.adapters.use(createDaisyAdapter());`,
     },
     {
-      title: "Switch Theme Kit theme + daisyUI stays in sync",
+      title: "Switch Themvora theme + daisyUI stays in sync",
       desc: "Changing the active theme immediately repaints daisyUI variables like `--color-primary` and `--color-base-100`.",
       lang: "ts",
       code: `// The adapter is already registered — switch the family
@@ -75,8 +75,8 @@ runtime.selection.setFamily("plum");`,
       title: "Mount the adapter on the runtime",
       desc: "Register the Open Props adapter on an existing runtime.",
       lang: "ts",
-      code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createOpenPropsAdapter } from "@theme-kit/open-props";
+      code: `import { createThemeRuntime } from "@themvora/core";
+import { createOpenPropsAdapter } from "@themvora/open-props";
 
 const runtime = createThemeRuntime();
 runtime.adapters.use(createOpenPropsAdapter());`,
@@ -97,10 +97,12 @@ runtime.adapters.use(createOpenPropsAdapter());`,
       title: "Build a static MUI theme",
       desc: "Generate a `Theme` at build time from concrete tokens.",
       lang: "ts",
-      code: `import { createMuiTheme } from "@theme-kit/mui";
-import { resolveTheme } from "@theme-kit/core";
+      code: `import { createMuiTheme } from "@themvora/mui";
+import { getBuiltInThemes, resolveTheme } from "@themvora/core";
 
-const theme = createMuiTheme(resolveTheme({ family: "plum", mode: "dark" }));`,
+// resolveTheme takes (themes, name) — not a { family, mode } object.
+const themes = getBuiltInThemes();
+const muiTheme = createMuiTheme(resolveTheme(themes, "plum-dark"));`,
     },
   ],
   chakra: [
@@ -108,9 +110,12 @@ const theme = createMuiTheme(resolveTheme({ family: "plum", mode: "dark" }));`,
       title: "Build a static Chakra system",
       desc: "Turn a theme definition into a Chakra system at build time.",
       lang: "ts",
-      code: `import { createChakraTheme } from "@theme-kit/chakra";
+      code: `import { createChakraTheme } from "@themvora/chakra";
+import { getBuiltInThemes, resolveTheme } from "@themvora/core";
 
-const system = createChakraTheme({ family: "mint", mode: "light" });`,
+// Pass a theme definition, not { family, mode } — the factory does not read that shape.
+const themes = getBuiltInThemes();
+const system = createChakraTheme(resolveTheme(themes, "mint-light"));`,
     },
   ],
   antd: [
@@ -118,9 +123,11 @@ const system = createChakraTheme({ family: "mint", mode: "light" });`,
       title: "Build a static AntD config",
       desc: "Generate a `ThemeConfig` from concrete tokens at build time.",
       lang: "ts",
-      code: `import { createAntdTheme } from "@theme-kit/antd";
+      code: `import { createAntdTheme } from "@themvora/antd";
+import { getBuiltInThemes, resolveTheme } from "@themvora/core";
 
-const config = createAntdTheme({ family: "plum", mode: "dark" });`,
+const themes = getBuiltInThemes();
+const config = createAntdTheme(resolveTheme(themes, "plum-dark"));`,
     },
   ],
   mantine: [
@@ -128,14 +135,16 @@ const config = createAntdTheme({ family: "plum", mode: "dark" });`,
       title: "Build a static Mantine theme",
       desc: "Generate a Mantine theme (with shades, fonts, radius) from tokens.",
       lang: "ts",
-      code: `import { createMantineTheme } from "@theme-kit/mantine";
+      code: `import { createMantineTheme } from "@themvora/mantine";
+import { getBuiltInThemes, resolveTheme } from "@themvora/core";
 
-const theme = createMantineTheme({ family: "cocoa", mode: "dark" });`,
+const themes = getBuiltInThemes();
+const theme = createMantineTheme(resolveTheme(themes, "cocoa-dark"));`,
     },
   ],
   unocss: [
     {
-      title: "Use Theme Kit utilities",
+      title: "Use Themvora utilities",
       desc: "Utilities resolve to live `--theme-*` variables, so they update at runtime.",
       lang: "tsx",
       code: `<div className="bg-primary text-primary-foreground rounded-lg shadow-md">
@@ -146,9 +155,11 @@ const theme = createMantineTheme({ family: "cocoa", mode: "dark" });`,
       title: "Generate a static theme",
       desc: "Resolve tokens to concrete `rem`/`px`/color values at build time.",
       lang: "ts",
-      code: `import { createUnoTheme } from "@theme-kit/unocss";
+      code: `import { createUnoTheme } from "@themvora/unocss";
+import { getBuiltInThemes, resolveTheme } from "@themvora/core";
 
-const theme = createUnoTheme({ family: "berry", mode: "dark" });
+const themes = getBuiltInThemes();
+const theme = createUnoTheme(resolveTheme(themes, "berry-dark"));
 // theme.colors.primary === "#..."`,
     },
   ],

@@ -1,4 +1,4 @@
-import type { ThemeTokens } from "@theme-kit/core";
+import type { ThemeTokens } from "@themvora/core";
 import type { AdapterResolvedTheme } from "./source";
 
 type RecordMap = Record<string, unknown>;

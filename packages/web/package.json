@@ -1,5 +1,5 @@
 {
-  "name": "@theme-kit/web",
+  "name": "@themvora/web",
   "license": "MIT",
   "version": "1.4.0",
   "type": "module",
@@ -14,22 +14,24 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "html-data.json"
   ],
   "scripts": {
-    "build": "tsup && tsc -p tsconfig.build.json"
+    "build": "tsup && tsc -p tsconfig.build.json",
+    "test": "vitest"
   },
   "dependencies": {
-    "@theme-kit/core": "workspace:^"
+    "@themvora/core": "workspace:^"
   },
-  "description": "Vanilla JS theme runtime and DOM bindings for Theme Kit.",
+  "description": "HTML-first theme components for any page: custom elements, CSS variables and live configuration with no framework.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/themekit-dev/theme-kit.git"
+    "url": "git+https://github.com/themvora/themvora.git"
   },
-  "homepage": "https://theme-kit-dev.vercel.app",
+  "homepage": "https://themvora-dev.vercel.app",
   "bugs": {
-    "url": "https://github.com/themekit-dev/theme-kit/issues"
+    "url": "https://github.com/themvora/themvora/issues"
   },
   "keywords": [
     "theme",

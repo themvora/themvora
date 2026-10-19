@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createApp, defineComponent, h, nextTick } from "vue";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { provideThemeRuntime, useThemeSchedule } from "../src/index";
 
 function createScheduledRuntime() {

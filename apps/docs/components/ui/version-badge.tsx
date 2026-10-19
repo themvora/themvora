@@ -43,7 +43,7 @@ export function VerifiedBadge({ version, date, className }: VerifiedBadgeProps) 
         <path d="m9 12 2 2 4-4" />
       </svg>
       <span className="opacity-80">
-        Verified with Theme Kit <span className="font-mono font-semibold">{version}</span>
+        Verified with Themvora <span className="font-mono font-semibold">{version}</span>
       </span>
       <span className="opacity-50">·</span>
       <span className="opacity-60">Updated {date}</span>

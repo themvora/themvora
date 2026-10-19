@@ -9,7 +9,9 @@ import {
   type OverlayScrollbarOptions,
   type ScrollbarArrowDir,
   type ScrollbarAxis,
-} from "@theme-kit/core";
+  type ScrollbarOffset,
+  resolveScrollbarOptions,
+} from "@themvora/core";
 import { useThemeRuntime } from "./provider";
 
 type IconProp = React.ReactNode;
@@ -49,7 +51,14 @@ export interface ThemeScrollbarAppearance extends Pick<
   | "trackColor"
   | "activeThumbColor"
   | "thumbHoverColor"
-> {
+> {}
+
+/**
+ * Scope — which scrollable containers the overlay tracks. This decides *where*
+ * the scrollbar appears, not how it looks, so it is its own group rather than
+ * part of `appearance`.
+ */
+export interface ThemeScrollbarScope {
   /** Scope the overlay to these containers (document is always tracked). */
   include?: string[] | null;
   /** Skip these containers when tracking. */
@@ -70,6 +79,10 @@ export interface ThemeScrollbarIcons {
   left?: React.ReactNode;
   /** Icon for the "scroll right" button. */
   right?: React.ReactNode;
+  /** Arrow glyph size, in CSS px, for all four directions. Clamped to the
+   *  button's usable area, so it never overflows a thin rail. Omit to keep the
+   *  default sizing. */
+  size?: number;
 }
 
 /**
@@ -80,82 +93,17 @@ export interface ThemeScrollbarIcons {
  * grouped ones).
  */
 export interface ThemeScrollbarProps {
-  /** Grouped behavior options. Flat props (e.g. `autoHide`) override these. */
+  /** How the overlay scrolls and hides. */
   behavior?: ThemeScrollbarBehavior;
-  /** Grouped appearance options. Flat props override these. */
+  /** The look and size of every rail. */
   appearance?: ThemeScrollbarAppearance;
-  /** Grouped arrow button icons. Flat `arrow*Icon` props override these. */
+  /** Which scrollable containers the overlay tracks. */
+  scope?: ThemeScrollbarScope;
+  /** Arrow button icons, plus the shared glyph size. */
   icons?: ThemeScrollbarIcons;
-  /** JSX / element rendered inside every arrow button (overrides the built-in
-   *  CSS triangle). Accepts any `ReactNode`. */
-  arrowIcon?: IconProp;
-  /** JSX / element for the "scroll up" button. Falls back to `arrowIcon`. */
-  arrowUpIcon?: IconProp;
-  /** JSX / element for the "scroll down" button. Falls back to `arrowIcon`. */
-  arrowDownIcon?: IconProp;
-  /** JSX / element for the "scroll left" button. Falls back to `arrowIcon`. */
-  arrowLeftIcon?: IconProp;
-  /** JSX / element for the "scroll right" button. Falls back to `arrowIcon`. */
-  arrowRightIcon?: IconProp;
-  /** Flat alias for `OverlayScrollbarOptions.autoHide`. */
-  autoHide?: boolean;
-  /** Idle (ms) before a revealed strip fades out after its last activity.
-   *  Each host has its own timer, so only the strip you're scrolling/hovering
-   *  is revealed, then it fades after idle; other scrollbars stay hidden.
-   *  Default `900`. Only takes effect when `autoHide` is `true`. */
-  autoHideDelay?: number;
-  /** Flat alias for `OverlayScrollbarOptions.hoverExpand`. */
-  hoverExpand?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.draggable`. */
-  draggable?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.clickToJump`. */
-  clickToJump?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.smooth`. */
-  smooth?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.overscroll`. */
-  overscroll?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.arrows`. */
-  arrows?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.thickness`. */
-  thickness?: number;
-  /** Flat alias for `OverlayScrollbarOptions.hoverThickness`. */
-  hoverThickness?: number;
-  /** Flat alias for `OverlayScrollbarOptions.radius`. */
-  radius?: number;
-  /** Flat alias for `OverlayScrollbarOptions.minThumbSize`. */
-  minThumbSize?: number;
-  /** Flat alias for `OverlayScrollbarOptions.offset`. */
-  offset?: number;
-  /** Flat alias for `OverlayScrollbarOptions.trackOpacity`. */
-  trackOpacity?: number;
-  /** Flat alias for `OverlayScrollbarOptions.thumbOpacity`. */
-  thumbOpacity?: number;
-  /** Flat alias for `OverlayScrollbarOptions.thumbColor`. */
-  thumbColor?: string;
-  /** Flat alias for `OverlayScrollbarOptions.trackColor`. */
-  trackColor?: string;
-  /** Flat alias for `OverlayScrollbarOptions.activeThumbColor`. */
-  activeThumbColor?: string;
-  /** Flat alias for `OverlayScrollbarOptions.thumbHoverColor`. */
-  thumbHoverColor?: string;
-  /** Flat alias for `OverlayScrollbarOptions.zIndex`. */
-  zIndex?: number | undefined;
-  /** Flat alias for `OverlayScrollbarOptions.duration`. */
-  duration?: number;
-  /** Flat alias for `OverlayScrollbarOptions.animationDuration`. */
-  animationDuration?: number;
-  /** Flat alias for `OverlayScrollbarOptions.axes`. */
-  axes?: ScrollbarAxis[];
-  /** Flat alias for `OverlayScrollbarOptions.include`. */
-  include?: string[] | null;
-  /** Flat alias for `OverlayScrollbarOptions.exclude`. */
-  exclude?: string[] | null;
-  /** Flat alias for `OverlayScrollbarOptions.touch`. */
-  touch?: boolean;
-  /** Flat alias for `OverlayScrollbarOptions.dir`. */
-  dir?: "ltr" | "rtl" | "auto";
   /** Renders nothing visible; kept for API symmetry (the overlay is created
-   *  against the runtime, not the component tree). */
+   *  against the runtime, not the component tree). It is deliberately ignored
+   *  by option resolution and change detection. */
   children?: React.ReactNode;
 }
 
@@ -164,34 +112,115 @@ function isIcon(value: React.ReactNode): value is NonNullable<React.ReactNode> {
 }
 
 /**
- * A stable key for the overlay's options.
+ * A stable, normalized fingerprint of a React node.
  *
- * The engine resolves its options once, when the overlay is created, so a prop
- * change only takes effect if the overlay is recreated. Keying the creation
- * effect on this string is what makes an updated prop apply without a reload.
- *
- * React elements and functions cannot be stringified, so they are reduced to a
- * token that still tells one icon from another (`el:ArrowUp` vs `el:ArrowDown`).
- * `children` is excluded: it is accepted for API symmetry and never reaches the
- * engine, so changing it must not tear the overlay down.
+ * React elements are reduced to their type plus a shallow fingerprint of their
+ * props (and children, depth-limited), so `<Chevron dir="up" />` and
+ * `<Chevron dir="down" />` produce DIFFERENT fingerprints. The previous
+ * serializer collapsed every element to its type name, which meant changing a
+ * prop on an existing icon component was silently ignored.
  */
-function optionsKeyOf(props: ThemeScrollbarProps): string {
-  return JSON.stringify(props, (key, value) => {
-    if (key === "children") return undefined;
-    if (typeof value === "function") return "fn";
-    if (value && typeof value === "object" && "$$typeof" in value) {
-      const type = (value as { type?: unknown }).type;
-      const name =
-        typeof type === "string"
-          ? type
-          : ((type as { displayName?: string; name?: string } | undefined)
-              ?.displayName ??
-            (type as { name?: string } | undefined)?.name ??
-            "el");
-      return `el:${name}`;
+function nodeFingerprint(node: unknown, depth = 0): unknown {
+  if (node == null || typeof node === "boolean") return node == null ? "nil" : node;
+  if (typeof node === "string" || typeof node === "number") return node;
+  if (typeof node === "function") return "fn";
+  if (Array.isArray(node)) return node.map((item) => nodeFingerprint(item, depth + 1));
+  if (typeof node !== "object") return String(node);
+
+  const el = node as { $$typeof?: unknown; type?: unknown; props?: Record<string, unknown> };
+  if (!el.$$typeof) {
+    try {
+      return JSON.stringify(node);
+    } catch {
+      return "obj";
     }
-    return value;
+  }
+  if (depth > 3) return "el";
+  const type = el.type as { displayName?: string; name?: string } | string | undefined;
+  const name =
+    typeof type === "string"
+      ? type
+      : (type?.displayName ?? type?.name ?? "el");
+  const props = el.props ?? {};
+  const fingerprint: Record<string, unknown> = {};
+  for (const key of Object.keys(props).sort()) {
+    if (key === "children") continue;
+    fingerprint[key] = nodeFingerprint(props[key], depth + 1);
+  }
+  return { t: name, p: fingerprint, c: nodeFingerprint(props.children, depth + 1) };
+}
+
+/** What the mount effect needs, plus the key that decides when it re-runs. */
+interface ScrollbarPlan {
+  /** Canonical engine options (the arrow renderer is attached in the effect). */
+  opts: OverlayScrollbarOptions;
+  /** The icon for each direction, already resolved from the flat + grouped
+   *  props and the rotation fallbacks. */
+  icons: Record<ScrollbarArrowDir, React.ReactNode>;
+  /** Content identity of the resolved options and every icon. */
+  key: string;
+}
+
+/**
+ * Resolve the component's props into canonical engine options and a change key.
+ *
+ * Pure and cheap: the returned `key` is built from the RESOLVED options (so the
+ * grouped and flat forms of the same value hash identically) plus each icon's
+ * fingerprint — meaning icon size, icon swaps, icon prop changes, colors,
+ * scope, thickness and behavior are all detected, while an ordinary re-render
+ * that changes nothing (or only `children`) leaves the key untouched and the
+ * overlay in place.
+ */
+function planProps(props: ThemeScrollbarProps): ScrollbarPlan {
+  const { behavior, appearance, scope, icons } = props;
+  const ic = icons ?? {};
+
+  // One canonical merge, shared with every other adapter. `icons.size` is the
+  // public name for the engine's `iconSize`.
+  const opts = resolveScrollbarOptions({ behavior, appearance, scope });
+  if (ic.size !== undefined) opts.iconSize = ic.size;
+
+  /** Wrap a JSX arrow icon and rotate it so a vertical glyph can serve the
+   *  horizontal arrows (and vice-versa) — one custom glyph family, four
+   *  native-consistent buttons. The rotated box is the engine-sized square
+   *  (`--tv-arrow-size`), so a rotated glyph stays inside its button. */
+  const rotated = (icon: React.ReactNode, deg: number): React.ReactNode =>
+    isIcon(icon) ? (
+      <span
+        aria-hidden
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxSizing: "border-box",
+          width: "var(--tv-arrow-size, 100%)",
+          height: "var(--tv-arrow-size, 100%)",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          transform: `rotate(${deg}deg)`,
+        }}
+      >
+        {icon}
+      </span>
+    ) : null;
+  const first = (...nodes: Array<React.ReactNode | null>): React.ReactNode =>
+    nodes.find(isIcon) ?? null;
+  const arrowUp = ic.up ?? ic.arrow;
+  const arrowDown = ic.down ?? ic.arrow;
+  const arrowLeft = ic.left ?? ic.arrow;
+  const arrowRight = ic.right ?? ic.arrow;
+  const resolvedIcons: Record<ScrollbarArrowDir, React.ReactNode> = {
+    up: arrowUp ?? first(rotated(arrowRight, -90), rotated(arrowLeft, 90)),
+    down: arrowDown ?? first(rotated(arrowRight, 90), rotated(arrowLeft, -90)),
+    left: arrowLeft ?? first(rotated(arrowUp, -90), rotated(arrowRight, 180)),
+    right: arrowRight ?? first(rotated(arrowUp, 90), rotated(arrowLeft, 180)),
+  };
+
+  const key = JSON.stringify({
+    opts,
+    icons: (Object.keys(resolvedIcons) as ScrollbarArrowDir[]).map((d) => nodeFingerprint(resolvedIcons[d])),
   });
+  return { opts, icons: resolvedIcons, key };
 }
 
 /**
@@ -201,12 +230,18 @@ function optionsKeyOf(props: ThemeScrollbarProps): string {
  *
  * Lifecycle:
  *   mount  → create overlay → measure → attach listeners
- *   paint  → add tk-scrollbar-ready
+ *   paint  → add tv-scrollbar-ready
  *   destroy → remove overlay
  *
- * Props are organized into three optional groups — `behavior`, `appearance`
- * and `icons` — but every option is also accepted as a flat, top-level prop
- * (flat props win over the grouped ones).
+ * Props are four optional groups — `behavior`, `appearance`, `scope` and
+ * `icons` — plus `children`, which is accepted for JSX symmetry only.
+ *
+ *   <ThemeScrollbar
+ *     behavior={{ autoHide: true, smooth: true }}
+ *     appearance={{ thickness: 8, radius: 999 }}
+ *     scope={{ include: [".panel"] }}
+ *     icons={{ up: <ArrowUpIcon />, size: 12 }}
+ *   />
  *
  *   <ThemeScrollbar
  *     behavior={{ autoHide: true, smooth: true }}
@@ -220,186 +255,41 @@ function optionsKeyOf(props: ThemeScrollbarProps): string {
 export function ThemeScrollbar(props: ThemeScrollbarProps) {
   const runtime = useThemeRuntime();
   const handleRef = useRef<OverlayScrollbarHandle | null>(null);
-  const optionsKey = optionsKeyOf(props);
+  const plan = planProps(props);
+  const optionsKey = plan.key;
 
   // Phase 1 — hide the native scrollbar before the first paint. The blocking
-  // script adds `tk-scrollbar` to <html> plus a <style> hiding native bars, so
+  // script adds `tv-scrollbar` to <html> plus a <style> hiding native bars, so
   // the custom overlay is the only scrollbar from the very first frame
   // (matching the Next.js/Nuxt SSR experience). Idempotent: when the Vite
   // plugin or an SSR adapter already emitted it, this no-ops.
   useInsertionEffect(() => {
     if (typeof document === "undefined" || !document.head) return;
-    if (document.getElementById("tk-scrollbar-style")) return;
+    if (document.getElementById("tv-scrollbar-style")) return;
     const script = document.createElement("script");
     script.text = createPrePaintScrollbarScript();
     document.head.appendChild(script);
   }, []);
 
-  const {
-    behavior = {},
-    appearance = {},
-    icons = {},
-    arrowIcon,
-    arrowUpIcon,
-    arrowDownIcon,
-    arrowLeftIcon,
-    arrowRightIcon,
-    // flat overrides
-    autoHide,
-    autoHideDelay,
-    hoverExpand,
-    draggable,
-    clickToJump,
-    smooth,
-    overscroll,
-    arrows,
-    thickness,
-    hoverThickness,
-    radius,
-    minThumbSize,
-    offset,
-    trackOpacity,
-    thumbOpacity,
-    thumbColor,
-    trackColor,
-    activeThumbColor,
-    thumbHoverColor,
-    zIndex,
-    duration,
-    animationDuration,
-    axes,
-    include,
-    exclude,
-    touch,
-    dir,
-  } = props;
 
   useEffect(() => {
-    const opts: OverlayScrollbarOptions = {};
-    // behavior — grouped props, flat overrides win
-    if (autoHide !== undefined) opts.autoHide = autoHide;
-    else if (behavior.autoHide !== undefined) opts.autoHide = behavior.autoHide;
-    if (autoHideDelay !== undefined) opts.autoHideDelay = autoHideDelay;
-    else if (behavior.autoHideDelay !== undefined)
-      opts.autoHideDelay = behavior.autoHideDelay;
-    if (hoverExpand !== undefined) opts.hoverExpand = hoverExpand;
-    else if (behavior.hoverExpand !== undefined)
-      opts.hoverExpand = behavior.hoverExpand;
-    if (draggable !== undefined) opts.draggable = draggable;
-    else if (behavior.draggable !== undefined)
-      opts.draggable = behavior.draggable;
-    if (clickToJump !== undefined) opts.clickToJump = clickToJump;
-    else if (behavior.clickToJump !== undefined)
-      opts.clickToJump = behavior.clickToJump;
-    if (smooth !== undefined) opts.smooth = smooth;
-    else if (behavior.smooth !== undefined) opts.smooth = behavior.smooth;
-    if (overscroll !== undefined) opts.overscroll = overscroll;
-    else if (behavior.overscroll !== undefined)
-      opts.overscroll = behavior.overscroll;
-    if (axes !== undefined) opts.axes = axes;
-    else if (behavior.axes !== undefined) opts.axes = behavior.axes;
-    if (touch !== undefined) opts.touch = touch;
-    else if (behavior.touch !== undefined) opts.touch = behavior.touch;
-    if (dir !== undefined) opts.dir = dir;
-    else if (behavior.dir !== undefined) opts.dir = behavior.dir;
-
-    // appearance — grouped props, flat overrides win
-    if (arrows !== undefined) opts.arrows = arrows;
-    else if (appearance.arrows !== undefined) opts.arrows = appearance.arrows;
-    if (thickness !== undefined) opts.thickness = thickness;
-    else if (appearance.thickness !== undefined)
-      opts.thickness = appearance.thickness;
-    if (hoverThickness !== undefined) opts.hoverThickness = hoverThickness;
-    else if (appearance.hoverThickness !== undefined)
-      opts.hoverThickness = appearance.hoverThickness;
-    if (radius !== undefined) opts.radius = radius;
-    else if (appearance.radius !== undefined) opts.radius = appearance.radius;
-    if (minThumbSize !== undefined) opts.minThumbSize = minThumbSize;
-    else if (appearance.minThumbSize !== undefined)
-      opts.minThumbSize = appearance.minThumbSize;
-    if (offset !== undefined) opts.offset = offset;
-    else if (appearance.offset !== undefined) opts.offset = appearance.offset;
-    if (trackOpacity !== undefined) opts.trackOpacity = trackOpacity;
-    else if (appearance.trackOpacity !== undefined)
-      opts.trackOpacity = appearance.trackOpacity;
-    if (thumbOpacity !== undefined) opts.thumbOpacity = thumbOpacity;
-    else if (appearance.thumbOpacity !== undefined)
-      opts.thumbOpacity = appearance.thumbOpacity;
-    if (zIndex !== undefined) opts.zIndex = zIndex;
-    else if (appearance.zIndex !== undefined) opts.zIndex = appearance.zIndex;
-    if (duration !== undefined) opts.duration = duration;
-    else if (appearance.duration !== undefined)
-      opts.duration = appearance.duration;
-    if (animationDuration !== undefined)
-      opts.animationDuration = animationDuration;
-    else if (appearance.animationDuration !== undefined)
-      opts.animationDuration = appearance.animationDuration;
-    if (thumbColor !== undefined) opts.thumbColor = thumbColor;
-    else if (appearance.thumbColor !== undefined)
-      opts.thumbColor = appearance.thumbColor;
-    if (trackColor !== undefined) opts.trackColor = trackColor;
-    else if (appearance.trackColor !== undefined)
-      opts.trackColor = appearance.trackColor;
-    if (activeThumbColor !== undefined)
-      opts.activeThumbColor = activeThumbColor;
-    else if (appearance.activeThumbColor !== undefined)
-      opts.activeThumbColor = appearance.activeThumbColor;
-    if (thumbHoverColor !== undefined) opts.thumbHoverColor = thumbHoverColor;
-    else if (appearance.thumbHoverColor !== undefined)
-      opts.thumbHoverColor = appearance.thumbHoverColor;
-    if (include !== undefined) opts.include = include;
-    else if (appearance.include !== undefined)
-      opts.include = appearance.include;
-    if (exclude !== undefined) opts.exclude = exclude;
-    else if (appearance.exclude !== undefined)
-      opts.exclude = appearance.exclude;
+    const opts: OverlayScrollbarOptions = { ...plan.opts };
 
     // Framework-owned arrow content: JSX/`ReactNode` icons are rendered into
     // each arrow button via its own React root, so SVG/component icons work for
     // every scrollable host the engine picks up (including ones discovered
     // later). Strings render natively; dirs without a custom icon keep the
     // built-in CSS triangle. `icons.*` overrides are the grouped form.
-    const arrowUp = arrowUpIcon ?? icons.up ?? icons.arrow;
-    const arrowDown = arrowDownIcon ?? icons.down ?? icons.arrow;
-    const arrowLeft = arrowLeftIcon ?? icons.left ?? icons.arrow;
-    const arrowRight = arrowRightIcon ?? icons.right ?? icons.arrow;
-    /** Wrap a JSX arrow icon and rotate it so a vertical glyph can serve the
-     *  horizontal arrows (and vice-versa) — one custom glyph family, four
-     *  native-consistent buttons. */
-    const rotated = (icon: React.ReactNode, deg: number): React.ReactNode =>
-      isIcon(icon) ? (
-        <span
-          aria-hidden
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: "100%",
-            transform: `rotate(${deg}deg)`,
-          }}
-        >
-          {icon}
-        </span>
-      ) : null;
-    const first = (...nodes: Array<React.ReactNode | null>): React.ReactNode =>
-      nodes.find(isIcon) ?? null;
-    const iconByDir: Record<ScrollbarArrowDir, React.ReactNode> = {
-      up: arrowUp ?? first(rotated(arrowRight, -90), rotated(arrowLeft, 90)),
-      down:
-        arrowDown ?? first(rotated(arrowRight, 90), rotated(arrowLeft, -90)),
-      left: arrowLeft ?? first(rotated(arrowUp, -90), rotated(arrowRight, 180)),
-      right: arrowRight ?? first(rotated(arrowUp, 90), rotated(arrowLeft, 180)),
-    };
-    const hasCustomIcons = [arrowUp, arrowDown, arrowLeft, arrowRight].some(
-      isIcon,
+    const iconByDir = plan.icons;
+    const hasCustomIcons = (Object.keys(iconByDir) as ScrollbarArrowDir[]).some(
+      (d) => isIcon(iconByDir[d]),
     );
     const roots = new Map<HTMLDivElement, Root>();
     if (hasCustomIcons) {
       opts.arrowIconRenderer = (el, arrowDir) => {
         const node = iconByDir[arrowDir];
         if (!isIcon(node)) return;
-        el.classList.add("tk-arrow-custom");
+        el.classList.add("tv-arrow-custom");
         const existing = roots.get(el);
         if (existing) {
           existing.render(node);
@@ -411,15 +301,32 @@ export function ThemeScrollbar(props: ThemeScrollbarProps) {
       };
     }
 
-    // Phase 2 — create overlay. The engine adds tk-scrollbar-ready to <html>
+    // Phase 2 — create overlay. The engine adds tv-scrollbar-ready to <html>
     // after the first paint (Phase 3).
     handleRef.current = createOverlayScrollbar(runtime.store, opts);
 
     return () => {
       handleRef.current?.destroy();
       handleRef.current = null;
-      for (const root of roots.values()) root.unmount();
+      // The arrow icons live in their own React roots. Unmounting one is
+      // synchronous, and React refuses to finish unmounting a root while it is
+      // already rendering — which is exactly what a development StrictMode
+      // remount (or a Suspense re-commit) does, so the cleanup would fire inside
+      // a render pass:
+      //
+      //   Attempted to synchronously unmount a root while React was already
+      //   rendering.
+      //
+      // Defer by one task, like the runtime's own deferred destroy. The overlay
+      // was just destroyed, so its arrow elements are detached; unmounting them
+      // a task later is safe and the remount creates fresh roots.
+      const stale = [...roots.values()];
       roots.clear();
+      if (stale.length > 0) {
+        setTimeout(() => {
+          for (const root of stale) root.unmount();
+        }, 0);
+      }
     };
     // Recreated when the resolved options change, so an updated prop takes
     // effect immediately instead of waiting for a reload.

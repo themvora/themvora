@@ -39,7 +39,7 @@
  * an explicit `headings` prop are still recorded; the prop simply wins at
  * runtime, which keeps the manifest stable rather than conditional.
  *
- * Requires a headless Chromium (Playwright cache or THEME_KIT_CHROME) — the same
+ * Requires a headless Chromium (Playwright cache or THEMVORA_CHROME) — the same
  * toolchain audit H uses. Skips cleanly when it is unavailable.
  */
 
@@ -71,8 +71,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // --- Locate headless Chromium (mirrors audit H) -----------------------------
 
 function findChrome() {
-  if (process.env.THEME_KIT_CHROME && existsSync(process.env.THEME_KIT_CHROME)) {
-    return process.env.THEME_KIT_CHROME;
+  if (process.env.THEMVORA_CHROME && existsSync(process.env.THEMVORA_CHROME)) {
+    return process.env.THEMVORA_CHROME;
   }
   const cache = process.env.LOCALAPPDATA
     ? join(process.env.LOCALAPPDATA, "ms-playwright")
@@ -235,7 +235,7 @@ function describeDrift(before, entries) {
 async function main() {
   const chromePath = findChrome();
   if (!chromePath) {
-    console.log("SKIP — headless Chromium not found (set THEME_KIT_CHROME).");
+    console.log("SKIP — headless Chromium not found (set THEMVORA_CHROME).");
     return;
   }
 
@@ -264,7 +264,7 @@ async function main() {
     );
   }
 
-  const dir = join(os.tmpdir(), `tk-toc-${Date.now()}`);
+  const dir = join(os.tmpdir(), `tv-toc-${Date.now()}`);
   const chrome = spawn(
     chromePath,
     ["--headless=new", `--remote-debugging-port=${CDP_PORT}`, `--user-data-dir=${dir}`, "--no-first-run", "--disable-gpu"],
@@ -381,6 +381,10 @@ ${body}
           `Refusing to touch ${outFile}.\n` +
           `Fix: delete apps/docs/.next and run \`next build\` in apps/docs, then retry.`,
       );
+      // Not a race: this is the last statement before returning, and the
+      // `await` above it has already settled. `require-atomic-updates` cannot
+      // see that, so it is disabled here rather than restructuring the flow.
+      // eslint-disable-next-line require-atomic-updates
       process.exitCode = 1;
       return;
     }
@@ -401,6 +405,7 @@ ${body}
             (drift.length ? `\n\n${drift.join("\n")}` : "") +
             `\n\nRun: node scripts/docs/generate-toc-headings.mjs`,
         );
+        // eslint-disable-next-line require-atomic-updates -- same as above
         process.exitCode = 1;
         return;
       }

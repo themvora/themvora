@@ -21,7 +21,19 @@
   --color-input: var(--theme-color-input);
   --color-ring: var(--theme-color-ring);
 
+  /* Radius.
+   *
+   * The whole scale, not just `lg`. shadcn/ui's component source uses
+   * `rounded-md` on Button, Input, Alert and Badge — mapping only `lg` left
+   * those on Tailwind's default `0.375rem` and the theme's radius never reached
+   * them. Each falls back to a proportion of `lg`, matching how the token set
+   * itself defines `sm`/`md`/`xl` when a theme omits them. */
+  --radius-sm: var(--theme-radius-sm, calc(var(--theme-radius-lg) * 0.6));
+  --radius-md: var(--theme-radius-md, calc(var(--theme-radius-lg) * 0.8));
   --radius-lg: var(--theme-radius-lg);
+  --radius-xl: var(--theme-radius-xl, calc(var(--theme-radius-lg) * 1.4));
+  --radius-2xl: var(--theme-radius-xl, calc(var(--theme-radius-lg) * 1.4));
+  --radius-full: var(--theme-radius-full, 9999px);
 
   /* Spacing: preserve Tailwind v4 defaults */
   --spacing-0: var(--theme-spacing-0, 0px);

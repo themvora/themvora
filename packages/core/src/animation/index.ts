@@ -5,4 +5,8 @@ export { ANIMATED_GROUP_KEYS, GROUP_PROPERTIES } from "./classify";
 export type { AnimatedGroupKey } from "./classify";
 export { createTransitionPlan } from "./planner";
 export { scanForTransition } from "./scan";
-export { runThemeAnimation, cancelThemeAnimation } from "./coordinator";
+export {
+  runThemeAnimation,
+  cancelThemeAnimation,
+  disposeThemeTransitionStyles,
+} from "./coordinator";

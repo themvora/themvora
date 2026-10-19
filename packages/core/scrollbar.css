@@ -1,77 +1,105 @@
 /*
- * Theme Kit — scrollbar overlay base styles.
+ * Themvora — scrollbar overlay base styles.
  *
  * Three-phase architecture:
  *
  *   Phase 1 — Bootstrap (createPrePaintScrollbarScript)
- *     Adds `tk-scrollbar` to <html> before first paint.
+ *     Adds `tv-scrollbar` to <html> before first paint.
  *     Native scrollbar is hidden immediately — never painted.
  *
  *   Phase 2 — ThemeScrollbar (overlay)
- *     Creates the custom overlay strips (.tk-scrollbar).
+ *     Creates the custom overlay strips (.tv-scrollbar).
  *     Tracks scroll position, handles drag, hover, animations.
  *
  *   Phase 3 — Ready
- *     Adds `tk-scrollbar-ready` to <html> after first paint.
+ *     Adds `tv-scrollbar-ready` to <html> after first paint.
  *     Enables CSS fade-in for the overlay.
  *
- *   import "@theme-kit/core/scrollbar.css";
- *   import { createOverlayScrollbar } from "@theme-kit/core";
+ *   import "@themvora/core/scrollbar.css";
+ *   import { createOverlayScrollbar } from "@themvora/core";
  */
 
 /* ── Phase 1: Native scrollbar hiding ─────────────────────────── */
 
-/* Hidden via tk-scrollbar class (added by the bootstrap before
+/* The native bar is painted invisible while KEEPING its space, so the gutter
+   that keeps content clear of the rail is there from the first frame — hiding
+   the bar and drawing the rail never reflow the content (no load-time layout
+   shift). Applied via the tv-scrollbar class (added by the bootstrap before
    first paint). Never remove this class while the overlay is active. */
-html.tk-scrollbar,
-html.tk-scrollbar body,
-body.tk-scrollbar {
+
+/* The PAGE / window scrollbar is COLLAPSED: its rail auto-hides, so a reserved
+   empty strip at the window edge would just read as a missing scrollbar. The
+   standard property also overrides the WebKit sizing below, so the page never
+   reserves one. */
+html.tv-scrollbar,
+html.tv-scrollbar body,
+body.tv-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-html.tk-scrollbar::-webkit-scrollbar,
-html.tk-scrollbar body::-webkit-scrollbar,
-body.tk-scrollbar::-webkit-scrollbar {
+html.tv-scrollbar::-webkit-scrollbar,
+html.tv-scrollbar body::-webkit-scrollbar,
+body.tv-scrollbar::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
 
-/* Every scrollable under the bootstrapped document keeps its native track
-   hidden — so code blocks, tables and nested panels never show a native bar,
-   regardless of overlay detection timing. The custom strips are the only
-   scrollbars. */
-html.tk-scrollbar * {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* INNER scroll containers keep an invisible, space-occupying scrollbar. It is
+   sized through `::-webkit-scrollbar` — not `scrollbar-color` alone — because
+   styling those pseudo-elements is what takes Chromium/Safari off OVERLAY
+   scrollbars, so the gutter is reserved on macOS too. The space appears only
+   while the container actually scrolls, like a native `overflow: auto` bar. */
+html.tv-scrollbar *::-webkit-scrollbar {
+  width: 15px;
+  height: 15px;
+  background: transparent;
 }
 
-html.tk-scrollbar *::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+html.tv-scrollbar *::-webkit-scrollbar-thumb,
+html.tv-scrollbar *::-webkit-scrollbar-track,
+html.tv-scrollbar *::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
-/* Inner scrollables the overlay attaches to — hidden via the
-   data-theme-kit-scrollbar attribute the engine sets on them. */
-[data-theme-kit-scrollbar="overlay"]::-webkit-scrollbar,
-[data-theme-kit-scrollbar="overlay"] body::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+[data-themvora-scrollbar="overlay"]::-webkit-scrollbar {
+  width: 15px;
+  height: 15px;
+  background: transparent;
 }
 
-[data-theme-kit-scrollbar="overlay"] {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+[data-themvora-scrollbar="overlay"]::-webkit-scrollbar-thumb,
+[data-themvora-scrollbar="overlay"]::-webkit-scrollbar-track,
+[data-themvora-scrollbar="overlay"]::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Engines without WebKit pseudo-elements (Firefox) reserve the same space
+   through the standard properties. */
+@supports not selector(::-webkit-scrollbar) {
+  html.tv-scrollbar * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  html.tv-scrollbar body {
+    scrollbar-width: none;
+  }
+
+  [data-themvora-scrollbar="overlay"] {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
 }
 
 /* ── Phase 2: Overlay strip positioning ───────────────────────── */
 
 /* The overlay appends strip roots (these are real DOM nodes, marked with the
-   `data-theme-kit-host` attribute) — never the <html> element. We scope the
-   base strip rule to those hosts so the bootstrap `tk-scrollbar` class on
+   `data-themvora-host` attribute) — never the <html> element. We scope the
+   base strip rule to those hosts so the bootstrap `tv-scrollbar` class on
    <html> (which hides native bars) can never collide with `position:fixed` /
    `opacity:0` and accidentally hide the whole document. */
-[data-theme-kit-host] {
+[data-themvora-host] {
   position: fixed;
   z-index: 9998;
   pointer-events: none;
@@ -81,15 +109,15 @@ html.tk-scrollbar *::-webkit-scrollbar {
   transition: opacity 0.15s ease;
 }
 
-.tk-scrollbar[data-position="absolute"] {
+.tv-scrollbar[data-position="absolute"] {
   position: absolute;
   z-index: 1;
 }
 
-/* <html> carries the `tk-scrollbar` bootstrap class for native-bar hiding;
+/* <html> carries the `tv-scrollbar` bootstrap class for native-bar hiding;
    make sure it never inherits the overlay strip styles above (which would
    set position:fixed/opacity:0 on the document root). */
-html.tk-scrollbar {
+html.tv-scrollbar {
   position: static !important;
   opacity: 1 !important;
   contain: normal !important;
@@ -99,102 +127,207 @@ html.tk-scrollbar {
 
 /* Scrollbar theming.
  *
- * There is deliberately no default for `--tk-scrollbar-thumb` here. The engine
+ * There is deliberately no default for `--tv-scrollbar-thumb` here. The engine
  * already derives one — the theme's `primary` at an alpha that suits an overlay
  * (`thumbColor()` in `manager.ts`) — and setting the variable here *shadowed*
- * that, because `var(--tk-scrollbar-thumb, …)` prefers the variable whenever it
+ * that, because `var(--tv-scrollbar-thumb, …)` prefers the variable whenever it
  * is defined. The value it used was `--theme-color-accent`, which every theme
  * defines as a pale *surface* tint (`#fafafa` on `#ffffff` in Vercel light,
  * `#e2e8f0` in the default family): an almost invisible scrollbar, and the alpha
  * was lost too because the token is opaque.
  *
- * Set `--tk-scrollbar-thumb`, `-hover` and `-active` on `[data-theme-kit-host]`
+ * Set `--tv-scrollbar-thumb`, `-hover` and `-active` on `[data-themvora-host]`
  * (or pass `appearance.thumbColor` to `ThemeScrollbar`) to override the engine.
  */
 
 /* ── Phase 3: Ready — overlay fades in ────────────────────────── */
 
-html.tk-scrollbar-ready .tk-scrollbar {
+html.tv-scrollbar-ready .tv-scrollbar {
   opacity: 1;
 }
 
 /* ── Overlay internals ────────────────────────────────────────────────── */
 
-.tk-scrollbar .tk-track {
+/* Component geometry defaults. The engine also sets these inline on every
+   strip root from the resolved options, so these values are the fallback when
+   the stylesheet is loaded without the engine (and the place to tune the
+   spacing per host). Two independent values:
+
+     --tv-scrollbar-inset  clearance between the rail and its container edge
+                           (its near/far ends too, for a vertical rail)
+     --tv-scrollbar-gap     transparent band between the content and the track
+
+   The strip's box is `thickness + gap` across; the track, thumb and arrows are
+   pinned to the rail's edge (`data-rail="right"` in LTR, `"left"` in RTL,
+   `"bottom"` for horizontal), leaving the gap band unpainted AND
+   pointer-transparent (the strip root is `pointer-events: none`).
+
+   The content is kept clear of the rail by the native scrollbar's gutter,
+   which the pre-paint CSS reserves (it paints the native bar invisible instead
+   of collapsing it) — so no padding is written and nothing reflows. The band
+   above only widens the rail's pointer target; it is never painted.
+
+   Scoped to the strip hosts (`[data-themvora-host]`), never `<html>` — the
+   page/window scrollbar stays out of this entirely. */
+[data-themvora-host] {
+  --tv-scrollbar-inset: 4px;
+  --tv-scrollbar-gap: 8px;
+}
+
+.tv-scrollbar .tv-track {
   position: absolute;
-  inset: 0;
   pointer-events: auto;
 }
 
-.tk-scrollbar .tk-thumb {
+/* The track fills the rail's edge-side band: full length, `gap` away from the
+   content-facing edge. Default rail is on the right (LTR). */
+.tv-scrollbar.tv-v .tv-track {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: var(--tv-scrollbar-gap, 8px);
+}
+
+/* Rail on the left (RTL): the gap band moves to the right. */
+.tv-scrollbar.tv-v[data-rail="left"] .tv-track {
+  left: 0;
+  right: var(--tv-scrollbar-gap, 8px);
+}
+
+.tv-scrollbar.tv-h .tv-track {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--tv-scrollbar-gap, 8px);
+}
+
+.tv-scrollbar .tv-thumb {
   position: absolute;
   pointer-events: auto;
   user-select: none;
   will-change: transform, width, height, background-color, opacity;
 }
 
-.tk-scrollbar .tk-arrow {
+/* The thumb rides the same edge-side band as the track. Only the transform
+   axis is positioned by the engine; the cross axis lives here. */
+.tv-scrollbar.tv-v .tv-thumb {
+  right: 0;
+  left: var(--tv-scrollbar-gap, 8px);
+}
+
+.tv-scrollbar.tv-v[data-rail="left"] .tv-thumb {
+  left: 0;
+  right: var(--tv-scrollbar-gap, 8px);
+}
+
+.tv-scrollbar.tv-h .tv-thumb {
+  bottom: 0;
+  top: var(--tv-scrollbar-gap, 8px);
+}
+
+.tv-scrollbar .tv-arrow {
   position: absolute;
   pointer-events: auto;
   user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Known box + explicit sizing: the glyph is centred and clipped to the
+     button, so nothing can escape it. */
+  box-sizing: border-box;
+  overflow: hidden;
   color: inherit;
   cursor: pointer;
 }
 
-.tk-scrollbar .tk-arrow::before {
+/* Arrow buttons stay on the visible (edge-side) band, aligned with the track
+   and thumb rather than spanning the transparent gap band. */
+.tv-scrollbar.tv-v .tv-arrow {
+  right: 0;
+}
+
+.tv-scrollbar.tv-v[data-rail="left"] .tv-arrow {
+  left: 0;
+  right: auto;
+}
+
+.tv-scrollbar.tv-h .tv-arrow {
+  bottom: 0;
+}
+
+.tv-scrollbar .tv-arrow::before {
   content: "";
   display: block;
 }
 
-.tk-scrollbar .tk-arrow.tk-arrow-up::before {
-  border-left: var(--tk-arrow, 5px) solid transparent;
-  border-right: var(--tk-arrow, 5px) solid transparent;
-  border-bottom: calc(var(--tk-arrow, 5px) * 1.2) solid currentColor;
+.tv-scrollbar .tv-arrow.tv-arrow-up::before {
+  border-left: var(--tv-arrow, 5px) solid transparent;
+  border-right: var(--tv-arrow, 5px) solid transparent;
+  border-bottom: calc(var(--tv-arrow, 5px) * 1.2) solid currentColor;
 }
 
-.tk-scrollbar .tk-arrow.tk-arrow-down::before {
-  border-left: var(--tk-arrow, 5px) solid transparent;
-  border-right: var(--tk-arrow, 5px) solid transparent;
-  border-top: calc(var(--tk-arrow, 5px) * 1.2) solid currentColor;
+.tv-scrollbar .tv-arrow.tv-arrow-down::before {
+  border-left: var(--tv-arrow, 5px) solid transparent;
+  border-right: var(--tv-arrow, 5px) solid transparent;
+  border-top: calc(var(--tv-arrow, 5px) * 1.2) solid currentColor;
 }
 
-.tk-scrollbar .tk-arrow.tk-arrow-left::before {
-  border-top: var(--tk-arrow, 5px) solid transparent;
-  border-bottom: var(--tk-arrow, 5px) solid transparent;
-  border-right: calc(var(--tk-arrow, 5px) * 1.2) solid currentColor;
+.tv-scrollbar .tv-arrow.tv-arrow-left::before {
+  border-top: var(--tv-arrow, 5px) solid transparent;
+  border-bottom: var(--tv-arrow, 5px) solid transparent;
+  border-right: calc(var(--tv-arrow, 5px) * 1.2) solid currentColor;
 }
 
-.tk-scrollbar .tk-arrow.tk-arrow-right::before {
-  border-top: var(--tk-arrow, 5px) solid transparent;
-  border-bottom: var(--tk-arrow, 5px) solid transparent;
-  border-left: calc(var(--tk-arrow, 5px) * 1.2) solid currentColor;
+.tv-scrollbar .tv-arrow.tv-arrow-right::before {
+  border-top: var(--tv-arrow, 5px) solid transparent;
+  border-bottom: var(--tv-arrow, 5px) solid transparent;
+  border-left: calc(var(--tv-arrow, 5px) * 1.2) solid currentColor;
 }
 
 /* Custom arrow icons (set via arrowIcon / arrow*Icon) replace the triangle. */
-.tk-scrollbar .tk-arrow.tk-arrow-custom::before {
+.tv-scrollbar .tv-arrow.tv-arrow-custom::before {
   content: none;
 }
 
-/* Custom arrow icons fill the button and scale their content to fit. */
-.tk-scrollbar .tk-arrow.tk-arrow-custom {
+/* Custom arrow icons fill the button and scale their content to fit.
+   `--tv-arrow-size` is the square glyph box the engine sizes for the button
+   (see `applyGlyphSizing`); it is capped at 100% so a large `iconSize` (or a
+   thin rail) can never push the glyph outside the button. */
+.tv-scrollbar .tv-arrow.tv-arrow-custom {
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
-.tk-scrollbar .tk-arrow.tk-arrow-custom > * {
-  width: 100%;
-  height: 100%;
+
+.tv-scrollbar .tv-arrow.tv-arrow-custom > * {
+  width: var(--tv-arrow-size, 100%);
+  height: var(--tv-arrow-size, 100%);
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.tk-scrollbar .tk-arrow.tk-arrow-custom svg {
+
+/* Media children respect the available content area regardless of intrinsic
+   size, inline `width`/`height`, or transforms. */
+.tv-scrollbar .tv-arrow.tv-arrow-custom :is(svg, img, video, canvas, picture) {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* The rotated fallback wrapper is square (see `rotatedIcon`), so a glyph that
+   serves the perpendicular axis still fits its button. */
+.tv-scrollbar .tv-arrow-glyph-rot {
+  box-sizing: border-box;
   max-width: 100%;
   max-height: 100%;
 }
@@ -207,11 +340,11 @@ html.tk-scrollbar-ready .tk-scrollbar {
    background-agnostic (color-mix off theme tokens) so it stays readable over
    plain page content AND blurred surfaces like the docs mobile menu. */
 
-.tk-scrollbar .tk-track {
+.tv-scrollbar .tv-track {
   background-clip: padding-box;
 }
 
-.tk-scrollbar .tk-thumb {
+.tv-scrollbar .tv-thumb {
   box-shadow:
     0 1px 2px 0
       color-mix(in srgb, var(--theme-color-foreground, #000) 16%, transparent),
@@ -219,8 +352,8 @@ html.tk-scrollbar-ready .tk-scrollbar {
       color-mix(in srgb, var(--theme-color-background, #fff) 26%, transparent);
 }
 
-[data-theme-kit-host]:hover .tk-thumb,
-.tk-scrollbar .tk-thumb:hover {
+[data-themvora-host]:hover .tv-thumb,
+.tv-scrollbar .tv-thumb:hover {
   box-shadow:
     0 1px 4px 0
       color-mix(in srgb, var(--theme-color-foreground, #000) 22%, transparent),
@@ -228,7 +361,7 @@ html.tk-scrollbar-ready .tk-scrollbar {
       color-mix(in srgb, var(--theme-color-background, #fff) 40%, transparent);
 }
 
-.tk-scrollbar .tk-arrow {
+.tv-scrollbar .tv-arrow {
   border-radius: 7px;
   transition:
     background-color 0.16s ease,
@@ -237,12 +370,12 @@ html.tk-scrollbar-ready .tk-scrollbar {
     opacity 0.16s ease;
 }
 
-.tk-scrollbar .tk-arrow:hover {
+.tv-scrollbar .tv-arrow:hover {
   background-color: color-mix(in srgb, currentColor 12%, transparent);
   transform: scale(1.06);
 }
 
-.tk-scrollbar .tk-arrow:active {
+.tv-scrollbar .tv-arrow:active {
   background-color: color-mix(in srgb, currentColor 22%, transparent);
   transform: scale(0.94);
 }

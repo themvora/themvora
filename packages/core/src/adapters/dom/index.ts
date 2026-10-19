@@ -33,21 +33,25 @@ export function createDOMBinding(
 
   const selection = options.selection ?? null;
 
+  // Mutable so a live `transition` change can reach the binding without
+  // rebuilding it — {@link DOMBindingOptions.setTransition}.
+  let transitionOption = options.transition;
+
   const applyTheme = (theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }) => {
     applyDOMEffects({
       target,
       attributeName,
       theme,
       selection,
-      ...(options.transition !== undefined
+      ...(transitionOption !== undefined
         ? {
             transition: {
-              ...options.transition,
+              ...transitionOption,
               // Transitions are enabled by default; only a transition
               // explicitly set to `false`, or an explicit suppression, turns
               // them off.
               enabled:
-                (options.transition.enabled ?? true) &&
+                (transitionOption.enabled ?? true) &&
                 !emitOptions?.suppressTransition,
             },
           }
@@ -62,13 +66,22 @@ export function createDOMBinding(
   // alone would leave `data-theme-selection-mode` describing the previous
   // choice.
   //
-  // It is deliberately wired even when the store subscription is not, because
-  // it is not a second theme write: a same-theme selection change leaves every
-  // `--theme-*` variable untouched, so applying it on its own cannot publish a
-  // half-applied palette. When the store subscription *is* disabled, this is
-  // the only thing that keeps the selection attributes honest.
+  // It writes *only* the selection attributes. The selection controller
+  // notifies its listeners before it commits the new theme to the store, so
+  // re-applying the theme here would publish the previous theme first and the
+  // new one a moment later — two DOM states per change, which is a visible
+  // flash and a View Transition that starts on the old theme.
+  const applySelectionAttributes = () =>
+    applyDOMEffects({
+      target,
+      attributeName,
+      theme: store.get(),
+      selection,
+      selectionOnly: true,
+    });
+
   const unsubscribeSelection =
-    selection?.subscribe(() => applyTheme(store.get())) ?? null;
+    selection?.subscribe(applySelectionAttributes) ?? null;
 
   if (subscribe) {
     // Initial synchronization must never animate. The theme bootstrap (when
@@ -80,6 +93,9 @@ export function createDOMBinding(
 
     return {
       apply: applyTheme,
+      setTransition(next: DOMBindingOptions["transition"]) {
+        transitionOption = next;
+      },
       destroy() {
         unsubscribe();
         unsubscribeSelection?.();
@@ -92,6 +108,9 @@ export function createDOMBinding(
   // the note on `subscribe` in {@link DOMBindingOptions}.
   return {
     apply: applyTheme,
+    setTransition(next: DOMBindingOptions["transition"]) {
+      transitionOption = next;
+    },
     destroy() {
       unsubscribeSelection?.();
     },

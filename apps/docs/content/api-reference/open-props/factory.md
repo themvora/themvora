@@ -1,5 +1,5 @@
-## @theme-kit/open-props/factory
-> Generated from `packages/open-props/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+## @themvora/open-props/factory
+> Generated from `packages/open-props/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -7,7 +7,7 @@
 Creates an Open Props adapter.
 
 The adapter is a DOM-only, framework-free adapter: it depends only on
-`@theme-kit/core` and the DOM. On install it injects the Open Props
+`@themvora/core` and the DOM. On install it injects the Open Props
 compatibility stylesheet (when enabled) and a `<style>` element of CSS
 variables derived from the active theme, then subscribes to the runtime
 store and rewrites the variables whenever the theme selection changes. It
@@ -24,7 +24,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 **Returns** `ThemeAdapter<T>` — A `ThemeAdapter` for Open Props.
 
 ```ts
-import { createOpenPropsAdapter } from "@theme-kit/open-props";
+import { createOpenPropsAdapter } from "@themvora/open-props";
 
 runtime.installAdapter(createOpenPropsAdapter());
 ```

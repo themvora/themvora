@@ -1,7 +1,7 @@
 /**
- * Theme Kit Ant Design adapter.
+ * Themvora Ant Design adapter.
  *
- * Bridges a Theme Kit runtime to Ant Design's theme: `AntdThemeProvider`,
+ * Bridges a Themvora runtime to Ant Design's theme: `AntdThemeProvider`,
  * `buildAntdConfig`, and the runtime adapter (`createAntdAdapter` /
  * `useAntdTheme`).
  *

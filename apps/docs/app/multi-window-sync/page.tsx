@@ -14,13 +14,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/multi-window-sync") },
   title: "Multi-Window Sync",
   description:
-    "How Theme Kit synchronizes theme selection across browser tabs and windows using BroadcastChannel, SharedWorker, and StorageEvent fallbacks.",
+    "How Themvora synchronizes theme selection across browser tabs and windows using BroadcastChannel, SharedWorker, and StorageEvent fallbacks.",
 };
 
 const broadcastSyncSnippet = {
   lang: "ts",
   title: "core — BroadcastChannel (default adapter)",
-  code: `import { createMultiWindowSync } from "@theme-kit/core";
+  code: `import { createMultiWindowSync } from "@themvora/core";
 
 const sync = createMultiWindowSync({
   prefer: "auto", // "broadcast" | "sharedworker" | "auto"
@@ -41,7 +41,7 @@ sync.post({ mode: "dark", family: "graphite" });`,
 const broadcastAdapterSnippet = {
   lang: "ts",
   title: "core — createThemeSelectionBroadcast directly",
-  code: `import { createThemeSelectionBroadcast } from "@theme-kit/core";
+  code: `import { createThemeSelectionBroadcast } from "@themvora/core";
 
 const channel = createThemeSelectionBroadcast({
   channelName: "my-app-theme",
@@ -60,7 +60,7 @@ if (channel) {
 const storageEventSnippet = {
   lang: "ts",
   title: "core — StorageEvent fallback",
-  code: `import { createStorageEventSync } from "@theme-kit/core";
+  code: `import { createStorageEventSync } from "@themvora/core";
 
 // Uses localStorage "storage" event to sync across tabs
 // Works in all browsers, no BroadcastChannel needed
@@ -78,7 +78,7 @@ sync.subscribe((selection) => {
 const sharedWorkerSnippet = {
   lang: "ts",
   title: "core — SharedWorker bridge",
-  code: `import { createMultiWindowSync } from "@theme-kit/core";
+  code: `import { createMultiWindowSync } from "@themvora/core";
 
 // Falls back to SharedWorker if BroadcastChannel is blocked
 const sync = createMultiWindowSync({ prefer: "sharedworker" });
@@ -93,7 +93,7 @@ const reactSnippet = {
   lang: "tsx",
   title: "React — useMultiWindowSync hook",
   code: `import { useEffect } from "react";
-import { createMultiWindowSync } from "@theme-kit/core";
+import { createMultiWindowSync } from "@themvora/core";
 
 export function useMultiWindowSync(runtime) {
   useEffect(() => {
@@ -116,7 +116,7 @@ const vueSnippet = {
   lang: "ts",
   title: "Vue — composable",
   code: `import { onMounted, onUnmounted } from "vue";
-import { createMultiWindowSync } from "@theme-kit/core";
+import { createMultiWindowSync } from "@themvora/core";
 
 export function useMultiWindowSync(runtime) {
   let sync;
@@ -141,7 +141,7 @@ const svelteSnippet = {
   lang: "ts",
   title: "Svelte — onMount action",
   code: `import { onMount, onDestroy } from "svelte";
-import { createMultiWindowSync } from "@theme-kit/core";
+import { createMultiWindowSync } from "@themvora/core";
 
 export function syncTheme(runtime) {
   let sync;
@@ -165,7 +165,7 @@ export function syncTheme(runtime) {
 const customChannelSnippet = {
   lang: "ts",
   title: "core — isolated channel names",
-  code: `import { createMultiWindowSync } from "@theme-kit/core";
+  code: `import { createMultiWindowSync } from "@themvora/core";
 
 // Two separate scopes — admin panel vs. storefront
 const adminSync = createMultiWindowSync({
@@ -191,7 +191,7 @@ export default function MultiWindowSyncPage() {
           description={
             <>
               When a user changes the theme in one tab, every other open tab
-              should reflect the change instantly. Theme Kit provides adapters
+              should reflect the change instantly. Themvora provides adapters
               that handle cross-tab synchronization with automatic fallbacks —
               no manual <code className="mono text-[0.9em]">localStorage</code> listener
               wiring required.
@@ -203,7 +203,7 @@ export default function MultiWindowSyncPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {
@@ -309,7 +309,7 @@ export default function MultiWindowSyncPage() {
           <div className="text-sm opacity-80 leading-relaxed mb-3">
             When{" "}
             <code className="mono text-[0.9em]">BroadcastChannel</code> is
-            unavailable, Theme Kit falls back to writing the selection to{" "}
+            unavailable, Themvora falls back to writing the selection to{" "}
             <code className="mono text-[0.9em]">localStorage</code> and
             listening for the browser&apos;s native{" "}
             <code className="mono text-[0.9em]">storage</code> event. This
@@ -489,7 +489,7 @@ export default function MultiWindowSyncPage() {
           <p className="text-sm leading-relaxed opacity-80">The full surface:</p>
           <p className="mt-3 text-sm">
             <a href="/api-reference/core" className="underline">
-              @theme-kit/core API reference
+              @themvora/core API reference
             </a>
           </p>
         </section>

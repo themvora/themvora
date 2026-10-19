@@ -4,7 +4,7 @@ import { computeFingerprint } from "../src/fingerprint";
 import { createBlockingScript, buildThemeCssMap, darkModeCSSTemplate } from "../src/blocking-script";
 import { getGlobalRuntime, setGlobalRuntime, requireGlobalRuntime } from "../src/shared-runtime";
 import { createAstroThemePersistence } from "../src/persistence";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 describe("fingerprint", () => {
   it("returns empty string for empty themes", () => {

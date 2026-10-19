@@ -1,0 +1,93 @@
+name: CI
+
+# There was no CI in this repository, so every gate below was a script somebody
+# had to remember to run. This wires them to the two events that matter.
+#
+# Two jobs:
+#
+#   workspace   — build, test, lint, and the preset gates.
+#   docs-gate   — the full docs release gate.
+#
+# `docs-gate` ran non-blocking while an in-flight workstream had left
+# `apps/docs/lib/libraries.tsx` and its generated mirrors inconsistent. That work
+# has landed — the static tier passes, and the missing sitemap route, the stale
+# mirrors and the capability-registry gaps it was blocked on are all fixed — so
+# the job is blocking again. Its `continue-on-error` is gone rather than merely
+# commented, so a regression fails the build instead of being reported and
+# ignored.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workspace:
+    name: build · test · preset gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The audits read `packages/core/dist`, so the build has to come first.
+      - name: Build
+        run: pnpm -r build
+
+      # Covers the property tests, the CVD diagnostics, the CSS export checks and
+      # the CLI fixture comparison — each package's own suite.
+      - name: Test
+        run: pnpm -r test
+
+      # Correctness lint over the release scripts. No TS parser is installed, so
+      # this covers the `.mjs` surface — see eslint.config.mjs.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Preset quality audit (8/8 semantic contract)
+        run: pnpm themvora:audit:presets
+
+      - name: Brand reference audit (provenance + anchor outcome)
+        run: pnpm themvora:audit:brands
+
+  docs-gate:
+    name: docs release gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      # The static tier: public API classification, export inventory, snippet and
+      # example audits, the two preset gates, terminology, links and page
+      # contracts. The `--full` tier adds a docs build and a headless browser.
+      - name: Docs release gate
+        run: pnpm docs:release-gate

@@ -1,27 +1,27 @@
-## @theme-kit/daisyui/angular
+## @themvora/daisyui/angular
 Angular injection helper for the daisyUI adapter
-(`@theme-kit/daisyui/angular`).
+(`@themvora/daisyui/angular`).
 
 `injectDaisyTheme(runtime, options?)` registers the daisyUI adapter on an
-explicitly provided Theme Kit runtime and unregisters it when the current
+explicitly provided Themvora runtime and unregisters it when the current
 injection context is destroyed.
 
-> Generated from `packages/daisyui/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/daisyui/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `injectDaisyTheme<T extends ThemeDefinition<string>>(runtime, options): ThemeAdapter<T>`
-Angular injectable that registers the daisyUI adapter on the given Theme Kit
+Angular injectable that registers the daisyUI adapter on the given Themvora
 runtime. Maintains a tagged `:root` style element with concrete `--color-*`
 variables, kept in sync as the active theme changes.
 
 Call in your component (or root) constructor or field initializer — the
 function uses `DestroyRef` to unregister the adapter, so it must run in an
 injection context (the runtime usually comes from
-`injectThemeRuntime()` in `@theme-kit/angular`):
+`injectThemeRuntime()` in `@themvora/angular`):
 
 ```ts
-import { injectDaisyTheme } from "@theme-kit/daisyui/angular";
+import { injectDaisyTheme } from "@themvora/daisyui/angular";
 
 export class AppComponent {
   adapter = injectDaisyTheme(runtime);
@@ -32,7 +32,7 @@ export class AppComponent {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to register the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to register the adapter on. |
 | `options` | `InjectAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

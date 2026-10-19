@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/examples") },
   title: "Examples",
   description:
-    "Runnable Theme Kit examples straight from the repository: a starter app for every framework, plus focused implementations of persistence, scoping, scheduling, zero-flash SSR and more.",
+    "Runnable Themvora examples straight from the repository: a starter app for every framework, plus focused implementations of persistence, scoping, scheduling, zero-flash SSR and more.",
 };
 
 /** The `examples/` workspace lives at the repository root. */
@@ -177,16 +177,16 @@ export default function ExamplesPage() {
         <PageHeader
           eyebrow="Examples"
           title="Examples you can run"
-          description="Every example here is a real source tree in the Theme Kit repository — a starter app for each framework integration, plus focused implementations of a single feature. The code shown is the file itself, read from examples/ at build time."
+          description="Every example here is a real source tree in the Themvora repository — a starter app for each framework integration, plus focused implementations of a single feature. The code shown is the file itself, read from examples/ at build time."
           verified={{ version: PKG_VERSION, date: "September 18, 2026" }}
         />
 
         <Callout variant="info" title="How these differ from the Showcase">
           The{" "}
-          <Link href="/showcase" className="text-primary hover:underline">
+          <Link href="/showcase" className="text-foreground underline hover:decoration-foreground">
             Showcase
           </Link>{" "}
-          is what people have built <em>with</em> Theme Kit. This page is how to
+          is what people have built <em>with</em> Themvora. This page is how to
           build it: small, runnable implementations you can copy and adapt.
         </Callout>
 
@@ -236,7 +236,7 @@ export default function ExamplesPage() {
         </SectionHeading>
         <p className="text-sm opacity-80 mb-4 max-w-2xl">
           The examples are part of the pnpm workspace, so the{" "}
-          <code className="mono text-[12px]">@theme-kit/*</code> packages
+          <code className="mono text-[12px]">@themvora/*</code> packages
           resolve to the local source rather than to npm. That means an example
           always exercises the version in the repository.
         </p>
@@ -245,10 +245,10 @@ export default function ExamplesPage() {
 pnpm install
 
 # run a starter app
-pnpm --filter @theme-kit/example-react dev
+pnpm --filter @themvora/example-react dev
 
 # type-check and build it
-pnpm --filter @theme-kit/example-react build`}
+pnpm --filter @themvora/example-react build`}
         </pre>
         <p className="text-sm opacity-80 mt-4 max-w-2xl">
           Concept examples are smaller trees inside{" "}
@@ -263,15 +263,15 @@ pnpm --filter @theme-kit/example-react build`}
           These examples are not deployed, so there is no hosted demo to link to
           — the code and the run command are the demo. Where this site has a
           genuinely interactive surface for the same concept (the{" "}
-          <Link href="/playground" className="text-primary hover:underline">
+          <Link href="/playground" className="text-foreground underline hover:decoration-foreground">
             Playground
           </Link>
           ,{" "}
-          <Link href="/theme-studio" className="text-primary hover:underline">
+          <Link href="/theme-studio" className="text-foreground underline hover:decoration-foreground">
             Theme Studio
           </Link>
           ,{" "}
-          <Link href="/accessibility" className="text-primary hover:underline">
+          <Link href="/accessibility" className="text-foreground underline hover:decoration-foreground">
             Accessibility Lab
           </Link>
           ), the example links to it.
@@ -292,7 +292,7 @@ pnpm --filter @theme-kit/example-react build`}
             {
               title: "Showcase",
               href: "/showcase",
-              description: "What people have built with Theme Kit.",
+              description: "What people have built with Themvora.",
             },
             {
               title: "Playground",

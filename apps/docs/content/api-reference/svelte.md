@@ -1,5 +1,5 @@
-## @theme-kit/svelte
-Theme Kit Svelte integration.
+## @themvora/svelte
+Themvora Svelte integration.
 
 Provides the module-level runtime holder (`setThemeRuntime` /
 `getThemeRuntime`), the `useTheme*` hooks, the `ThemeProvider`,
@@ -7,7 +7,7 @@ Provides the module-level runtime holder (`setThemeRuntime` /
 `themeInspector` action, the schedule accessors, and the SSR
 bootstrap-script helper.
 
-> Generated from `packages/svelte/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/svelte/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -72,7 +72,7 @@ The result is a fresh object; `props` is never mutated.
 
 
 ### `setThemeRuntime<T extends ThemeDefinition<string>>(runtime): void`
-Sets the active Theme Kit runtime in the current Svelte component context.
+Sets the active Themvora runtime in the current Svelte component context.
 
 This is the low-level holder used by `ThemeProvider` to expose the runtime
 to descendant components. It must be called during component initialization
@@ -92,14 +92,14 @@ directly.
 
 
 ### `themeInspector(node, props): { destroy: void; update: void }`
-Svelte action that mounts a `<theme-kit-inspector>` custom element into the
+Svelte action that mounts a `<themvora-inspector>` custom element into the
 target node. Use in any `.svelte` file:
 
 ```svelte
 <div use:themeInspector={{ bottom: 80, right: 24, size: 36, zIndex: 50 }} />
 ```
 
-**See also:** `ThemeKitInspector`
+**See also:** `ThemvoraInspector`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -107,6 +107,35 @@ target node. Use in any `.svelte` file:
 | `props` | `ThemeInspectorProps` | — |
 
 **Returns** `{ destroy: void; update: void }`
+
+---
+
+
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): { value: void; subscribe: void }`
+Reactive access to the theme produced by `generateTheme()` and registered
+with the provider, as a readable Svelte store.
+
+Resolves the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`); shipped presets never qualify. When
+both halves of one `generateTheme()` call are registered, the store tracks the
+theme the active selection resolves to.
+
+Must be called during component initialization inside a `ThemeProvider`
+subtree.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection. If
+the generated theme is later removed, the store's value is cleared (the theme
+is no longer readable) rather than retaining a stale one; Svelte's store
+contract has no read-time getter, so a fresh subscription to a removed theme
+throws.
+
+**See also:** `useThemeValue`
+
+**Returns** `{ value: void; subscribe: void }` — A readable store whose value is the registered generated theme.
 
 ---
 
@@ -231,7 +260,7 @@ subtree.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Returns the active Theme Kit runtime as a plain object.
+Returns the active Themvora runtime as a plain object.
 
 Unlike the other `useTheme*` hooks this returns the raw runtime (not a
 store) and is not reactive. Must be called during component initialization
@@ -307,7 +336,7 @@ subtree.
 ### `ThemeInspectorProps`
 Props accepted by the Svelte `themeInspector` action.
 
-Configures the floating `<theme-kit-inspector>` custom element mounted into
+Configures the floating `<themvora-inspector>` custom element mounted into
 the target node.
 
 | Member | Type | Description |
@@ -377,7 +406,7 @@ mounted.
 
 ### `ThemeScrollbarProps`
 
-**Extends** `OverlayScrollbarOptions`
+**Extends** `ScrollbarGroupedOptions`
 Props accepted by the Svelte `ThemeScrollbar` component.
 
 Extends the core overlay scrollbar options to configure the overlay engine
@@ -391,73 +420,51 @@ cycle, since the barrel exports the component.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Custom thumb color while the user is dragging it. When set, overrides the theme-derived active color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
-| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. |
-| `arrowIconRenderer` (optional) | `__type(button: HTMLDivElement, dir: ScrollbarArrowDir): void` | Framework hook: invoked for every arrow button that has custom content, so framework wrappers (React/Vue/Svelte/...) can render framework-owned elements (JSX/VNodes/...) into the button. When set it replaces the `innerHTML`/node injection for `arrowIcon`-style options. |
-| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
-| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Fade the thumb/track out while idle. Default `true` (macOS-style). |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Which axes to render. Defaults to both. |
-| `clickToJump` (optional) | `boolean` | Clicking the empty track scrolls smoothly to that position. Default `true`. |
-| `dir` (optional) | `"ltr" \| "rtl" \| "auto"` | Text direction. Defaults to the resolved `dir` / CSS `direction`. |
-| `draggable` (optional) | `boolean` | Allow dragging the thumb to scroll. Default `true`. |
-| `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
-| `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
-| `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
-| `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
-| `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
-| `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
-| `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
-| `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
-| `thickness` (optional) | `number` | Resting thumb thickness (width for vertical, height for horizontal). Default `8`. |
-| `thumbColor` (optional) | `string` | Custom thumb color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `thumbHoverColor` (optional) | `string` | Custom thumb color while hovered. When set, overrides the theme-derived hover color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `thumbOpacity` (optional) | `number` | Thumb opacity while visible. Default `0.7`. |
-| `touch` (optional) | `boolean` | Native (touch) devices: keep native scrollbars by default. Pass `true` to force the overlay on coarse-pointer devices. Default `false`. |
-| `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
+| `appearance` (optional) | `ScrollbarAppearanceOptions` | — |
+| `behavior` (optional) | `ScrollbarBehaviorOptions` | — |
+| `icons` (optional) | `ScrollbarIconOptions<string>` | Arrow button icons: the arrow entry covers all four directions (per-direction entries win), plus the shared glyph size in CSS px. |
+| `scope` (optional) | `ScrollbarScopeOptions` | — |
 
 ---
 
 ## Variables
 
-### `ThemeKitKey`
+### `ThemeKey`
 Context key the provider installs the runtime under.
 
 Kept in its own module so the `.svelte` components can read the runtime
 without importing the barrel — a component that imported `index.ts` would
 create a cycle, since the barrel exports the component.
 
-`typeof ThemeKitKey`
+`typeof ThemeKey`
 
 ---
 
 
 ### `ThemeProvider`
-The Theme Kit provider component. Cast to Svelte's `Component` type so
-`svelte-check` recognizes it as a component (Svelte 5 components have the
-`(internals, props) => { $on?, $set? }` shape; the runtime only needs the
-anchor, which is passed as the first argument).
+The Themvora provider component (Svelte 5 runes: `$props` + `$effect`).
+
+Compiled from `theme-provider.svelte` by `scripts/compile-svelte.mjs`. A
+changed configuration prop is forwarded to the shared `runtime.configure()`
+contract, so the UI updates without a reload. The two compiled variants are
+picked at runtime, so an SSR bundle never runs the client component.
 
 **See also:** `ThemeScope`
 
-`Component<ThemeProviderProps<ThemeDefinition<string>>, object, string>`
+`Component<ThemeProviderProps<ThemeDefinition>>`
 
 ---
 
 
 ### `ThemeScope`
-The scoped theming component. See ThemeScopeProps.
+The scoped theming component (Svelte 5 runes).
 
-`Component<ThemeScopeProps, object, string>`
+Compiled from `theme-scope.svelte`. A changed `theme`/`family`/`mode`/
+`themes`/`transition` re-resolves the scope without a remount.
+
+**See also:** `ThemeProvider`
+
+`Component<ThemeScopeProps>`
 
 ---
 

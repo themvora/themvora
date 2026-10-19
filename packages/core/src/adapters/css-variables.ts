@@ -7,9 +7,9 @@ import {
 } from "./dom/transition";
 import { createDOMWriteBatch } from "./dom/batch";
 import {
-  cancelThemeAnimation,
   createThemeDiff,
   createTransitionPlan,
+  disposeThemeTransitionStyles,
   runThemeAnimation,
 } from "../animation";
 
@@ -37,7 +37,7 @@ export interface CSSVariablesOptions {
    *  @defaultValue `false` */
   styleSheet?: boolean;
   /** Cascade layer name used when `styleSheet` is enabled.
-   *  @defaultValue `"theme-kit"` */
+   *  @defaultValue `"themvora"` */
   layerName?: string;
   /** Applied inside the single View Transition lightswitch right before the
    *  CSS variables are swapped, so the old snapshot shows the old attributes
@@ -81,7 +81,11 @@ export function createCSSVariablesBinding(
   const element = target;
   const prefix = options.prefix ?? "theme-";
   const useStyleSheet = options.styleSheet ?? false;
-  const layerName = options.layerName ?? "theme-kit";
+  const layerName = options.layerName ?? "themvora";
+
+  // Mutable so a live `transition` change reaches the binding without a
+  // rebuild — see `setTransition` on the returned object.
+  let transitionOption = options.transition;
 
   let appliedVariables = new Map<string, string>();
   let styleElement: HTMLStyleElement | null = null;
@@ -125,7 +129,7 @@ export function createCSSVariablesBinding(
     // light→dark switch never passes through white intermediates (the colour
     // values interpolate, but the snapshot opacity owns the visible fade). This
     // is the fix for the "white shift" on cards during toggles.
-    const transition = { ...DEFAULT_THEME_TRANSITION, ...options.transition };
+    const transition = { ...DEFAULT_THEME_TRANSITION, ...transitionOption };
     const supportsViewTransition =
       typeof document !== "undefined" &&
       "startViewTransition" in document &&
@@ -139,14 +143,21 @@ export function createCSSVariablesBinding(
     if (suppressTransition) {
       applyNow();
     } else if (useViewTransition) {
-      (document as any).startViewTransition(() => {
+      const viewTransition = (document as any).startViewTransition(() => {
         applyNow();
         return Promise.resolve();
       });
+      // A skipped transition is normal — a second toggle in the same frame, a
+      // provider removed mid-swap, a tab going hidden — and the API reports it
+      // by rejecting `ready` / `finished` with `AbortError`. Nothing awaits
+      // them, so without this they surface as unhandled rejections in the
+      // page's console (and in an error-reporting tool, as a crash).
+      viewTransition?.ready?.catch?.(() => {});
+      viewTransition?.finished?.catch?.(() => {});
     } else {
       const plan = createTransitionPlan(
         createThemeDiff(appliedVariables, variables),
-        options.transition,
+        transitionOption,
         { reducedMotion: prefersReducedMotion() },
       );
 
@@ -199,7 +210,7 @@ export function createCSSVariablesBinding(
     cssPrefix: string,
     layer: string,
   ) {
-    const id = `tk-vars-${layer}`;
+    const id = `tv-vars-${layer}`;
     let el = document.getElementById(id) as HTMLStyleElement | null;
 
     if (!el) {
@@ -238,6 +249,21 @@ export function createCSSVariablesBinding(
     registerThemeProperties(element, initialVariables, prefix);
   }
 
+  // Seed the tracked set from any inline `--<prefix>*` already on the target.
+  // An SSR shell (or the pre-paint bootstrap) writes the *default* theme's
+  // variables, and the theme the store resolves to may define fewer token
+  // groups (a preset with no `code` group, say). Seeding makes the first apply
+  // below clear the groups the active theme does not define, instead of leaving
+  // them to shadow a `var(--theme-*, fallback)` rule.
+  if (element) {
+    for (let i = 0; i < element.style.length; i++) {
+      const property = element.style.item(i);
+      if (property.startsWith(`--${prefix}`)) {
+        appliedVariables.set(property, element.style.getPropertyValue(property));
+      }
+    }
+  }
+
   // Apply the current theme immediately — no animation on first paint. Without
   // this the `--theme-*` variables are unset when the browser renders the
   // initial HTML, so the background/color rules fall back to the default
@@ -254,9 +280,24 @@ export function createCSSVariablesBinding(
   const unsubscribe = store.subscribe(applyTheme);
 
   return {
+    /**
+     * Replace the transition options used by subsequent theme changes, without
+     * rebuilding the binding or touching the current theme.
+     *
+     * Turning transitions off also releases the persistent `:root` transition
+     * stylesheet the animation coordinator installed: left in place it would
+     * keep interpolating every later variable swap even though the planner now
+     * returns `null` (see {@link disposeThemeTransitionStyles}).
+     */
+    setTransition(next: ThemeTransitionOptions | undefined) {
+      transitionOption = next;
+      if (next?.enabled === false && element) {
+        disposeThemeTransitionStyles(element);
+      }
+    },
     destroy() {
       unsubscribe();
-      if (element) cancelThemeAnimation(element);
+      if (element) disposeThemeTransitionStyles(element);
       if (styleElement && document.head.contains(styleElement)) {
         document.head.removeChild(styleElement);
         styleElement = null;

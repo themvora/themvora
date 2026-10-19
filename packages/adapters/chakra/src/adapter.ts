@@ -2,7 +2,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { createChakraTheme } from "./theme";
 import type { ChakraAdapterOptions } from "./defaults";
 
@@ -35,7 +35,7 @@ export interface ChakraThemeAdapter<T extends ThemeDefinition>
 }
 
 /**
- * Runtime-owned Chakra UI adapter. On install it subscribes to the Theme Kit
+ * Runtime-owned Chakra UI adapter. On install it subscribes to the Themvora
  * store and rebuilds the Chakra system whenever the active theme changes. The
  * generated system is available through `getSnapshot` for React consumption.
  *

@@ -4,7 +4,7 @@
 - Node.js 22+
 - npm, pnpm, yarn, or bun installed
 
-There are three practical ways to run `theme-kit`. Teams usually prefer the
+There are three practical ways to run `themvora`. Teams usually prefer the
 **project-local** approach so every human and pipeline runs the identical
 version; individuals often install globally.
 
@@ -16,13 +16,13 @@ version; individuals often install globally.
 
 ```bash
 # npm — `-g` is npm's global-install flag
-npm install -g @theme-kit/cli
+npm install -g @themvora/cli
 
 # pnpm uses the long `--global` form
-pnpm add --global @theme-kit/cli
+pnpm add --global @themvora/cli
 
 # yarn (yarn 2+ with global support)
-yarn global add @theme-kit/cli
+yarn global add @themvora/cli
 ```
 
 > Installing globally: each package manager spells it differently. npm uses
@@ -30,14 +30,14 @@ yarn global add @theme-kit/cli
 > `yarn global add <pkg>`. In a team, prefer [project-local](#3-add-it-to-one-project-best-for-teams)
 > so the version is reviewed and reproducible.
 
-After a global install, `theme-kit` is on your shell's PATH and runs from any
+After a global install, `themvora` is on your shell's PATH and runs from any
 directory. The packager writes a small shim for **every** platform, so
-`theme-kit` works identically from Windows cmd, Windows PowerShell, macOS
+`themvora` works identically from Windows cmd, Windows PowerShell, macOS
 Terminal (`bash`/`zsh`), and Linux (`bash`).
 
 ```bash
-theme-kit --version
-theme-kit --help
+themvora --version
+themvora --help
 ```
 
 ## 2. On demand with npx (zero install)
@@ -45,7 +45,7 @@ theme-kit --help
 `npx` ships with Node and downloads the package when you run it:
 
 ```bash
-npx --yes @theme-kit/cli generate --seed "#6366f1"
+npx --yes @themvora/cli generate --seed "#6366f1"
 ```
 
 npm, pnpm, yarn, and bun all resolve the same package name.
@@ -58,10 +58,10 @@ runs the identical version:
 ```json
 {
   "scripts": {
-    "theme:generate": "theme-kit generate --seed \"#6366f1\" --family indigo --output theme.json"
+    "theme:generate": "themvora generate --seed \"#6366f1\" --family indigo --output theme.json"
   },
   "dependencies": {
-    "@theme-kit/cli": "workspace:*"
+    "@themvora/cli": "workspace:*"
   }
 }
 ```
@@ -73,12 +73,36 @@ npm run theme:generate
 A project-local dependency is deterministic: version bumps are reviewed in the
 same PR that changes the script, so machines and humans agree.
 
-## Prefer a direct alias instead of installing?
+## 4. Set up shell completion
 
-If you already have a clone or a built copy, you can alias a subpath:
+Once `themvora` is on your PATH, the CLI can generate a completion script for
+your shell:
 
 ```bash
-alias theme-kit="node /path/to/theme-kit/dist/cli.cjs"
+# bash
+themvora completion bash > /etc/bash_completion.d/themvora
+
+# zsh — either on your $fpath, or sourced from your rc file
+themvora completion zsh > "${fpath[1]}/_themvora"
+
+# fish
+themvora completion fish > ~/.config/fish/completions/themvora.fish
+
+# PowerShell
+themvora completion powershell | Out-String | Invoke-Expression
+```
+
+The script completes command names, flags, and the registry values (presets,
+brands, styles, init frameworks). It resolves those values from the installed
+CLI at completion time rather than embedding them, so upgrading Themvora does not
+leave you with a stale list.
+
+## Prefer a direct alias instead of installing?
+
+If you already have a clone or a built copy, you can alias the built entry point:
+
+```bash
+alias themvora="node /path/to/themvora/packages/cli/dist/cli.cjs"
 ```
 
 ## Verify the executable, not the workspace
@@ -87,9 +111,9 @@ A package's `bin` only proves portable if you test it from a **separate
 directory** — not just from inside this monorepo. From any empty folder:
 
 ```bash
-mkdir theme-kit-cli-test
-cd theme-kit-cli-test
-npx --yes @theme-kit/cli --version
+mkdir themvora-cli-test
+cd themvora-cli-test
+npx --yes @themvora/cli --version
 ```
 
 That confirms the published package resolves your executable rather than a
@@ -101,7 +125,7 @@ workspace shortcut.
 - [CLI reference](./reference)
 
 ## Related
-- [Theme Kit Quick Start](../quickstart)
+- [Themvora Quick Start](../quickstart)
 - [Core Concepts](../../core-concepts)
 - [API Reference](../../api-reference)
 

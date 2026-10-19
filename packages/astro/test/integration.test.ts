@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pathToFileURL } from "node:url";
-import { defineTheme } from "@theme-kit/core";
-import { themeKit } from "../src/integration";
+import { defineTheme } from "@themvora/core";
+import { themvora } from "../src/integration";
 import { createNavigationScript } from "../src/navigation-script";
 
 const themes = [
@@ -34,10 +34,10 @@ interface SetupOptions {
  * loader would search `process.cwd()`, and the result would depend on where the
  * suite was started from.
  */
-async function inject(options: Parameters<typeof themeKit>[0]) {
+async function inject(options: Parameters<typeof themvora>[0]) {
   const injected: { stage: string; content: string }[] = [];
 
-  const hook = themeKit(options).hooks["astro:config:setup"] as unknown as (
+  const hook = themvora(options).hooks["astro:config:setup"] as unknown as (
     setup: SetupOptions,
   ) => void | Promise<void>;
 
@@ -54,7 +54,7 @@ async function inject(options: Parameters<typeof themeKit>[0]) {
 /** Only the pre-paint scrollbar script from core matches coarse pointers. */
 const COARSE_POINTER = "pointer: coarse";
 
-describe("themeKit integration — injected scripts", () => {
+describe("themvora integration — injected scripts", () => {
   it("injects the pre-paint bootstrap and the navigation script", async () => {
     const injected = await inject({
       themes,
@@ -193,7 +193,7 @@ function dispatchBeforeSwap(live: LiveState, next: unknown) {
   }
 
   const scrollbarStyle = live.scrollbarStyle
-    ? { id: "tk-scrollbar-style", textContent: "html.tk-scrollbar{scrollbar-width:none}" }
+    ? { id: "tv-scrollbar-style", textContent: "html.tv-scrollbar{scrollbar-width:none}" }
     : null;
 
   const handlers: Array<(event: unknown) => void> = [];
@@ -203,7 +203,7 @@ function dispatchBeforeSwap(live: LiveState, next: unknown) {
   scope.document = {
     documentElement: liveRoot,
     getElementById: (id: string) =>
-      id === "tk-scrollbar-style" ? scrollbarStyle : null,
+      id === "tv-scrollbar-style" ? scrollbarStyle : null,
     addEventListener: (type: string, handler: (event: unknown) => void) => {
       if (type === "astro:before-swap") handlers.push(handler);
     },
@@ -225,7 +225,7 @@ describe("createNavigationScript — client-side navigation", () => {
 
     const handlers = dispatchBeforeSwap(
       {
-        classes: ["dark", "tk-scrollbar"],
+        classes: ["dark", "tv-scrollbar"],
         attributes: {
           "data-theme": "mint-dark",
           "data-theme-mode": "dark",
@@ -239,7 +239,7 @@ describe("createNavigationScript — client-side navigation", () => {
 
     expect(handlers).toBe(1);
     expect(next.root.classList.contains("dark")).toBe(true);
-    expect(next.root.classList.contains("tk-scrollbar")).toBe(true);
+    expect(next.root.classList.contains("tv-scrollbar")).toBe(true);
     expect(next.root.attributes["data-theme"]).toBe("mint-dark");
     expect(next.root.attributes["data-theme-mode"]).toBe("dark");
     expect(next.root.attributes["data-theme-family"]).toBe("mint");
@@ -248,7 +248,7 @@ describe("createNavigationScript — client-side navigation", () => {
     );
     expect(next.headChildren).toHaveLength(1);
     expect((next.headChildren[0] as { id: string }).id).toBe(
-      "tk-scrollbar-style",
+      "tv-scrollbar-style",
     );
   });
 
@@ -263,9 +263,9 @@ describe("createNavigationScript — client-side navigation", () => {
   it("keeps the scrollbar class without adding a style element when none exists", () => {
     const next = fakeDocument();
 
-    dispatchBeforeSwap({ classes: ["tk-scrollbar"] }, next);
+    dispatchBeforeSwap({ classes: ["tv-scrollbar"] }, next);
 
-    expect(next.root.classList.contains("tk-scrollbar")).toBe(true);
+    expect(next.root.classList.contains("tv-scrollbar")).toBe(true);
     expect(next.headChildren).toHaveLength(0);
   });
 

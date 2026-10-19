@@ -8,7 +8,7 @@ import { GITHUB_LICENSE, GITHUB_URL } from "../../lib/site";
 
 export const metadata = legalMetadata(
   "License",
-  "Theme Kit is MIT-licensed open source software. What that means and where to read the full text.",
+  "Themvora is MIT-licensed open source software. What that means and where to read the full text.",
   "/license",
 );
 
@@ -21,7 +21,7 @@ export default function LicensePage() {
       updated={updated}
       lead={
         <>
-          Theme Kit is free, open source software distributed under the{" "}
+          Themvora is free, open source software distributed under the{" "}
           <strong>MIT License</strong>.
         </>
       }
@@ -56,7 +56,7 @@ export default function LicensePage() {
         </p>
         <p>
           <a href={GITHUB_LICENSE} className="underline">
-            github.com/themekit-dev/theme-kit/LICENSE
+            github.com/themvora/themvora/LICENSE
           </a>
         </p>
       </LegalSection>

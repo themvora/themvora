@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/dom-adapters") },
   title: "DOM Adapters",
   description:
-    "The bridge between Theme Kit's runtime and the DOM: CSS variables binding, DOM attribute binding, system theme detection, scoped themes, and the diff → plan → animate transition pipeline.",
+    "The bridge between Themvora's runtime and the DOM: CSS variables binding, DOM attribute binding, system theme detection, scoped themes, and the diff → plan → animate transition pipeline.",
 };
 
 const cssVariablesSnippet = {
   lang: "ts",
   title: "core — CSS variables binding",
-  code: `import { createThemeRuntime } from "@theme-kit/core";
-import { createCSSVariablesBinding } from "@theme-kit/core";
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createCSSVariablesBinding } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -52,7 +52,7 @@ const cssVars = createCSSVariablesBinding(runtime.store, {
 const domBindingSnippet = {
   lang: "ts",
   title: "core — DOM attribute binding",
-  code: `import { createDOMBinding } from "@theme-kit/core";
+  code: `import { createDOMBinding } from "@themvora/core";
 
 const dom = createDOMBinding(runtime.store, {
   target: document.documentElement,
@@ -70,7 +70,7 @@ const dom = createDOMBinding(runtime.store, {
 const systemBindingSnippet = {
   lang: "ts",
   title: "core — system theme binding",
-  code: `import { createSystemThemeBinding, getBuiltInThemes } from "@theme-kit/core";
+  code: `import { createSystemThemeBinding, getBuiltInThemes } from "@themvora/core";
 
 // \`runtime\` is the ThemeRuntime from your provider / createThemeRuntime().
 // The built-in set is a valid registry, so no theme file is needed.
@@ -93,7 +93,7 @@ const system = createSystemThemeBinding(runtime.store, {
 const scopedBindingSnippet = {
   lang: "ts",
   title: "core — scoped theme binding",
-  code: `import { createScopedThemeBinding, getBuiltInThemes } from "@theme-kit/core";
+  code: `import { createScopedThemeBinding, getBuiltInThemes } from "@themvora/core";
 
 const sidebar = document.getElementById("sidebar")!;
 
@@ -131,7 +131,7 @@ const transitionPipelineSnippet = {
   createTransitionPlan,
   runThemeAnimation,
   cancelThemeAnimation,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // 1. Diff: compare old vs new variable maps
 const diff = createThemeDiff(appliedVariables, newVariables);
@@ -173,7 +173,7 @@ const runtime = createThemeRuntime({
 // Disable CSS variable output
 const cssVars = createCSSVariablesBinding(runtime.store, {
   styleSheet: true,
-  layerName: "theme-kit",
+  layerName: "themvora",
 });
 // To skip CSS variables entirely, don't call this binding.
 
@@ -201,7 +201,7 @@ export default function DOMAdaptersPage() {
           title="Bridging runtime and browser"
           description={
             <>
-              DOM adapters are the bridge between Theme Kit's runtime store and
+              DOM adapters are the bridge between Themvora's runtime store and
               the live document. They translate theme definitions into CSS
               variables, HTML attributes, and media-query listeners — keeping
               the core logic framework-agnostic while the adapters handle the
@@ -339,7 +339,7 @@ export default function DOMAdaptersPage() {
           <Callout className="mt-3">
             <strong>Server-side resolution</strong>{" "}
             <span className="mx-1 opacity-40">|</span>
-            Theme Kit resolves the{" "}
+            Themvora resolves the{" "}
             <code className="mono text-[0.9em]">system</code> mode during SSR
             using a{" "}
             <code className="mono text-[0.9em]">@media (prefers-color-scheme: dark)</code>{" "}

@@ -30,13 +30,13 @@ export interface DevToolsPluginOptions {
  * The hook is only registered in browser environments. `onDestroy` clears the
  * internal runtime reference.
  *
- * Entries are added to the same `window.__THEME_KIT_DEVTOOLS__` set that
- * `@theme-kit/devtools`'s inspector plugin uses, and must satisfy that set's
+ * Entries are added to the same `window.__THEMVORA_DEVTOOLS__` set that
+ * `@themvora/devtools`'s inspector plugin uses, and must satisfy that set's
  * declared shape — `getState()`, `getEntries()`, `getPerformance()`. This
  * plugin records no entries or performance samples, so those two return empty
  * arrays; the point is that a consumer enumerating the set can call all three
  * on every member without a type check. Use
- * `@theme-kit/devtools`'s `createDevToolsPlugin` instead when you want the
+ * `@themvora/devtools`'s `createDevToolsPlugin` instead when you want the
  * recorded entries and timings.
  *
  * @see {@link DevToolsPluginOptions}
@@ -51,10 +51,10 @@ export function createDevToolsPlugin<T extends ThemeDefinition>(
   function exposeToGlobal() {
     if (typeof window === "undefined") return;
     const win = window as any;
-    if (!win.__THEME_KIT_DEVTOOLS__) {
-      win.__THEME_KIT_DEVTOOLS__ = new Set();
+    if (!win.__THEMVORA_DEVTOOLS__) {
+      win.__THEMVORA_DEVTOOLS__ = new Set();
     }
-    win.__THEME_KIT_DEVTOOLS__.add({
+    win.__THEMVORA_DEVTOOLS__.add({
       getState() {
         if (!_runtime) return null;
         return {
@@ -65,7 +65,7 @@ export function createDevToolsPlugin<T extends ThemeDefinition>(
         };
       },
 
-      // Present so this entry matches the shape `@theme-kit/devtools` registers
+      // Present so this entry matches the shape `@themvora/devtools` registers
       // and the docs declare for the set. Omitting them made the documented
       // consumer loop (`inspector.getEntries()`) throw on any page that
       // installed this plugin rather than the inspector one.

@@ -56,12 +56,12 @@ const STATIC_ENTRIES: Omit<SearchEntry, "type">[] = [
   {
     title: "Quick Start",
     route: "/quick-start",
-    text: "The shortest path to a themed app with no token definitions. Install @theme-kit/core plus your framework adapter, wrap your app in the provider with no themes prop, and get the built-in neutral light/dark theme with a toggle, persistence and history.",
+    text: "The shortest path to a themed app with no token definitions. Install @themvora/core plus your framework adapter, wrap your app in the provider with no themes prop, and get the built-in neutral light/dark theme with a toggle, persistence and history.",
   },
   {
     title: "CLI",
     route: "/cli",
-    text: "The @theme-kit/cli command-line toolkit: generate, validate, inspect, migrate, and export Theme Kit themes from any shell or build pipeline. Global install, npx, or project-local; exit codes for CI.",
+    text: "The @themvora/cli command-line toolkit: generate, list, validate, inspect, diff, explain, audit, doctor, init, add, migrate, export and completion. Theme files from any shell or build pipeline, projects scaffolded and extended in place, exit codes for CI. Global install, npx, or project-local.",
   },
   {
     title: "Theme Studio",
@@ -76,12 +76,12 @@ const STATIC_ENTRIES: Omit<SearchEntry, "type">[] = [
   {
     title: "Showcase",
     route: "/showcase",
-    text: "Gallery of apps and projects built with Theme Kit: the official docs site, the interactive playground, and example apps for every supported framework.",
+    text: "Gallery of apps and projects built with Themvora: the official docs site, the interactive playground, and example apps for every supported framework.",
   },
   {
     title: "Blog",
     route: "/blog",
-    text: "Theme Kit blog — release notes, deep dives, and guides on theming architecture, multi-window sync, scheduling, accessibility and more.",
+    text: "Themvora blog — release notes, deep dives, and guides on theming architecture, multi-window sync, scheduling, accessibility and more.",
   },
   {
     title: "Custom Themes",
@@ -91,17 +91,17 @@ const STATIC_ENTRIES: Omit<SearchEntry, "type">[] = [
   {
     title: "Default Presets",
     route: "/presets/default",
-    text: "The nine signature default preset families that ship with Theme Kit (oat, berry, mint, citrus, cocoa, plum, iris, sky, graphite) — each with light and dark. Click any preset to apply it live, plus the getPresetThemes code.",
+    text: "The nine signature default preset families that ship with Themvora (oat, berry, mint, citrus, cocoa, plum, iris, sky, graphite) — each with light and dark. Click any preset to apply it live, plus the getPresetThemes code.",
   },
   {
     title: "Brand Presets",
     route: "/presets/brand",
-    text: "Real-world brand preset palettes that ship with Theme Kit (Apple, GitHub, Vercel, Slack, Discord) — each with light and dark. Click any preset to apply it live, plus the getBrandPresets code.",
+    text: "Real-world brand preset palettes that ship with Themvora (Apple, GitHub, Vercel, Slack, Discord) — each with light and dark. Click any preset to apply it live, plus the getBrandPresets code.",
   },
   {
     title: "Animation & Transition",
     route: "/animation",
-    text: "How Theme Kit animates theme changes — a live, interactive lab with duration / easing / preset / View Transitions / reduced-motion controls driving the real createThemeDiff → createTransitionPlan → runThemeAnimation pipeline, plus the diff → plan → scan → coordinate pipeline, transition presets (smooth / subtle / instant), the View Transitions cross-fade (useViewTransition), best practices, and the full transition API reference.",
+    text: "How Themvora animates theme changes — a live, interactive lab with duration / easing / preset / View Transitions / reduced-motion controls driving the real createThemeDiff → createTransitionPlan → runThemeAnimation pipeline, plus the diff → plan → scan → coordinate pipeline, transition presets (smooth / subtle / instant), the View Transitions cross-fade (useViewTransition), best practices, and the full transition API reference.",
   },
   {
     title: "Accessibility Lab",
@@ -121,17 +121,17 @@ const STATIC_ENTRIES: Omit<SearchEntry, "type">[] = [
   {
     title: "Zero Flash",
     route: "/zero-flash",
-    text: "How Theme Kit prevents a flash of the wrong theme on reload and SSR. The problem (flash of incorrect theme), the full pipeline (persist → resolve → generate → render → blocking bootstrap → paint → hydrate), the core primitives (createThemeBootstrapScript, buildThemeCssMap, darkModeCSSTemplate), and per-framework integration for React, Next.js, Vue/Nuxt, SvelteKit, Solid, Angular, Astro, Remix and Web Components.",
+    text: "How Themvora prevents a flash of the wrong theme on reload and SSR. The problem (flash of incorrect theme), the full pipeline (persist → resolve → generate → render → blocking bootstrap → paint → hydrate), the core primitives (createThemeBootstrapScript, buildThemeCssMap, darkModeCSSTemplate), and per-framework integration for React, Next.js, Vue/Nuxt, SvelteKit, Solid, Angular, Astro, Remix and Web Components.",
   },
   {
     title: "Tokens & Typography",
     route: "/tokens",
-    text: "Theme Kit's token system goes far beyond colors: typography (font family, font size, line height), spacing, radius, shadows, border widths, z-index and breakpoints are all semantic theme tokens. Live interactive demos per token group, how tokens map to CSS variables (--theme-color-*, --theme-typography-*, --theme-spacing-*, --theme-radius-*, --theme-shadow-*, --theme-border-width-*), and defining every group in one defineTheme call.",
+    text: "Themvora's token system goes far beyond colors: typography (font family, font size, line height), spacing, radius, shadows, border widths, z-index and breakpoints are all semantic theme tokens. Live interactive demos per token group, how tokens map to CSS variables (--theme-color-*, --theme-typography-*, --theme-spacing-*, --theme-radius-*, --theme-shadow-*, --theme-border-width-*), and defining every group in one defineTheme call.",
   },
   {
     title: "Libraries",
     route: "/libraries",
-    text: "Adapters bridge Theme Kit semantic tokens to the libraries you already use. CSS-variable adapters inject live variables; generated adapters rebuild a library theme on every theme change; build-time integrations expose tokens as utilities.",
+    text: "Adapters bridge Themvora semantic tokens to the libraries you already use. CSS-variable adapters inject live variables; generated adapters rebuild a library theme on every theme change; build-time integrations expose tokens as utilities.",
   },
 ];
 

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/reference/compatibility") },
   title: "Compatibility & Support Matrix",
   description:
-    "A single source of truth for Theme Kit framework, package, and library compatibility — SSR, zero-flash, persistence, adapter support, and last verification.",
+    "A single source of truth for Themvora framework, package, and library compatibility — SSR, zero-flash, persistence, adapter support, and last verification.",
 };
 
 function CompatibilityBadge({ value }: { value: string }) {
@@ -162,7 +162,7 @@ export default function CompatibilityMatrixPage() {
           <div className="rounded-lg border border-border bg-muted/10 p-4 text-sm">
             <p className="font-medium mb-1">Data Verification</p>
             <p className="text-muted-foreground text-xs">
-              Last verified: <strong>{VERIFIED_DATE}</strong> · Theme Kit{" "}
+              Last verified: <strong>{VERIFIED_DATE}</strong> · Themvora{" "}
               <strong>v{VERIFIED_VERSION}</strong>
             </p>
             <p className="text-muted-foreground text-xs mt-2">
@@ -250,7 +250,7 @@ export default function CompatibilityMatrixPage() {
                 </li>
                 <li>
                   <strong>Remix:</strong> SSR-capable but requires manual
-                  tk-scrollbar class on &lt;html&gt; element.
+                  tv-scrollbar class on &lt;html&gt; element.
                 </li>
                 <li>
                   <strong>Angular:</strong> Uses own bootstrap implementation

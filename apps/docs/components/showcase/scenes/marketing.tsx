@@ -89,7 +89,7 @@ export function MarketingComposition({ chrome = true }: CompositionProps) {
             <div className="mt-3.5 text-[26px] sm:text-[32px] font-semibold tracking-tight leading-[1.1] max-w-2xl mx-auto">
               Theming that finally
               <br />
-              <span className="text-primary">works everywhere</span>
+              <span className="text-foreground">works everywhere</span>
             </div>
 
             <p className="mt-2.5 text-[12px] text-muted-foreground leading-relaxed max-w-md mx-auto">
@@ -162,7 +162,7 @@ export function MarketingComposition({ chrome = true }: CompositionProps) {
 
             <div className="border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4">
               <p className="text-[10px] leading-relaxed m-0 text-muted-foreground">
-                “We replaced three bespoke theming layers with Theme Kit and shipped
+                “We replaced three bespoke theming layers with Themvora and shipped
                 a rebrand in a day.”
               </p>
               <div className="flex items-center gap-2 mt-2.5">

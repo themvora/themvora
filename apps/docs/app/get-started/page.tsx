@@ -18,7 +18,7 @@ export default function GetStartedPage() {
       <div className="max-w-3xl">
         <PageHeader
           eyebrow="Get Started"
-          title="Get Started with Theme Kit"
+          title="Get Started with Themvora"
           description="Choose the guide that fits your needs — from instant setup to advanced framework patterns."
         />
         <GetStartedRouter />

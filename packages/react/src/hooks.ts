@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useSyncExternalStore, useCallback } from "react";
-import type { ThemeDefinition, ThemeFamilies, ThemeModes, ThemeTokens, ThemeRuntime, ThemeRuntimeSnapshot, ThemePack, ThemeLifecycleEventMap, ThemeSchedule, ThemeScheduleState } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeFamilies, ThemeModes, ThemeTokens, ThemeRuntime, ThemeRuntimeSnapshot, ThemePack, ThemeLifecycleEventMap, ThemeSchedule, ThemeScheduleState } from "@themvora/core";
+import { findGeneratedTheme, resolveGeneratedTheme } from "@themvora/core";
 
 import { useThemeRuntime as useProviderThemeRuntime } from "./provider";
 
-import { EMPTY_THEME_SCHEDULE_STATE } from "@theme-kit/core";
+import { EMPTY_THEME_SCHEDULE_STATE } from "@themvora/core";
 
 type ThemeLifecycleEventName = keyof ThemeLifecycleEventMap;
 
@@ -105,7 +106,7 @@ export function useThemeTimeTravel() {
  *
  * The handler is typed per event name, so `on("beforeThemeChange", ({ next }) => …)`
  * gives you the theme definitions rather than `unknown` — the same precision
- * `runtime.lifecycle.on` has in `@theme-kit/core`.
+ * `runtime.lifecycle.on` has in `@themvora/core`.
  *
  * @see {@link useTheme}
  */
@@ -158,6 +159,84 @@ export function useThemeValue<T extends ThemeDefinition>() {
 export function useThemeTokens<T extends ThemeDefinition>():
   ThemeTokens | undefined {
   return useThemeValue<T>().tokens;
+}
+
+/**
+ * The theme produced by `generateTheme()` and registered with the provider.
+ *
+ * Returns the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`) — never a shipped preset, and never
+ * inferred from a theme's id, family or colors. Generate one and pass the result
+ * to `ThemeProvider`:
+ *
+ * ```tsx
+ * const generated = generateTheme({ seed: "#635BFF", family: "brand" });
+ * <ThemeProvider themes={[generated.light, generated.dark]}>{children}</ThemeProvider>
+ * ```
+ *
+ * When both halves of one `generateTheme()` call are registered, the theme the
+ * active selection resolves to is returned. If several generated themes are
+ * registered and none is active, the call throws rather than guessing.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection; if
+ * the generated theme is later removed, the same error is raised at the next
+ * render rather than a stale theme being returned.
+ *
+ * @returns The registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when the provider holds no
+ *   generated theme; `TV_GENERATION_THEME_AMBIGUOUS` when several are registered
+ *   and the active selection does not identify one.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useGeneratedTheme<T extends ThemeDefinition = ThemeDefinition>(): T {
+  const runtime = useProviderThemeRuntime<T>();
+
+  // Reacts to all three sources the resolution depends on: the registry (a
+  // `runtime.use(pack)` install adds generated themes without touching the
+  // store), the store (the active theme), and the selection.
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const unsubStore = runtime.store.subscribe(listener);
+      const unsubSelection = runtime.selection.subscribe
+        ? runtime.selection.subscribe(listener)
+        : () => {};
+      const unsubRegistry = runtime.registry.subscribe(listener);
+      return () => {
+        unsubStore();
+        unsubSelection();
+        unsubRegistry();
+      };
+    },
+    [runtime],
+  );
+
+  // The snapshot is the *current* resolution, never a cached one: registry
+  // mutations notify only at transaction boundaries (`ThemeRegistry.batch`), so
+  // a null snapshot is always a settled state, not a mid-restore gap.
+  const getSnapshot = useCallback(
+    () => findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T).theme,
+    [runtime],
+  );
+
+  const getServerSnapshot = useCallback(
+    () => findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.initial.theme as T).theme,
+    [runtime],
+  );
+
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  if (theme === null) {
+    // Settled missing/ambiguous — raise the documented error at the read point
+    // rather than returning a stale theme.
+    resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+  }
+
+  return theme!;
 }
 
 /**
@@ -220,7 +299,7 @@ export function useToggleTheme() {
 }
 
 /**
- * The primary Theme Kit hook. Returns the current theme, mode, family and
+ * The primary Themvora hook. Returns the current theme, mode, family and
  *    the selection controls.
  * 
  *    When you pass the theme tuple element type, `setFamily` and `setMode`
@@ -228,7 +307,7 @@ export function useToggleTheme() {
  *    built-in set is used below so the example stands alone):
  * 
  *    ```ts
- *    import { getBuiltInThemes } from "@theme-kit/core";
+ *    import { getBuiltInThemes } from "@themvora/core";
  *
  *    const themes = getBuiltInThemes();
  *    const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme<typeof themes[number]>();

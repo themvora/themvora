@@ -4,8 +4,8 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveAdapterSource } from "@themvora/adapters";
 import { generateOpenPropsVariables } from "./generator";
 import { injectCSS, removeCSS, toCSS } from "./inject";
 import {
@@ -33,7 +33,7 @@ export interface CreateOpenPropsAdapterOptions extends OpenPropsAdapterOptions {
  * Creates an Open Props adapter.
  *
  * The adapter is a DOM-only, framework-free adapter: it depends only on
- * `@theme-kit/core` and the DOM. On install it injects the Open Props
+ * `@themvora/core` and the DOM. On install it injects the Open Props
  * compatibility stylesheet (when enabled) and a `<style>` element of CSS
  * variables derived from the active theme, then subscribes to the runtime
  * store and rewrites the variables whenever the theme selection changes. It
@@ -46,7 +46,7 @@ export interface CreateOpenPropsAdapterOptions extends OpenPropsAdapterOptions {
  *
  * @example
  * ```ts
- * import { createOpenPropsAdapter } from "@theme-kit/open-props";
+ * import { createOpenPropsAdapter } from "@themvora/open-props";
  *
  * runtime.installAdapter(createOpenPropsAdapter());
  * ```
@@ -94,7 +94,7 @@ export function createOpenPropsAdapter<T extends ThemeDefinition>(
         }),
       ),
     );
-    styleEl.setAttribute("data-theme-kit", "open-props");
+    styleEl.setAttribute("data-themvora", "open-props");
 
     unsubscribe = runtime.store.subscribe(() => {
       apply(runtime.store.get());

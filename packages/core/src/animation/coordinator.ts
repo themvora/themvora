@@ -42,7 +42,7 @@ function ensureRootTransitionStyle(target: HTMLElement, list: string): void {
   let node = ROOT_TRANSITION_NODES.get(target);
   if (!node || !node.isConnected) {
     node = document.createElement("style");
-    node.setAttribute("data-theme-kit-transition", "");
+    node.setAttribute("data-themvora-transition", "");
     document.head.appendChild(node);
     ROOT_TRANSITION_NODES.set(target, node);
   }
@@ -57,7 +57,7 @@ function ensureRootTransitionStyle(target: HTMLElement, list: string): void {
 /**
  * Persistently installed, content-stable stylesheet that mutes every descendant
  * transition while a theme animation is running. It's a single static rule and
- * is toggled purely through the presence of `data-theme-kit-animating` on the
+ * is toggled purely through the presence of `data-themvora-animating` on the
  * root — never rewritten per toggle, so it avoids the per-toggle style-recalc
  * the coordinator is designed to prevent.
  *
@@ -76,13 +76,13 @@ function ensureSuppressionStyle(target: HTMLElement): void {
   let node = SUPPRESSION_NODES.get(target);
   if (!node || !node.isConnected) {
     node = document.createElement("style");
-    node.setAttribute("data-theme-kit-animating-style", "");
+    node.setAttribute("data-themvora-animating-style", "");
     // Matches every descendant of the animated root, never the root itself, so
     // the `:root` custom-property transition keeps working while descendants are
     // quieted. Element transitions the coordinator intentionally adds are set
     // inline with `!important`, which outranks this stylesheet rule.
     node.textContent =
-      "[data-theme-kit-animating] :not([data-theme-kit-animating]) { transition: none !important; }";
+      "[data-themvora-animating] :not([data-themvora-animating]) { transition: none !important; }";
     document.head.appendChild(node);
     SUPPRESSION_NODES.set(target, node);
   }
@@ -90,9 +90,9 @@ function ensureSuppressionStyle(target: HTMLElement): void {
 
 function setAnimatingAttribute(target: HTMLElement, on: boolean): void {
   if (on) {
-    target.setAttribute("data-theme-kit-animating", "");
+    target.setAttribute("data-themvora-animating", "");
   } else {
-    target.removeAttribute("data-theme-kit-animating");
+    target.removeAttribute("data-themvora-animating");
   }
 }
 
@@ -235,4 +235,36 @@ export function runThemeAnimation(input: ThemeAnimationInput): void {
 /** Abort any in-flight theme animation for `target` and remove its styles. */
 export function cancelThemeAnimation(target: HTMLElement): void {
   cancelActive(target);
+}
+
+/**
+ * Release every transition style the coordinator owns for `target`: cancels an
+ * in-flight run and detaches the persistent `:root` transition stylesheet and
+ * the descendant-suppression stylesheet.
+ *
+ * {@link cancelThemeAnimation} deliberately leaves the `:root { transition }`
+ * rule in place between runs — it is written once and reused, so every
+ * subsequent change keeps animating. That rule must go when the feature is
+ * turned off or the owner is disposed, otherwise later variable swaps still
+ * interpolate through it: a theme switch after `transition: false` would
+ * animate despite the plan being `null`. Scoped targets never install the
+ * `:root` rule (it is document-wide), so for them this only clears the
+ * suppression node and the animating flag.
+ */
+export function disposeThemeTransitionStyles(target: HTMLElement): void {
+  cancelActive(target);
+
+  const root = ROOT_TRANSITION_NODES.get(target);
+  if (root) {
+    root.remove();
+    ROOT_TRANSITION_NODES.delete(target);
+  }
+
+  const suppression = SUPPRESSION_NODES.get(target);
+  if (suppression) {
+    suppression.remove();
+    SUPPRESSION_NODES.delete(target);
+  }
+
+  setAnimatingAttribute(target, false);
 }

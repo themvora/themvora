@@ -1,25 +1,25 @@
-## @theme-kit/core/config
+## @themvora/core/config
 Build-time entry: discovery of the application's `theme.config.ts`.
 
-Imported from `@theme-kit/core/config`. Kept out of the main entry because it
-uses node builtins, which a browser bundle of `@theme-kit/core` must never
+Imported from `@themvora/core/config`. Kept out of the main entry because it
+uses node builtins, which a browser bundle of `@themvora/core` must never
 pull in — the main entry is runtime code, this is build-time code.
 
-> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/core/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
-### `loadThemeKitConfig<T extends ThemeDefinition<string>>(root, configPath?): Promise<ThemeKitConfig<T> | null>`
-Finds and loads the application's ThemeKitConfig.
+### `loadThemvoraConfig<T extends ThemeDefinition<string>>(root, configPath?): Promise<ThemvoraConfig<T> | null>`
+Finds and loads the application's ThemvoraConfig.
 
-**See also:** `defineThemeKitConfig`
+**See also:** `defineThemvoraConfig`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `root` | `string` | The project root to search. |
 | `configPath` | `string` (optional) | An explicit path, relative to `root` or absolute. When omitted the conventional filenames are tried in order. |
 
-**Returns** `Promise<ThemeKitConfig<T> | null>` — The configuration, or `null` when there is none — or when it cannot
+**Returns** `Promise<ThemvoraConfig<T> | null>` — The configuration, or `null` when there is none — or when it cannot
   be loaded, which is warned about rather than thrown, so a broken config
   cannot take a build down.
 
@@ -36,10 +36,10 @@ where it is declared — which is the normal case under pnpm.
 
 ## Variables
 
-### `THEME_KIT_CONFIG_FILES`
+### `THEMVORA_CONFIG_FILES`
 Conventional config filenames, in resolution order.
 
-**See also:** `loadThemeKitConfig`
+**See also:** `loadThemvoraConfig`
 
 `readonly ["theme.config.ts", "theme.config.tsx", "theme.config.mts", "theme.config.mjs", "theme.config.js", "theme.config.cjs"]`
 

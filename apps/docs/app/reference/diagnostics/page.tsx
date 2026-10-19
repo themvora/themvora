@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/reference/diagnostics") },
   title: "Diagnostics Reference",
   description:
-    "Every diagnostic Theme Kit emits: its stable code, severity, common cause, and correction — plus the API for collecting, formatting, and emitting your own.",
+    "Every diagnostic Themvora emits: its stable code, severity, common cause, and correction — plus the API for collecting, formatting, and emitting your own.",
 };
 
 type Level = "error" | "warning";
@@ -28,11 +28,11 @@ type DiagnosticEntry = {
 
 const DIAGNOSTICS: DiagnosticEntry[] = [
   {
-    id: "tk_mode_invalid",
-    code: "TK_MODE_INVALID",
+    id: "tv_mode_invalid",
+    code: "TV_MODE_INVALID",
     level: "warning",
     api: "selection.setMode()",
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     meaning:
       "setMode() received a value that is not light, dark, or system. The selection is left unchanged.",
     cause:
@@ -41,24 +41,24 @@ const DIAGNOSTICS: DiagnosticEntry[] = [
     emits: true,
   },
   {
-    id: "tk_theme_token_missing",
-    code: "TK_THEME_TOKEN_MISSING",
+    id: "tv_theme_token_missing",
+    code: "TV_THEME_TOKEN_MISSING",
     level: "returned",
     api: "validateTheme()",
-    pkg: "@theme-kit/core, @theme-kit/cli",
+    pkg: "@themvora/core, @themvora/cli",
     meaning:
       "A theme definition is missing a required semantic token, or declares no tokens at all. Returned as a ValidationIssue rather than emitted to the console.",
     cause:
       "A hand-written theme definition omits one of the required semantic colour tokens, or a partial theme was passed where a complete one was expected.",
-    fix: "Add the missing token, or build the theme from a complete base so every required token is present. `theme-kit validate` reports the same issues in CI.",
+    fix: "Add the missing token, or build the theme from a complete base so every required token is present. `themvora validate` reports the same issues in CI.",
     emits: false,
   },
   {
-    id: "tk_a11y_contrast_violation",
-    code: "TK_A11Y_CONTRAST_VIOLATION",
+    id: "tv_a11y_contrast_violation",
+    code: "TV_A11Y_CONTRAST_VIOLATION",
     level: "warning",
     api: "createAccessibilityPlugin()",
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     meaning:
       "One or more foreground/background pairs in the active theme fail WCAG AA normal contrast. Reported at error level when the plugin is created with warnOnly: false.",
     cause:
@@ -67,11 +67,11 @@ const DIAGNOSTICS: DiagnosticEntry[] = [
     emits: true,
   },
   {
-    id: "tk_schedule_theme_unresolved",
-    code: "TK_SCHEDULE_THEME_UNRESOLVED",
+    id: "tv_schedule_theme_unresolved",
+    code: "TV_SCHEDULE_THEME_UNRESOLVED",
     level: "warning",
     api: "createScheduledPlugin()",
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     meaning:
       "A schedule was configured, but its light/dark theme pair could not be resolved, so no schedule binding was installed.",
     cause:
@@ -80,11 +80,11 @@ const DIAGNOSTICS: DiagnosticEntry[] = [
     emits: true,
   },
   {
-    id: "tk_plugin_destroy_failed",
-    code: "TK_PLUGIN_DESTROY_FAILED",
+    id: "tv_plugin_destroy_failed",
+    code: "TV_PLUGIN_DESTROY_FAILED",
     level: "warning",
     api: "pluginManager.destroy()",
-    pkg: "@theme-kit/core",
+    pkg: "@themvora/core",
     meaning:
       "A plugin threw from onDestroy() while the manager was tearing down. The remaining plugins were still destroyed and the registry was still cleared.",
     cause:
@@ -198,7 +198,7 @@ export default function DiagnosticsReferencePage() {
         <PageHeader
           eyebrow="Reference"
           title="Diagnostics Reference"
-          description="Theme Kit reports recoverable problems through diagnostics rather than throwing. Each one carries a stable code you can assert on, a severity, and a concrete correction."
+          description="Themvora reports recoverable problems through diagnostics rather than throwing. Each one carries a stable code you can assert on, a severity, and a concrete correction."
         />
 
         <div className="my-8 space-y-10">
@@ -270,7 +270,7 @@ export default function DiagnosticsReferencePage() {
               <code className="font-mono text-[0.6875rem]">NODE_ENV</code> through
               a guarded access, so it is safe in a browser bundle and can still be
               replaced statically by a bundler. When there is no signal at all,
-              Theme Kit reports the richer form rather than the quieter one:
+              Themvora reports the richer form rather than the quieter one:
               suppressing a correctness failure is worse than an extra line of
               context.
             </p>
@@ -365,7 +365,7 @@ export default function DiagnosticsReferencePage() {
             <pre className="mono text-[0.6875rem] overflow-x-auto rounded-lg border border-border bg-muted/20 p-3">
               {`emitDiagnostic(
   createDiagnostic({
-    code: "TK_MODE_INVALID",
+    code: "TV_MODE_INVALID",
     level: "warning",
     message: 'setMode() received an unknown mode "purple".',
     context: {

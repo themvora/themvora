@@ -1,6 +1,6 @@
 # Recipes
 
-Task-oriented patterns for Theme Kit. Each recipe is a self-contained solution you can copy-paste and adapt to your project.
+Task-oriented patterns for Themvora. Each recipe is a self-contained solution you can copy-paste and adapt to your project.
 
 ## Available Recipes
 
@@ -26,7 +26,7 @@ Overlay themed scrollbars that track the active theme with smooth transitions an
 Apply a different theme to a specific subtree (like a dashboard panel) while keeping the rest of the app in its default theme.
 
 ### Accessible Palette Generation
-Generate color palettes that meet WCAG contrast requirements using Theme Kit's contrast validation.
+Generate color palettes that meet WCAG contrast requirements using Themvora's contrast validation.
 
 ### CLI-Driven Theme Generation
-Use the Theme Kit CLI to generate complete theme families from seed colors in your build pipeline.
+Use the Themvora CLI to generate complete theme families from seed colors in your build pipeline.

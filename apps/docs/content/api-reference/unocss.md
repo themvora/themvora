@@ -1,18 +1,18 @@
-## @theme-kit/unocss
-Theme Kit UnoCSS integration.
+## @themvora/unocss
+Themvora UnoCSS integration.
 
-Provides the `presetThemeKit` UnoCSS preset and the `createUnoTheme`
-adapter-source helper that map Theme Kit tokens to UnoCSS theme values.
+Provides the `presetThemvora` UnoCSS preset and the `createUnoTheme`
+adapter-source helper that map Themvora tokens to UnoCSS theme values.
 
-> Generated from `packages/unocss/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/unocss/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `createUnoTheme(source): Record<string, unknown>`
 Returns a static UnoCSS theme object with concrete values for a given set of
-Theme Kit tokens (useful for build-time generation instead of runtime vars).
+Themvora tokens (useful for build-time generation instead of runtime vars).
 
-**See also:** `presetThemeKit`
+**See also:** `presetThemvora`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -23,8 +23,8 @@ Theme Kit tokens (useful for build-time generation instead of runtime vars).
 ---
 
 
-### `presetThemeKit(): Preset`
-UnoCSS preset that exposes Theme Kit semantic tokens as utilities such as
+### `presetThemvora(): Preset`
+UnoCSS preset that exposes Themvora semantic tokens as utilities such as
 `bg-primary`, `text-foreground`, `border-border`, `rounded-lg`, etc.
 Values reference the live `--theme-*` variables, so they update at runtime.
 

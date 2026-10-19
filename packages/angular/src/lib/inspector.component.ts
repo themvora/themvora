@@ -5,12 +5,12 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   type OnInit,
 } from "@angular/core";
-import { ThemeKitInspector } from "@theme-kit/web";
+import { ThemvoraInspector } from "@themvora/web";
 
 /**
- * Angular wrapper component around the Theme Kit web inspector.
+ * Angular wrapper component around the Themvora web inspector.
  *
- * Renders a `<theme-kit-inspector>` custom element and forwards the `bottom`,
+ * Renders a `<themvora-inspector>` custom element and forwards the `bottom`,
  * `right`, `size`, `zIndex`, `class`, and `style` inputs to it. The inspector
  * element is defined on initialization.
  *
@@ -19,17 +19,17 @@ import { ThemeKitInspector } from "@theme-kit/web";
  * @see {@link ThemeScrollbarDirective}
  */
 @Component({
-  selector: "theme-kit-inspector-component",
+  selector: "themvora-inspector-component",
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: `<theme-kit-inspector
+  template: `<themvora-inspector
     [attr.bottom]="bottom"
     [attr.right]="right"
     [attr.size]="size"
     [attr.z-index]="zIndex"
     [class]="class"
     [style]="style"
-  ></theme-kit-inspector>`,
+  ></themvora-inspector>`,
 })
 export class ThemeInspectorComponent implements OnInit {
   /** Distance from the bottom of the viewport, in px. */
@@ -40,12 +40,12 @@ export class ThemeInspectorComponent implements OnInit {
   @Input() size?: number;
   /** Z-index for the floating toggle and panel. */
   @Input() zIndex?: number;
-  /** CSS classes forwarded to the <theme-kit-inspector> element. */
+  /** CSS classes forwarded to the <themvora-inspector> element. */
   @HostBinding("class") @Input() class?: string;
-  /** Inline styles forwarded to the <theme-kit-inspector> element. */
+  /** Inline styles forwarded to the <themvora-inspector> element. */
   @HostBinding("style") @Input() style?: string;
 
   ngOnInit() {
-    ThemeKitInspector.define();
+    ThemvoraInspector.define();
   }
 }

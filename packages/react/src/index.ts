@@ -1,5 +1,5 @@
 /**
- * Theme Kit React integration.
+ * Themvora React integration.
  *
  * Provides the `ThemeProvider`, runtime hooks, the scoped theming component
  * and hook (`ThemeScope` / `useScopedTheme`), the theme mode button and

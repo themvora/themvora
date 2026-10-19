@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ThemeScope as ScopedTheme } from "@theme-kit/next/client";
+import { ThemeScope as ScopedTheme } from "@themvora/next/client";
 
 const ThemeScope = () => {
   return (

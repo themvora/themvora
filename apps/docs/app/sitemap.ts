@@ -44,6 +44,7 @@ const STANDALONE_ROUTES = [
   "/terms",
   "/security",
   "/license",
+  "/contact",
 ] as const;
 
 function entry(path: string, priority: number): MetadataRoute.Sitemap[number] {

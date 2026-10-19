@@ -45,7 +45,7 @@ export interface ThemeModeControllerOptions<T extends ThemeDefinition> {
  * system binding; in `light`/`dark` mode it applies the corresponding theme
  * directly. `setMode` refuses a value that is not `"light"`, `"dark"` or
  * `"system"`: the call is ignored — nothing is applied, persisted or
- * broadcast — and a `TK_MODE_INVALID` diagnostic is emitted, so `getMode()`
+ * broadcast — and a `TV_MODE_INVALID` diagnostic is emitted, so `getMode()`
  * never reports a mode the runtime cannot render. Mode changes are persisted
  * and broadcast when the corresponding adapters are provided. The returned
  * controller is safe to destroy: after `destroy()` its methods become no-ops

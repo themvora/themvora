@@ -23,8 +23,8 @@ export default defineConfig({
     "svelte",
     "solid-js",
     "@angular/core",
-    "@theme-kit/core",
-    "@theme-kit/adapters",
+    "@themvora/core",
+    "@themvora/adapters",
   ],
   loader: {
     ".css": "text",

@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mount, unmount, flushSync } from "svelte";
-import { createThemeRuntime, type ThemeDefinition } from "@theme-kit/core";
+import { createThemeRuntime, type ThemeDefinition } from "@themvora/core";
 
 const themes: ThemeDefinition[] = [
   {
@@ -27,7 +27,7 @@ const themes: ThemeDefinition[] = [
  * without `$.init()`.
  */
 const noScriptCallsSource = `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
   export let themes = [];
   export let defaultTheme = "forest-dark";
 </script>
@@ -111,7 +111,7 @@ describe("ThemeProvider in legacy mode without needs_context", () => {
 
   it("applies light theme via defaultTheme and initialMode props", async () => {
     const source = `<script>
-      import { ThemeProvider } from "@theme-kit/svelte";
+      import { ThemeProvider } from "@themvora/svelte";
       export let themes = [];
     </script>
 

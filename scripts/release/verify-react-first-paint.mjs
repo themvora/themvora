@@ -4,7 +4,7 @@
  *
  * Guards the empty-root frame: React's concurrent root schedules the initial
  * commit, so the browser can paint one frame (~33 ms) with the root still empty
- * — visible as the UI blinking on reload. `themeKitVitePlugin({ syncFirstRender })`
+ * — visible as the UI blinking on reload. `themvoraVitePlugin({ syncFirstRender })`
  * closes it by resolving `react-dom/client` to a shim that flushes the first
  * `render` synchronously.
  *
@@ -33,11 +33,11 @@
  *
  *   `dist/`              the QUICK START variant — plain `createRoot`, no build
  *                        plugin, no pre-paint bootstrap, and its readout spans
- *                        carry `data-readout` (not `data-tk-readout`).
- *   `dist-theme-config/` the build-integrated variant — `themeKitVitePlugin()`
+ *                        carry `data-readout` (not `data-tv-readout`).
+ *   `dist-theme-config/` the build-integrated variant — `themvoraVitePlugin()`
  *                        derives the pre-paint bootstrap from `theme.config.ts`
  *                        and injects it into `theme-config.html`, and its
- *                        readouts are `[data-tk-readout]`.
+ *                        readouts are `[data-tv-readout]`.
  *
  * The gate therefore serves `dist-theme-config/theme-config.html`.
  *
@@ -57,7 +57,7 @@
  *      React render synchronously, so no frame paints with `#root` empty. Proven
  *      by frame sampling alone; independent of prerendered markup.
  *
- *   3. FRAME-0 READOUT — a `[data-tk-readout]` element that exists in the served
+ *   3. FRAME-0 READOUT — a `[data-tv-readout]` element that exists in the served
  *      HTML is patched before its first paint and never fluctuates. This is
  *      asserted ONLY when the served HTML actually contains such an element.
  *      `examples/apps/react` prerenders none, so the gate says so out loud rather
@@ -102,12 +102,11 @@ import os from "node:os";
 // verified nothing.
 const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const exampleRoot = join(repoRoot, "examples", "apps", "react");
-const strict = process.argv.includes("--strict");
 const loads = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 6);
 const PORT = 4477;
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css" };
 
-// `theme-config` (default) is the only variant with a `[data-tk-readout]`
+// `theme-config` (default) is the only variant with a `[data-tv-readout]`
 // pre-paint contract to assert. See the header.
 const variantArg = process.argv.find((a) => a.startsWith("--variant="));
 const variant = variantArg ? variantArg.slice("--variant=".length) : "theme-config";
@@ -141,8 +140,8 @@ function fail(msg, detail) {
 }
 
 function findChrome() {
-  if (process.env.THEME_KIT_CHROME && existsSync(process.env.THEME_KIT_CHROME))
-    return process.env.THEME_KIT_CHROME;
+  if (process.env.THEMVORA_CHROME && existsSync(process.env.THEMVORA_CHROME))
+    return process.env.THEMVORA_CHROME;
   const pwRoot = process.env.LOCALAPPDATA
     ? join(process.env.LOCALAPPDATA, "ms-playwright")
     : join(os.homedir(), "AppData", "Local", "ms-playwright");
@@ -188,7 +187,7 @@ if (!existsSync(join(distDir, entryFile))) {
 //     so #root is *supposed* to start empty. This gate asserts no-empty-frame
 //     only for a build that ships prerendered markup.
 //
-//   `hasPrerenderedReadout` — is there a `[data-tk-readout]` element in the HTML?
+//   `hasPrerenderedReadout` — is there a `[data-tv-readout]` element in the HTML?
 //     If not, a frame-0 readout assertion is meaningless: there is no element to
 //     patch until React mounts, so `?|?` on frame 0 is correct behaviour, not a
 //     regression.
@@ -203,7 +202,7 @@ const hasPrerenderedMarkup = Boolean(rootInner && rootInner[1].trim().length > 0
 // Count only real elements, not the selector strings the inline patch script
 // contains — a naive substring count sees those and reports phantom readouts.
 const readoutElementCount = (
-  servedHtml.match(/<[a-z][^>]*\sdata-tk-readout=/gi) ?? []
+  servedHtml.match(/<[a-z][^>]*\sdata-tv-readout=/gi) ?? []
 ).length;
 const hasPrerenderedReadout = readoutElementCount > 0;
 
@@ -212,7 +211,7 @@ const wsPath = findWs();
 if (!chromePath)
   fail(
     "headless Chromium not found",
-    "Install Playwright's Chromium, or point THEME_KIT_CHROME at a chrome.exe.\n" +
+    "Install Playwright's Chromium, or point THEMVORA_CHROME at a chrome.exe.\n" +
       "      Do not silence this by skipping: the gate exists to observe a painted frame.",
   );
 if (!wsPath)
@@ -237,7 +236,7 @@ await new Promise((r) => server.listen(PORT, "127.0.0.1", r));
 const base = `http://127.0.0.1:${PORT}`;
 
 // --- CDP --------------------------------------------------------------------
-const profile = mkdtempSync(join(os.tmpdir(), "tk-rfp-"));
+const profile = mkdtempSync(join(os.tmpdir(), "tv-rfp-"));
 const child = spawn(
   chromePath,
   ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
@@ -315,16 +314,16 @@ const seedScript = await send("Page.addScriptToEvaluateOnNewDocument", {
 // prerendered value happens to be right and the check proves nothing.
 try { localStorage.setItem('theme-selection', JSON.stringify({ mode: 'dark', family: 'mint' })); } catch (e) {}
 
-window.__tkFrames = [];
+window.__tvFrames = [];
 (function(){
   var n = 0;
   function snap(){
     try {
       var root = document.getElementById('root');
-      var theme = document.querySelector('[data-tk-readout="theme"]');
-      var mode = document.querySelector('[data-tk-readout="mode"]');
+      var theme = document.querySelector('[data-tv-readout="theme"]');
+      var mode = document.querySelector('[data-tv-readout="mode"]');
       var de = document.documentElement;
-      window.__tkFrames.push({
+      window.__tvFrames.push({
         rootChildren: root ? root.childElementCount : -1,
         reactOwned: root ? Object.keys(root).some(function(k){ return k.indexOf('__reactContainer') === 0; }) : false,
         readout: (theme ? theme.textContent : '?') + '|' + (mode ? mode.textContent : '?'),
@@ -358,7 +357,7 @@ console.log(`loads: ${loads} (cpu 6x, cache disabled)\n`);
 // the configured `initialMode` instead; that is the case a plugin/runtime mode
 // mismatch shows up in, and the first pass cannot see it.
 //
-// `expected` is the `[data-tk-readout]` value (only used when the fixture ships
+// `expected` is the `[data-tv-readout]` value (only used when the fixture ships
 // prerendered readouts). `expectedTheme`/`expectedSelMode` are the bootstrap's
 // own `<html>` attributes, which are assertable on any fixture.
 //
@@ -393,7 +392,7 @@ const themeConfigPasses = [
 ];
 
 // No bootstrap is injected for this variant — `dist/index.html` has neither
-// `theme-kit-bootstrap` nor `__THEME_KIT_CONFIG__`, so it is pure client runtime
+// `themvora-bootstrap` nor `__THEMVORA_CONFIG__`, so it is pure client runtime
 // and asserts after React resolves. Its provider passes NO `themes` array, so the
 // runtime falls back to the full built-in theme set. A persisted
 // `{mode:"dark", family:"mint"}` therefore resolves to the built-in
@@ -446,16 +445,16 @@ for (const pass of passes) {
     await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: seedScript.identifier });
     await send("Page.addScriptToEvaluateOnNewDocument", {
       source: `try { localStorage.removeItem('theme-selection'); } catch (e) {}
-window.__tkFrames = [];
+window.__tvFrames = [];
 (function(){
   var n = 0;
   function snap(){
     try {
       var root = document.getElementById('root');
-      var theme = document.querySelector('[data-tk-readout="theme"]');
-      var mode = document.querySelector('[data-tk-readout="mode"]');
+      var theme = document.querySelector('[data-tv-readout="theme"]');
+      var mode = document.querySelector('[data-tv-readout="mode"]');
       var de = document.documentElement;
-      window.__tkFrames.push({
+      window.__tvFrames.push({
         rootChildren: root ? root.childElementCount : -1,
         reactOwned: root ? Object.keys(root).some(function(k){ return k.indexOf('__reactContainer') === 0; }) : false,
         readout: (theme ? theme.textContent : '?') + '|' + (mode ? mode.textContent : '?'),
@@ -488,7 +487,7 @@ window.__tkFrames = [];
   await new Promise((r) => setTimeout(r, 2500));
 
   const frames = JSON.parse(
-    (await send("Runtime.evaluate", { expression: "JSON.stringify(window.__tkFrames)", returnByValue: true })).result.value || "[]",
+    (await send("Runtime.evaluate", { expression: "JSON.stringify(window.__tvFrames)", returnByValue: true })).result.value || "[]",
   );
   const blank = frames.filter((f) => f.rootChildren === 0);
   const pre = blank.filter((f) => !f.reactOwned).length;
@@ -564,7 +563,7 @@ window.__tkFrames = [];
   if (!rendered) failures.push(`load ${load}: the app never rendered`);
 
   // --- CONTRACT 3 + 4: frame-0 readout, and no flicker ---------------------
-  // Only meaningful when the served HTML actually contains a `[data-tk-readout]`
+  // Only meaningful when the served HTML actually contains a `[data-tv-readout]`
   // element. Without one, the readout cannot exist until React mounts, so `?|?`
   // on frame 0 is correct and asserting it would be inventing a regression.
   const readouts = [];
@@ -605,11 +604,11 @@ window.__tkFrames = [];
 console.log(`\n  contracts provable by this fixture:`);
 console.log(`    bootstrap state      YES (data-theme* on <html>)`);
 console.log(`    sync-first-render    ${hasPrerenderedMarkup ? "YES" : "NO — #root is empty in the served HTML (client-rendered build)"}`);
-console.log(`    frame-0 readout      ${hasPrerenderedReadout ? "YES" : "NO — no [data-tk-readout] in the served HTML"}`);
+console.log(`    frame-0 readout      ${hasPrerenderedReadout ? "YES" : "NO — no [data-tv-readout] in the served HTML"}`);
 if (!hasPrerenderedReadout) {
   console.log(`    -> frame-0 readout is proven by verify-astro-readouts.mjs, whose`);
   console.log(`       fixture (examples/apps/astro/src/pages/index.astro) prerenders`);
-  console.log(`       [data-tk-readout] placeholders. Not asserted here, not skipped silently.`);
+  console.log(`       [data-tv-readout] placeholders. Not asserted here, not skipped silently.`);
 }
 console.log(`\n  totals: pre-JS ${preJs}, post-JS ${postJs}`);
 if (consoleErrors.length) {

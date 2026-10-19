@@ -48,7 +48,10 @@ export function Select({
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(() =>
-    Math.max(0, options.findIndex((o) => o.value === value)),
+    Math.max(
+      0,
+      options.findIndex((o) => o.value === value),
+    ),
   );
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -68,6 +71,40 @@ export function Select({
       setActiveIndex(i === -1 ? 0 : i);
     }
   }, [open, options, value]);
+
+  // Keep the highlighted option inside the panel's scrollport.
+  //
+  // Focus never enters the panel — the highlight is `activeIndex` and the trigger
+  // keeps focus — so the browser has no reason to scroll, and arrowing past the
+  // visible options moved the highlight off-screen.
+  //
+  // `scrollIntoView` is deliberately avoided: it scrolls every scrollable ancestor
+  // including the window, which would move the page under the user while they arrow
+  // through a list. Only the panel's own `scrollTop` is written.
+  useEffect(() => {
+    if (!open) return;
+    const list = listRef.current;
+    const option = list?.children[activeIndex];
+    if (!list || !(option instanceof HTMLElement)) return;
+
+    const listRect = list.getBoundingClientRect();
+    const optionRect = option.getBoundingClientRect();
+    const relTop = optionRect.top - listRect.top + list.scrollTop;
+    const relBottom = relTop + optionRect.height;
+
+    // Pin the write so `html { scroll-behavior: smooth }` doesn't animate it.
+    const prevBehavior = list.style.scrollBehavior;
+    list.style.scrollBehavior = "auto";
+    try {
+      if (relTop < list.scrollTop) {
+        list.scrollTop = relTop;
+      } else if (relBottom > list.scrollTop + list.clientHeight) {
+        list.scrollTop = relBottom - list.clientHeight;
+      }
+    } finally {
+      list.style.scrollBehavior = prevBehavior;
+    }
+  }, [activeIndex, open]);
 
   // Escape is handled by `useClickOutside`. Focus never leaves the trigger
   // (the highlight is tracked with `activeIndex` rather than by moving focus
@@ -90,7 +127,12 @@ export function Select({
 
   const onTriggerKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+      if (
+        e.key === "ArrowDown" ||
+        e.key === "ArrowUp" ||
+        e.key === "Enter" ||
+        e.key === " "
+      ) {
         e.preventDefault();
         setOpen(true);
       }
@@ -135,8 +177,10 @@ export function Select({
         aria-label={label}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={onTriggerKeyDown}
-        className={`w-full inline-flex items-center gap-2 rounded-lg border bg-card font-medium cursor-pointer transition-colors ${pad} ${
-          open ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-ring"
+        className={`w-full inline-flex items-center gap-2 rounded-lg border-2 bg-card font-medium cursor-pointer transition-colors ${pad} ${
+          open
+            ? "border-primary ring-2 ring-primary/20"
+            : "border-border hover:border-ring"
         }`}
       >
         {selected?.swatch ? (
@@ -146,7 +190,9 @@ export function Select({
             aria-hidden
           />
         ) : null}
-        <span className="flex-1 min-w-0 truncate text-left">{selected?.label ?? value}</span>
+        <span className="flex-1 min-w-0 truncate text-left">
+          {selected?.label ?? value}
+        </span>
         <Icon
           icon="ph:caret-up-down"
           width={10}
@@ -163,7 +209,7 @@ export function Select({
           aria-label={label}
           /*
             `pr-3` leaves room for the site's overlay scrollbar. The docs theme
-            draws its scrollbar *on top of* the content (`tk-thumb`), so with the
+            draws its scrollbar *on top of* the content (`tv-thumb`), so with the
             previous 4px padding the thumb overlapped the option labels — which
             read as "no gap" and made the thumb the topmost element under the
             pointer. `overscroll-contain` stops a scroll gesture inside the panel

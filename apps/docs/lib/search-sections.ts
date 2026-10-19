@@ -16,7 +16,7 @@ export const PAGE_SECTIONS: PageSectionEntry[] = [
     route: "/get-started",
     sections: [
       { title: "How are you building?" },
-      { title: "Your first Theme Kit application" },
+      { title: "Your first Themvora application" },
     ],
   },
   {
@@ -64,9 +64,9 @@ export const PAGE_SECTIONS: PageSectionEntry[] = [
     route: "/migrating-to-2",
     sections: [
       { title: "Which packages changed", desc: "2.0.0 is not a whole-ecosystem major: twelve packages broke their public API, while core and web ship 1.4.0 and react ships 1.3.1." },
-      { title: "Adapter bindings moved to per-framework subpaths", desc: "Adapter hooks left the framework packages and the adapter roots. Import useShadcnTheme from @theme-kit/shadcn/react instead of from @theme-kit/shadcn or @theme-kit/vue." },
+      { title: "Adapter bindings moved to per-framework subpaths", desc: "Adapter hooks left the framework packages and the adapter roots. Import useShadcnTheme from @themvora/shadcn/react instead of from @themvora/shadcn or @themvora/vue." },
       { title: "The runtime is now the first argument", desc: "useShadcnTheme() and friends take the runtime as a required first argument, with the options object second. This fails at compile time rather than silently." },
-      { title: "Astro: root is framework-neutral", desc: "The React surface moved to @theme-kit/astro/client and the ./adapters subpath was removed. Without React, use ThemeToggle.astro or getThemeController()." },
+      { title: "Astro: root is framework-neutral", desc: "The React surface moved to @themvora/astro/client and the ./adapters subpath was removed. Without React, use ThemeToggle.astro or getThemeController()." },
       { title: "Behaviour changes to be aware of", desc: "setFamily() now ignores an unregistered family, and a system selection needs systemModeCSSTemplate rather than inlined variables plus a dark media block." },
       { title: "What did not break", desc: "Persisted selections, the cookie contract, the CLI exit codes, the plugin lifecycle and React lifecycle typing are all unchanged." },
       { title: "Upgrade checklist", desc: "A mechanical pass over your adapter imports and Astro React imports finds almost all of the migration." },
@@ -130,11 +130,11 @@ export const PAGE_SECTIONS: PageSectionEntry[] = [
   {
     route: "/vanilla",
     sections: [
-      { title: "Why Vanilla?", desc: "When your page is a plain HTML file, a server-rendered template, or a framework that Theme Kit doesn't ship an adapter for." },
-      { title: "The ThemeKit class", desc: "Import the class, pass your options, and the instance handles everything — DOM binding, persistence, and event emission." },
+      { title: "Why Vanilla?", desc: "When your page is a plain HTML file, a server-rendered template, or a framework that Themvora doesn't ship an adapter for." },
+      { title: "The Themvora class", desc: "Import the class, pass your options, and the instance handles everything — DOM binding, persistence, and event emission." },
       { title: "Reading the active theme", desc: "Synchronous getters expose the active theme, its mode, and its family — plus a reactive event system." },
       { title: "Switching themes", desc: "Switch mode, switch family, or toggle — every change is persisted and emits the appropriate event." },
-      { title: "DOM binding", desc: "ThemeKit automatically writes CSS custom properties and a data-theme attribute to the target element. You can also read or apply them manually." },
+      { title: "DOM binding", desc: "Themvora automatically writes CSS custom properties and a data-theme attribute to the target element. You can also read or apply them manually." },
       { title: "Persistence", desc: "Mode and family are persisted to localStorage on every change and automatically restored when a new instance is created." },
       { title: "Full HTML example", desc: "A complete HTML page with a working theme switcher — save it as index.html and open it in a browser." },
     ],
@@ -159,7 +159,7 @@ export const PAGE_SECTIONS: PageSectionEntry[] = [
       { title: "Theme Flicker on Navigation", desc: "The theme briefly flashes to the default on client-side route changes." },
       { title: "Scoped Theme Not Working", desc: "A ThemeScope has no visible effect on the targeted subtree." },
       { title: "Transitions Not Animating", desc: "Theme switches are instant instead of animated." },
-      { title: "Build Error: Module Not Found", desc: "Your bundler throws a Module Not Found error for @theme-kit packages." },
+      { title: "Build Error: Module Not Found", desc: "Your bundler throws a Module Not Found error for @themvora packages." },
       { title: "Accessibility Audit Failing", desc: "Automated accessibility audits flag color contrast failures in your theme." },
       { title: "Multi-Window Out of Sync", desc: "Changing the theme in one tab does not update other open tabs." },
     ],

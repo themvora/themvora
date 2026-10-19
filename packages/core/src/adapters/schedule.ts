@@ -151,6 +151,17 @@ export interface ThemeScheduleSetOptions extends SolarLocationInput {
   skipApplyMs?: number;
   /** Whether the schedule should be enabled after the update. */
   enabled?: boolean;
+  /**
+   * Scheduled daytime theme name.
+   *
+   * Presence-based rather than `!== undefined`: passing the key explicitly —
+   * even as `undefined` — clears an earlier explicit name and returns to
+   * deriving the pair from the current theme family. Omitting the key leaves
+   * the current name alone.
+   */
+  lightTheme?: string | undefined;
+  /** Scheduled nighttime theme name. See `lightTheme`. */
+  darkTheme?: string | undefined;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -175,9 +186,9 @@ export const DEFAULT_SCHEDULED_DARK_THEME = "dark";
  */
 export interface ScheduledThemePairInput<T extends ThemeDefinition> {
   /** The theme applied during daytime. */
-  lightTheme?: T["name"];
+  lightTheme?: T["name"] | undefined;
   /** The theme applied at night. */
-  darkTheme?: T["name"];
+  darkTheme?: T["name"] | undefined;
 }
 
 /** Resolve the scheduled light/dark themes from the configured options and
@@ -266,9 +277,17 @@ export function createThemeSchedule<T extends ThemeDefinition>(
   themes: readonly T[],
   options: ThemeScheduleOptions<T>,
 ): ThemeSchedule {
+  // The configured light/dark pair is mutable: `set()` may replace it, so the
+  // store subscription below re-resolves against the *current* configuration
+  // rather than the options captured at creation.
+  const pairInput: ScheduledThemePairInput<T> = {
+    lightTheme: options.lightTheme,
+    darkTheme: options.darkTheme,
+  };
+
   let { light: lightTheme, dark: darkTheme } = resolveScheduledThemePair(
     themes,
-    options,
+    pairInput,
     store.get(),
   );
 
@@ -405,6 +424,19 @@ export function createThemeSchedule<T extends ThemeDefinition>(
   }
 
   function set(opts: ThemeScheduleSetOptions) {
+    // Scheduled theme names are presence-based (see `ThemeScheduleSetOptions`):
+    // an explicitly supplied key — even `undefined` — replaces the configured
+    // pair, while an omitted key leaves it untouched.
+    const hasLight = Object.prototype.hasOwnProperty.call(opts, "lightTheme");
+    const hasDark = Object.prototype.hasOwnProperty.call(opts, "darkTheme");
+    if (hasLight || hasDark) {
+      if (hasLight) pairInput.lightTheme = opts.lightTheme as T["name"] | undefined;
+      if (hasDark) pairInput.darkTheme = opts.darkTheme as T["name"] | undefined;
+      const nextPair = resolveScheduledThemePair(themes, pairInput, store.get());
+      lightTheme = nextPair.light;
+      darkTheme = nextPair.dark;
+    }
+
     // Explicit coordinates take precedence over an explicit timezone, which
     // takes precedence over auto-detection.
     if (opts.latitude !== undefined || opts.longitude !== undefined) {
@@ -446,7 +478,7 @@ export function createThemeSchedule<T extends ThemeDefinition>(
   const unsubscribeStore = store.subscribe(() => {
     // Re-resolve scheduled themes: when lightTheme/darkTheme are auto-derived
     // from the current family, switching theme families should follow.
-    const next = resolveScheduledThemePair(themes, options, store.get());
+    const next = resolveScheduledThemePair(themes, pairInput, store.get());
     if (next.light !== lightTheme || next.dark !== darkTheme) {
       lightTheme = next.light;
       darkTheme = next.dark;

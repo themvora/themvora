@@ -5,7 +5,7 @@
     "entryFile": "src/public-api.ts"
   },
   "allowedNonPeerDependencies": [
-    "@theme-kit/core",
-    "@theme-kit/web"
+    "@themvora/core",
+    "@themvora/web"
   ]
 }

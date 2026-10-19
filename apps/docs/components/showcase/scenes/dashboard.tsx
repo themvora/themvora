@@ -52,9 +52,9 @@ const ORDERS = [
 
 const ACTIVITY = [
   { icon: "ph:plus-circle", tone: "text-emerald-500", text: "Mira created project", at: "2m" },
-  { icon: "ph:pencil-simple", tone: "text-primary", text: "You updated billing", at: "18m" },
+  { icon: "ph:pencil-simple", tone: "text-foreground", text: "You updated billing", at: "18m" },
   { icon: "ph:user-plus", tone: "text-amber-500", text: "Devon invited 3 members", at: "1h" },
-  { icon: "ph:rocket-launch", tone: "text-primary", text: "Deployed v2.4 to prod", at: "3h" },
+  { icon: "ph:rocket-launch", tone: "text-foreground", text: "Deployed v2.4 to prod", at: "3h" },
   { icon: "ph:check-circle", tone: "text-emerald-500", text: "Invoice #4021 paid", at: "5h" },
 ];
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Tarball verification for Theme Kit 1.0.0 (checklist item 3 / 19 / 20).
+ * Tarball verification for Themvora 1.0.0 (checklist item 3 / 19 / 20).
  *
  * For every publishable package:
  *  1. `pnpm pack` produces a real tarball in release-test/tarballs/
@@ -43,7 +43,7 @@ function readTarball(tarballPath) {
 }
 
 function tarballFile(tarballPath, entry) {
-  const tmp = join(process.env.TEMP ?? "/tmp", `tk-untar-${Date.now()}`);
+  const tmp = join(process.env.TEMP ?? "/tmp", `tv-untar-${Date.now()}`);
   mkdirSync(tmp, { recursive: true });
   execSync(`"${TAR}" -xzf "${tarballPath.replace(/"/g, '\\"')}" -C "${tmp.replace(/"/g, '\\"')}" "${entry}"`, {
     stdio: "pipe",

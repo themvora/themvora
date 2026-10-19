@@ -1,8 +1,8 @@
 /**
- * Solid composable for the Bootstrap adapter (`@theme-kit/bootstrap/solid`).
+ * Solid composable for the Bootstrap adapter (`@themvora/bootstrap/solid`).
  *
  * `useBootstrapTheme(runtime, options?)` installs the Bootstrap adapter onto
- * an explicitly provided Theme Kit runtime and disposes it on cleanup.
+ * an explicitly provided Themvora runtime and disposes it on cleanup.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createBootstrapAdapter } from "./adapter";
 
@@ -36,10 +36,10 @@ export interface UseAdapterOptions {
  * theme changes.
  *
  * Must be called within a Solid reactive root, passing the runtime from your
- * Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/solid`):
+ * Themvora provider (e.g. `useThemeRuntime()` from `@themvora/solid`):
  *
  * ```tsx
- * import { useBootstrapTheme } from "@theme-kit/bootstrap/solid";
+ * import { useBootstrapTheme } from "@themvora/bootstrap/solid";
  *
  * function App() {
  *   useBootstrapTheme(runtime);
@@ -47,7 +47,7 @@ export interface UseAdapterOptions {
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

@@ -1,4 +1,19 @@
 /**
+ * A flag exactly as it was written on the command line.
+ *
+ * Recorded because a command may need the *order* the user typed flags in, and
+ * an object keyed by flag name cannot express it — `--brand a --preset b` and
+ * `--preset b --brand a` produce identical `ParsedArgs` keys but are different
+ * requests.
+ */
+export interface ParsedFlag {
+  /** The flag name, without leading dashes. */
+  key: string;
+  /** The flag's value, or `true` for a boolean flag. */
+  value: string | true;
+}
+
+/**
  * The result of parsing command-line arguments.
  *
  * Positional arguments are collected in `_`; flags and their values are stored
@@ -7,6 +22,8 @@
 export interface ParsedArgs {
   /** Positional (non-flag) arguments in order. */
   _: string[];
+  /** Every flag, in the order it appeared. */
+  __flags: ParsedFlag[];
   [key: string]: any;
 }
 
@@ -23,7 +40,7 @@ export interface ParsedArgs {
  * @see {@link UsageError}
  */
 export function parseArgs(argv: string[]): ParsedArgs {
-  const result: ParsedArgs = { _: [] };
+  const result: ParsedArgs = { _: [], __flags: [] };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
@@ -41,9 +58,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
         } else {
           result[key] = next;
         }
+        result.__flags.push({ key, value: next });
         i++;
       } else {
         result[key] = true;
+        result.__flags.push({ key, value: true });
       }
     } else if (arg.startsWith("-") && arg.length === 2) {
       const key = arg.slice(1);
@@ -51,9 +70,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
       if (next !== undefined && !next.startsWith("-")) {
         result[key] = next;
+        result.__flags.push({ key, value: next });
         i++;
       } else {
         result[key] = true;
+        result.__flags.push({ key, value: true });
       }
     } else {
       result._.push(arg);
@@ -68,4 +89,24 @@ export function getString(args: ParsedArgs, key: string, fallback?: string): str
   if (typeof val === "string") return val;
   if (Array.isArray(val)) return val[0] as string | undefined;
   return fallback;
+}
+
+/**
+ * Reads a boolean flag.
+ *
+ * `--flag` parses to `true`; an absent flag is `false`. A flag that was given a
+ * value (`--flag=false`) is treated as present-but-not-true only for the literal
+ * strings `"false"` and `"0"`, so `--flag false` behaves the way a shell user
+ * expects.
+ *
+ * @param args The parsed command-line arguments.
+ * @param key The flag name, without leading dashes.
+ * @returns Whether the flag is set.
+ */
+export function getBool(args: ParsedArgs, key: string): boolean {
+  const val = args[key];
+  if (val === undefined) return false;
+  if (val === true) return true;
+  if (typeof val === "string") return val !== "false" && val !== "0";
+  return false;
 }

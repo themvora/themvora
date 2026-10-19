@@ -1,15 +1,104 @@
 "use client";
 
 import { useCallback, useId, useMemo, useState } from "react";
-import { generateTheme, type GeneratedThemePair } from "@theme-kit/core";
-import { useThemeRuntime } from "@theme-kit/next/client";
+import {
+  generateTheme,
+  themeToCSSVariables,
+  type GeneratedThemePair,
+} from "@themvora/core";
+import { useThemeRuntime } from "@themvora/next/client";
 import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { CopyButton } from "../ui/copy-button";
-import { NextSteps } from "../ui/next-step-card";
-import { RelatedLinks } from "../ui/related-links";
 import { Button } from "../ui/button";
 import { highlightCode } from "../../lib/highlight";
+
+/**
+ * `generateTheme()` recipes.
+ *
+ * Every example here was checked against the shipped function rather than
+ * written from the type signature: the accepted seed formats, the six style
+ * names, the nineteen `tokens.code` entries and the generated names all come
+ * from running it. A docs page about an API is the worst place for a plausible
+ * guess.
+ *
+ * The list is data rather than markup so adding one is a single entry.
+ */
+const GENERATE_RECIPES: readonly {
+  title: string;
+  blurb: string;
+  code: string;
+}[] = [
+  {
+    title: "The minimum",
+    blurb:
+      "One required option. Family defaults to \"generated\", so the pair is named generated-light and generated-dark.",
+    code: `import { generateTheme } from "@themvora/core";
+
+const { light, dark } = generateTheme({ seed: "#6366f1" });
+
+light.name; // "generated-light"
+light.meta.family; // "generated"`,
+  },
+  {
+    title: "Naming the family",
+    blurb:
+      "The family is what the runtime selects on, so name it something your app can refer to.",
+    code: `const { light, dark } = generateTheme({
+  seed: "#6366f1",
+  family: "ocean",
+});
+
+light.name; // "ocean-light"
+dark.name;  // "ocean-dark"`,
+  },
+  {
+    title: "Choosing a visual language",
+    blurb:
+      "Six styles share one generator — they differ in how the ramp is shaped, not in which colours are derived. balanced is the default.",
+    code: `const { light, dark } = generateTheme({
+  seed: "#6366f1",
+  family: "ocean",
+  style: "editorial",
+  // "balanced" | "soft" | "vibrant" | "editorial" | "minimal" | "brand"
+});`,
+  },
+  {
+    title: "Including the syntax palette",
+    blurb:
+      "Opt in to a code-token block: nineteen syntax roles derived from the same seed, so highlighted code belongs to the theme rather than fighting it.",
+    code: `const { light, dark } = generateTheme({
+  seed: "#6366f1",
+  family: "ocean",
+  withCode: true,
+});
+
+Object.keys(light.tokens.code).length; // 19`,
+  },
+  {
+    title: "Any parseable seed",
+    blurb:
+      "Hex is the common case, but rgb() and hsl() are accepted too — useful when the seed comes from a picker or a design token. Named colours are not.",
+    code: `generateTheme({ seed: "#6366f1" });
+generateTheme({ seed: "rgb(99 102 241)" });
+generateTheme({ seed: "hsl(239 84% 67%)" });
+
+// An unparseable seed throws rather than silently falling back:
+generateTheme({ seed: "rebeccapurple" });
+// ColorError: generateTheme() received an invalid seed "rebeccapurple".`,
+  },
+  {
+    title: "Light and dark are independent",
+    blurb:
+      "Both modes are solved from the same identity, but neither is a filter over the other — a dark theme is not its light theme inverted.",
+    code: `const { light, dark } = generateTheme({ seed: "#6366f1" });
+
+light.tokens.colors.primary; // "#5d5fea"
+dark.tokens.colors.primary;  // "#808aff"
+
+// Both clear the same contrast contract against their own canvas.`,
+  },
+];
 
 function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -103,7 +192,7 @@ function ThemePreview({
           <div className="min-w-0 text-sm font-semibold leading-tight">
             <span className="block truncate">Generated {title} theme</span>
             <div className="truncate text-[11px] font-normal opacity-50">
-              Derived from your seed with HSL math
+              Derived from your seed in OKLCH
             </div>
           </div>
         </div>
@@ -176,11 +265,27 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
     });
   }, [seed, family, isValid]);
 
+  /*
+    The CSS export.
+
+    This was computed and never rendered — a light-only variable list with no
+    reader. It now emits both modes, which is what someone pasting it into a
+    stylesheet actually needs, and it is shown below alongside the TS and JSON
+    forms.
+
+    `themeToCSSVariables` rather than a hand-rolled `--theme-color-*` loop, so the
+    export is the same projection the runtime performs.
+  */
   const css = useMemo(() => {
     if (!pair) return "";
-    return Object.entries(pair.light.tokens?.colors ?? {})
-      .map(([k, v]) => `--theme-color-${k}: ${v};`)
-      .join("\n");
+    const block = (label: string, selector: string, theme: GeneratedThemePair["light"]) => {
+      const vars = themeToCSSVariables(theme);
+      const body = Object.entries(vars)
+        .map(([name, value]) => `  ${name}: ${value};`)
+        .join("\n");
+      return `/* ${label} */\n${selector} {\n${body}\n}`;
+    };
+    return `${block("Light theme", ":root", pair.light)}\n\n${block("Dark theme", ".dark", pair.dark)}`;
   }, [pair]);
 
   const json = useMemo(() => JSON.stringify(pair ?? null, null, 2), [pair]);
@@ -188,17 +293,36 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
   const tsCode = useMemo(() => {
     if (!pair) return "";
     const baseName = sanitizeName(pair.light.meta?.family || family);
-    const tsContent = `import { defineTheme } from "@theme-kit/core";
+    /*
+      `generateTheme`, not `defineTheme`.
 
-export const ${baseName}Light = defineTheme(${JSON.stringify(pair.light, null, 2)});
+      This snippet used to dump the entire generated theme object into
+      `defineTheme(...)`, which is the opposite of what it is demonstrating.
+      `generateTheme` exists so that nobody authors those tokens by hand: one
+      seed produces the complete light and dark pair, every colour derived. A
+      snippet that pastes the output back in as authored input tells the reader
+      the wrong story about the API — and it buries the one line that matters
+      under two hundred lines of JSON.
 
-export const ${baseName}Dark = defineTheme(${JSON.stringify(pair.dark, null, 2)});
+      The page's own copy says "computed with HSL math by generateTheme()". Now
+      the code agrees with it.
+    */
+    return `import { generateTheme } from "@themvora/core";
 
-// Include both as a pair for ThemeProvider:
+/**
+ * One seed, two themes. Every colour below is derived — secondary, muted,
+ * accent, card, popover, input, border and ring included. Nothing is authored,
+ * so nothing drifts out of contrast with anything else.
+ */
+export const { light: ${baseName}Light, dark: ${baseName}Dark } = generateTheme({
+  seed: ${JSON.stringify(seed)},
+  family: ${JSON.stringify(family.trim() || seed.replace("#", ""))},
+});
+
+// Hand the pair straight to the provider:
 export const themes = [${baseName}Light, ${baseName}Dark];
 `;
-    return tsContent;
-  }, [pair, family, sanitizeName]);
+  }, [pair, family, seed, sanitizeName]);
 
   function apply(kind: "light" | "dark") {
     if (!pair) return;
@@ -222,9 +346,9 @@ export const themes = [${baseName}Light, ${baseName}Dark];
             Generate a theme from a seed
           </h1>
           <p className="max-w-2xl text-sm leading-relaxed opacity-70 sm:text-base">
-            Pick a seed color and Theme Kit derives a complete light + dark pair
-            — secondary, muted, accent, border and ring colors are all computed
-            with HSL math by{" "}
+            Pick a seed color and Themvora derives a complete light + dark pair
+            — secondary, muted, accent, card, popover, input, border and ring
+            colors are all computed in OKLCH by{" "}
             <code className="font-mono text-[0.9em]">generateTheme()</code>.
             Apply it to this very site to see the runtime re-theme everything
             live.
@@ -493,6 +617,77 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                 </div>
               </div>
             </div>
+
+            {/* CSS Variables Output */}
+            <div className="code-block overflow-hidden mt-4">
+              <div className="code-block-toolbar">
+                <span className="code-block-filename" title="CSS custom properties">
+                  CSS Variables
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <code className="truncate mono text-[11px] opacity-40">
+                    :root / .dark
+                  </code>
+                  <span className="code-block-lang">CSS</span>
+                  <CopyButton text={css} label="Copy" className="code-block-copy" />
+                </div>
+              </div>
+              <div
+                className="max-h-72 overflow-auto sm:max-h-96"
+                dangerouslySetInnerHTML={{ __html: highlightCode(css, "css") }}
+              />
+            </div>
+
+            {/* Recipes — the API beyond the one call this page makes. Only on
+                /theme-studio.
+                The playground embeds this component with `compact`, and these recipes
+                document the API rather than the seed — the wrong material for a page
+                about experimenting. */}
+            {!compact && (
+              <section className="mt-10" aria-labelledby="generate-theme-recipes">
+                <h2
+                  id="generate-theme-recipes"
+                  className="text-lg font-semibold tracking-tight mb-1"
+                >
+                  generateTheme() recipes
+                </h2>
+                <p className="text-sm opacity-60 mb-5 max-w-2xl leading-relaxed">
+                  This page exercises one call. These are the rest of the options,
+                  each one run against the shipped function rather than described
+                  from its signature.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                  {GENERATE_RECIPES.map((recipe) => (
+                    <div key={recipe.title} className="code-block overflow-hidden">
+                      <div className="code-block-toolbar">
+                        <span className="code-block-filename" title={recipe.blurb}>
+                          {recipe.title}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="code-block-lang">ts</span>
+                          <CopyButton
+                            text={recipe.code}
+                            label="Copy"
+                            className="code-block-copy"
+                          />
+                        </div>
+                      </div>
+                      <p className="px-3 py-2 text-xs opacity-60 leading-relaxed border-b border-border">
+                        {recipe.blurb}
+                      </p>
+                      <div
+                        className="max-h-72 overflow-auto"
+                        dangerouslySetInnerHTML={{
+                          __html: highlightCode(recipe.code, "typescript"),
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
           </>
         ) : (
           <div className="rounded-lg border border-border bg-muted/30 p-6 text-center">

@@ -19,10 +19,10 @@
  * Usage: node scripts/docs/audits/audit-c-examples.mjs [--dynamic]
  */
 
-import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadClassification, loadRegistry, packageNames, REGISTRY_REL } from "../lib/registry.mjs";
+import { loadClassification, loadRegistry } from "../lib/registry.mjs";
 import { entrypointsOf, resolveSpecifier } from "../lib/api-index.mjs";
 
 const URL = fileURLToPath(import.meta.url);
@@ -43,7 +43,6 @@ function walk(dir) {
 
 const classification = loadClassification();
 const entrypoints = entrypointsOf(classification);
-const shipped = new Set(packageNames(classification));
 const failures = [];
 const fail = (file, symbol, contract, detail) => failures.push({ file, symbol, contract, detail });
 

@@ -9,14 +9,16 @@
  * themekit.dev, change the default below (or the env var) — nothing else.
  */
 
-const GH_ORG = "themekit-dev";
-const GH_REPO = "theme-kit";
+const GH_ORG = "themvora";
+const GH_REPO = "themvora";
 export const GITHUB_URL = `https://github.com/${GH_ORG}/${GH_REPO}`;
 export const GITHUB_SOURCE = `${GITHUB_URL}/blob/main`;
 export const GITHUB_SECURITY = `${GITHUB_URL}/security/advisories`;
+export const GITHUB_DISCUSSIONS = `${GITHUB_URL}/discussions`;
+export const GITHUB_ISSUES = `${GITHUB_URL}/issues`;
 export const GITHUB_LICENSE = `${GITHUB_URL}/blob/main/LICENSE`;
 
-export const NPM_ORG_URL = "https://www.npmjs.com/org/theme-kit";
+export const NPM_ORG_URL = "https://www.npmjs.com/org/themvora";
 export const npmPackageUrl = (pkg: string) =>
   `https://www.npmjs.com/package/${pkg}`;
 
@@ -31,9 +33,9 @@ const ADAPTER_PACKAGES = new Set([
   "unocss",
 ]);
 
-/** Repository directory for a package (e.g. "@theme-kit/shadcn" → "packages/adapters/shadcn"). */
+/** Repository directory for a package (e.g. "@themvora/shadcn" → "packages/adapters/shadcn"). */
 export function repoPathForPackage(pkg: string): string {
-  const name = pkg.replace("@theme-kit/", "");
+  const name = pkg.replace("@themvora/", "");
   if (name === "adapters") return "packages/adapters/shared";
   if (ADAPTER_PACKAGES.has(name)) return `packages/adapters/${name}`;
   return `packages/${name}`;
@@ -48,9 +50,9 @@ export const CONTACT_EMAIL = "themekitproductions@gmail.com";
 export const CONTACT_URL = `mailto:${CONTACT_EMAIL}`;
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://theme-kit-dev.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://themvora-dev.vercel.app";
 
-export const SITE_NAME = "Theme Kit";
+export const SITE_NAME = "Themvora";
 export const SITE_DESCRIPTION =
   "A powerful, framework-agnostic theming library with theme families, semantic tokens, and a runtime that works everywhere.";
 

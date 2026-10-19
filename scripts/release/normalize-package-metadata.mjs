@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Normalize package metadata for the Theme Kit 1.0.0 release (checklist item 19/20).
+ * Normalize package metadata for the Themvora 1.0.0 release (checklist item 19/20).
  *
  * For every publishable workspace package:
  *  - fills in missing description / repository / homepage / bugs / keywords
@@ -14,85 +14,84 @@
  * Usage: node scripts/release/normalize-package-metadata.mjs
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(join(here, "..", ".."));
 
-const REPO_URL = "https://github.com/themekit-dev/theme-kit";
-// TODO(1.0.0): after the first Vercel deployment, replace this with the real
-// .vercel.app URL (keep it in sync with apps/docs/lib/site.ts SITE_URL, and
-// the README). Set once — it becomes the `homepage` of every published package.
-const DOCS_URL = "https://theme-kit-dev.vercel.app";
+const REPO_URL = "https://github.com/themvora/themvora";
+// Keep this in sync with apps/docs/lib/site.ts `SITE_URL` and the README —
+// it becomes the `homepage` of every published package.
+const DOCS_URL = "https://themvora-dev.vercel.app";
 
 const DESCRIPTIONS = {
-  "@theme-kit/core":
+  "@themvora/core":
     "Framework-agnostic theming engine: theme store, runtime, transitions, scheduling, accessibility, and DOM adapters.",
-  "@theme-kit/web": "Vanilla JS theme runtime and DOM bindings for Theme Kit.",
-  "@theme-kit/react": "React bindings for Theme Kit: provider, hooks, and runtime access.",
-  "@theme-kit/next": "Next.js integration for Theme Kit with SSR-first theming and zero-flash bootstrapping.",
-  "@theme-kit/vue": "Vue 3 bindings for Theme Kit.",
-  "@theme-kit/nuxt": "Nuxt module for Theme Kit: SSR, cookies, and zero-flash theming.",
-  "@theme-kit/svelte": "Svelte 5 bindings for Theme Kit.",
-  "@theme-kit/solid": "SolidJS bindings for Theme Kit.",
-  "@theme-kit/angular": "Angular integration for Theme Kit.",
-  "@theme-kit/astro": "Astro integration for Theme Kit.",
-  "@theme-kit/remix": "Remix integration for Theme Kit.",
-  "@theme-kit/tailwind": "Tailwind CSS v4 plugin that maps Theme Kit tokens to Tailwind theme variables.",
-  "@theme-kit/cli": "Theme Kit CLI: generate, validate, inspect, and migrate themes.",
-  "@theme-kit/devtools": "Development tools and runtime inspector for Theme Kit.",
-  "@theme-kit/mantine": "Mantine adapter for Theme Kit.",
-  "@theme-kit/adapters": "Shared adapter utilities for the Theme Kit adapter ecosystem.",
-  "@theme-kit/mui": "MUI adapter for Theme Kit.",
-  "@theme-kit/chakra": "Chakra UI adapter for Theme Kit.",
-  "@theme-kit/antd": "Ant Design adapter for Theme Kit.",
-  "@theme-kit/shadcn": "shadcn/ui adapter for Theme Kit.",
-  "@theme-kit/bootstrap": "Bootstrap adapter for Theme Kit.",
-  "@theme-kit/daisyui": "DaisyUI adapter for Theme Kit.",
-  "@theme-kit/open-props": "Open Props adapter for Theme Kit.",
-  "@theme-kit/unocss": "UnoCSS adapter for Theme Kit.",
+  "@themvora/web": "Vanilla JS theme runtime and DOM bindings for Themvora.",
+  "@themvora/react": "React bindings for Themvora: provider, hooks, and runtime access.",
+  "@themvora/next": "Next.js integration for Themvora with SSR-first theming and zero-flash bootstrapping.",
+  "@themvora/vue": "Vue 3 bindings for Themvora.",
+  "@themvora/nuxt": "Nuxt module for Themvora: SSR, cookies, and zero-flash theming.",
+  "@themvora/svelte": "Svelte 5 bindings for Themvora.",
+  "@themvora/solid": "SolidJS bindings for Themvora.",
+  "@themvora/angular": "Angular integration for Themvora.",
+  "@themvora/astro": "Astro integration for Themvora.",
+  "@themvora/remix": "Remix integration for Themvora.",
+  "@themvora/tailwind": "Tailwind CSS v4 plugin that maps Themvora tokens to Tailwind theme variables.",
+  "@themvora/cli": "Themvora CLI: generate, validate, inspect, and migrate themes.",
+  "@themvora/devtools": "Development tools and runtime inspector for Themvora.",
+  "@themvora/mantine": "Mantine adapter for Themvora.",
+  "@themvora/adapters": "Shared adapter utilities for the Themvora adapter ecosystem.",
+  "@themvora/mui": "MUI adapter for Themvora.",
+  "@themvora/chakra": "Chakra UI adapter for Themvora.",
+  "@themvora/antd": "Ant Design adapter for Themvora.",
+  "@themvora/shadcn": "shadcn/ui adapter for Themvora.",
+  "@themvora/bootstrap": "Bootstrap adapter for Themvora.",
+  "@themvora/daisyui": "DaisyUI adapter for Themvora.",
+  "@themvora/open-props": "Open Props adapter for Themvora.",
+  "@themvora/unocss": "UnoCSS adapter for Themvora.",
 };
 
 const KEYWORDS = {
-  "@theme-kit/core": ["theme", "theming", "dark-mode", "css-variables", "design-tokens"],
-  "@theme-kit/web": ["theme", "theming", "vanilla-js", "dark-mode", "css-variables"],
-  "@theme-kit/react": ["theme", "react", "theming", "dark-mode"],
-  "@theme-kit/next": ["theme", "nextjs", "theming", "ssr", "dark-mode"],
-  "@theme-kit/vue": ["theme", "vue", "theming", "dark-mode"],
-  "@theme-kit/nuxt": ["theme", "nuxt", "theming", "ssr", "dark-mode"],
-  "@theme-kit/svelte": ["theme", "svelte", "theming", "dark-mode"],
-  "@theme-kit/solid": ["theme", "solidjs", "theming", "dark-mode"],
-  "@theme-kit/angular": ["theme", "angular", "theming", "dark-mode"],
-  "@theme-kit/astro": ["theme", "astro", "theming", "dark-mode"],
-  "@theme-kit/remix": ["theme", "remix", "theming", "dark-mode"],
-  "@theme-kit/tailwind": ["theme", "tailwindcss", "theming", "css-variables"],
-  "@theme-kit/cli": ["theme", "cli", "generator", "theming"],
-  "@theme-kit/devtools": ["theme", "devtools", "inspector", "theming"],
-  "@theme-kit/mantine": ["theme", "mantine", "adapter", "theming"],
-  "@theme-kit/adapters": ["theme", "adapter", "theming", "design-tokens"],
-  "@theme-kit/mui": ["theme", "mui", "material-ui", "adapter", "theming"],
-  "@theme-kit/chakra": ["theme", "chakra-ui", "adapter", "theming"],
-  "@theme-kit/antd": ["theme", "ant-design", "antd", "adapter", "theming"],
-  "@theme-kit/shadcn": ["theme", "shadcn", "adapter", "theming"],
-  "@theme-kit/bootstrap": ["theme", "bootstrap", "adapter", "theming"],
-  "@theme-kit/daisyui": ["theme", "daisyui", "adapter", "theming"],
-  "@theme-kit/open-props": ["theme", "open-props", "adapter", "theming"],
-  "@theme-kit/unocss": ["theme", "unocss", "adapter", "theming"],
+  "@themvora/core": ["theme", "theming", "dark-mode", "css-variables", "design-tokens"],
+  "@themvora/web": ["theme", "theming", "vanilla-js", "dark-mode", "css-variables"],
+  "@themvora/react": ["theme", "react", "theming", "dark-mode"],
+  "@themvora/next": ["theme", "nextjs", "theming", "ssr", "dark-mode"],
+  "@themvora/vue": ["theme", "vue", "theming", "dark-mode"],
+  "@themvora/nuxt": ["theme", "nuxt", "theming", "ssr", "dark-mode"],
+  "@themvora/svelte": ["theme", "svelte", "theming", "dark-mode"],
+  "@themvora/solid": ["theme", "solidjs", "theming", "dark-mode"],
+  "@themvora/angular": ["theme", "angular", "theming", "dark-mode"],
+  "@themvora/astro": ["theme", "astro", "theming", "dark-mode"],
+  "@themvora/remix": ["theme", "remix", "theming", "dark-mode"],
+  "@themvora/tailwind": ["theme", "tailwindcss", "theming", "css-variables"],
+  "@themvora/cli": ["theme", "cli", "generator", "theming"],
+  "@themvora/devtools": ["theme", "devtools", "inspector", "theming"],
+  "@themvora/mantine": ["theme", "mantine", "adapter", "theming"],
+  "@themvora/adapters": ["theme", "adapter", "theming", "design-tokens"],
+  "@themvora/mui": ["theme", "mui", "material-ui", "adapter", "theming"],
+  "@themvora/chakra": ["theme", "chakra-ui", "adapter", "theming"],
+  "@themvora/antd": ["theme", "ant-design", "antd", "adapter", "theming"],
+  "@themvora/shadcn": ["theme", "shadcn", "adapter", "theming"],
+  "@themvora/bootstrap": ["theme", "bootstrap", "adapter", "theming"],
+  "@themvora/daisyui": ["theme", "daisyui", "adapter", "theming"],
+  "@themvora/open-props": ["theme", "open-props", "adapter", "theming"],
+  "@themvora/unocss": ["theme", "unocss", "adapter", "theming"],
 };
 
 // Packages that must become publishable (they are workspace:* dependencies of others)
-const FORCE_PUBLISH = new Set(["@theme-kit/adapters"]);
+const FORCE_PUBLISH = new Set(["@themvora/adapters"]);
 
 // Packages that run on Node and should declare engines
-const NODE_RUNTIME = new Set(["@theme-kit/core", "@theme-kit/cli", "@theme-kit/adapters"]);
+const NODE_RUNTIME = new Set(["@themvora/core", "@themvora/cli", "@themvora/adapters"]);
 
 const README_USAGE = {
-  "@theme-kit/core": `## Quick start
+  "@themvora/core": `## Quick start
 
 \`\`\`js
-import { createThemeStore, ThemeRuntime, createCSSVariablesBinding } from "@theme-kit/core";
+import { createThemeStore, ThemeRuntime, createCSSVariablesBinding } from "@themvora/core";
 
 const store = createThemeStore({
   themes: {
@@ -103,10 +102,10 @@ const store = createThemeStore({
 const runtime = new ThemeRuntime({ store });
 createCSSVariablesBinding(store);
 \`\`\``,
-  "@theme-kit/react": `## Quick start
+  "@themvora/react": `## Quick start
 
 \`\`\`tsx
-import { ThemeProvider, useTheme } from "@theme-kit/react";
+import { ThemeProvider, useTheme } from "@themvora/react";
 
 function App() {
   return (
@@ -121,11 +120,11 @@ function Content() {
   return <button onClick={() => setMode(mode === "dark" ? "light" : "dark")}>Toggle</button>;
 }
 \`\`\``,
-  "@theme-kit/next": `## Quick start
+  "@themvora/next": `## Quick start
 
 \`\`\`tsx
 // app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -137,20 +136,20 @@ export default function RootLayout({ children }) {
   );
 }
 \`\`\``,
-  "@theme-kit/cli": `## Usage
+  "@themvora/cli": `## Usage
 
 \`\`\`bash
-theme-kit --version
-theme-kit generate --seed '#ea580c'
-theme-kit validate theme.json
-theme-kit inspect theme.json
-theme-kit migrate theme.json
+themvora --version
+themvora generate --seed '#ea580c'
+themvora validate theme.json
+themvora inspect theme.json
+themvora migrate theme.json
 \`\`\``,
-  "@theme-kit/tailwind": `## Usage
+  "@themvora/tailwind": `## Usage
 
 \`\`\`css
 @import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 \`\`\``,
 };
 
@@ -179,12 +178,11 @@ function readdirSafe(p) {
 
 import { readdirSync } from "node:fs";
 
-const rootLicense = readFileSync(join(repoRoot, "LICENSE"), "utf8");
 const packages = collectPackages();
-const repoField = { type: "git", url: `git+https://github.com/themekit-dev/theme-kit.git` };
+const repoField = { type: "git", url: `git+https://github.com/themvora/themvora.git` };
 const bugsField = { url: `${REPO_URL}/issues` };
 
-let changed = [];
+const changed = [];
 
 for (const { dir, pkgPath, json } of packages) {
   const name = json.name;
@@ -208,12 +206,14 @@ for (const { dir, pkgPath, json } of packages) {
     json.repository = repoField;
     dirty = true;
   } else if (typeof json.repository === "object" && json.repository.url) {
-    // org migration: rewrite the old org in existing repository URLs
-    if (json.repository.url.includes("github.com/thememk/")) {
-      json.repository.url = json.repository.url.replace(
-        "github.com/thememk/",
-        "github.com/themekit-dev/",
-      );
+    // org migration: rewrite any previous org in existing repository URLs.
+    // `thememk` is the original org; `themekit-dev` replaced it until the
+    // product rename moved the repository to `themvora`.
+    const migrated = json.repository.url
+      .replace("github.com/thememk/", "github.com/themvora/")
+      .replace("github.com/themekit-dev/", "github.com/themvora/");
+    if (migrated !== json.repository.url) {
+      json.repository.url = migrated;
       dirty = true;
     } else if (!json.repository.url.startsWith("git+")) {
       json.repository.url = `git+${json.repository.url}`;
@@ -226,7 +226,8 @@ for (const { dir, pkgPath, json } of packages) {
   } else if (
     json.homepage === "https://thememk.dev" ||
     json.homepage === "https://theme-kit-docs.vercel.app" ||
-    json.homepage === "https://theme-kit-prods.vercel.app"
+    json.homepage === "https://theme-kit-prods.vercel.app" ||
+    json.homepage === "https://theme-kit-dev.vercel.app"
   ) {
     // old placeholder → replace with the current canonical docs URL
     json.homepage = DOCS_URL;
@@ -235,8 +236,15 @@ for (const { dir, pkgPath, json } of packages) {
   if (!json.bugs) {
     json.bugs = bugsField;
     dirty = true;
-  } else if (typeof json.bugs === "object" && json.bugs.url?.includes("github.com/thememk/")) {
-    json.bugs.url = json.bugs.url.replace("github.com/thememk/", "github.com/themekit-dev/");
+  } else if (
+    typeof json.bugs === "object" &&
+    json.bugs.url &&
+    (json.bugs.url.includes("github.com/thememk/") ||
+      json.bugs.url.includes("github.com/themekit-dev/"))
+  ) {
+    json.bugs.url = json.bugs.url
+      .replace("github.com/thememk/", "github.com/themvora/")
+      .replace("github.com/themekit-dev/", "github.com/themvora/");
     dirty = true;
   }
   if (!json.keywords?.length && KEYWORDS[name]) {
@@ -296,8 +304,8 @@ for (const { dir, pkgPath, json } of packages) {
       subpathsSection,
       "## Documentation",
       "",
-      `Full API reference and guides: [Theme Kit docs](${DOCS_URL}).`,
-      `All packages: [npm](https://www.npmjs.com/org/theme-kit).`,
+      `Full API reference and guides: [Themvora docs](${DOCS_URL}).`,
+      `All packages: [npm](https://www.npmjs.com/org/themvora).`,
       "",
       "## License",
       "",

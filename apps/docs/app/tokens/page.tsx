@@ -8,26 +8,91 @@ import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
+import { getBuiltInThemes, themeToCSSVariables } from "@themvora/core";
+import {
+  TokenReference,
+  type TokenGroupView,
+} from "../../components/ui/token-reference";
+
+/**
+ * The full token list, taken from the theme the runtime actually ships rather
+ * than typed out here. A hand-written list is a list that will be wrong by the
+ * next release.
+ */
+const TOKEN_GROUPS: TokenGroupView[] = (() => {
+  const theme = getBuiltInThemes()[0];
+  if (!theme) return [];
+
+  // `getBuiltInThemes()` returns a union of the concrete built-in theme types;
+  // `themeToCSSVariables` takes the general `ThemeDefinition`. They agree at
+  // runtime — the cast just collapses the union.
+  const vars = themeToCSSVariables(theme as Parameters<typeof themeToCSSVariables>[0]);
+
+  const spec: { id: string; prefix: string; description: string }[] = [
+    { id: "colors", prefix: "--theme-color-", description: "Semantic colour roles — each paired with its own foreground." },
+    { id: "typography", prefix: "--theme-typography-", description: "Font families, sizes and line heights." },
+    { id: "spacing", prefix: "--theme-spacing-", description: "The spacing scale. Keys are numeric, not named." },
+    { id: "radius", prefix: "--theme-radius-", description: "Corner radii." },
+    { id: "shadows", prefix: "--theme-shadow-", description: "Elevation." },
+    { id: "borderWidths", prefix: "--theme-border-width-", description: "Border widths. Keys are numeric, not named." },
+    { id: "zIndex", prefix: "--theme-z-index-", description: "Stacking order. Keys are a numeric scale, plus `auto`." },
+    { id: "breakpoints", prefix: "--theme-breakpoint-", description: "Responsive breakpoints." },
+  ];
+
+  return spec
+    .map(({ id, prefix, description }) => ({
+      id,
+      description,
+      cssPrefix: prefix,
+      entries: Object.entries(vars)
+        .filter(([name]) => name.startsWith(prefix))
+        .map(([name, value]) => ({ key: name.slice(prefix.length), value: String(value) })),
+    }))
+    .filter((group) => group.entries.length > 0);
+})();
 
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/tokens") },
   title: "Semantic Tokens & Typography",
   description:
-    "Theme Kit's token system goes far beyond colors: typography, spacing, radius, shadows, border widths, z-index and breakpoints all ship as semantic, theme-aware tokens.",
+    "Themvora's token system goes far beyond colors: typography, spacing, radius, shadows, border widths, z-index and breakpoints all ship as semantic, theme-aware tokens.",
 };
 
 const tokenSnippet = {
   lang: "ts",
   title: "theme tokens — defineTheme",
-  code: `import { defineTheme } from "@theme-kit/core";
+  code: `import { defineTheme } from "@themvora/core";
 
 const brand = defineTheme({
   name: "brand-light",
   tokens: {
     colors: {
+      // Surfaces
+      background: "#ffffff",
+      foreground: "#0f172a",
+      card: "#ffffff",
+      cardForeground: "#0f172a",
+      popover: "#ffffff",
+      popoverForeground: "#0f172a",
+      // Brand
       primary: "#6d28d9",
+      primaryForeground: "#ffffff",
       secondary: "#ede9fe",
+      secondaryForeground: "#3b0764",
+      // Support
+      muted: "#f5f3ff",
       mutedForeground: "#6b7280",
+      accent: "#ede9fe",
+      accentForeground: "#3b0764",
+      // Status
+      destructive: "#dc2626",
+      destructiveForeground: "#ffffff",
+      success: "#16a34a",
+      successForeground: "#ffffff",
+      // Lines
+      border: "#e5e7eb",
+      input: "#e5e7eb",
+      ring: "#6d28d9",
     },
     typography: {
       fontFamilies: { sans: "Inter, system-ui, sans-serif" },
@@ -38,14 +103,14 @@ const brand = defineTheme({
     radius: { md: "8px", xl: "16px", full: "9999px" },
     shadows: { md: "0 4px 6px rgba(0,0,0,0.07)" },
     borderWidths: { "1": "1px", "2": "2px" },
-    zIndex: { dropdown: "1000", modal: "1100" },
+    zIndex: { "10": "10", "50": "50" },
     breakpoints: { md: "768px" },
   },
 });
 
 // themeToCSSVariables(brand) emits --theme-color-primary,
 // --theme-typography-font-size-4xl, --theme-spacing-4,
-// --theme-radius-full, --theme-border-width-2 and more.`,
+// --theme-radius-full, --theme-border-width-2, --theme-z-index-10 and more.`,
 };
 
 const resolveSnippet = {
@@ -55,7 +120,7 @@ const resolveSnippet = {
   themeToCSSVariables,
   flattenTokens,
   resolveTokens,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const vars = themeToCSSVariables(brand);
 // { "--theme-color-primary": "#6d28d9", "--theme-spacing-4": "16px", ... }
@@ -71,7 +136,7 @@ const resolved = resolveTokens(brand.tokens);`,
 const referenceSnippet = {
   lang: "ts",
   title: "token references — $ and { } syntax",
-  code: `import { defineTheme, resolveTokens } from "@theme-kit/core";
+  code: `import { defineTheme, resolveTokens } from "@themvora/core";
 
 const brand = defineTheme({
   name: "brand",
@@ -105,7 +170,7 @@ const resolved = resolveTokens(brand.tokens);
 const derivedColorsSnippet = {
   lang: "ts",
   title: "derived colors — contrast() and auto()",
-  code: `import { defineTheme, resolveTokens } from "@theme-kit/core";
+  code: `import { defineTheme, resolveTokens } from "@themvora/core";
 
 const brand = defineTheme({
   name: "brand",
@@ -137,7 +202,7 @@ const themeExtensionSnippet = {
   extendTheme,
   composeTheme,
   mergeTokens,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // Base theme with common tokens
 const base = defineTheme({
@@ -181,7 +246,7 @@ const apiSnippets = {
   flatten: {
     lang: "ts",
     title: "flattenTokens(tokens) → Record<string, string>",
-    code: `import { flattenTokens } from "@theme-kit/core";
+    code: `import { flattenTokens } from "@themvora/core";
 
 const tokens = {
   colors: { primary: "#6366f1", surface: { hover: "#ede9fe" } },
@@ -198,7 +263,7 @@ const flat = flattenTokens(tokens);
   resolve: {
     lang: "ts",
     title: "resolveTokens(tokens) → ThemeTokens",
-    code: `import { resolveTokens } from "@theme-kit/core";
+    code: `import { resolveTokens } from "@themvora/core";
 
 const tokens = {
   colors: {
@@ -220,7 +285,7 @@ const resolved = resolveTokens(tokens);
   themeToCSS: {
     lang: "ts",
     title: "themeToCSSVariables(theme) → Record<string, string>",
-    code: `import { themeToCSSVariables } from "@theme-kit/core";
+    code: `import { themeToCSSVariables } from "@themvora/core";
 
 const vars = themeToCSSVariables(brand);
 // {
@@ -241,7 +306,7 @@ const codeVars = themeToCSSVariables(brand, { groups: ["code"] });`,
   validate: {
     lang: "ts",
     title: "validateTheme(theme, options?) → { valid, issues }",
-    code: `import { validateTheme, getBuiltInThemes } from "@theme-kit/core";
+    code: `import { validateTheme, getBuiltInThemes } from "@themvora/core";
 
 const customTheme = defineTheme({
   name: "custom",
@@ -261,7 +326,7 @@ const result = validateTheme(customTheme, { themes: getBuiltInThemes() });
   generate: {
     lang: "ts",
     title: "generateTheme(options) → { light, dark }",
-    code: `import { generateTheme } from "@theme-kit/core";
+    code: `import { generateTheme } from "@themvora/core";
 
 // Generate complete light/dark pair from one seed color
 const { light, dark } = generateTheme({
@@ -300,10 +365,10 @@ export default function TokensPage() {
             </svg>
           }
           title="Semantic Tokens &amp; Typography"
-          subtitle="@theme-kit/core — the token system"
+          subtitle="@themvora/core — the token system"
           description={
             <>
-              Theme Kit isn&apos;t another dark-mode library. Every theme is a
+              Themvora isn&apos;t another dark-mode library. Every theme is a
               complete design system — colors, typography, spacing, radius,
               shadows, border widths, z-index and breakpoints — flattened into
               semantic CSS variables that swap in one atomic update.
@@ -327,7 +392,7 @@ export default function TokensPage() {
           <p className="mt-3 text-sm opacity-70 leading-relaxed">
             Adapters and build-time integrations consume the same resolved
             tokens —{" "}
-            <code className="mono text-[0.9em]">@theme-kit/tailwind</code>{" "}
+            <code className="mono text-[0.9em]">@themvora/tailwind</code>{" "}
             maps them to{" "}
             <code className="mono text-[0.9em]">--color-*</code>,{" "}
             <code className="mono text-[0.9em]">--radius-*</code>,{" "}
@@ -393,7 +458,7 @@ export default function TokensPage() {
         <section id="api" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={3}
-            desc="The token API in @theme-kit/core — complete examples with output."
+            desc="The token API in @themvora/core — complete examples with output."
           >
             Token helpers — complete examples
           </SectionHeading>
@@ -418,38 +483,35 @@ export default function TokensPage() {
                 href="/api-reference/core"
                 className="underline underline-offset-2"
               >
-                @theme-kit/core API reference
+                @themvora/core API reference
               </Link>
               .
             </Callout>
           </div>
         </section>
 
-        <section id="code-tokens" className="scroll-mt-24 mb-10">
+        <section id="token-reference" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={4}
-            desc="Dedicated tokens for syntax highlighting — background, keywords, strings, functions, types, and more."
+            desc="Every token, with the exact variable names — and a copy button for CSS and JSON."
           >
-            Code Tokens
+            Full token reference
           </SectionHeading>
-          <p className="mb-4 text-sm opacity-70">
-            Theme Kit includes a dedicated <code className="mono">code</code> token group with 19 semantic tokens
-            for syntax highlighting. Every token maps to a <code className="mono">--theme-code-*</code> CSS
-            variable that any highlighter (Shiki, Prism, etc.) can consume — so code blocks re-theme
-            automatically when users switch themes, families, or modes.
+          <TokenReference groups={TOKEN_GROUPS} />
+          <p className="mt-3 text-sm opacity-70 leading-relaxed">
+            Keys are appended to their group prefix exactly as written, so colour
+            keys stay camelCase —{" "}
+            <code className="mono text-[0.9em]">--theme-color-primaryForeground</code>,
+            not{" "}
+            <code className="mono text-[0.9em]">--theme-color-primary-foreground</code>.
+            Spacing and border widths are numbered, so the token is{" "}
+            <code className="mono text-[0.9em]">--theme-spacing-4</code>, not{" "}
+            <code className="mono text-[0.9em]">--theme-spacing-md</code>.
           </p>
-          <Link
-            href="/tokens/code"
-            className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-          >
-            <div>
-              <div className="font-semibold">Code Tokens Reference & Guide</div>
-              <div className="text-xs opacity-60">
-                Complete token reference, wiring guide, and best practices.
-              </div>
-            </div>
-            <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-          </Link>
+          <p className="mt-2 text-sm opacity-70">
+            Looking for syntax-highlighting tokens? Those have their own page —{" "}
+            <Link href="/tokens/code">Code Tokens</Link>.
+          </p>
         </section>
 
         <section id="next" className="scroll-mt-24">

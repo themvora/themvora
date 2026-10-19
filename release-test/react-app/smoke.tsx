@@ -15,19 +15,19 @@ import {
   type ThemeProviderProps,
   type ThemeScopeProps,
   type ThemeScrollbarProps,
-} from "@theme-kit/react";
+} from "@themvora/react";
 import {
   createThemeStore,
   createThemeRuntime,
   type ThemeDefinition,
   type ThemeTokens,
   type ThemeStore,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const lightTheme: ThemeDefinition = { name: "light", tokens: { colors: { background: "#fff" } } };
 const darkTheme: ThemeDefinition = { name: "dark", tokens: { colors: { background: "#000" } } };
 
-// --- @theme-kit/react public surface ---
+// --- @themvora/react public surface ---
 const providerProps: ThemeProviderProps<ThemeDefinition> = {
   themes: [lightTheme, darkTheme],
   defaultTheme: "light",
@@ -41,7 +41,8 @@ const scopeProps: ThemeScopeProps = {
 };
 
 const scrollbarProps: ThemeScrollbarProps = {
-  axes: ["vertical"],
+  // Grouped options: `axes` belongs to `behavior`, not to the component props.
+  behavior: { axes: ["vertical"] },
 };
 
 // Component references are used (not just imported) to ensure the bindings resolve
@@ -64,7 +65,7 @@ function Consumer(): null {
   return null;
 }
 
-// --- @theme-kit/core public surface ---
+// --- @themvora/core public surface ---
 const store: ThemeStore<ThemeDefinition> = createThemeStore({ initialTheme: lightTheme });
 const runtime = createThemeRuntime<ThemeDefinition>({
   themes: [lightTheme, darkTheme],

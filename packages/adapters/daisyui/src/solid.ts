@@ -1,8 +1,8 @@
 /**
- * Solid composable for the daisyUI adapter (`@theme-kit/daisyui/solid`).
+ * Solid composable for the daisyUI adapter (`@themvora/daisyui/solid`).
  *
  * `useDaisyTheme(runtime, options?)` installs the daisyUI adapter onto an
- * explicitly provided Theme Kit runtime and disposes it on cleanup.
+ * explicitly provided Themvora runtime and disposes it on cleanup.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createDaisyAdapter } from "./adapter";
 
@@ -30,15 +30,15 @@ export interface UseAdapterOptions {
 }
 
 /**
- * Solid composable that installs the daisyUI adapter onto the given Theme Kit
+ * Solid composable that installs the daisyUI adapter onto the given Themvora
  * runtime. Maintains a tagged `:root` style element with concrete `--color-*`
  * variables, kept in sync as the active theme changes.
  *
  * Must be called within a Solid reactive root, passing the runtime from your
- * Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/solid`):
+ * Themvora provider (e.g. `useThemeRuntime()` from `@themvora/solid`):
  *
  * ```tsx
- * import { useDaisyTheme } from "@theme-kit/daisyui/solid";
+ * import { useDaisyTheme } from "@themvora/daisyui/solid";
  *
  * function App() {
  *   useDaisyTheme(runtime);
@@ -46,7 +46,7 @@ export interface UseAdapterOptions {
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

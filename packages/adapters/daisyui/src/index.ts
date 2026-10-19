@@ -1,10 +1,10 @@
 /**
- * Theme Kit DaisyUI adapter — framework-neutral entry.
+ * Themvora DaisyUI adapter — framework-neutral entry.
  *
  * Exports the React-free `createDaisyAdapter` factory (also available from
- * `@theme-kit/daisyui/factory`), the `createDaisyVariables` generator, and the
+ * `@themvora/daisyui/factory`), the `createDaisyVariables` generator, and the
  * `injectDaisyCSS` helper. Framework wrappers live on their own subpaths:
- * `useDaisyTheme(runtime)` on `@theme-kit/daisyui/react`, and equivalent
+ * `useDaisyTheme(runtime)` on `@themvora/daisyui/react`, and equivalent
  * composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
  *
  * @packageDocumentation
@@ -18,7 +18,7 @@ export { createDaisyAdapter, createDaisyVariables };
 export type { CreateDaisyAdapterOptions } from "./adapter";
 export type { DaisyAdapterOptions } from "./defaults";
 
-const STYLE_ID = "@theme-kit/daisyui";
+const STYLE_ID = "@themvora/daisyui";
 
 /**
  * Injects the daisyUI compatibility CSS (idempotent, SSR-safe). Called

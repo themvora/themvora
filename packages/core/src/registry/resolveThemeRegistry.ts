@@ -44,6 +44,9 @@ function getDefaultMetaTimestamp(): ThemeMeta["created"] {
  */
 export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
   private _themes: T[] = [];
+  private _listeners = new Set<() => void>();
+  private _batchDepth = 0;
+  private _dirty = false;
 
   /**
    * Creates an empty registry, or one pre-populated with `themes`.
@@ -51,6 +54,7 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
    * @param options Initial themes and other registry configuration.
    */
   constructor(options?: ThemeRegistryOptions<T>) {
+    this._themes.length = 0;
     if (options?.themes !== undefined) {
       const seen = new Set<string>();
       for (const theme of options.themes) {
@@ -58,16 +62,86 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
         seen.add(theme.name);
         this._themes.push(theme);
       }
-    } else {
-      this._themes = [];
     }
   }
 
   /**
    * The registered themes. Returns the internal live array.
+   *
+   * The array is replaced *in place*, never reassigned, so a consumer that
+   * holds the reference — `runtime.themes`, a scoped-theme binding — sees every
+   * later `register`, `unregister`, `use` and `clear`. This is the only reason
+   * `clear()` empties the array rather than assigning a new one.
    */
   get themes(): readonly T[] {
     return this._themes;
+  }
+
+  /**
+   * Subscribe to registry mutations (register / unregister / replace / use /
+   * clear).
+   *
+   * Fires whenever the registered theme set changes, so a consumer that derives
+   * a value from {@link themes} — a theme picker, or the generated-theme
+   * accessor — re-reads it. This is the notification `runtime.use(pack)` relies
+   * on: a pack installs themes *into the registry*, without changing the active
+   * selection, so a store/selection subscription alone would never see it.
+   *
+   * @param listener Called after every change. Registering the same set twice
+   *   still notifies (the definitions may have changed).
+   * @returns An unsubscribe function.
+   */
+  subscribe(listener: () => void): () => void {
+    this._listeners.add(listener);
+    return () => {
+      this._listeners.delete(listener);
+    };
+  }
+
+  /**
+   * Runs `fn` as one atomic registry transaction.
+   *
+   * Every mutation inside — `register`, `registerMany`, `unregister`, `replace`,
+   * `use`, `clear` — is applied immediately (readers of {@link themes} /
+   * {@link get} / {@link list} see the live state), but subscribers are notified
+   * **once**, after `fn` returns, only if anything changed.
+   *
+   * This is what keeps a logical restore from exposing its intermediate states:
+   * the `clear()` + re-register sequence emits a single coherent notification
+   * instead of one empty and N partial ones, so a registry-derived consumer
+   * never observes a half-applied registry.
+   *
+   * Batches nest: the inner-most `batch` flushes. If `fn` throws, the pending
+   * notification is still flushed so subscribers do not miss the mutations that
+   * did apply.
+   *
+   * @param fn The transactional work.
+   */
+  batch(fn: () => void): void {
+    this._batchDepth += 1;
+    try {
+      fn();
+    } finally {
+      this._batchDepth -= 1;
+      if (this._batchDepth === 0 && this._dirty) {
+        this._dirty = false;
+        this.fireListeners();
+      }
+    }
+  }
+
+  /** @internal Notify registry subscribers, or defer to the enclosing batch. */
+  private notify(): void {
+    if (this._batchDepth > 0) {
+      this._dirty = true;
+      return;
+    }
+    this.fireListeners();
+  }
+
+  /** @internal Deliver a notification to every subscriber. */
+  private fireListeners(): void {
+    for (const listener of this._listeners) listener();
   }
 
   /**
@@ -89,20 +163,23 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
         updated: theme.meta?.updated ?? getDefaultMetaTimestamp(),
       },
     });
+    this.notify();
     return true;
   }
 
   /**
-   * Registers multiple themes.
+   * Registers multiple themes as one atomic transaction.
    *
    * @param themes Themes to register.
    * @returns The number of themes actually registered (duplicates skipped).
    */
   registerMany(themes: readonly T[]): number {
     let count = 0;
-    for (const theme of themes) {
-      if (this.register(theme)) count++;
-    }
+    this.batch(() => {
+      for (const theme of themes) {
+        if (this.register(theme)) count++;
+      }
+    });
     return count;
   }
 
@@ -116,6 +193,7 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
     const index = this._themes.findIndex((t) => t.name === name);
     if (index === -1) return false;
     this._themes.splice(index, 1);
+    this.notify();
     return true;
   }
 
@@ -138,6 +216,7 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
         updated: getDefaultMetaTimestamp(),
       },
     };
+    this.notify();
     return true;
   }
 
@@ -192,6 +271,7 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
         this._themes.push(theme);
       }
     }
+    this.notify();
   }
 
   /**
@@ -221,7 +301,9 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
    * Removes all registered themes.
    */
   clear(): void {
-    this._themes = [];
+    // Emptied in place: see {@link ThemeRegistry.themes}.
+    this._themes.length = 0;
+    this.notify();
   }
 
   /**
@@ -230,7 +312,10 @@ export class ThemeRegistry<T extends ThemeDefinition = ThemeDefinition> {
    * Idempotent. The registry remains usable (empty) after destruction.
    */
   destroy(): void {
-    this._themes = [];
+    this._themes.length = 0;
+    // Deliberately silent: destruction is teardown, and notifying live
+    // subscribers that the registry is now empty would make a registry-derived
+    // consumer throw while the whole runtime is being torn down.
   }
 }
 

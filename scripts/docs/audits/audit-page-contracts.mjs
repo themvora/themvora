@@ -53,13 +53,23 @@ const fail = (where, what, detail) => failures.push({ where, what, detail });
 const routesSrc = readFileSync(join(siteRoot, "lib", "docs-routes.ts"), "utf8");
 const docsRoutes = [...routesSrc.matchAll(/href:\s*"([^"]+)"/g)].map((m) => m[1]);
 
+// The sidebar is a component, not data, so its link list is read by pattern like
+// the other authorities. Both spellings count: `href: "/x"` in the link arrays
+// and `href="/x"` as a JSX attribute (`NavGroup`'s index link, which renders the
+// group's "Overview" child). A computed `<Link href={...}>` is an expression and
+// does not match — nothing in the sidebar needs one.
+const layoutSrc = readFileSync(join(siteRoot, "components", "docs-layout.tsx"), "utf8");
+const sidebarHrefs = new Set(
+  [...layoutSrc.matchAll(/href[=:]\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+);
+
 const capabilitiesSrc = readFileSync(join(repoRoot, "docs", "reference", "capabilities.ts"), "utf8");
 const capabilityGuides = [...capabilitiesSrc.matchAll(/guide:\s*"([^"]+)"/g)].map((m) => m[1]);
 
 const classification = loadClassification();
 const entrypoints = entrypointsOf(classification);
 // entrypointsOf is keyed `pkg|entry` — the bare-package set is what data-file
-// `pkg:` values (e.g. "@theme-kit/react") must be members of.
+// `pkg:` values (e.g. "@themvora/react") must be members of.
 const shippedEntrypoints = new Set([...entrypoints.keys()].map((k) => k.split("|")[0]));
 
 // ---------------------------------------------------------------------------
@@ -296,10 +306,16 @@ const libCount = checkItem(
   "§3.3 adapter pages",
 );
 
-// §3.2/§3.3: a page that exists but is not listed in the sidebar is
+// §3.2/§3.3/§3.4: a page that exists but is not listed in the sidebar is
 // undiscoverable. The §2 checks run the other way round (every sidebar href must
-// resolve; every *capability* guide must be listed), so a new framework or
-// adapter entry could previously ship with a working page and no way to reach it.
+// resolve; every *capability* guide must be listed), so a new framework, adapter,
+// or CLI page could previously ship with a working page and no way to reach it.
+//
+// "Listed in the sidebar" used to be tested as `docsRoutes.includes(href)` —
+// which only proved the route was declared in docs-routes.ts. Eleven CLI pages
+// had a route, a page, a content file and a docs-routes.ts entry, and were still
+// unreachable from the rail: the assertion was measuring the wrong list. It now
+// reads the sidebar component's own link arrays, which is what the claim means.
 for (const [src, prefix, label] of [
   [frameworksSrc, "/framework-guides", "§3.2 framework pages"],
   [librariesSrc, "/libraries", "§3.3 adapter pages"],
@@ -307,8 +323,40 @@ for (const [src, prefix, label] of [
   for (const slug of [...src.matchAll(/^\s{2,}slug:\s*"([^"]+)"/gm)].map((m) => m[1])) {
     const href = `${prefix}/${slug}`;
     if (!docsRoutes.includes(href)) {
-      fail(label, slug, `has a page but no sidebar entry (${href} is missing from docs-routes.ts)`);
+      fail(label, slug, `has a page but no docs-routes entry (${href} is missing from docs-routes.ts)`);
     }
+  }
+}
+
+// Sections whose sidebar group enumerates *every* child route, one link per page,
+// rather than only its index. /packages, /api-reference and /blog deliberately
+// list just their index — their children are reached from that page — so they
+// are not enumerated here and are not covered by the check below.
+const SIDEBAR_ENUMERATED_SECTIONS = ["/cli", "/framework-guides", "/libraries", "/tokens"];
+const inEnumeratedSection = (href) =>
+  SIDEBAR_ENUMERATED_SECTIONS.some((p) => href === p || href.startsWith(`${p}/`));
+
+for (const href of docsRoutes) {
+  if (!inEnumeratedSection(href)) continue;
+  if (!sidebarHrefs.has(href)) {
+    fail(
+      "§3.4 sidebar coverage",
+      href,
+      "has a page but no sidebar link (add it to components/docs-layout.tsx)",
+    );
+  }
+}
+
+// The same invariant in the other direction: a sidebar link that no route
+// declares gets no prev/next pair, no search entry and no sitemap entry.
+for (const href of sidebarHrefs) {
+  if (!inEnumeratedSection(href)) continue;
+  if (!docsRoutes.includes(href)) {
+    fail(
+      "§3.4 sidebar coverage",
+      href,
+      "is linked from the sidebar but missing from docs-routes.ts (so it has no prev/next, search entry, or sitemap entry)",
+    );
   }
 }
 
@@ -439,6 +487,25 @@ for (const [area, candidates] of Object.entries(CLI_CONTRACT)) {
       "§3.4 tooling pages (CLI)",
       area,
       `no non-empty page covers "${area}" (looked for ${candidates.join(", ")})`,
+    );
+  }
+}
+
+// The area contract above is satisfied by *a* page, which is the right rule for
+// an area whose coverage is authorial. Commands are not: every command in the
+// CLI's own contract gets its own page, so the check is per command, read from
+// the same schema the reference tables are generated from. A new command that
+// ships without a page fails here instead of shipping undocumented.
+const cliSchema = JSON.parse(
+  readFileSync(join(repoRoot, "packages", "cli", "src", "command-schema.json"), "utf8"),
+);
+for (const command of cliSchema.commands ?? []) {
+  const p = join(CLI_DIR, `${command.name}.md`);
+  if (!existsSync(p) || readFileSync(p, "utf8").trim().length === 0) {
+    fail(
+      "§3.4 tooling pages (CLI)",
+      command.name,
+      `command has no page (content/cli/${command.name}.md is missing or empty) — every command in command-schema.json needs one`,
     );
   }
 }

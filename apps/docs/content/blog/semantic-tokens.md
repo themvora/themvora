@@ -1,7 +1,7 @@
 ---
 title: "Semantic tokens: why you theme meanings, not components"
 date: 2026-08-16
-description: "Theme Kit themes semantic tokens — background, foreground, primary, muted — instead of component classes. Here's why that scales to every framework and every component library."
+description: "Themvora themes semantic tokens — background, foreground, primary, muted — instead of component classes. Here's why that scales to every framework and every component library."
 tags: tokens, design-systems, concepts
 ---
 
@@ -12,7 +12,7 @@ Component-based theming asks "what color is a button?" and then writes `.button 
 Instead of hard-coding colors into components, you define a small set of semantic meanings:
 
 ```ts
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 export const lightTheme = defineTheme({
   name: "app-light",
@@ -22,8 +22,15 @@ export const lightTheme = defineTheme({
       background: "#fafafa",
       foreground: "#18181b",
       card: "#ffffff",
+      cardForeground: "#18181b",
+      popover: "#ffffff",
+      popoverForeground: "#18181b",
       primary: "#6366f1",
       primaryForeground: "#ffffff",
+      secondary: "#f4f4f5",
+      secondaryForeground: "#18181b",
+      accent: "#f4f4f5",
+      accentForeground: "#18181b",
       muted: "#f4f4f5",
       mutedForeground: "#71717a",
       destructive: "#ef4444",
@@ -31,6 +38,7 @@ export const lightTheme = defineTheme({
       success: "#16a34a",
       successForeground: "#ffffff",
       border: "#e4e4e7",
+      input: "#e4e4e7",
       ring: "#6366f1",
     },
     radius: { lg: "12px" },
@@ -42,7 +50,7 @@ Components consume the meaning — `primary`, `muted`, `border` — never a lite
 
 ## The cascade: tokens → CSS variables → components
 
-At runtime Theme Kit flattens tokens into CSS custom properties:
+At runtime Themvora flattens tokens into CSS custom properties:
 
 ```
 --theme-color-background: #fafafa;
@@ -54,7 +62,7 @@ At runtime Theme Kit flattens tokens into CSS custom properties:
 Your components reference the variables (or the framework hook), so the whole tree re-themes in one DOM update:
 
 ```tsx
-import { useThemeTokens } from "@theme-kit/react";
+import { useThemeTokens } from "@themvora/react";
 
 function Card() {
   const tokens = useThemeTokens();
@@ -76,14 +84,14 @@ function Card() {
 - **One theme, many surfaces** — `primary` means "the main action color" everywhere: buttons, links, focus rings, active states.
 - **Dark mode for free** — swap the token set, not the components. A component written against tokens renders correctly in both modes with zero changes.
 - **Framework-agnostic** — the same tokens feed React, Vue, Svelte, Angular, Web Components, and CSS-only Tailwind projects. The runtime is the shared contract.
-- **Component-library adapters** — Theme Kit can map tokens into MUI, Chakra, Ant Design, shadcn/ui, Bootstrap, and more, because those libraries already accept token-ish inputs.
+- **Component-library adapters** — Themvora can map tokens into MUI, Chakra, Ant Design, shadcn/ui, Bootstrap, and more, because those libraries already accept token-ish inputs.
 
 ## Extending tokens safely
 
 Tokens are plain objects, so they compose:
 
 ```ts
-import { extendTheme } from "@theme-kit/core";
+import { extendTheme } from "@themvora/core";
 
 // Add a brand family without touching the base
 export const brandLight = extendTheme("app-light", {
@@ -98,10 +106,10 @@ export const brandLight = extendTheme("app-light", {
 
 ## Semantic tokens and accessibility
 
-Because contrast pairs are *semantic* (`foreground` on `background`, `primary` on `primaryForeground`), Theme Kit can audit them:
+Because contrast pairs are *semantic* (`foreground` on `background`, `primary` on `primaryForeground`), Themvora can audit them:
 
 ```ts
-import { getBuiltInThemes, validateThemeContrast } from "@theme-kit/core";
+import { getBuiltInThemes, validateThemeContrast } from "@themvora/core";
 
 // Pass a theme list to resolve `extends` chains before auditing.
 const result = validateThemeContrast(theme, { themes: getBuiltInThemes() });

@@ -4,7 +4,7 @@ import {
   themeToCSSVariables,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 /**
  * A map of flattened CSS variables for the light and dark themes.
@@ -100,14 +100,14 @@ export interface BlockingScriptOptions {
    * `resolveSelection` derives from `defaultTheme` (or from `themes[0]` when
    * `defaultTheme` is omitted). Pass `"system"` to follow
    * `prefers-color-scheme` instead, and pass the same value as `initialMode` to
-   * `provideThemeKit`.
+   * `provideTheme`.
    */
   mode?: ThemeMode;
 
   /**
    * Theme name the fallback family and mode are derived from.
    *
-   * Should match the `defaultTheme` given to `provideThemeKit`.
+   * Should match the `defaultTheme` given to `provideTheme`.
    */
   defaultTheme?: string;
 }
@@ -179,7 +179,7 @@ export function createBlockingScriptContent(
     "(function(){",
     "try{",
     `var m='${initialMode}',f='${initialFamily}';`,
-    "var s=document.getElementById('theme-kit-state');",
+    "var s=document.getElementById('themvora-state');",
     "if(s){try{var p=JSON.parse(s.textContent||'{}');",
     "if(p.mode)m=p.mode;if(p.family)f=p.family;}catch(e){}}",
     "var ls;try{ls=window.localStorage.getItem('theme-selection');",
@@ -197,7 +197,7 @@ export function createBlockingScriptContent(
   ].join("");
 
   return [
-    `<style id="theme-kit-critical">${criticalCSS}</style>`,
-    `<script id="theme-kit-blocking">${script}</script>`,
+    `<style id="themvora-critical">${criticalCSS}</style>`,
+    `<script id="themvora-blocking">${script}</script>`,
   ].join("");
 }

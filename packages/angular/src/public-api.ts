@@ -1,25 +1,26 @@
 /**
- * Theme Kit Angular integration.
+ * Themvora Angular integration.
  *
- * Provides the DI tokens (`THEME_KIT_RUNTIME`, `THEME_KIT_SCOPED_RUNTIME`),
- * the `provideThemeKit` / `provideThemeKitRuntime` providers, the
+ * Provides the DI tokens (`THEME_RUNTIME`, `THEME_SCOPED_RUNTIME`),
+ * the `provideTheme` / `provideThemeRuntime` providers, the
  * `injectTheme*` injection functions, the `ThemeScopeDirective`,
  * `ThemeScrollbarDirective`, and `ThemeInspectorComponent`, plus the
  * persistence and blocking-script (zero-flash) helpers.
  *
  * @packageDocumentation
  */
-export { THEME_KIT_RUNTIME, THEME_KIT_SCOPED_RUNTIME } from "./lib/tokens";
+export { THEME_RUNTIME, THEME_SCOPED_RUNTIME } from "./lib/tokens";
 
 export {
-  provideThemeKit,
-  provideThemeKitRuntime,
-  type ThemeKitProviderOptions,
+  provideTheme,
+  provideThemeRuntime,
+  type ThemeProviderOptions,
 } from "./lib/provider";
 
 export {
   injectThemeRuntime,
   injectTheme,
+  injectGeneratedTheme,
   injectThemeHistory,
   injectThemeBatch,
   injectThemeSnapshot,

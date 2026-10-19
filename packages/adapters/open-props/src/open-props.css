@@ -1,9 +1,9 @@
 /*!
- * @theme-kit/open-props
+ * @themvora/open-props
  *
- * Maps Theme Kit semantic tokens onto Open Props variable names. Theme Kit is
+ * Maps Themvora semantic tokens onto Open Props variable names. Themvora is
  * the source of truth; each Open Props variable below aliases a `--theme-*`
- * variable that the Theme Kit runtime owns and updates automatically.
+ * variable that the Themvora runtime owns and updates automatically.
  */
 
 :root {
@@ -27,6 +27,36 @@
   --color-border: var(--theme-color-border);
   --color-error: var(--theme-color-destructive);
   --color-danger: var(--theme-color-destructive);
+
+  /* Content colours.
+   *
+   * EXTENSION — Open Props defines no "on-colour" convention (it ships brand
+   * ramps, not semantic surfaces), so there is no native variable to map a
+   * foreground onto. Without these, a surface painted with `--color-primary`
+   * has no defined content colour at all and whatever inherits through wins.
+   *
+   * Named `<surface>-foreground` to match Themvora's own vocabulary rather than
+   * inventing an Open Props–flavoured one. */
+  --color-primary-foreground: var(
+    --theme-color-primaryForeground,
+    var(--theme-color-primary-foreground)
+  );
+  --color-secondary-foreground: var(
+    --theme-color-secondaryForeground,
+    var(--theme-color-secondary-foreground)
+  );
+  --color-accent-foreground: var(
+    --theme-color-accentForeground,
+    var(--theme-color-accent-foreground)
+  );
+  --color-error-foreground: var(
+    --theme-color-destructiveForeground,
+    var(--theme-color-destructive-foreground)
+  );
+  --color-surface-1-foreground: var(
+    --theme-color-cardForeground,
+    var(--theme-color-card-foreground)
+  );
 
   --radius-1: var(--theme-radius-sm, 0.25rem);
   --radius-2: var(--theme-radius-md, 0.5rem);

@@ -1,19 +1,19 @@
-## @theme-kit/react
-Theme Kit React integration.
+## @themvora/react
+Themvora React integration.
 
 Provides the `ThemeProvider`, runtime hooks, the scoped theming component
 and hook (`ThemeScope` / `useScopedTheme`), the theme mode button and
 inspector, the overlay `ThemeScrollbar`, and the optional synchronous
 client root bootstrap (`createThemeRoot`).
 
-> Generated from `packages/react/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/react/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `createThemeRoot<T extends ThemeDefinition<string>>(options): ThemeRootHandle<T>`
-Create a Theme Kit-owned React root for client-rendered (CSR) applications.
+Create a Themvora-owned React root for client-rendered (CSR) applications.
 
-Theme Kit owns the root boundary: the runtime is created once, and the
+Themvora owns the root boundary: the runtime is created once, and the
 initial commit is flushed synchronously so the browser's very first frame is
 already the themed UI. Without it, React's concurrent root can schedule the
 initial commit after the browser paints an empty/partial frame — visible as
@@ -31,12 +31,12 @@ root.render(
 );
 ```
 
-Reach for `createThemeRoot` when you want Theme Kit to own the root
+Reach for `createThemeRoot` when you want Themvora to own the root
 initialization boundary — for example a reload-sensitive demo, or an app
-whose providers need the Theme Kit runtime at composition time:
+whose providers need the Themvora runtime at composition time:
 
 ```tsx
-import { createThemeRoot } from "@theme-kit/react";
+import { createThemeRoot } from "@themvora/react";
 
 const handle = createThemeRoot({
   container: document.getElementById("root")!,
@@ -60,7 +60,7 @@ documents `flushSync` as appropriate.
 
 Do **not** use this helper for SSR/SSG applications — server-rendered HTML
 must be hydrated with `hydrateRoot()` (or a framework integration such as
-`@theme-kit/next`), not replaced by a fresh `createRoot`.
+`@themvora/next`), not replaced by a fresh `createRoot`.
 
 **See also:** `ThemeProvider`
 
@@ -114,11 +114,11 @@ prototypes, or build your own control with useTheme.
 
 
 ### `ThemeProvider<T extends ThemeDefinition<string>>(__namedParameters): Element`
-React provider for a Theme Kit runtime.
+React provider for a Themvora runtime.
 
 Creates a runtime on mount (unless a `runtime` prop is given), installs the
 DOM + CSS-variable bindings, injects a pre-paint bootstrap script for
-flash-proofing, and provides the runtime to all Theme Kit hooks below.
+flash-proofing, and provides the runtime to all Themvora hooks below.
 
 Must be rendered inside the application's root. When no `runtime` prop is
 passed, the provider owns the runtime and destroys it on unmount; the
@@ -139,7 +139,7 @@ effect or a layout effect is in time.
 
 It is fixed where it happens instead, with no application code:
 
-- **Vite apps** — `themeKitVitePlugin()` resolves `react-dom/client` to a shim
+- **Vite apps** — `themvoraVitePlugin()` resolves `react-dom/client` to a shim
   that flushes the first `render` synchronously (`syncFirstRender`, on by
   default). Nothing in the app changes; `<ThemeProvider>` alone is enough.
 - **Anything else** — createThemeRoot is that same synchronous first
@@ -201,12 +201,18 @@ Creates the custom scrollbar overlay.
 
 Lifecycle:
   mount  → create overlay → measure → attach listeners
-  paint  → add tk-scrollbar-ready
+  paint  → add tv-scrollbar-ready
   destroy → remove overlay
 
-Props are organized into three optional groups — `behavior`, `appearance`
-and `icons` — but every option is also accepted as a flat, top-level prop
-(flat props win over the grouped ones).
+Props are four optional groups — `behavior`, `appearance`, `scope` and
+`icons` — plus `children`, which is accepted for JSX symmetry only.
+
+  <ThemeScrollbar
+    behavior={{ autoHide: true, smooth: true }}
+    appearance={{ thickness: 8, radius: 999 }}
+    scope={{ include: [".panel"] }}
+    icons={{ up: <ArrowUpIcon />, size: 12 }}
+  />
 
   <ThemeScrollbar
     behavior={{ autoHide: true, smooth: true }}
@@ -225,7 +231,39 @@ and `icons` — but every option is also accepted as a flat, top-level prop
 ---
 
 
-### `useScopedTheme(ref, selection, transition?): RefObject<{ destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void } | null>`
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): T`
+The theme produced by `generateTheme()` and registered with the provider.
+
+Returns the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`) — never a shipped preset, and never
+inferred from a theme's id, family or colors. Generate one and pass the result
+to `ThemeProvider`:
+
+```tsx
+const generated = generateTheme({ seed: "#635BFF", family: "brand" });
+<ThemeProvider themes={[generated.light, generated.dark]}>{children}</ThemeProvider>
+```
+
+When both halves of one `generateTheme()` call are registered, the theme the
+active selection resolves to is returned. If several generated themes are
+registered and none is active, the call throws rather than guessing.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+render rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `T` — The registered generated theme.
+
+---
+
+
+### `useScopedTheme(ref, selection, transition?): RefObject<{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void } | null>`
 Headless scoped-theming hook: applies a scoped theme selection to an
 arbitrary element (by ref) without rendering a wrapper component.
 
@@ -241,7 +279,7 @@ Must be called inside `ThemeProvider`.
 | `selection` | `ScopedThemeSelection \| null` | Scoped selection to apply. Pass `null` to remove the scope (destroys any active binding). |
 | `transition` | `boolean \| ThemeTransitionOptions` (optional) | Transition override for this scope's changes. Inherits the provider transition when omitted. |
 
-**Returns** `RefObject<{ destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void } | null>` — A ref holding the active scoped binding (for advanced access).
+**Returns** `RefObject<{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void } | null>` — A ref holding the active scoped binding (for advanced access).
 
 ```ts
 const elRef = useRef<HTMLDivElement>(null);
@@ -273,7 +311,7 @@ Get a stable `setMode` function (does not re-render on change).
 
 
 ### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies): void; setMode: __type(mode: ModesOf): void; theme: T; toggleTheme: __type(): void }`
-The primary Theme Kit hook. Returns the current theme, mode, family and
+The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
    When you pass the theme tuple element type, `setFamily` and `setMode`
@@ -281,7 +319,7 @@ The primary Theme Kit hook. Returns the current theme, mode, family and
    built-in set is used below so the example stands alone):
 
    ```ts
-   import { getBuiltInThemes } from "@theme-kit/core";
+   import { getBuiltInThemes } from "@themvora/core";
 
    const themes = getBuiltInThemes();
    const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme<typeof themes[number]>();
@@ -332,7 +370,7 @@ Subscribe to runtime lifecycle events (theme changed, mode changed, …).
 
 The handler is typed per event name, so `on("beforeThemeChange", ({ next }) => …)`
 gives you the theme definitions rather than `unknown` — the same precision
-`runtime.lifecycle.on` has in `@theme-kit/core`.
+`runtime.lifecycle.on` has in `@themvora/core`.
 
 **See also:** `useTheme`
 
@@ -372,13 +410,13 @@ Get a restore function that re-applies a previously captured snapshot.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Get the active Theme Kit runtime from context. Throws when used outside a
+Get the active Themvora runtime from context. Throws when used outside a
 `ThemeProvider`. Pass the theme tuple element type to type the runtime's
 store/selection against your registry — any registry works, so the built-in
 set is used here to keep the example self-contained:
 
 ```ts
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getBuiltInThemes } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 const runtime = useThemeRuntime<typeof themes[number]>();
@@ -482,7 +520,7 @@ Everything `ThemeProvider` accepts (except `children` and `runtime`, which
 this helper manages), plus:
 
 - `container` — the DOM node the root mounts into.
-- `render` — the application's full composition. Receives the Theme Kit
+- `render` — the application's full composition. Receives the Themvora
   runtime so dependent library configuration can be derived from it:
 
   ```tsx
@@ -500,7 +538,7 @@ this helper manages), plus:
 
   Composition belongs in JSX, so arbitrary provider trees (MUI, Chakra,
   React Query, Redux, Router, …) are fully under the application's control.
-  `MuiThemeProvider` above is the `@theme-kit/mui` adapter provider, which
+  `MuiThemeProvider` above is the `@themvora/mui` adapter provider, which
   takes the runtime directly. `render` is the primary (and only) composition
   mechanism — there is no separate `children` option.
 
@@ -518,7 +556,7 @@ this helper manages), plus:
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
-| `render` | `__type(context: { runtime: ThemeRuntime<T> }): ReactNode` | Render the application tree. Called with the Theme Kit runtime so other library providers can derive their configuration from it. |
+| `render` | `__type(context: { runtime: ThemeRuntime<T> }): ReactNode` | Render the application tree. Called with the Themvora runtime so other library providers can derive their configuration from it. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
@@ -578,7 +616,7 @@ The handle returned by `createThemeRoot`.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `root` | `Root` | The underlying React root (for manual re-renders if needed). |
-| `runtime` | `ThemeRuntime<T>` | The Theme Kit runtime created for this root. |
+| `runtime` | `ThemeRuntime<T>` | The Themvora runtime created for this root. |
 | `unmount` | `void` | — |
 
 ---
@@ -615,11 +653,9 @@ Appearance — the look/size of every strip.
 | `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
 | `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
 | `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these containers when tracking. |
 | `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
-| `include` (optional) | `string[] \| null` | Scope the overlay to these containers (document is always tracked). |
 | `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
+| `offset` (optional) | `ScrollbarOffset` | Distance from the container edges to the rail. A number insets every side equally; an object sets individual sides, with omitted sides defaulting to the component default (`4`, except `left`, which defaults to `0`). A side set to `0` gets no inset — the rail sits flush against that edge, like a native scrollbar. The rail follows the writing direction (a vertical rail sits on the inline-end edge), so in RTL it uses `left`. The content is kept clear of the rail by the native scrollbar gutter the component reserves, not by extra padding, so no content width is taken and nothing reflows. |
 | `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
 | `thickness` (optional) | `number` | Resting thumb thickness (width for vertical, height for horizontal). Default `8`. |
 | `thumbColor` (optional) | `string` | Custom thumb color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
@@ -627,7 +663,7 @@ Appearance — the look/size of every strip.
 | `thumbOpacity` (optional) | `number` | Thumb opacity while visible. Default `0.7`. |
 | `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
 | `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
+| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. a rail inside a sticky header never floats above that header). Containers that declare no z-index get `0`; the document scrollbar gets `55`, which is above typical sticky headers (50) and below full-screen modal backdrops (60) — the window bar is chrome, so a fixed header must not hide it. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
 
 ---
 
@@ -662,6 +698,7 @@ Arrow button icons (any `ReactNode` — JSX, inline SVG, text, …).
 | `down` (optional) | `ReactNode` | Icon for the "scroll down" button. |
 | `left` (optional) | `ReactNode` | Icon for the "scroll left" button. |
 | `right` (optional) | `ReactNode` | Icon for the "scroll right" button. |
+| `size` (optional) | `number` | Arrow glyph size, in CSS px, for all four directions. Clamped to the button's usable area, so it never overflows a thin rail. Omit to keep the default sizing. |
 | `up` (optional) | `ReactNode` | Icon for the "scroll up" button. |
 
 ---
@@ -676,42 +713,24 @@ grouped ones).
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.activeThumbColor`. |
-| `animationDuration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.animationDuration`. |
-| `appearance` (optional) | `ThemeScrollbarAppearance` | Grouped appearance options. Flat props override these. |
-| `arrowDownIcon` (optional) | `ReactNode` | JSX / element for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ReactNode` | JSX / element rendered inside every arrow button (overrides the built-in CSS triangle). Accepts any `ReactNode`. |
-| `arrowLeftIcon` (optional) | `ReactNode` | JSX / element for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ReactNode` | JSX / element for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.arrows`. |
-| `arrowUpIcon` (optional) | `ReactNode` | JSX / element for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.autoHide`. |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Flat alias for `OverlayScrollbarOptions.axes`. |
-| `behavior` (optional) | `ThemeScrollbarBehavior` | Grouped behavior options. Flat props (e.g. `autoHide`) override these. |
-| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). |
-| `clickToJump` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.clickToJump`. |
-| `dir` (optional) | `"ltr" \| "rtl" \| "auto"` | Flat alias for `OverlayScrollbarOptions.dir`. |
-| `draggable` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.draggable`. |
-| `duration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.duration`. |
-| `exclude` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.exclude`. |
-| `hoverExpand` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.hoverExpand`. |
-| `hoverThickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.hoverThickness`. |
-| `icons` (optional) | `ThemeScrollbarIcons` | Grouped arrow button icons. Flat `arrow*Icon` props override these. |
-| `include` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.include`. |
-| `minThumbSize` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.minThumbSize`. |
-| `offset` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.offset`. |
-| `overscroll` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.overscroll`. |
-| `radius` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.radius`. |
-| `smooth` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.smooth`. |
-| `thickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thickness`. |
-| `thumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbColor`. |
-| `thumbHoverColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbHoverColor`. |
-| `thumbOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thumbOpacity`. |
-| `touch` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.touch`. |
-| `trackColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.trackColor`. |
-| `trackOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.trackOpacity`. |
-| `zIndex` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.zIndex`. |
+| `appearance` (optional) | `ThemeScrollbarAppearance` | The look and size of every rail. |
+| `behavior` (optional) | `ThemeScrollbarBehavior` | How the overlay scrolls and hides. |
+| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). It is deliberately ignored by option resolution and change detection. |
+| `icons` (optional) | `ThemeScrollbarIcons` | Arrow button icons, plus the shared glyph size. |
+| `scope` (optional) | `ThemeScrollbarScope` | Which scrollable containers the overlay tracks. |
+
+---
+
+
+### `ThemeScrollbarScope`
+Scope — which scrollable containers the overlay tracks. This decides *where*
+the scrollbar appears, not how it looks, so it is its own group rather than
+part of `appearance`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `exclude` (optional) | `string[] \| null` | Skip these containers when tracking. |
+| `include` (optional) | `string[] \| null` | Scope the overlay to these containers (document is always tracked). |
 
 ---
 

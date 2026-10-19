@@ -8,8 +8,8 @@ import {
   createThemeReadoutScript,
   defineTheme,
   type ThemeDefinition,
-} from "@theme-kit/core";
-import { createThemeReadoutScript as createReadoutScriptFromCore } from "@theme-kit/core";
+} from "@themvora/core";
+import { createThemeReadoutScript as createReadoutScriptFromCore } from "@themvora/core";
 import { ThemeReadout } from "../src/theme-readout";
 import { setGlobalRuntime } from "../src/shared-runtime";
 
@@ -39,7 +39,7 @@ const themes: readonly ThemeDefinition[] = [mintLight, mintDark];
 
 /** The payload the blocking bootstrap publishes (see `bootstrap.ts`). */
 function publish(payload: Record<string, unknown>) {
-  (window as unknown as Record<string, unknown>).__THEME_KIT_BOOTSTRAP__ = payload;
+  (window as unknown as Record<string, unknown>).__THEMVORA_BOOTSTRAP__ = payload;
 }
 
 function runReadoutScript() {
@@ -51,7 +51,7 @@ function runReadoutScript() {
 beforeEach(() => {
   document.documentElement.innerHTML = "";
   document.body.innerHTML = "";
-  delete (window as unknown as Record<string, unknown>).__THEME_KIT_BOOTSTRAP__;
+  delete (window as unknown as Record<string, unknown>).__THEMVORA_BOOTSTRAP__;
 });
 
 describe("the bootstrap publishes a selection the resolved mode cannot express", () => {
@@ -76,7 +76,7 @@ describe("the bootstrap publishes a selection the resolved mode cannot express",
     expect(script).toContain("data-theme-selection-mode");
     expect(script).toContain("data-theme-selection-family");
     expect(script).toContain("data-theme-ready");
-    expect(script).toContain("__THEME_KIT_BOOTSTRAP__");
+    expect(script).toContain("__THEMVORA_BOOTSTRAP__");
     expect(script).toContain("selection:{mode:mode,family:family||fam}");
   });
 });
@@ -84,9 +84,9 @@ describe("the bootstrap publishes a selection the resolved mode cannot express",
 describe("createThemeReadoutScript", () => {
   it("patches theme / mode / family from the published payload", () => {
     document.body.innerHTML = `
-      <strong id="t" data-tk-readout="theme">mint-light</strong>
-      <strong id="m" data-tk-readout="mode">system</strong>
-      <strong id="f" data-tk-readout="family">mint</strong>
+      <strong id="t" data-tv-readout="theme">mint-light</strong>
+      <strong id="m" data-tv-readout="mode">system</strong>
+      <strong id="f" data-tv-readout="family">mint</strong>
       <span id="untouched">keep me</span>`;
     publish({ theme: "mint-dark", mode: "dark", selection: { mode: "system", family: "mint" } });
 
@@ -101,7 +101,7 @@ describe("createThemeReadoutScript", () => {
   });
 
   it("patches var:<name> from the variable the bootstrap applied to <html>", () => {
-    document.body.innerHTML = `<span id="v" data-tk-readout="var:--theme-color-primary">#059669</span>`;
+    document.body.innerHTML = `<span id="v" data-tv-readout="var:--theme-color-primary">#059669</span>`;
     document.documentElement.style.setProperty("--theme-color-primary", "#10b981");
     publish({ theme: "mint-dark", selection: { mode: "dark", family: "mint" } });
 
@@ -112,7 +112,7 @@ describe("createThemeReadoutScript", () => {
   });
 
   it("leaves the server text alone when the bootstrap did not publish (graceful absence)", () => {
-    document.body.innerHTML = `<strong id="t" data-tk-readout="theme">mint-light</strong>`;
+    document.body.innerHTML = `<strong id="t" data-tv-readout="theme">mint-light</strong>`;
 
     // No payload: the script must return immediately, not throw and not blank
     // the readout.
@@ -143,9 +143,9 @@ describe("ThemeReadout encodes the contract for the caller", () => {
   it("renders the marker attribute and the value", () => {
     withRuntime(() => {
       const html = renderToStaticMarkup(<ThemeReadout kind="theme" fallback="—" />);
-      // `data-tk-readout` is a real DOM attribute, so it survives to the markup
+      // `data-tv-readout` is a real DOM attribute, so it survives to the markup
       // the bootstrap patch script looks for.
-      expect(html).toContain('data-tk-readout="theme"');
+      expect(html).toContain('data-tv-readout="theme"');
       expect(html).toContain("mint-light");
       // `suppressHydrationWarning` is deliberately NOT asserted here: it is a
       // React-only prop that never reaches the DOM, which is exactly why the
@@ -207,7 +207,7 @@ describe("the head script patches readouts as they are parsed", () => {
     // The bootstrap runs in <head>, before the body exists, so it cannot query
     // once — it watches instead. A body-end script is too late: the browser is
     // free to paint the prerendered value while the parser is still working.
-    const { createThemeBootstrapScript } = await import("@theme-kit/core");
+    const { createThemeBootstrapScript } = await import("@themvora/core");
     const script = createThemeBootstrapScript({
       themes,
       defaultTheme: "mint-light",
@@ -220,7 +220,7 @@ describe("the head script patches readouts as they are parsed", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("mint-dark");
 
     const el = document.createElement("span");
-    el.setAttribute("data-tk-readout", "theme");
+    el.setAttribute("data-tv-readout", "theme");
     el.textContent = "mint-light";
     document.body.appendChild(el);
 
@@ -228,7 +228,7 @@ describe("the head script patches readouts as they are parsed", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(el.textContent).toBe("mint-dark");
-    expect(el.getAttribute("data-tk-patched")).toBe("1");
+    expect(el.getAttribute("data-tv-patched")).toBe("1");
   });
 });
 
@@ -237,7 +237,7 @@ describe("the head script patches readouts as they are parsed", () => {
     // The bootstrap runs in <head>, before the body exists, so it cannot query
     // once — it watches instead. A body-end script is too late: the browser is
     // free to paint the prerendered value while the parser is still working.
-    const { createThemeBootstrapScript } = await import("@theme-kit/core");
+    const { createThemeBootstrapScript } = await import("@themvora/core");
     const script = createThemeBootstrapScript({
       themes,
       defaultTheme: "mint-light",
@@ -250,7 +250,7 @@ describe("the head script patches readouts as they are parsed", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("mint-dark");
 
     const el = document.createElement("span");
-    el.setAttribute("data-tk-readout", "theme");
+    el.setAttribute("data-tv-readout", "theme");
     el.textContent = "mint-light";
     document.body.appendChild(el);
 
@@ -258,6 +258,6 @@ describe("the head script patches readouts as they are parsed", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(el.textContent).toBe("mint-dark");
-    expect(el.getAttribute("data-tk-patched")).toBe("1");
+    expect(el.getAttribute("data-tv-patched")).toBe("1");
   });
 });

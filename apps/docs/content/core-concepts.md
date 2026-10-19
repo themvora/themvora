@@ -14,7 +14,7 @@ interface ThemeDefinition {
 A concrete theme looks like this:
 
 ```ts
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 const plumDark = defineTheme({
   name: "plum-dark",
@@ -91,7 +91,7 @@ Two naming rules follow from "verbatim", and both catch people out:
 Every token maps to a `--theme-*` variable automatically via `themeToCSSVariables`:
 
 ```ts
-import { themeToCSSVariables } from "@theme-kit/core";
+import { themeToCSSVariables } from "@themvora/core";
 
 const vars = themeToCSSVariables(plumDark, { prefix: "theme-" });
 // { "--theme-color-background": "#171123", "--theme-radius-lg": "14px", ... }
@@ -102,7 +102,7 @@ const vars = themeToCSSVariables(plumDark, { prefix: "theme-" });
 A minimal reactive store that holds the active theme.
 
 ```ts
-import { createThemeStore } from "@theme-kit/core";
+import { createThemeStore } from "@themvora/core";
 
 const store = createThemeStore({ initialTheme: myTheme });
 
@@ -125,7 +125,7 @@ import {
   mergeThemeDefinitions,
   mergeTokens,
   resolveTheme,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const base = defineTheme({ name: "base", tokens: { ... } });
 
@@ -151,7 +151,7 @@ const resolved = resolveTheme([base, plum], "plum");
 Every registered theme lives in a registry — the engine behind dynamic theming, family lookups, and theme packs.
 
 ```ts
-import { createThemeRegistry } from "@theme-kit/core";
+import { createThemeRegistry } from "@themvora/core";
 
 const registry = createThemeRegistry();
 
@@ -177,7 +177,7 @@ A **theme pack** is a named bundle of themes; every theme it installs is stamped
 `createThemeRuntime` wires everything together — store, registry, selection, persistence, broadcast, DOM bindings, history, lifecycle, and plugins — into one object.
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
+import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -221,10 +221,10 @@ Utilities: `flattenTokens`, `resolveTokens`, `evaluateExpression`.
 
 ## Theme Generation
 
-Generate a complete light + dark theme pair from a single seed color, deriving secondary, muted, accent, border, and ring colors with HSL math.
+Generate a complete light + dark theme pair from a single seed color, deriving secondary, muted, accent, card, popover, input, border and ring colors in OKLCH.
 
 ```ts
-import { generateTheme } from "@theme-kit/core";
+import { generateTheme } from "@themvora/core";
 
 const { light, dark } = generateTheme({ seed: "#6366f1", family: "indigo" });
 ```
@@ -234,7 +234,7 @@ const { light, dark } = generateTheme({ seed: "#6366f1", family: "indigo" });
 Validate that a theme defines all required semantic color tokens, resolving `extends` chains when a theme list is provided.
 
 ```ts
-import { getBuiltInThemes, validateTheme } from "@theme-kit/core";
+import { getBuiltInThemes, validateTheme } from "@themvora/core";
 
 // Pass a theme list to resolve `extends` chains before validating.
 const result = validateTheme(theme, { themes: getBuiltInThemes() });
@@ -246,7 +246,7 @@ const result = validateTheme(theme, { themes: getBuiltInThemes() });
 Version themes with a migration chain. Old theme files automatically upgrade to the latest format.
 
 ```ts
-import { migrateTheme, registerMigration } from "@theme-kit/core";
+import { migrateTheme, registerMigration } from "@themvora/core";
 
 registerMigration({
   from: "1.0.0",
@@ -316,7 +316,7 @@ interface ThemePlugin {
 - `createAccessibilityPlugin()` — contrast / accessibility enforcement
 - `createScheduledPlugin()` — auto light/dark by solar time
 - `createDebuggerPlugin()` — theme change logging
-- `createDevToolsPlugin()` — exposes the runtime on `window.__THEME_KIT_DEVTOOLS__` for a devtools extension. Core's version is the lightweight bridge (state only); the inspector that records entries and timings is `@theme-kit/devtools`'s `createDevToolsPlugin`.
+- `createDevToolsPlugin()` — exposes the runtime on `window.__THEMVORA_DEVTOOLS__` for a devtools extension. Core's version is the lightweight bridge (state only); the inspector that records entries and timings is `@themvora/devtools`'s `createDevToolsPlugin`.
 - `createGenerationPlugin()` — live theme generation from a seed
 
 ## Accessibility Toolkit
@@ -327,7 +327,7 @@ import {
   validateThemeContrast,
   simulateCVD,
   simulateThemeForCVD,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const ratio = getContrastRatio("#ffffff", "#171123"); // 15.6...
 const audit = validateThemeContrast(theme);            // full theme audit
@@ -346,7 +346,7 @@ const simulated = simulateCVD("#6366f1", "deuteranopia");
 - **View Transitions API** — native `document.startViewTransition` when switching themes.
 
 ```ts
-import { createCSSVariablesBinding, createDOMBinding } from "@theme-kit/core";
+import { createCSSVariablesBinding, createDOMBinding } from "@themvora/core";
 
 const css = createCSSVariablesBinding(store, { prefix: "theme-" });
 const dom = createDOMBinding(store, {
@@ -366,7 +366,7 @@ Sync theme selection across tabs/windows instantly:
 - **Zero-flicker** — transitions are suppressed while applying cross-tab syncs
 
 ```ts
-import { createMultiWindowSync } from "@theme-kit/core";
+import { createMultiWindowSync } from "@themvora/core";
 
 const sync = createMultiWindowSync({ prefer: "auto" });
 // choose the theme in one tab — every other tab follows instantly
@@ -408,7 +408,7 @@ changes briefly after a cross-tab sync.
 - `ThemeSelectionPersistenceAdapter` — the interface the runtime persistence option expects (`get/set/remove/subscribe` over `{ mode, family }`); default runtime persistence stores `{ mode, family }` under `theme-selection` in localStorage with a `storage` event subscription
 
 ```ts
-import { createPersistencePlugin } from "@theme-kit/core";
+import { createPersistencePlugin } from "@themvora/core";
 
 // Recommended: full selection (mode + family) persistence
 const runtime = createThemeRuntime({
@@ -420,7 +420,7 @@ const runtime = createThemeRuntime({
 
 - `createThemeBootstrapScript({ themes, defaultTheme, initialMode, initialFamily, storageKey, prefix })` — generates a **blocking inline script** that reads the persisted selection, resolves the effective mode (`system` → `prefers-color-scheme`), and applies CSS variables + DOM effects before first paint.
 - `buildThemeCssMap(themes)` — maps theme names and `family:mode` keys to flat CSS variable maps.
-- `darkModeCSSTemplate(variables)` — a `@media (prefers-color-scheme: dark)` block carrying one theme's variables. This is a **pre-script** fallback only. It cannot override an inline `style` on the same element — inline declarations outrank every stylesheet rule regardless of specificity — so do not pair it with a server render that inlines the *light* variables, or an OS-dark visitor keeps the light ones. When the resolved mode is `system`, express both schemes in CSS instead: `systemModeCSSTemplate(light, dark)` from `@theme-kit/core` — which emits light *and* dark media blocks and expects **no** inline variables. `@theme-kit/astro` re-exports the same two functions, and `@theme-kit/angular`'s `createBlockingScriptContent` applies the identical rule internally.
+- `darkModeCSSTemplate(variables)` — a `@media (prefers-color-scheme: dark)` block carrying one theme's variables. This is a **pre-script** fallback only. It cannot override an inline `style` on the same element — inline declarations outrank every stylesheet rule regardless of specificity — so do not pair it with a server render that inlines the *light* variables, or an OS-dark visitor keeps the light ones. When the resolved mode is `system`, express both schemes in CSS instead: `systemModeCSSTemplate(light, dark)` from `@themvora/core` — which emits light *and* dark media blocks and expects **no** inline variables. `@themvora/astro` re-exports the same two functions, and `@themvora/angular`'s `createBlockingScriptContent` applies the identical rule internally.
 
 ```ts
 import {
@@ -428,7 +428,7 @@ import {
   buildThemeCssMap,
   darkModeCSSTemplate,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // buildThemeCssMap/createThemeBootstrapScript take the registry explicitly;
 // the built-in set is a valid registry, so no theme file is needed.
@@ -456,7 +456,7 @@ import {
   getPresetThemes,
   getBrandPresets,
   getAccessibilityProfiles,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const all = getBuiltInThemes();
 const presets = getPresetThemes();          // nine signature families
@@ -465,12 +465,12 @@ const brands = getBrandPresets();           // five real-world brands
 
 ## Vanilla (No Framework)
 
-`@theme-kit/core/vanilla` provides the `ThemeKit` class — framework-free drop-in theming:
+`@themvora/core/vanilla` provides the `Themvora` class — framework-free drop-in theming:
 
 ```js
-import { ThemeKit } from "@theme-kit/core/vanilla";
+import { Themvora } from "@themvora/core/vanilla";
 
-const kit = new ThemeKit();       // or ThemeKit.init()
+const kit = new Themvora();       // or Themvora.init()
 kit.setMode("dark");
 kit.setFamily("plum");
 kit.toggleTheme();
@@ -485,11 +485,11 @@ Events: `themeChange`, `modeChange`, `familyChange`. Exposes `.runtime`, `.regis
 
 ## Vite Plugin
 
-`@theme-kit/core/vite` injects the blocking bootstrap script into `index.html` (`head-prepend`) so the persisted theme applies before first paint in client-rendered apps — no manual inline scripts.
+`@themvora/core/vite` injects the blocking bootstrap script into `index.html` (`head-prepend`) so the persisted theme applies before first paint in client-rendered apps — no manual inline scripts.
 
 ```ts
 // theme.config.ts — the canonical application configuration
-import { defineTheme, defineThemeKitConfig } from "@theme-kit/core";
+import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
   defineTheme({
@@ -504,7 +504,7 @@ const themes = [
   }),
 ];
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "brand-light",
   // Opt in to following the OS. The plugin's bootstrap and the client runtime
@@ -515,10 +515,10 @@ export default defineThemeKitConfig({
 
 ```ts
 // vite.config.ts — the plugin discovers the file above
-import { themeKitVitePlugin } from "@theme-kit/core/vite";
+import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({
-  plugins: [react(), themeKitVitePlugin()],
+  plugins: [react(), themvoraVitePlugin()],
 });
 ```
 
@@ -532,9 +532,9 @@ as a flash of the wrong theme.
 
 The same runtime powers every framework integration:
 
-- `@theme-kit/react` — provider, hooks, `ThemeScope`, `ThemeInspector`, `ThemeModeButton`
-- `@theme-kit/next` — App Router SSR, cookies, zero-flash hydration
-- `@theme-kit/vue`, `@theme-kit/svelte`, `@theme-kit/solid`, `@theme-kit/angular` — provider + composables/stores/signals/injectables
-- `@theme-kit/web` — `<theme-kit-provider>`, `<theme-kit-toggle>`, `<theme-kit-select>`, `<theme-kit-scope>` custom elements
-- `@theme-kit/tailwind` — Tailwind CSS v4 `@theme` mapping
-- `@theme-kit/astro`, `@theme-kit/nuxt`, `@theme-kit/remix` — island/SSR integrations
+- `@themvora/react` — provider, hooks, `ThemeScope`, `ThemeInspector`, `ThemeModeButton`
+- `@themvora/next` — App Router SSR, cookies, zero-flash hydration
+- `@themvora/vue`, `@themvora/svelte`, `@themvora/solid`, `@themvora/angular` — provider + composables/stores/signals/injectables
+- `@themvora/web` — `<themvora-provider>`, `<themvora-toggle>`, `<themvora-select>`, `<themvora-scope>` custom elements
+- `@themvora/tailwind` — Tailwind CSS v4 `@theme` mapping
+- `@themvora/astro`, `@themvora/nuxt`, `@themvora/remix` — island/SSR integrations

@@ -1,13 +1,13 @@
-## @theme-kit/shadcn
-Theme Kit shadcn/ui adapter — framework-neutral entry.
+## @themvora/shadcn
+Themvora shadcn/ui adapter — framework-neutral entry.
 
 Exports the React-free `createShadcnAdapter` factory (also available from
-`@theme-kit/shadcn/factory`), the `createShadcnVariables` generator, and the
+`@themvora/shadcn/factory`), the `createShadcnVariables` generator, and the
 `injectShadcnCSS` helper. Framework wrappers live on their own subpaths:
-`useShadcnTheme(runtime)` on `@theme-kit/shadcn/react`, and equivalent
+`useShadcnTheme(runtime)` on `@themvora/shadcn/react`, and equivalent
 composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
 
-> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/shadcn/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -15,7 +15,7 @@ composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
 Creates a shadcn/ui adapter.
 
 The adapter is a DOM-only, framework-free adapter: it depends only on
-`@theme-kit/core` and the DOM. On install it injects the shadcn/ui
+`@themvora/core` and the DOM. On install it injects the shadcn/ui
 compatibility stylesheet (when enabled) and a `<style>` element of CSS
 variables derived from the active theme, then subscribes to the runtime
 store and rewrites the variables whenever the theme selection changes. It
@@ -32,7 +32,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 **Returns** `ThemeAdapter<T>` — A `ThemeAdapter` for shadcn/ui.
 
 ```ts
-import { createShadcnAdapter } from "@theme-kit/shadcn";
+import { createShadcnAdapter } from "@themvora/shadcn";
 
 runtime.installAdapter(createShadcnAdapter());
 ```
@@ -42,7 +42,7 @@ runtime.installAdapter(createShadcnAdapter());
 
 ### `createShadcnVariables(tokens): Record<string, string>`
 Programmatic alternative to `shadcn.css`. Returns concrete shadcn/ui CSS
-variable values for a given set of Theme Kit tokens.
+variable values for a given set of Themvora tokens.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |

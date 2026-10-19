@@ -20,7 +20,13 @@
  * Output: console report + scripts/release/reports/jsdoc.json
  */
 
-import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  readFileSync,
+  readdirSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -29,30 +35,30 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(join(here, "..", ".."));
 
 const ENTRY_SOURCE = {
-  "@theme-kit/core": "src/index.ts",
-  "@theme-kit/web": "src/index.ts",
-  "@theme-kit/react": "src/index.ts",
-  "@theme-kit/next": "src/index.ts",
-  "@theme-kit/vue": "src/index.ts",
-  "@theme-kit/nuxt": "src/index.ts",
-  "@theme-kit/svelte": "src/index.ts",
-  "@theme-kit/solid": "src/index.tsx",
-  "@theme-kit/angular": "src/public-api.ts",
-  "@theme-kit/astro": "src/index.ts",
-  "@theme-kit/remix": "src/index.ts",
-  "@theme-kit/tailwind": "src/index.ts",
-  "@theme-kit/cli": "src/index.ts",
-  "@theme-kit/devtools": "src/index.ts",
-  "@theme-kit/mantine": "src/index.ts",
-  "@theme-kit/adapters": "src/index.ts",
-  "@theme-kit/mui": "src/index.ts",
-  "@theme-kit/chakra": "src/index.ts",
-  "@theme-kit/antd": "src/index.ts",
-  "@theme-kit/shadcn": "src/index.ts",
-  "@theme-kit/bootstrap": "src/index.ts",
-  "@theme-kit/daisyui": "src/index.ts",
-  "@theme-kit/open-props": "src/index.ts",
-  "@theme-kit/unocss": "src/index.ts",
+  "@themvora/core": "src/index.ts",
+  "@themvora/web": "src/index.ts",
+  "@themvora/react": "src/index.ts",
+  "@themvora/next": "src/index.ts",
+  "@themvora/vue": "src/index.ts",
+  "@themvora/nuxt": "src/index.ts",
+  "@themvora/svelte": "src/index.ts",
+  "@themvora/solid": "src/index.tsx",
+  "@themvora/angular": "src/public-api.ts",
+  "@themvora/astro": "src/index.ts",
+  "@themvora/remix": "src/index.ts",
+  "@themvora/tailwind": "src/index.ts",
+  "@themvora/cli": "src/index.ts",
+  "@themvora/devtools": "src/index.ts",
+  "@themvora/mantine": "src/index.ts",
+  "@themvora/adapters": "src/index.ts",
+  "@themvora/mui": "src/index.ts",
+  "@themvora/chakra": "src/index.ts",
+  "@themvora/antd": "src/index.ts",
+  "@themvora/shadcn": "src/index.ts",
+  "@themvora/bootstrap": "src/index.ts",
+  "@themvora/daisyui": "src/index.ts",
+  "@themvora/open-props": "src/index.ts",
+  "@themvora/unocss": "src/index.ts",
 };
 
 /**
@@ -109,7 +115,12 @@ function readdirSafe(p) {
 function hasSummary(sym, checker) {
   const docs = sym.getDocumentationComment(checker);
   if (!docs || !docs.length) return false;
-  return docs.map((d) => d.text ?? "").join("").trim().length > 0;
+  return (
+    docs
+      .map((d) => d.text ?? "")
+      .join("")
+      .trim().length > 0
+  );
 }
 
 function hasJsDocTags(sym, checker) {
@@ -124,10 +135,23 @@ function isInternalSymbol(sym) {
 
 function kindName(flags) {
   const isType = Boolean(
-    flags & (ts.SymbolFlags.Interface | ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Class | ts.SymbolFlags.Enum | ts.SymbolFlags.NamespaceModule),
+    flags &
+    (ts.SymbolFlags.Interface |
+      ts.SymbolFlags.TypeAlias |
+      ts.SymbolFlags.Class |
+      ts.SymbolFlags.Enum |
+      ts.SymbolFlags.NamespaceModule),
   );
   const isValue = Boolean(
-    flags & (ts.SymbolFlags.Value | ts.SymbolFlags.Class | ts.SymbolFlags.Function | ts.SymbolFlags.Variable | ts.SymbolFlags.Enum | ts.SymbolFlags.NamespaceModule | ts.SymbolFlags.RegularEnum | ts.SymbolFlags.ConstEnum),
+    flags &
+    (ts.SymbolFlags.Value |
+      ts.SymbolFlags.Class |
+      ts.SymbolFlags.Function |
+      ts.SymbolFlags.Variable |
+      ts.SymbolFlags.Enum |
+      ts.SymbolFlags.NamespaceModule |
+      ts.SymbolFlags.RegularEnum |
+      ts.SymbolFlags.ConstEnum),
   );
   if (flags & ts.SymbolFlags.Interface) return "interface";
   if (flags & ts.SymbolFlags.TypeAlias) return "type alias";
@@ -154,7 +178,11 @@ function isPropertyNode(node) {
 
 function memberHasDoc(member, checker) {
   const nameNode = member.name;
-  if (!nameNode || !ts.isIdentifier(nameNode) && !ts.isStringLiteral(nameNode)) return true;
+  if (
+    !nameNode ||
+    (!ts.isIdentifier(nameNode) && !ts.isStringLiteral(nameNode))
+  )
+    return true;
   const sym = checker.getSymbolAtLocation(nameNode);
   if (!sym) return true;
   return hasSummary(sym, checker) || hasJsDocTags(sym, checker);
@@ -167,11 +195,16 @@ function ownMembersOfTypeDeclaration(decl) {
     // skip privates / internals
     if (
       member.modifiers?.some(
-        (m) => m.kind === ts.SyntaxKind.PrivateKeyword || m.kind === ts.SyntaxKind.ProtectedKeyword || m.kind === ts.SyntaxKind.StaticKeyword,
+        (m) =>
+          m.kind === ts.SyntaxKind.PrivateKeyword ||
+          m.kind === ts.SyntaxKind.ProtectedKeyword ||
+          m.kind === ts.SyntaxKind.StaticKeyword,
       )
-    ) continue;
+    )
+      continue;
     if (member.getFullText().includes("@internal")) continue;
-    if (ts.isIdentifier(member.name) && member.name.text.startsWith("__")) continue;
+    if (ts.isIdentifier(member.name) && member.name.text.startsWith("__"))
+      continue;
     out.push(member);
   }
   return out;
@@ -204,7 +237,10 @@ function auditPackage(pkg) {
   const entryRel = ENTRY_SOURCE[name];
   const entry = join(pkg.dir, entryRel ?? "src/index.ts");
   if (!existsSync(entry)) {
-    return { name, error: `missing source entry: ${entryRel ?? "src/index.ts"}` };
+    return {
+      name,
+      error: `missing source entry: ${entryRel ?? "src/index.ts"}`,
+    };
   }
 
   const program = ts.createProgram([entry], PROGRAM_OPTIONS);
@@ -217,7 +253,8 @@ function auditPackage(pkg) {
   const exceptions = JSDOC_EXCEPTIONS[name] ?? [];
 
   for (const exp of collectExports(sf, checker)) {
-    const hasDoc = hasSummary(exp.sym, checker) || hasJsDocTags(exp.sym, checker);
+    const hasDoc =
+      hasSummary(exp.sym, checker) || hasJsDocTags(exp.sym, checker);
     if (!hasDoc && !exceptions.includes(exp.name)) {
       const decl = exp.sym.declarations?.[0];
       failures.push({
@@ -238,7 +275,9 @@ function auditPackage(pkg) {
       if (!typeNode) continue;
       for (const member of ownMembersOfTypeDeclaration(typeNode)) {
         if (memberHasDoc(member, checker)) continue;
-        const mname = ts.isIdentifier(member.name) ? member.name.text : String(member.name.text ?? member.name);
+        const mname = ts.isIdentifier(member.name)
+          ? member.name.text
+          : String(member.name.text ?? member.name);
         if (member.getFullText().includes("@internal")) continue;
         propWarnings.push({
           owner: exp.name,
@@ -249,7 +288,6 @@ function auditPackage(pkg) {
     }
   }
 
-  const covered = 0; // placeholder, replaced below
   return { name, failures, propWarnings };
 }
 
@@ -273,7 +311,8 @@ let totalPropWarnings = 0;
 console.log("\n=== JSDoc COVERAGE AUDIT ===\n");
 for (const pkg of PACKAGES) {
   const name = pkg.json.name;
-  if (pkgFilter && !pkgFilter.includes(name.replace("@theme-kit/", ""))) continue;
+  if (pkgFilter && !pkgFilter.includes(name.replace("@themvora/", "")))
+    continue;
   if (!ENTRY_SOURCE[name]) continue;
   const r = auditPackage(pkg);
   if (r.error) {
@@ -317,7 +356,9 @@ if (totalFailures > 0) {
   );
   process.exitCode = 1;
 } else if (propsFail && totalPropWarnings > 0) {
-  console.log(`\n✗ Property-level JSDoc required (--props=fail): ${totalPropWarnings} member(s) undocumented.`);
+  console.log(
+    `\n✗ Property-level JSDoc required (--props=fail): ${totalPropWarnings} member(s) undocumented.`,
+  );
   process.exitCode = 1;
 } else {
   console.log("\n✓ JSDoc gate passed.");

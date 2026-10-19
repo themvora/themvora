@@ -7,7 +7,7 @@ import {
   useThemeRuntime,
   useSetThemeFamily,
   useSetThemeMode,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 
 const TOKEN_KEYS = ["background", "card", "primary", "secondary", "accent", "muted", "success", "border"];
 
@@ -78,7 +78,7 @@ export function ResultDemo() {
       action: (
         <Link
           href="/theme-studio"
-          className="text-[11px] font-semibold text-primary no-underline hover:underline"
+          className="text-[11px] font-semibold text-foreground no-underline underline hover:decoration-foreground"
         >
           Theme Studio →
         </Link>
@@ -89,7 +89,7 @@ export function ResultDemo() {
       action: (
         <Link
           href="/playground"
-          className="text-[11px] font-semibold text-primary no-underline hover:underline"
+          className="text-[11px] font-semibold text-foreground no-underline underline hover:decoration-foreground"
         >
           Playground →
         </Link>
@@ -121,7 +121,7 @@ export function ResultDemo() {
               T
             </div>
             <div>
-              <div className="font-semibold">Welcome to Theme Kit</div>
+              <div className="font-semibold">Welcome to Themvora</div>
               <div className="mono text-[11px] opacity-50">
                 {theme.name} · {family} · {mode}
               </div>

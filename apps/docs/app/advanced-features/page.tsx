@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/advanced-features") },
   title: "Advanced Features",
   description:
-    "Deep dives into Theme Kit's advanced capabilities — theme packs, snapshots, scheduling, adapters, scoping and multi-window sync.",
+    "Deep dives into Themvora's advanced capabilities — theme packs, snapshots, scheduling, adapters, scoping and multi-window sync.",
 };
 
 export default function AdvancedFeaturesPage() {
@@ -33,7 +33,7 @@ export default function AdvancedFeaturesPage() {
             </svg>
           }
           title="Advanced Features"
-          subtitle="@theme-kit/core"
+          subtitle="@themvora/core"
           description="Deep dives into live theme generation, validation, migration, token resolution, plugin authoring, runtime snapshots, and accessibility profiles."
         />
         <div className="prose-doc -mt-6">

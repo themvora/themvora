@@ -45,7 +45,7 @@ export function DocsPagination() {
           <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
             ← Previous
           </span>
-          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary">
+          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
             {prev.label}
           </span>
           {prev.hint ? (
@@ -63,7 +63,7 @@ export function DocsPagination() {
           <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
             Next →
           </span>
-          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary">
+          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
             {next.label}
           </span>
           {next.hint ? (

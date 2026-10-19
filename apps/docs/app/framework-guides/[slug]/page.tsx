@@ -86,7 +86,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
   // reader to install different things: the shared core, this framework's
   // adapter, and any runtime an integration needs on top (Tailwind's).
   const pkgs = [
-    "@theme-kit/core",
+    "@themvora/core",
     framework.pkg,
     ...(framework.extraPackages ?? []),
   ].join(" ");
@@ -127,16 +127,23 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
     framework.noTheme.lang,
   );
 
-  // Step 3 uses the framework's switcher. Two frameworks have no switcher in
-  // `snippet` — Tailwind's is a utility example and Astro's is a layout — so
-  // they supply their own through `switchSnippet`.
-  const switcher = framework.switchSnippet ?? framework.snippet;
+  // Step 3 is "Add a small UI", so it shows the framework's markup example.
+  //
+  // A `cssOnly` framework has no provider and no hook — Tailwind's markup lives
+  // in plain HTML — so its `snippet` is the UI and its `switchSnippet` is runtime
+  // wiring. Showing the wiring here meant the step titled "a heading, a card and
+  // a button" rendered a file containing none of those.
+  //
+  // Every other framework toggles from its markup, so `switchSnippet` is the UI.
+  const switcher = framework.cssOnly
+    ? framework.snippet
+    : (framework.switchSnippet ?? framework.snippet);
   const switcherHtml = highlightCode(switcher.code, switcher.lang);
 
   // Step 4 is the canonical stylesheet. Every framework entry points its
   // `styles` slot at the same source — only the file name differs — so this is
   // one definition rendered eleven times, which is the point: the framework
-  // snippets teach integration, the stylesheet teaches Theme Kit itself.
+  // snippets teach integration, the stylesheet teaches Themvora itself.
   const stylesHtml = highlightCode(framework.styles.code, framework.styles.lang);
 
   const setupExtraHtmlForGuide = framework.setupExtra
@@ -201,7 +208,9 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
             },
             {
               label: "Project",
-              value: `A ${framework.name} project${ssrLevel ? " with SSR support" : ""}`,
+              value:
+                framework.projectPrerequisite ??
+                `A ${framework.name} project${ssrLevel ? " with SSR support" : ""}`,
             },
             ...(framework.slug === "angular"
               ? [
@@ -217,7 +226,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                   {
                     label: "Adapter",
                     value:
-                      "A Theme Kit runtime for your framework — @theme-kit/react, -vue, -svelte, -solid, -angular or -web. Tailwind itself is build-time only.",
+                      "A Themvora runtime for your framework — @themvora/react, -vue, -svelte, -solid, -angular or -web. Tailwind itself is build-time only.",
                   },
                 ]
               : []),
@@ -255,7 +264,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
         <section id="setup" className="mt-10 scroll-mt-24">
           <SectionHeading
             num={2}
-            desc="Wrap the app in the provider. Theme Kit ships the built-in themes, so there is nothing to define yet."
+            desc="Wrap the app in the provider. Themvora ships the built-in themes, so there is nothing to define yet."
           >
             Set up
           </SectionHeading>
@@ -399,9 +408,19 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
           <p className="text-sm opacity-70 mt-1 mb-3">
             Scoped theming, history controls, and framework-specific patterns.
           </p>
-          {/* Astro and Tailwind do not use `snippet` as the toggle in step 3,
-              so it is shown here rather than left unused. */}
-          {framework.switchSnippet ? (
+          {/* Step 3 shows `snippet` for a cssOnly framework, so its
+              `switchSnippet` is surfaced here instead of going unused — and the
+              reverse for the others. Neither snippet is ever dropped. */}
+          {framework.cssOnly && framework.switchSnippet ? (
+            <CodeBlock
+              html={highlightCode(framework.switchSnippet.code, framework.switchSnippet.lang)}
+              code={framework.switchSnippet.code}
+              language={framework.switchSnippet.lang}
+              filename={framework.switchSnippet.title}
+              className="rounded-lg m-0"
+            />
+          ) : null}
+          {!framework.cssOnly && framework.switchSnippet ? (
             <CodeBlock
               html={highlightCode(framework.snippet.code, framework.snippet.lang)}
               code={framework.snippet.code}
@@ -447,7 +466,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
             The complete runnable app behind this guide is{" "}
             <a
               href="/examples"
-              className="text-primary no-underline hover:underline"
+              className="text-foreground no-underline underline hover:decoration-foreground"
             >
               examples/apps/{framework.slug}
             </a>
@@ -489,7 +508,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                 <p className="mt-2">
                   <a
                     href={caveatForSlug(framework.slug)!.href}
-                    className="text-primary hover:underline no-underline"
+                    className="text-foreground underline hover:decoration-foreground no-underline"
                   >
                     Read more →
                   </a>

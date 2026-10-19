@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/known-limitations") },
   title: "Known Limitations",
   description:
-    "Honest boundaries of Theme Kit: browser API availability, SSR trade-offs, touch behavior, adapter constraints, and where behavior is intentionally different across environments.",
+    "Honest boundaries of Themvora: browser API availability, SSR trade-offs, touch behavior, adapter constraints, and where behavior is intentionally different across environments.",
 };
 
 function Limitation({
@@ -167,7 +167,7 @@ export default function KnownLimitationsPage() {
               legacy-style Svelte component). React, Vue, and Solid react to prop changes. Remount the
               scope to change an explicit theme in Svelte.</li>
             <li><strong>Angular</strong> — the docs app and adapters are verified against the
-              standalone <code>provideThemeKit</code> integration; Angular Universal streaming is not
+              standalone <code>provideTheme</code> integration; Angular Universal streaming is not
               verified.</li>
             <li><strong>Nuxt</strong> — the module targets Nuxt 3.10+; auto-imported composables work
               in the app directory, and server utilities are exported from the package root.</li>
@@ -182,7 +182,7 @@ export default function KnownLimitationsPage() {
 
         <Limitation id="dependencies" num={8} title="Framework dependency advisories">
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            <code>@theme-kit/*</code> packages ship <strong>zero external runtime dependencies</strong>{" "}
+            <code>@themvora/*</code> packages ship <strong>zero external runtime dependencies</strong>{" "}
             — frameworks are peer dependencies. When you install a framework, its own dependency tree
             is yours. Run <code>npm audit</code> / <code>pnpm audit</code> in your application and
             upgrade framework versions to clear advisories in their transitive dependencies (for

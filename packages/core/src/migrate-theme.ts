@@ -81,13 +81,13 @@ export function clearMigrations(): void {
 export interface MigrateOptions {
   /**
    * The version to migrate the theme to.
-   * @defaultValue The current Theme Kit format version.
+   * @defaultValue The current Themvora format version.
    */
   targetVersion?: string;
 }
 
 /**
- * Migrate a legacy theme to the current Theme Kit format using registered
+ * Migrate a legacy theme to the current Themvora format using registered
  *    migrations.
  *
  * @see {@link registerMigration}

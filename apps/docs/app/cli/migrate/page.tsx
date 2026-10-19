@@ -5,7 +5,7 @@ import { docsUrl } from "../../../lib/site";
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/cli/migrate") },
   title: "CLI migrate",
-  description: "Migrate a legacy theme to the current Theme Kit format with the theme-kit CLI.",
+  description: "Migrate a legacy theme to the current Themvora format with the themvora CLI.",
 };
 
 export default function Page() {

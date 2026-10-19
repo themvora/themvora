@@ -1,0 +1,47 @@
+{
+  "name": "indigo-dark",
+  "meta": {
+    "family": "indigo",
+    "mode": "dark",
+    "label": "Indigo Dark",
+    "order": 20,
+    "generation": {
+      "kind": "generated",
+      "algorithm": "semantic-v2",
+      "seed": "#6366f1",
+      "contrast": {
+        "text": 4.5,
+        "largeText": 3,
+        "ui": 3
+      }
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#0d0d10",
+      "foreground": "#edeef3",
+      "muted": "#232427",
+      "mutedForeground": "#a3a4a8",
+      "card": "#1a1a1d",
+      "cardForeground": "#edeef3",
+      "popover": "#1e1f22",
+      "popoverForeground": "#edeef3",
+      "primary": "#808aff",
+      "primaryForeground": "#101116",
+      "secondary": "#26272c",
+      "secondaryForeground": "#e7e7ec",
+      "accent": "#b37ddc",
+      "accentForeground": "#101116",
+      "destructive": "#f27166",
+      "destructiveForeground": "#101116",
+      "success": "#60c473",
+      "successForeground": "#101116",
+      "border": "#323337",
+      "input": "#696a6e",
+      "ring": "#808aff"
+    },
+    "radius": {
+      "lg": "8px"
+    }
+  }
+}

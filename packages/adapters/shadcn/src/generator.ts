@@ -2,10 +2,10 @@ import type {
   AdapterPlugin,
   AdapterPluginContext,
   ThemeTokens,
-} from "@theme-kit/core";
-import { resolveTokens } from "@theme-kit/core";
-import type { AdapterResolvedTheme } from "@theme-kit/adapters";
-import { readColor, readToken } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveTokens } from "@themvora/core";
+import type { AdapterResolvedTheme } from "@themvora/adapters";
+import { readColor, readToken } from "@themvora/adapters";
 import { resolveShadcnTheme, deriveShadcnColors } from "./tokens";
 import { createShadcnRefineContext } from "./refine";
 
@@ -99,7 +99,7 @@ export function generateShadcnVariables(
 
 /**
  * Programmatic alternative to `shadcn.css`. Returns concrete shadcn/ui CSS
- * variable values for a given set of Theme Kit tokens.
+ * variable values for a given set of Themvora tokens.
  *
  * @deprecated prefer `generateShadcnVariables` or `createShadcnAdapter`.
  */

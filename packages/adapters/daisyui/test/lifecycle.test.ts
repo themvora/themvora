@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { createThemeRuntime, defineTheme } from "@theme-kit/core";
+import { createThemeRuntime, defineTheme } from "@themvora/core";
 import { createDaisyAdapter } from "../src";
 
 const themes = [
@@ -52,7 +52,7 @@ describe("daisyui adapter lifecycle", () => {
     const adapter = createDaisyAdapter({ injectCSS: false });
     const handle = runtime.adapters.use(adapter);
 
-    const styleEl = document.getElementById("theme-kit-daisy-variables") as HTMLStyleElement;
+    const styleEl = document.getElementById("themvora-daisy-variables") as HTMLStyleElement;
     expect(styleEl).toBeTruthy();
     expect(styleEl.textContent).toContain("#ffffff");
 
@@ -60,10 +60,10 @@ describe("daisyui adapter lifecycle", () => {
     expect(styleEl.textContent).toContain("#1f2937");
 
     handle.dispose();
-    expect(document.getElementById("theme-kit-daisy-variables")).toBeNull();
+    expect(document.getElementById("themvora-daisy-variables")).toBeNull();
 
     runtime.selection.setMode("light");
-    expect(document.getElementById("theme-kit-daisy-variables")).toBeNull();
+    expect(document.getElementById("themvora-daisy-variables")).toBeNull();
 
     runtime.destroy();
   });
@@ -75,6 +75,6 @@ describe("daisyui adapter lifecycle", () => {
 
     runtime.destroy();
     expect(() => handle.dispose()).not.toThrow();
-    expect(document.getElementById("theme-kit-daisy-variables")).toBeNull();
+    expect(document.getElementById("themvora-daisy-variables")).toBeNull();
   });
 });

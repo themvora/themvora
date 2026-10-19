@@ -1,12 +1,12 @@
 ---
 title: "Theming by the clock: switch to dark mode at your local sunset"
 date: 2026-07-14
-description: "Use Theme Kit's scheduled option and NOAA solar math to switch light and dark modes based on actual sunrise and sunset for the user's coordinates."
+description: "Use Themvora's scheduled option and NOAA solar math to switch light and dark modes based on actual sunrise and sunset for the user's coordinates."
 tags: scheduling, solartimes, dark-mode
 ---
 
 Hard-coded "dark mode starts at 8pm" ignores where your user lives. In summer a
-Mumbai user's sunset is minutes away from a Helsinki user's sunrise. Theme Kit's
+Mumbai user's sunset is minutes away from a Helsinki user's sunrise. Themvora's
 `calculateSunTimes` implements the standard NOAA solar calculation so your
 theme follows the *actual* sun.
 
@@ -16,7 +16,7 @@ Pass `scheduled` to the runtime and it computes today's sunrise/sunset, then
 switches the theme at the right moment:
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
+import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   scheduled: {
@@ -37,7 +37,7 @@ Mumbai user gets Mumbai's sunrise/sunset and a Helsinki user gets
 Helsinki's — the same `scheduled` block works for everyone, anywhere, with no
 network call. No `lightTheme`/`darkTheme` means the schedule follows the
 visitor's selected theme family (e.g. `plum-dark` → `plum-light`/`plum-dark`),
-falling back to Theme Kit's neutral `light`/`dark` themes. The runtime
+falling back to Themvora's neutral `light`/`dark` themes. The runtime
 re-checks on an interval, so a visitor crossing time zones re-themes
 correctly.
 
@@ -49,7 +49,7 @@ usable for any scheduling you want to build yourself, from theme switching to
 "good morning" toasts:
 
 ```ts
-import { calculateSunTimes } from "@theme-kit/core";
+import { calculateSunTimes } from "@themvora/core";
 
 // Auto-detected from the visitor's timezone.
 const { sunrise, sunset } = calculateSunTimes(new Date());

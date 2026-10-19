@@ -1,11 +1,11 @@
-## @theme-kit/adapters/react
-> Generated from `packages/adapters/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+## @themvora/adapters/react
+> Generated from `packages/adapters/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `useCSSVariables(runtime, options?): void`
 Sets up a CSS variables binding that keeps `--theme-*` custom properties
-in sync with the active Theme Kit theme. Call this in a client component
+in sync with the active Themvora theme. Call this in a client component
 (e.g. at the app root) to enable CSS-based adapters like shadcn, daisyUI,
 Bootstrap, and Open Props.
 
@@ -20,7 +20,7 @@ Bootstrap, and Open Props.
 
 
 ### `useRuntimeThemeFactory<T extends ThemeDefinition<string>, R>(runtime, factory): R`
-Subscribes to a Theme Kit runtime and re-runs `factory` whenever the active
+Subscribes to a Themvora runtime and re-runs `factory` whenever the active
 theme changes, returning the latest derived value (e.g. a MUI / Mantine /
 Chakra / Ant Design theme object). The factory must be referentially stable
 or wrapped in `useCallback` to avoid recomputing on every render.

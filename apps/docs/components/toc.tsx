@@ -2,11 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import {
-  allocateId,
-  stripNumberPrefix,
-  type TocItem,
-} from "../lib/toc";
+import { allocateId, stripNumberPrefix, type TocItem } from "../lib/toc";
 
 /**
  * On-page table of contents for docs pages.
@@ -19,7 +15,13 @@ import {
  * the collector couldn't see. Ids stay stable across the hand-off because
  * both sides allocate through the same `allocateId`.
  */
-export function Toc({ initialItems, onHasToc }: { initialItems?: TocItem[]; onHasToc?: (has: boolean) => void }) {
+export function Toc({
+  initialItems,
+  onHasToc,
+}: {
+  initialItems?: TocItem[];
+  onHasToc?: (has: boolean) => void;
+}) {
   const [items, setItems] = useState<TocItem[]>(initialItems ?? []);
   const [activeId, setActiveId] = useState("");
   const activeRef = useRef<HTMLAnchorElement>(null);
@@ -69,10 +71,7 @@ export function Toc({ initialItems, onHasToc }: { initialItems?: TocItem[]; onHa
       (entries) => {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
-          .sort(
-            (a, b) =>
-              a.boundingClientRect.top - b.boundingClientRect.top,
-          );
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
         if (visible[0]) {
           setActiveId(visible[0].target.id);
         }
@@ -121,7 +120,10 @@ export function Toc({ initialItems, onHasToc }: { initialItems?: TocItem[]; onHa
   if (items.length < 2) return null;
 
   return (
-    <nav aria-label="On this page" className="w-full pl-6 pr-3">
+    <nav
+      aria-label="On this page"
+      className="w-full pl-6 pr-3 overflow-auto scrollbar-none [&::-webkit-scrollbar]:hidden"
+    >
       <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest opacity-40">
         On this page
       </div>

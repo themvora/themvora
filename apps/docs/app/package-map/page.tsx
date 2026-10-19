@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/package-map") },
   title: "Package map",
   description:
-    "How the Theme Kit package ecosystem fits together: what each package is responsible for, what it depends on, which packages use it, its import path and primary APIs.",
+    "How the Themvora package ecosystem fits together: what each package is responsible for, what it depends on, which packages use it, its import path and primary APIs.",
 };
 
 const ROLE_LABEL: Record<MappedPackage["role"], string> = {
@@ -105,7 +105,7 @@ function PackageSection({ pkg }: { pkg: MappedPackage }) {
             </div>
           ) : (
             <span className="opacity-60">
-              Nothing — this is the only package with no Theme Kit dependency.
+              Nothing — this is the only package with no Themvora dependency.
             </span>
           )}
         </FieldRow>
@@ -171,7 +171,7 @@ function PackageSection({ pkg }: { pkg: MappedPackage }) {
             href={sourceUrlForPackage(pkg.name)}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-primary hover:underline mono text-[12px]"
+            className="text-foreground underline hover:decoration-foreground mono text-[12px]"
           >
             {pkg.repoDir} ↗
           </a>
@@ -245,7 +245,7 @@ export default function PackageMapPage() {
         <PageHeader
           eyebrow="Reference"
           title="Package map"
-          description="How the Theme Kit packages fit together: what each one is responsible for, what it depends on, who uses it, and what you import. For “which package do I install?”, start with Choose package instead."
+          description="How the Themvora packages fit together: what each one is responsible for, what it depends on, who uses it, and what you import. For “which package do I install?”, start with Choose package instead."
           verified={{ version: PKG_VERSION, date: "September 18, 2026" }}
         />
 
@@ -272,7 +272,7 @@ export default function PackageMapPage() {
         <div className="rounded-xl border border-border bg-card/40 p-5 mb-10">
           <DiagramColumn
             label="Core — the engine"
-            names={["@theme-kit/core"]}
+            names={["@themvora/core"]}
             tone="primary"
           />
           <Arrow label="bindings over the engine" />
@@ -386,7 +386,7 @@ export default function PackageMapPage() {
         <p className="text-sm opacity-80 mb-6 max-w-2xl">
           This page explains how the ecosystem fits together. To decide what to
           install for a specific project, use{" "}
-          <Link href="/choose-package" className="text-primary hover:underline">
+          <Link href="/choose-package" className="text-foreground underline hover:decoration-foreground">
             Which package?
           </Link>
           .
@@ -396,32 +396,32 @@ export default function PackageMapPage() {
           {[
             {
               need: "A React app on Vite or React Router",
-              install: "@theme-kit/core + @theme-kit/react",
+              install: "@themvora/core + @themvora/react",
               href: "/framework-guides/react",
             },
             {
               need: "A Next.js App Router app with no flash",
-              install: "@theme-kit/core + @theme-kit/next",
+              install: "@themvora/core + @themvora/next",
               href: "/framework-guides/next",
             },
             {
               need: "Tailwind v4 utilities driven by tokens",
-              install: "@theme-kit/core + @theme-kit/tailwind",
+              install: "@themvora/core + @themvora/tailwind",
               href: "/framework-guides/tailwind",
             },
             {
               need: "shadcn/ui components that follow your theme",
-              install: "@theme-kit/core + @theme-kit/shadcn (+ tailwind)",
+              install: "@themvora/core + @themvora/shadcn (+ tailwind)",
               href: "/libraries/shadcn",
             },
             {
               need: "No framework at all",
-              install: "@theme-kit/core (+ @theme-kit/web for DOM bindings)",
+              install: "@themvora/core (+ @themvora/web for DOM bindings)",
               href: "/vanilla",
             },
             {
               need: "Themes generated and validated in CI",
-              install: "@theme-kit/cli",
+              install: "@themvora/cli",
               href: "/cli",
             },
           ].map((row) => (
@@ -440,12 +440,12 @@ export default function PackageMapPage() {
         <Callout variant="neutral" title="Installing from npm">
           Every package is published under the{" "}
           <a
-            href={npmPackageUrl("@theme-kit/core").replace("/package/@theme-kit/core", "/org/theme-kit")}
+            href={npmPackageUrl("@themvora/core").replace("/package/@themvora/core", "/org/themvora")}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-primary hover:underline"
+            className="text-foreground underline hover:decoration-foreground"
           >
-            @theme-kit scope ↗
+            @themvora scope ↗
           </a>
           . Framework integrations and UI adapters declare the framework as a peer
           dependency, so you install the framework yourself and npm will not pull a

@@ -1,5 +1,5 @@
 /**
- * Release history for the Theme Kit docs changelog.
+ * Release history for the Themvora docs changelog.
  *
  * Sources of truth, in order of preference:
  *   1. `<repo>/CHANGELOG.md` and the per-package `CHANGELOG.md` files (shipped)
@@ -48,7 +48,7 @@ export const releases: Release[] = [
     changes: [
       {
         area: "Breaking — adapters",
-        text: "The adapter packages (`shadcn`, `bootstrap`, `daisyui`, `open-props`) no longer export their hook from the package root, and no longer depend on `@theme-kit/react`. Each gains one subpath per framework: `./react`, `./vue`, `./svelte`, `./solid`, `./angular`. A 1.x `import { useShadcnTheme } from \"@theme-kit/shadcn\"` must become `from \"@theme-kit/shadcn/react\"`.",
+        text: "The adapter packages (`shadcn`, `bootstrap`, `daisyui`, `open-props`) no longer export their hook from the package root, and no longer depend on `@themvora/react`. Each gains one subpath per framework: `./react`, `./vue`, `./svelte`, `./solid`, `./angular`. A 1.x `import { useShadcnTheme } from \"@themvora/shadcn\"` must become `from \"@themvora/shadcn/react\"`.",
       },
       {
         area: "Breaking — signatures",
@@ -56,19 +56,19 @@ export const releases: Release[] = [
       },
       {
         area: "Breaking — frameworks",
-        text: "`@theme-kit/vue`, `svelte`, `solid` and `angular` drop the adapter bindings from their roots (`useShadcnTheme`-style composables plus `UseAdapterOptions`; Angular's `injectShadcnTheme`-style injectables plus `InjectAdapterOptions`); `nuxt` drops the four composables; `next/client` and `remix` drop the four adapter providers and their hooks.",
+        text: "`@themvora/vue`, `svelte`, `solid` and `angular` drop the adapter bindings from their roots (`useShadcnTheme`-style composables plus `UseAdapterOptions`; Angular's `injectShadcnTheme`-style injectables plus `InjectAdapterOptions`); `nuxt` drops the four composables; `next/client` and `remix` drop the four adapter providers and their hooks.",
       },
       {
         area: "Breaking — Astro",
-        text: "`@theme-kit/astro`'s root is now framework-neutral: the React surface moved behind the opt-in `@theme-kit/astro/client` subpath, and the `./adapters` entry point was removed. The root gains the native browser API (`getThemeController()`, `ThemeToggle.astro`, `@theme-kit/astro/runtime`), so basic Astro theming needs no React at all.",
+        text: "`@themvora/astro`'s root is now framework-neutral: the React surface moved behind the opt-in `@themvora/astro/client` subpath, and the `./adapters` entry point was removed. The root gains the native browser API (`getThemeController()`, `ThemeToggle.astro`, `@themvora/astro/runtime`), so basic Astro theming needs no React at all.",
       },
       {
         area: "Why",
-        text: "The dependency-isolation contract permits an adapter to depend only on `core`/`adapters`, and a framework package only on `core`/`web` (or its own renderer). Both were violated — the framework packages hard-depended on eight to eleven adapters each, which is why `@theme-kit/vue` installed React. A deprecated alias cannot restore the old paths without re-adding the forbidden edges, so there is no shim.",
+        text: "The dependency-isolation contract permits an adapter to depend only on `core`/`adapters`, and a framework package only on `core`/`web` (or its own renderer). Both were violated — the framework packages hard-depended on eight to eleven adapters each, which is why `@themvora/vue` installed React. A deprecated alias cannot restore the old paths without re-adding the forbidden edges, so there is no shim.",
       },
       {
         area: "Diagnostics",
-        text: "New diagnostics system in `@theme-kit/core`: `createDiagnostic`, `formatDiagnostic`, `emitDiagnostic`, `resetDiagnosticEmission`, `isThemeMode`, and the `ThemeDiagnostic` types. `ThemeError` was dead code — nothing ever threw it — and is now the error type the runtime actually throws, carrying the diagnostic's code and context.",
+        text: "New diagnostics system in `@themvora/core`: `createDiagnostic`, `formatDiagnostic`, `emitDiagnostic`, `resetDiagnosticEmission`, `isThemeMode`, and the `ThemeDiagnostic` types. `ThemeError` was dead code — nothing ever threw it — and is now the error type the runtime actually throws, carrying the diagnostic's code and context.",
       },
       {
         area: "Framework improvements",
@@ -88,18 +88,18 @@ export const releases: Release[] = [
       },
     ],
     packages: [
-      "@theme-kit/angular",
-      "@theme-kit/astro",
-      "@theme-kit/bootstrap",
-      "@theme-kit/daisyui",
-      "@theme-kit/next",
-      "@theme-kit/nuxt",
-      "@theme-kit/open-props",
-      "@theme-kit/remix",
-      "@theme-kit/shadcn",
-      "@theme-kit/solid",
-      "@theme-kit/svelte",
-      "@theme-kit/vue",
+      "@themvora/angular",
+      "@themvora/astro",
+      "@themvora/bootstrap",
+      "@themvora/daisyui",
+      "@themvora/next",
+      "@themvora/nuxt",
+      "@themvora/open-props",
+      "@themvora/remix",
+      "@themvora/shadcn",
+      "@themvora/solid",
+      "@themvora/svelte",
+      "@themvora/vue",
     ],
     breaking: true,
     migrationNote:
@@ -114,7 +114,7 @@ export const releases: Release[] = [
     changes: [
       {
         area: "React",
-        text: 'Add `createThemeRoot()` — an optional client-only root bootstrap that lets Theme Kit own the initial React root commit for CSR apps with a measured first-render scheduling gap. Composition stays in the app: the `render({ runtime })` callback owns the whole provider tree. `ThemeProvider` remains the normal React integration and never calls `flushSync` itself.',
+        text: 'Add `createThemeRoot()` — an optional client-only root bootstrap that lets Themvora own the initial React root commit for CSR apps with a measured first-render scheduling gap. Composition stays in the app: the `render({ runtime })` callback owns the whole provider tree. `ThemeProvider` remains the normal React integration and never calls `flushSync` itself.',
       },
       {
         area: "Core / Vite",
@@ -134,12 +134,12 @@ export const releases: Release[] = [
       },
     ],
     packages: [
-      "@theme-kit/core",
-      "@theme-kit/react",
-      "@theme-kit/vue",
-      "@theme-kit/svelte",
-      "@theme-kit/solid",
-      "@theme-kit/angular",
+      "@themvora/core",
+      "@themvora/react",
+      "@themvora/vue",
+      "@themvora/svelte",
+      "@themvora/solid",
+      "@themvora/angular",
     ],
     breaking: false,
     migrationNote:
@@ -158,11 +158,11 @@ export const releases: Release[] = [
       },
     ],
     packages: [
-      "@theme-kit/core",
-      "@theme-kit/react",
-      "@theme-kit/solid",
-      "@theme-kit/svelte",
-      "@theme-kit/vue",
+      "@themvora/core",
+      "@themvora/react",
+      "@themvora/solid",
+      "@themvora/svelte",
+      "@themvora/vue",
     ],
     breaking: false,
     migrationNote: "Patch upgrade — no migration steps required.",
@@ -208,7 +208,7 @@ export const releases: Release[] = [
       },
       {
         area: "Tooling",
-        text: "CLI (`theme-kit`): generate, validate, migrate, inspect, and export themes. Tailwind CSS v4 plugin maps semantic tokens to Tailwind theme variables. DevTools runtime inspector for theme state, transitions, and adapter activity.",
+        text: "CLI (`themvora`): generate, validate, migrate, inspect, and export themes. Tailwind CSS v4 plugin maps semantic tokens to Tailwind theme variables. DevTools runtime inspector for theme state, transitions, and adapter activity.",
       },
       {
         area: "generateTheme",
@@ -233,7 +233,43 @@ export type ProposedChange = {
   text: string;
 };
 
-export const proposed: ProposedChange[] = [];
+export const proposed: ProposedChange[] = [
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "Presets are generated artifacts. Every default preset, brand preset and the neutral baseline is now a recipe (seed + style + radius) resolved by the same generator `generateTheme()` uses, so a shipped preset cannot fail the contract the generator guarantees.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "`generateTheme()` accepts an optional `style` (`balanced`, `soft`, `vibrant`, `editorial`, `minimal`, `brand`) and an optional `contrast: \"AA\"`. Both are additive; omitting them behaves exactly as before.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "Generated themes record provenance in `meta.generation`: the algorithm version, the seed and the style. The algorithm version is separate from the theme schema version.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "`getPresetCatalog()` exposes the derived preset metadata — identity, provenance and an eight-check quality summary — so a surface can render a preset without carrying its own copy of the tokens.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "Brand presets are rebuilt on published brand sources. Each pins the brand's own published colour as an identity anchor and generates the semantic system around it. Apple, GitHub, Vercel, Slack and Discord anchors are preserved exactly.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "`border`, `input` and `ring` are three separate constraints rather than one UI threshold: `input` and `ring` clear 3:1 against the surfaces they sit on, while `border` is held to a visible-but-subordinate band. Borders no longer become near-black strokes.",
+  },
+  {
+    package: "@themvora/core",
+    kind: "minor",
+    text: "`scoreTheme()` and `measureThemeContrast()` are exported so tooling and docs can read the same quality model the release gate checks.",
+  },
+];
 
 export const kindLabel: Record<ChangeKind, string> = {
   major: "Major",

@@ -1,20 +1,20 @@
-import type { ThemeDefinition, ThemeRuntime } from "@theme-kit/core";
+import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
 
-const RUNTIME_SYMBOL = "__themeKitRuntime";
+const RUNTIME_SYMBOL = "__themvoraRuntime";
 
-export interface ThemeKitProviderElement extends HTMLElement {
+export interface ThemvoraProviderElement extends HTMLElement {
   [RUNTIME_SYMBOL]?: ThemeRuntime<ThemeDefinition>;
 }
 
 export function setProviderRuntime(
-  el: ThemeKitProviderElement,
+  el: ThemvoraProviderElement,
   runtime: ThemeRuntime<ThemeDefinition>,
 ) {
   el[RUNTIME_SYMBOL] = runtime;
 }
 
 /**
- * Returns the Theme Kit runtime attached to a provider element, if any.
+ * Returns the Themvora runtime attached to a provider element, if any.
  *
  * Framework-free (vanilla JS). Reads the runtime stored on the element by
  * {@link setProviderRuntime}.
@@ -23,10 +23,10 @@ export function setProviderRuntime(
  * @returns The attached runtime, or `undefined` when none is present.
  *
  * @see {@link findProviderRuntime}
- * @see {@link ThemeKitProvider}
+ * @see {@link ThemvoraProvider}
  */
 export function getProviderRuntime(
-  el?: ThemeKitProviderElement,
+  el?: ThemvoraProviderElement,
 ): ThemeRuntime<ThemeDefinition> | undefined {
   return el?.[RUNTIME_SYMBOL];
 }
@@ -37,7 +37,7 @@ export function findProviderRuntime(
   let current: HTMLElement | null = el;
 
   while (current) {
-    const runtime = (current as ThemeKitProviderElement)[RUNTIME_SYMBOL];
+    const runtime = (current as ThemvoraProviderElement)[RUNTIME_SYMBOL];
     if (runtime) return runtime;
     current = current.parentElement;
   }

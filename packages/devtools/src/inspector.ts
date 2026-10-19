@@ -1,4 +1,4 @@
-import type { ThemeRuntime, ThemeDefinition, ThemeSelectionState, HistoryEntry } from "@theme-kit/core";
+import type { ThemeRuntime, ThemeDefinition, ThemeSelectionState, HistoryEntry } from "@themvora/core";
 import type { DevToolsInspector, DevToolsState, DevToolsEntry, DevToolsPerformanceEntry, DevToolsInspectorOptions } from "./types";
 
 /**

@@ -12,13 +12,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/tokens/code") },
   title: "Code Tokens",
   description:
-    "Theme Kit's code-specific tokens for syntax highlighting: background, foreground, comment, keyword, string, number, function, variable, type, property, operator, punctuation, tag, attribute, lineNumber, selection, highlight, and gutter colors.",
+    "Themvora's code-specific tokens for syntax highlighting: background, foreground, comment, keyword, string, number, function, variable, type, property, operator, punctuation, tag, attribute, lineNumber, selection, highlight, and gutter colors.",
 };
 
 const codeTokensSnippet = {
   lang: "ts",
   title: "theme tokens — defineTheme with code tokens",
-  code: `import { defineTheme } from "@theme-kit/core";
+  code: `import { defineTheme } from "@themvora/core";
 
 const brand = defineTheme({
   name: "brand-dark",
@@ -63,24 +63,24 @@ const enableCodeTokensSnippet = {
   title: "Enable code tokens in CSS (globals.css)",
   code: `/* In your global CSS — these map to --theme-code-* variables */
 .code-block {
-  /* These become --tk-syntax-* variables used by Shiki */
-  --tk-code-bg: var(--theme-code-background, var(--theme-color-muted));
-  --tk-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
-  --tk-syntax-comment: var(--theme-code-comment, color-mix(...));
-  --tk-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
-  --tk-syntax-string: var(--theme-code-string, color-mix(...));
-  --tk-syntax-number: var(--theme-code-number, color-mix(...));
-  --tk-syntax-function: var(--theme-code-function, color-mix(...));
-  --tk-syntax-type: var(--theme-code-type, color-mix(...));
-  --tk-syntax-tag: var(--theme-code-tag, color-mix(...));
-  --tk-syntax-attr: var(--theme-code-attribute, color-mix(...));
-  --tk-syntax-variable: var(--theme-code-variable, var(--theme-color-foreground));
-  --tk-syntax-property: var(--theme-code-property, color-mix(...));
-  --tk-syntax-operator: var(--theme-code-operator, color-mix(...));
-  --tk-syntax-punctuation: var(--theme-code-punctuation, color-mix(...));
-  --tk-syntax-diff-add: var(--theme-code-lineNumber, color-mix(...));
-  --tk-syntax-diff-remove: var(--theme-code-selection, color-mix(...));
-  --tk-syntax-danger: var(--theme-code-highlight, var(--theme-color-destructive));
+  /* These become --tv-syntax-* variables used by Shiki */
+  --tv-code-bg: var(--theme-code-background, var(--theme-color-muted));
+  --tv-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
+  --tv-syntax-comment: var(--theme-code-comment, color-mix(...));
+  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
+  --tv-syntax-string: var(--theme-code-string, color-mix(...));
+  --tv-syntax-number: var(--theme-code-number, color-mix(...));
+  --tv-syntax-function: var(--theme-code-function, color-mix(...));
+  --tv-syntax-type: var(--theme-code-type, color-mix(...));
+  --tv-syntax-tag: var(--theme-code-tag, color-mix(...));
+  --tv-syntax-attr: var(--theme-code-attribute, color-mix(...));
+  --tv-syntax-variable: var(--theme-code-variable, var(--theme-color-foreground));
+  --tv-syntax-property: var(--theme-code-property, color-mix(...));
+  --tv-syntax-operator: var(--theme-code-operator, color-mix(...));
+  --tv-syntax-punctuation: var(--theme-code-punctuation, color-mix(...));
+  --tv-syntax-diff-add: var(--theme-code-lineNumber, color-mix(...));
+  --tv-syntax-diff-remove: var(--theme-code-selection, color-mix(...));
+  --tv-syntax-danger: var(--theme-code-highlight, var(--theme-color-destructive));
 }`,
 };
 
@@ -108,10 +108,10 @@ export default function CodeTokensPage() {
             </svg>
           }
           title="Code Tokens"
-          subtitle="@theme-kit/core — syntax highlighting tokens"
+          subtitle="@themvora/core — syntax highlighting tokens"
           description={
             <>
-              Theme Kit includes a dedicated <code className="mono">code</code>{" "}
+              Themvora includes a dedicated <code className="mono">code</code>{" "}
               token group for syntax highlighting. Every token maps to a{" "}
               <code className="mono">--theme-code-*</code> CSS variable that
               Shiki (or any highlighter) can consume directly — so your code
@@ -488,19 +488,19 @@ const dark = extendTheme("brand-dark", base, {
             <CodeBlock
               html={highlightCode(
                 `.code-block {
-  --tk-code-bg: var(--theme-code-background, var(--theme-color-muted));
-  --tk-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
-  --tk-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
-  --tk-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
+  --tv-code-bg: var(--theme-code-background, var(--theme-color-muted));
+  --tv-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
+  --tv-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
+  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
   /* ... */
 }`,
                 "css",
               )}
               code={`.code-block {
-  --tk-code-bg: var(--theme-code-background, var(--theme-color-muted));
-  --tk-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
-  --tk-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
-  --tk-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
+  --tv-code-bg: var(--theme-code-background, var(--theme-color-muted));
+  --tv-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
+  --tv-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
+  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
   /* ... */
 }`}
               language="css"
@@ -515,7 +515,7 @@ const dark = extendTheme("brand-dark", base, {
             </p>
             <CodeBlock
               html={highlightCode(
-                `import { generateTheme } from "@theme-kit/core";
+                `import { generateTheme } from "@themvora/core";
 
 const { light, dark } = generateTheme({
   seed: "#6366f1",      // Your brand color
@@ -524,7 +524,7 @@ const { light, dark } = generateTheme({
 });`,
                 "typescript",
               )}
-              code={`import { generateTheme } from "@theme-kit/core";
+              code={`import { generateTheme } from "@themvora/core";
 
 const { light, dark } = generateTheme({
   seed: "#6366f1",      // Your brand color

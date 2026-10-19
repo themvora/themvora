@@ -10,20 +10,23 @@ import { isPlatformBrowser } from "@angular/common";
 import {
   createOverlayScrollbar,
   type OverlayScrollbarHandle,
-  type OverlayScrollbarOptions,
+  resolveIconOptions,
+  resolveScrollbarOptions,
+  type ScrollbarGroupedOptions,
+  type ScrollbarIconOptions,
   type ThemeRuntime,
   type ThemeDefinition,
-} from "@theme-kit/core";
-import { THEME_KIT_RUNTIME } from "./tokens";
+} from "@themvora/core";
+import { THEME_RUNTIME } from "./tokens";
 
 /**
  * Phase 2 — ThemeScrollbarDirective: overlay only.
  *
  * Creates the custom scrollbar overlay. Does NOT hide the native
- * scrollbar — that's the bootstrap script's job (Phase 1, tk-scrollbar).
+ * scrollbar — that's the bootstrap script's job (Phase 1, tv-scrollbar).
  *
  * ```html
- * <div themeKitScrollbar [themeKitScrollbarOptions]="{ thickness: 8 }"></div>
+ * <div themvoraScrollbar [themvoraScrollbarOptions]="{ thickness: 8 }"></div>
  * ```
  *
  * @see {@link ThemeScopeDirective}
@@ -31,18 +34,18 @@ import { THEME_KIT_RUNTIME } from "./tokens";
  * @see {@link injectThemeRuntime}
  */
 @Directive({
-  selector: "[themeKitScrollbar]",
+  selector: "[themvoraScrollbar]",
   standalone: true,
 })
 export class ThemeScrollbarDirective implements OnDestroy {
   private platformId = inject(PLATFORM_ID);
-  private runtime = inject<ThemeRuntime<ThemeDefinition>>(THEME_KIT_RUNTIME);
+  private runtime = inject<ThemeRuntime<ThemeDefinition>>(THEME_RUNTIME);
 
   /** Overlay scrollbar options passed to the engine
-   *  (`[themeKitScrollbarOptions]="{ thickness: 8 }"`). */
-  readonly options = input<OverlayScrollbarOptions>(
+   *  (`[themvoraScrollbarOptions]="{ thickness: 8 }"`). */
+  readonly options = input<ScrollbarGroupedOptions & { icons?: ScrollbarIconOptions<string> }>(
     {},
-    { alias: "themeKitScrollbarOptions" },
+    { alias: "themvoraScrollbarOptions" },
   );
 
   private handle: OverlayScrollbarHandle | null = null;
@@ -55,7 +58,19 @@ export class ThemeScrollbarDirective implements OnDestroy {
       const options = this.options();
       if (!isPlatformBrowser(this.platformId)) return;
       this.handle?.destroy();
-      this.handle = createOverlayScrollbar(this.runtime.store, options);
+      // The public API is the groups; the icons group maps onto the engine's
+      // arrow options.
+      this.handle = createOverlayScrollbar(
+        this.runtime.store,
+        {
+          ...resolveScrollbarOptions({
+            behavior: options.behavior,
+            appearance: options.appearance,
+            scope: options.scope,
+          }),
+          ...resolveIconOptions(options.icons),
+        },
+      );
     });
   }
 

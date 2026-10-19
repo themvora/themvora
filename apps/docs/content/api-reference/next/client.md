@@ -1,5 +1,5 @@
-## @theme-kit/next/client
-> Generated from `packages/next/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+## @themvora/next/client
+> Generated from `packages/next/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -95,7 +95,39 @@ selections ship resolved variables inline, while OS-dependent selections
 ---
 
 
-### `useScopedTheme(ref, selection, transition?): RefObject<{ destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void } | null>`
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): T`
+The theme produced by `generateTheme()` and registered with the provider.
+
+Returns the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`) — never a shipped preset, and never
+inferred from a theme's id, family or colors. Generate one and pass the result
+to `ThemeProvider`:
+
+```tsx
+const generated = generateTheme({ seed: "#635BFF", family: "brand" });
+<ThemeProvider themes={[generated.light, generated.dark]}>{children}</ThemeProvider>
+```
+
+When both halves of one `generateTheme()` call are registered, the theme the
+active selection resolves to is returned. If several generated themes are
+registered and none is active, the call throws rather than guessing.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+render rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `T` — The registered generated theme.
+
+---
+
+
+### `useScopedTheme(ref, selection, transition?): RefObject<{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void } | null>`
 Headless scoped-theming hook: applies a scoped theme selection to an
 arbitrary element (by ref) without rendering a wrapper component.
 
@@ -111,7 +143,7 @@ Must be called inside `ThemeProvider`.
 | `selection` | `ScopedThemeSelection \| null` | Scoped selection to apply. Pass `null` to remove the scope (destroys any active binding). |
 | `transition` | `boolean \| ThemeTransitionOptions` (optional) | Transition override for this scope's changes. Inherits the provider transition when omitted. |
 
-**Returns** `RefObject<{ destroy: void; getTheme: void; setLocalThemes: void; setTransition: void; update: void } | null>` — A ref holding the active scoped binding (for advanced access).
+**Returns** `RefObject<{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void } | null>` — A ref holding the active scoped binding (for advanced access).
 
 ```ts
 const elRef = useRef<HTMLDivElement>(null);
@@ -143,7 +175,7 @@ Get a stable `setMode` function (does not re-render on change).
 
 
 ### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
-The primary Theme Kit hook. Returns the current theme, mode, family and
+The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
    When you pass the theme tuple element type, `setFamily` and `setMode`
@@ -151,7 +183,7 @@ The primary Theme Kit hook. Returns the current theme, mode, family and
    built-in set is used below so the example stands alone):
 
    ```ts
-   import { getBuiltInThemes } from "@theme-kit/core";
+   import { getBuiltInThemes } from "@themvora/core";
 
    const themes = getBuiltInThemes();
    const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme<typeof themes[number]>();
@@ -202,7 +234,7 @@ Subscribe to runtime lifecycle events (theme changed, mode changed, …).
 
 The handler is typed per event name, so `on("beforeThemeChange", ({ next }) => …)`
 gives you the theme definitions rather than `unknown` — the same precision
-`runtime.lifecycle.on` has in `@theme-kit/core`.
+`runtime.lifecycle.on` has in `@themvora/core`.
 
 **See also:** `useTheme`
 
@@ -242,13 +274,13 @@ Get a restore function that re-applies a previously captured snapshot.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Get the active Theme Kit runtime from context. Throws when used outside a
+Get the active Themvora runtime from context. Throws when used outside a
 `ThemeProvider`. Pass the theme tuple element type to type the runtime's
 store/selection against your registry — any registry works, so the built-in
 set is used here to keep the example self-contained:
 
 ```ts
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getBuiltInThemes } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 const runtime = useThemeRuntime<typeof themes[number]>();

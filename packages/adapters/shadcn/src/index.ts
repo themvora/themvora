@@ -1,10 +1,10 @@
 /**
- * Theme Kit shadcn/ui adapter — framework-neutral entry.
+ * Themvora shadcn/ui adapter — framework-neutral entry.
  *
  * Exports the React-free `createShadcnAdapter` factory (also available from
- * `@theme-kit/shadcn/factory`), the `createShadcnVariables` generator, and the
+ * `@themvora/shadcn/factory`), the `createShadcnVariables` generator, and the
  * `injectShadcnCSS` helper. Framework wrappers live on their own subpaths:
- * `useShadcnTheme(runtime)` on `@theme-kit/shadcn/react`, and equivalent
+ * `useShadcnTheme(runtime)` on `@themvora/shadcn/react`, and equivalent
  * composables/injectables on `/vue`, `/svelte`, `/solid`, and `/angular`.
  *
  * @packageDocumentation
@@ -18,7 +18,7 @@ export { createShadcnAdapter, createShadcnVariables };
 export type { CreateShadcnAdapterOptions } from "./adapter";
 export type { ShadcnAdapterOptions } from "./defaults";
 
-const STYLE_ID = "@theme-kit/shadcn";
+const STYLE_ID = "@themvora/shadcn";
 
 /**
  * Injects the shadcn/ui compatibility CSS (idempotent, SSR-safe). Called

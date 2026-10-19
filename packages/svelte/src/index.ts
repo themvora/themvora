@@ -1,5 +1,5 @@
 /**
- * Theme Kit Svelte integration.
+ * Themvora Svelte integration.
  *
  * Provides the module-level runtime holder (`setThemeRuntime` /
  * `getThemeRuntime`), the `useTheme*` hooks, the `ThemeProvider`,
@@ -19,6 +19,8 @@ import {
   createScopedThemeBinding,
   createThemeBootstrapScript,
   EMPTY_THEME_SCHEDULE_STATE,
+  findGeneratedTheme,
+  resolveGeneratedTheme,
   type OverlayScrollbarOptions,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
@@ -35,7 +37,7 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { onMount, setContext } from "svelte";
 
 /**
@@ -78,7 +80,7 @@ function renderSnippet(
 }
 
 /**
- * Sets the active Theme Kit runtime in the current Svelte component context.
+ * Sets the active Themvora runtime in the current Svelte component context.
  *
  * This is the low-level holder used by `ThemeProvider` to expose the runtime
  * to descendant components. It must be called during component initialization
@@ -93,11 +95,11 @@ function renderSnippet(
 export function setThemeRuntime<T extends ThemeDefinition>(
   runtime: ThemeRuntime<T>,
 ) {
-  setContext(ThemeKitKey, runtime);
+  setContext(ThemeKey, runtime);
 }
 
 /**
- * Returns the active Theme Kit runtime from the current Svelte component
+ * Returns the active Themvora runtime from the current Svelte component
  * context.
  *
  * Must be called during component initialization (or a `$:` reactive block)
@@ -139,7 +141,7 @@ function readableStore<T>(getter: () => T, subscribe: (cb: (v: T) => void) => ()
 }
 
 /**
- * Returns the active Theme Kit runtime as a plain object.
+ * Returns the active Themvora runtime as a plain object.
  *
  * Unlike the other `useTheme*` hooks this returns the raw runtime (not a
  * store) and is not reactive. Must be called during component initialization
@@ -190,6 +192,90 @@ export function useThemeTokens<T extends ThemeDefinition>() {
     () => runtime.store.get().tokens,
     (cb) => runtime.store.subscribe((t) => cb(t.tokens)),
   );
+}
+
+/**
+ * Reactive access to the theme produced by `generateTheme()` and registered
+ * with the provider, as a readable Svelte store.
+ *
+ * Resolves the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`); shipped presets never qualify. When
+ * both halves of one `generateTheme()` call are registered, the store tracks the
+ * theme the active selection resolves to.
+ *
+ * Must be called during component initialization inside a `ThemeProvider`
+ * subtree.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection. If
+ * the generated theme is later removed, the store's value is cleared (the theme
+ * is no longer readable) rather than retaining a stale one; Svelte's store
+ * contract has no read-time getter, so a fresh subscription to a removed theme
+ * throws.
+ *
+ * @returns A readable store whose value is the registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when no generated theme is
+ *   registered; `TV_GENERATION_THEME_AMBIGUOUS` when several are and the active
+ *   selection does not identify one.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useGeneratedTheme<T extends ThemeDefinition>() {
+  const runtime = getThemeRuntime<T>();
+
+  // Eager initial resolution preserves the documented mount-time error contract.
+  resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+
+  const readOrNull = () =>
+    findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T).theme;
+
+  const listeners = new Set<(value: T) => void>();
+  let current: T | null = readOrNull();
+  let teardown: (() => void) | null = null;
+
+  const emit = () => {
+    // Never throws: a settled missing state is stored and pushed as null, so a
+    // subscriber can no longer read a removed theme.
+    current = readOrNull();
+    for (const fn of listeners) fn(current as T);
+  };
+
+  const throwIfMissing = () =>
+    resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+
+  return {
+    subscribe(listener: (value: T) => void): () => void {
+      // Svelte's store contract has no read-time getter, so a settled missing
+      // state is surfaced on (re)subscription rather than kept stale.
+      if (current === null) throwIfMissing();
+
+      if (!teardown) {
+        const unsubStore = runtime.store.subscribe(emit);
+        const unsubRegistry = runtime.registry.subscribe(emit);
+        teardown = () => {
+          unsubStore();
+          unsubRegistry();
+        };
+      }
+      listeners.add(listener);
+      listener(current as T);
+
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0 && teardown) {
+          teardown();
+          teardown = null;
+        }
+      };
+    },
+    get value(): T {
+      if (current !== null) return current;
+      return resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+    },
+  };
 }
 
 /**
@@ -535,101 +621,6 @@ export interface ThemeScopeProps {
   [key: string]: unknown;
 }
 
-/**
- * Applies a scoped theme to its subtree without touching the provider's global
- * selection. Own CSS variables, `data-theme`, `data-mode` and `.dark` are kept
- * on a wrapper `div` (created client-side and cleaned up on unmount), so nested
- * scopes and the rest of the page stay completely independent.
- *
- * `theme`/`family`/`mode` are read at mount. Family-based and boundary scopes
- * keep following the provider's light/dark/system mode while mounted.
- *
- * @see {@link useTheme}
- */
-function ThemeScopeFn(anchor: SvelteAnchor, scopeProps: ThemeScopeProps) {
-  const anchorNode = asNode(anchor);
-  const runtime = getThemeRuntime();
-  const {
-    theme,
-    family,
-    mode,
-    themes: localThemes,
-    transition,
-    className,
-    children,
-    ...rest
-  } = scopeProps ?? {};
-
-  // The scope's base selection. `theme` wins over `family`/`mode`. When neither
-  // is given, the scope mirrors the provider's selection inside its own
-  // boundary (family captured at mount + live mode).
-  const baseSelection: ScopedThemeSelection =
-    theme !== undefined
-      ? theme
-      : family !== undefined
-        ? mode !== undefined
-          ? { family, mode }
-          : { family }
-        : { family: runtime.selection.getFamily() ?? "default" };
-
-  const combinedThemes = [...(localThemes ?? []), ...runtime.themes];
-  const scopeTransition = resolveScopeTransition(runtime.transition, transition);
-
-  if (typeof document === "undefined") {
-    // SSR: no wrapper/variables are rendered; the subtree still mounts so the
-    // initial data-* attributes on the provider's `:root` apply client-side.
-    renderSnippet(children, anchorNode);
-    return;
-  }
-
-  const wrapper = document.createElement("div");
-  if (className) wrapper.className = className;
-  for (const [key, value] of Object.entries(rest)) {
-    if (value == null) continue;
-    if (key.startsWith("on") || key.startsWith("$$")) continue;
-    if (key === "class") continue;
-    wrapper.setAttribute(key, String(value));
-  }
-  (anchorNode as ChildNode).before(wrapper);
-
-  // Render the snippet inside the wrapper. The text anchor keeps the children
-  // relative to the wrapper, and Svelte removes those nodes on unmount.
-  const textAnchor = wrapper.appendChild(document.createTextNode(""));
-  renderSnippet(children, textAnchor);
-
-  const binding = createScopedThemeBinding(
-    combinedThemes as ThemeDefinition[],
-    wrapper,
-    withGlobalMode(baseSelection, runtime.selection.getMode()),
-    {
-      ...(localThemes !== undefined ? { localThemes } : {}),
-      ...(scopeTransition !== undefined ? { transition: scopeTransition } : {}),
-    },
-  );
-
-  let destroyed = false;
-  const unsubscribeStore = runtime.store.subscribe(() => {
-    if (destroyed) return;
-    if (typeof baseSelection === "string") return;
-    if ("name" in baseSelection || baseSelection.mode !== undefined) return;
-    binding.update(withGlobalMode(baseSelection, runtime.selection.getMode()));
-  });
-
-  // Teardown via `onMount` (instead of `onDestroy`) so it runs through
-  // Svelte's effect tree in runes mode and in legacy mode when the parent
-  // emits `$.init()`. The scope itself is created synchronously above, so the
-  // scoping works even in the legacy-no-`$.init()` edge case; only the
-  // cleanup is skipped there.
-  onMount(() => () => {
-    destroyed = true;
-    unsubscribeStore();
-    binding.destroy();
-    wrapper.remove();
-  });
-}
-
-/** The scoped theming component. See {@link ThemeScopeProps}. */
-export const ThemeScope = ThemeScopeFn as unknown as Component<ThemeScopeProps>;
 
 /**
  * The overlay scrollbar component. See {@link ThemeScrollbarProps}.
@@ -648,171 +639,29 @@ export const ThemeScope = ThemeScopeFn as unknown as Component<ThemeScopeProps>;
 export const ThemeScrollbar: Component<ThemeScrollbarProps> =
   typeof window === "undefined" ? ThemeScrollbarServer : ThemeScrollbarClient;
 
-/**
- * Svelte 5 mounts function components with `(internals, props)`. The type is
- * `ComponentInternals` (a branded type), but the runtime actually receives the
- * anchor `Node`. We keep the branded type on the signature so the exported
- * component is assignable to Svelte's `Component` interface (svelte-check), and
- * cast back to `Node` internally where it is used as the mount anchor.
- */
-type SvelteAnchor = import("svelte").ComponentInternals;
-
-function asNode(anchor: SvelteAnchor): Node {
-  return anchor as unknown as Node;
-}
 
 import type { Component } from "svelte";
-import { ThemeKitKey, getThemeRuntime } from "./context";
+import { ThemeKey, getThemeRuntime } from "./context";
 import type { ThemeScrollbarProps } from "./scrollbar-options";
 import ThemeScrollbarClient from "./generated/theme-scrollbar.client.js";
 import ThemeScrollbarServer from "./generated/theme-scrollbar.server.js";
+import ThemeProviderClient from "./generated/theme-provider.client.js";
+import ThemeProviderServer from "./generated/theme-provider.server.js";
+import ThemeScopeClient from "./generated/theme-scope.client.js";
+import ThemeScopeServer from "./generated/theme-scope.server.js";
 
 // Re-exported so the public surface is unchanged by the split into modules.
-export { getThemeRuntime, ThemeKitKey } from "./context";
+export { getThemeRuntime, ThemeKey } from "./context";
 export {
   pickOptions,
   type ThemeScrollbarProps,
 } from "./scrollbar-options";
 
-function ThemeProviderImpl<T extends ThemeDefinition = ThemeDefinition>(
-  anchor: SvelteAnchor,
-  props: ThemeProviderProps<T>,
-) {
-  const anchorNode = asNode(anchor);
-  const { runtime, children, ...runtimeOptions } = props ?? {};
-  const ownsRuntime = !runtime;
-  let domBinding: { destroy(): void } | null = null;
-  let cssBinding: { destroy(): void } | null = null;
-  let runtimeInstance: ThemeRuntime<T> | undefined = runtime;
-
-  const transitionOption = (props?.transition) as boolean | ThemeTransitionOptions | undefined;
-  const resolvedTransition =
-    transitionOption === undefined
-      ? undefined
-      : typeof transitionOption === "object"
-        ? transitionOption
-        : transitionOption === true
-          ? {}
-          : { enabled: false };
-
-  if (ownsRuntime && !runtimeInstance) {
-    const { dom, cssVariables, transition, ...coreOptions } = runtimeOptions as any;
-    // Merges the configuration a build integration transported under these
-    // props, so a provider with no `themes` still has a registry. Undefined
-    // props are dropped by the helper, so an absent prop cannot clobber a
-    // transported value.
-    runtimeInstance = createThemeRuntime({
-      ...resolveRuntimeOptions(coreOptions),
-      dom: false,
-      cssVariables: false,
-      // The runtime's `transition` drives scoped themes and reads like the
-      // theme inspector; without it `runtime.transition` stays undefined even
-      // though the provider was given a transition config.
-      ...(resolvedTransition !== undefined
-        ? { transition: resolvedTransition }
-        : {}),
-    } as any);
-  }
-
-  if (!runtimeInstance) {
-    throw new Error("ThemeProvider: runtime not initialized");
-  }
-
-  setContext(ThemeKitKey, runtimeInstance);
-
-  if (typeof document === "undefined") {
-    renderSnippet(children, anchorNode);
-    return;
-  }
-
-  renderSnippet(children, anchorNode);
-
-  // IMPORTANT: The DOM/CSS bindings and the bootstrap script must be created
-  // SYNCHRONOUSLY during component init, NOT inside `onMount`. Svelte 5 only
-  // flushes legacy-mode `onMount` callbacks when the parent component is
-  // compiled with `analysis.needs_context` (which emits `$.init()`). A plain
-  // Svelte app that just renders `<ThemeProvider/>` without its own lifecycle
-  // hooks never gets `$.init()` emitted, so `onMount` callbacks would be
-  // silently dropped and the theme would never be applied to the DOM.
-  if (typeof window !== "undefined") {
-    const domOpts = runtimeOptions.dom;
-    const cssOpts = runtimeOptions.cssVariables;
-
-    // Flash-proofing: inject a blocking bootstrap script that reads the
-    // persisted selection and applies the theme before first paint.
-    if (
-      ownsRuntime &&
-      document.head &&
-      runtimeOptions.persistence !== null &&
-      runtimeOptions.themes?.length &&
-      !document.getElementById("theme-kit-bootstrap")
-    ) {
-      const bootstrap = createThemeBootstrapScript({
-        themes: runtimeOptions.themes as any,
-        ...(runtimeOptions.defaultTheme !== undefined ? { defaultTheme: runtimeOptions.defaultTheme as string } : {}),
-        ...(runtimeOptions.initialMode !== undefined ? { initialMode: runtimeOptions.initialMode } : {}),
-        ...(runtimeOptions.initialFamily !== undefined ? { initialFamily: runtimeOptions.initialFamily } : {}),
-      });
-      if (bootstrap) {
-        const script = document.createElement("script");
-        script.id = "theme-kit-bootstrap";
-        script.textContent = bootstrap;
-        document.head.appendChild(script);
-      }
-    }
-
-    if (domOpts !== false) {
-      domBinding = createDOMBinding(
-        runtimeInstance!.store,
-        {
-          ...(domOpts !== undefined ? (domOpts as DOMBindingOptions) : {}),
-          ...(resolvedTransition !== undefined ? { transition: resolvedTransition } : {}),
-        },
-      );
-    }
-
-    if (cssOpts !== false) {
-      cssBinding = createCSSVariablesBinding(
-        runtimeInstance!.store,
-        {
-          ...(cssOpts !== undefined ? (cssOpts as CSSVariablesOptions) : {}),
-          ...(resolvedTransition !== undefined ? { transition: resolvedTransition } : {}),
-        },
-      );
-    }
-  }
-
-  // Register teardown via `onMount` (not a returned destroy function — Svelte 5
-  // does not invoke the return value of a plain function component). `onMount`
-  // runs cleanup through Svelte's effect tree in runes mode, and in legacy mode
-  // when the parent emits `$.init()`. In the legacy-no-`$.init()` edge case the
-  // theme still applies (bindings are created synchronously above); only the
-  // teardown is skipped there.
-  onMount(() => () => {
-    domBinding?.destroy();
-    cssBinding?.destroy();
-    if (ownsRuntime && runtimeInstance) {
-      runtimeInstance.destroy();
-    }
-  });
-}
-
-/**
- * The Theme Kit provider component. Cast to Svelte's `Component` type so
- * `svelte-check` recognizes it as a component (Svelte 5 components have the
- * `(internals, props) => { $on?, $set? }` shape; the runtime only needs the
- * anchor, which is passed as the first argument).
- *
- * @see {@link ThemeScope}
- */
-export const ThemeProvider = ThemeProviderImpl as unknown as Component<
-  ThemeProviderProps<ThemeDefinition>
->;
 
 
 // -- ThemeInspector action ---------------------------------------------------
 
-import { ThemeKitInspector } from "@theme-kit/web";
+import { ThemvoraInspector } from "@themvora/web";
 
 /**
  * Build the blocking zero-flash `<head>` script for a Svelte app (SSR or SPA).
@@ -832,7 +681,7 @@ export function createSvelteThemeBootstrapScript<T extends ThemeDefinition>(
 /**
  * Props accepted by the Svelte `themeInspector` action.
  *
- * Configures the floating `<theme-kit-inspector>` custom element mounted into
+ * Configures the floating `<themvora-inspector>` custom element mounted into
  * the target node.
  */
 export interface ThemeInspectorProps {
@@ -847,21 +696,21 @@ export interface ThemeInspectorProps {
 }
 
 /**
- * Svelte action that mounts a `<theme-kit-inspector>` custom element into the
+ * Svelte action that mounts a `<themvora-inspector>` custom element into the
  * target node. Use in any `.svelte` file:
  *
  * ```svelte
  * <div use:themeInspector={{ bottom: 80, right: 24, size: 36, zIndex: 50 }} />
  * ```
  *
- * @see {@link ThemeKitInspector}
+ * @see {@link ThemvoraInspector}
  */
 export function themeInspector(
   node: HTMLElement,
   props: ThemeInspectorProps = {},
 ) {
-  ThemeKitInspector.define();
-  const el = document.createElement("theme-kit-inspector");
+  ThemvoraInspector.define();
+  const el = document.createElement("themvora-inspector");
   applyProps(el, props);
   node.appendChild(el);
   return {
@@ -884,3 +733,27 @@ function applyProps(el: HTMLElement, props: ThemeInspectorProps) {
   if (props.zIndex != null) el.setAttribute("z-index", String(props.zIndex));
   else el.removeAttribute("z-index");
 }
+
+/**
+ * The Themvora provider component (Svelte 5 runes: `$props` + `$effect`).
+ *
+ * Compiled from `theme-provider.svelte` by `scripts/compile-svelte.mjs`. A
+ * changed configuration prop is forwarded to the shared `runtime.configure()`
+ * contract, so the UI updates without a reload. The two compiled variants are
+ * picked at runtime, so an SSR bundle never runs the client component.
+ *
+ * @see {@link ThemeScope}
+ */
+export const ThemeProvider: Component<ThemeProviderProps<ThemeDefinition>> =
+  typeof window === "undefined" ? ThemeProviderServer : ThemeProviderClient;
+
+/**
+ * The scoped theming component (Svelte 5 runes).
+ *
+ * Compiled from `theme-scope.svelte`. A changed `theme`/`family`/`mode`/
+ * `themes`/`transition` re-resolves the scope without a remount.
+ *
+ * @see {@link ThemeProvider}
+ */
+export const ThemeScope: Component<ThemeScopeProps> =
+  typeof window === "undefined" ? ThemeScopeServer : ThemeScopeClient;

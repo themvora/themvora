@@ -53,7 +53,7 @@ export const LAYERS: {
     id: "ui",
     label: "UI library adapters",
     blurb:
-      "Bridge Theme Kit tokens into a component library's own theming system, so its components follow your theme without restyling.",
+      "Bridge Themvora tokens into a component library's own theming system, so its components follow your theme without restyling.",
   },
   {
     id: "tooling",
@@ -64,7 +64,7 @@ export const LAYERS: {
 ];
 
 export const EDITORIAL: Record<string, PackageEditorial> = {
-  "@theme-kit/core": {
+  "@themvora/core": {
     layer: "core",
     role: "runtime",
     purpose:
@@ -86,10 +86,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Deriving a light/dark pair from a single seed color at build time",
       "Reading and writing theme state outside a component tree",
     ],
-    related: ["@theme-kit/react", "@theme-kit/web", "@theme-kit/cli"],
+    related: ["@themvora/react", "@themvora/web", "@themvora/cli"],
   },
 
-  "@theme-kit/react": {
+  "@themvora/react": {
     layer: "frameworks",
     role: "runtime",
     purpose:
@@ -99,10 +99,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Any React app (Vite, CRA, React Router) that is not Next.js or Remix",
       "Scoping a different theme to a subtree without touching global state",
     ],
-    related: ["@theme-kit/core", "@theme-kit/next", "@theme-kit/remix"],
+    related: ["@themvora/core", "@themvora/next", "@themvora/remix"],
   },
 
-  "@theme-kit/next": {
+  "@themvora/next": {
     layer: "frameworks",
     role: "both",
     purpose:
@@ -112,10 +112,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Next.js App Router apps that need zero-flash SSR theming",
       "Cookie-based theme persistence that is correct on the very first paint",
     ],
-    related: ["@theme-kit/react", "@theme-kit/core"],
+    related: ["@themvora/react", "@themvora/core"],
   },
 
-  "@theme-kit/remix": {
+  "@themvora/remix": {
     layer: "frameworks",
     role: "both",
     purpose:
@@ -130,10 +130,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Remix apps where the theme must be decided in a loader",
       "Sharing theme resolution between server and client without duplicating it",
     ],
-    related: ["@theme-kit/react", "@theme-kit/core"],
+    related: ["@themvora/react", "@themvora/core"],
   },
 
-  "@theme-kit/vue": {
+  "@themvora/vue": {
     layer: "frameworks",
     role: "runtime",
     purpose:
@@ -149,10 +149,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Vue 3 apps and SPAs that are not Nuxt",
       "Composing theme state into existing setup() code",
     ],
-    related: ["@theme-kit/core", "@theme-kit/nuxt"],
+    related: ["@themvora/core", "@themvora/nuxt"],
   },
 
-  "@theme-kit/nuxt": {
+  "@themvora/nuxt": {
     layer: "frameworks",
     role: "both",
     purpose:
@@ -162,34 +162,34 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Nuxt apps that need SSR-correct theming and cookie persistence",
       "Keeping a Nuxt app's first paint free of theme flash",
     ],
-    related: ["@theme-kit/vue", "@theme-kit/core"],
+    related: ["@themvora/vue", "@themvora/core"],
   },
 
-  "@theme-kit/svelte": {
+  "@themvora/svelte": {
     layer: "frameworks",
     role: "runtime",
     purpose: "Svelte 5 bindings built on runes.",
     primaryApis: ["ThemeProvider", "useTheme", "ThemeScope"],
     useCases: ["Svelte 5 apps and SvelteKit projects", "Reactive theme reads in runes-based components"],
-    related: ["@theme-kit/core", "@theme-kit/web"],
+    related: ["@themvora/core", "@themvora/web"],
   },
 
-  "@theme-kit/solid": {
+  "@themvora/solid": {
     layer: "frameworks",
     role: "runtime",
     purpose: "SolidJS bindings built on signals.",
     primaryApis: ["ThemeProvider", "useTheme", "ThemeScope"],
     useCases: ["SolidJS apps", "Fine-grained reactivity over theme state"],
-    related: ["@theme-kit/core", "@theme-kit/web"],
+    related: ["@themvora/core", "@themvora/web"],
   },
 
-  "@theme-kit/angular": {
+  "@themvora/angular": {
     layer: "frameworks",
     role: "runtime",
     purpose:
       "Angular integration: providers that wire the runtime into DI, an injectable accessor, and a directive for scoped themes.",
     primaryApis: [
-      "provideThemeKit",
+      "provideTheme",
       "injectTheme",
       "ThemeScopeDirective",
       "ThemeInspectorComponent",
@@ -198,17 +198,17 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Angular apps that need theming wired into DI",
       "Scoping a theme to a route or component subtree",
     ],
-    related: ["@theme-kit/core", "@theme-kit/web"],
+    related: ["@themvora/core", "@themvora/web"],
   },
 
-  "@theme-kit/web": {
+  "@themvora/web": {
     layer: "frameworks",
     role: "runtime",
     purpose:
       "The vanilla runtime and DOM bindings — custom elements, plain scripts, and the shared base the Vue, Svelte, Solid and Angular packages build on.",
     primaryApis: [
-      "ThemeKitProvider",
-      "ThemeKitScope",
+      "ThemvoraProvider",
+      "ThemvoraScope",
       "defineCustomElements",
       "useThemeMode",
       "useThemeFamily",
@@ -218,159 +218,159 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "No-framework apps, server-rendered templates, and progressive enhancement",
       "Web Components that need to read the active theme",
     ],
-    related: ["@theme-kit/core"],
+    related: ["@themvora/core"],
   },
 
-  "@theme-kit/astro": {
+  "@themvora/astro": {
     layer: "frameworks",
     role: "both",
     purpose:
       "Astro integration: an Astro integration plus components, with a pre-paint script and SSR-safe CSS templates.",
-    primaryApis: ["themeKit", "ThemeKitInspector", "ThemeKitScrollbar", "buildThemeCssMap", "createBlockingScript"],
+    primaryApis: ["themvora", "ThemvoraInspector", "ThemvoraScrollbar", "buildThemeCssMap", "createBlockingScript"],
     useCases: [
       "Astro sites that want zero-flash theming across islands",
       "Static sites where the theme must resolve before first paint",
     ],
-    related: ["@theme-kit/core", "@theme-kit/web"],
+    related: ["@themvora/core", "@themvora/web"],
   },
 
-  "@theme-kit/adapters": {
+  "@themvora/adapters": {
     layer: "ui",
     role: "runtime",
     purpose:
       "Shared adapter plumbing — token readers, color maths, and the source resolver every UI adapter builds on. You rarely install it directly.",
     primaryApis: ["readToken", "readColor", "readRadius", "mixColors", "generateShades", "resolveAdapterSource"],
     useCases: [
-      "Writing your own adapter for a component library Theme Kit does not ship one for",
-      "Reading Theme Kit tokens in a framework-agnostic way",
+      "Writing your own adapter for a component library Themvora does not ship one for",
+      "Reading Themvora tokens in a framework-agnostic way",
     ],
-    related: ["@theme-kit/core", "@theme-kit/mui", "@theme-kit/shadcn"],
+    related: ["@themvora/core", "@themvora/mui", "@themvora/shadcn"],
   },
 
-  "@theme-kit/shadcn": {
+  "@themvora/shadcn": {
     layer: "ui",
     role: "runtime",
     purpose:
-      "Maps Theme Kit tokens onto shadcn/ui's CSS variables, so shadcn components follow your theme untouched.",
+      "Maps Themvora tokens onto shadcn/ui's CSS variables, so shadcn components follow your theme untouched.",
     primaryApis: ["createShadcnAdapter", "createShadcnVariables", "injectShadcnCSS"],
     useCases: [
-      "shadcn/ui projects that want Theme Kit's families and persistence",
+      "shadcn/ui projects that want Themvora's families and persistence",
       "Keeping shadcn's CSS-variable contract while swapping the token source",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/tailwind", "@theme-kit/next"],
+    related: ["@themvora/adapters", "@themvora/tailwind", "@themvora/next"],
   },
 
-  "@theme-kit/mui": {
+  "@themvora/mui": {
     layer: "ui",
     role: "runtime",
-    purpose: "Builds an MUI theme object from Theme Kit tokens and keeps the two in sync.",
+    purpose: "Builds an MUI theme object from Themvora tokens and keeps the two in sync.",
     primaryApis: ["MuiThemeProvider", "createMuiTheme", "createMuiAdapter", "useMuiTheme"],
     useCases: [
-      "Material UI apps that must follow a Theme Kit theme",
+      "Material UI apps that must follow a Themvora theme",
       "Driving MUI's palette, typography and shape from semantic tokens",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/react"],
+    related: ["@themvora/adapters", "@themvora/react"],
   },
 
-  "@theme-kit/chakra": {
+  "@themvora/chakra": {
     layer: "ui",
     role: "runtime",
-    purpose: "Builds a Chakra UI theme from Theme Kit tokens and provides it to the tree.",
+    purpose: "Builds a Chakra UI theme from Themvora tokens and provides it to the tree.",
     primaryApis: ["ChakraThemeProvider", "createChakraTheme", "createChakraAdapter", "useChakraTheme"],
     useCases: [
-      "Chakra UI apps that need Theme Kit's runtime and persistence",
+      "Chakra UI apps that need Themvora's runtime and persistence",
       "Mapping semantic tokens onto Chakra's token system",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/react"],
+    related: ["@themvora/adapters", "@themvora/react"],
   },
 
-  "@theme-kit/antd": {
+  "@themvora/antd": {
     layer: "ui",
     role: "runtime",
-    purpose: "Feeds Theme Kit tokens into Ant Design's ConfigProvider theme.",
+    purpose: "Feeds Themvora tokens into Ant Design's ConfigProvider theme.",
     primaryApis: ["AntdThemeProvider", "buildAntdConfig", "createAntdAdapter", "useAntdTheme"],
     useCases: [
-      "Ant Design apps that must follow a Theme Kit theme",
+      "Ant Design apps that must follow a Themvora theme",
       "Deriving Ant Design's design tokens from semantic tokens",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/react"],
+    related: ["@themvora/adapters", "@themvora/react"],
   },
 
-  "@theme-kit/mantine": {
+  "@themvora/mantine": {
     layer: "ui",
     role: "runtime",
-    purpose: "Bridges a Theme Kit runtime into a Mantine theme object.",
+    purpose: "Bridges a Themvora runtime into a Mantine theme object.",
     primaryApis: ["MantineThemeProvider", "createMantineTheme", "useMantineTheme"],
     useCases: [
-      "Mantine apps that need Theme Kit's families and persistence",
-      "Driving Mantine's color scheme from Theme Kit's mode",
+      "Mantine apps that need Themvora's families and persistence",
+      "Driving Mantine's color scheme from Themvora's mode",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/react"],
+    related: ["@themvora/adapters", "@themvora/react"],
   },
 
-  "@theme-kit/bootstrap": {
+  "@themvora/bootstrap": {
     layer: "ui",
     role: "runtime",
     purpose:
-      "Generates Bootstrap 5 CSS variables from Theme Kit tokens — usable from any framework, not just React.",
+      "Generates Bootstrap 5 CSS variables from Themvora tokens — usable from any framework, not just React.",
     primaryApis: ["createBootstrapAdapter", "createBootstrapVariables", "injectBootstrapCSS"],
     useCases: [
-      "Bootstrap 5 sites that want Theme Kit's theme switching",
+      "Bootstrap 5 sites that want Themvora's theme switching",
       "Keeping `--bs-*` variables in step with your semantic tokens",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/core"],
+    related: ["@themvora/adapters", "@themvora/core"],
   },
 
-  "@theme-kit/daisyui": {
+  "@themvora/daisyui": {
     layer: "ui",
     role: "runtime",
-    purpose: "Generates daisyUI's theme variables from Theme Kit tokens.",
+    purpose: "Generates daisyUI's theme variables from Themvora tokens.",
     primaryApis: ["createDaisyAdapter", "createDaisyVariables", "injectDaisyCSS"],
     useCases: [
-      "daisyUI projects that want Theme Kit families and persistence",
+      "daisyUI projects that want Themvora families and persistence",
       "Driving daisyUI's `--p`/`--b1`/… variables from semantic tokens",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/tailwind"],
+    related: ["@themvora/adapters", "@themvora/tailwind"],
   },
 
-  "@theme-kit/open-props": {
+  "@themvora/open-props": {
     layer: "ui",
     role: "runtime",
-    purpose: "Maps Theme Kit tokens onto Open Props custom properties.",
+    purpose: "Maps Themvora tokens onto Open Props custom properties.",
     primaryApis: ["createOpenPropsAdapter", "createOpenPropsVariables", "injectOpenPropsCSS"],
     useCases: [
-      "Projects built on Open Props that want Theme Kit's runtime",
+      "Projects built on Open Props that want Themvora's runtime",
       "Exposing semantic tokens under Open Props' naming",
     ],
-    related: ["@theme-kit/adapters", "@theme-kit/core"],
+    related: ["@themvora/adapters", "@themvora/core"],
   },
 
-  "@theme-kit/unocss": {
+  "@themvora/unocss": {
     layer: "ui",
     role: "build-time",
-    purpose: "A UnoCSS preset that exposes Theme Kit tokens as utilities.",
-    primaryApis: ["presetThemeKit", "createUnoTheme"],
+    purpose: "A UnoCSS preset that exposes Themvora tokens as utilities.",
+    primaryApis: ["presetThemvora", "createUnoTheme"],
     useCases: [
       "UnoCSS projects that want token-driven utilities",
       "Generating utility classes from semantic tokens at build time",
     ],
-    related: ["@theme-kit/core", "@theme-kit/tailwind"],
+    related: ["@themvora/core", "@themvora/tailwind"],
   },
 
-  "@theme-kit/tailwind": {
+  "@themvora/tailwind": {
     layer: "tooling",
     role: "build-time",
     purpose:
-      "Tailwind CSS v4 plugin that publishes Theme Kit tokens as Tailwind theme variables, plus the dark-mode class helper.",
+      "Tailwind CSS v4 plugin that publishes Themvora tokens as Tailwind theme variables, plus the dark-mode class helper.",
     primaryApis: ["createTailwindPlugin", "themeCSS", "synchronizeDarkClass"],
     useCases: [
       "Tailwind v4 projects that want `bg-background`-style utilities driven by semantic tokens",
-      "Keeping Tailwind's `dark:` variant aligned with Theme Kit's mode",
+      "Keeping Tailwind's `dark:` variant aligned with Themvora's mode",
     ],
-    related: ["@theme-kit/core", "@theme-kit/shadcn", "@theme-kit/daisyui"],
+    related: ["@themvora/core", "@themvora/shadcn", "@themvora/daisyui"],
   },
 
-  "@theme-kit/cli": {
+  "@themvora/cli": {
     layer: "tooling",
     role: "build-time",
     purpose:
@@ -389,10 +389,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Generating a theme family from a brand seed color in CI",
       "Migrating a theme file written against an older format",
     ],
-    related: ["@theme-kit/core"],
+    related: ["@themvora/core"],
   },
 
-  "@theme-kit/devtools": {
+  "@themvora/devtools": {
     layer: "tooling",
     role: "runtime",
     purpose:
@@ -402,7 +402,7 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
       "Debugging why a token resolves to an unexpected value",
       "Inspecting scoped themes and inherited tokens during development",
     ],
-    related: ["@theme-kit/core"],
+    related: ["@themvora/core"],
   },
 };
 
@@ -438,9 +438,9 @@ export function packagesInLayer(layer: PackageLayer): MappedPackage[] {
   return PACKAGE_MAP.filter((p) => p.layer === layer);
 }
 
-/** `@theme-kit/mui` → `mui`, used for anchors and short labels. */
+/** `@themvora/mui` → `mui`, used for anchors and short labels. */
 export function shortName(name: string): string {
-  return name.replace("@theme-kit/", "");
+  return name.replace("@themvora/", "");
 }
 
 export function packageByName(name: string): MappedPackage | undefined {

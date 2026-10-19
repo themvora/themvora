@@ -2,7 +2,7 @@
 /**
  * Audit G — terminology consistency (docs-system brief §8).
  *
- * Enforces the canonical Theme Kit vocabulary across the prose surfaces:
+ * Enforces the canonical Themvora vocabulary across the prose surfaces:
  *
  *   theme, family, mode, runtime, scope, tokens,
  *   adapter, schedule, transition, persistence
@@ -44,8 +44,6 @@ const repoRoot = join(here, "..", "..", "..");
 
 const update = process.argv.includes("--update");
 
-const CONTRACT =
-  "brief §8 Audit G — prose must use the canonical Theme Kit vocabulary (mode, family, theme, runtime, scope, tokens, adapter, schedule, transition, persistence); known anti-patterns are forbidden outside the allowlist";
 
 /**
  * Each rule:
@@ -63,7 +61,7 @@ const RULES = [
     id: "G1:prose-mode-not-variant",
     re: /\btheme variant\b/i,
     message: 'prose says "theme variant" when describing user-facing mode selection',
-    suggest: 'use "mode" — the canonical Theme Kit word for the light/dark/system axis',
+    suggest: 'use "mode" — the canonical Themvora word for the light/dark/system axis',
   },
   {
     id: "G2:prose-pick-variant",
@@ -75,7 +73,7 @@ const RULES = [
     id: "G3:prose-switch-variant",
     re: /\bswitch(?:ing)?\s+to\s+.{1,40}?\bvariant\b/i,
     message: 'prose says "switch to … variant" when describing mode change',
-    suggest: 'use "mode" — Theme Kit calls the light/dark/system axis the "mode"',
+    suggest: 'use "mode" — Themvora calls the light/dark/system axis the "mode"',
   },
   {
     id: "G4:prose-theme-variant-pair",
@@ -86,7 +84,7 @@ const RULES = [
   {
     id: "G5:prose-skin-for-theme",
     re: /\b(skin|skinned)\s+(theme|mode|family)\b/i,
-    message: '"skin" is not part of the Theme Kit vocabulary',
+    message: '"skin" is not part of the Themvora vocabulary',
     suggest: 'use "theme" / "mode" / "family"',
   },
   {
@@ -99,7 +97,7 @@ const RULES = [
     id: "G7:code-callset-variant",
     re: /\bsetVariant\s*\(|useVariant\s*\(|getVariant\s*\(/i,
     message: 'code reference calls setVariant/useVariant/getVariant — no such API exists',
-    suggest: 'use setMode / mode / mode (mode is the canonical Theme Kit API)',
+    suggest: 'use setMode / mode / mode (mode is the canonical Themvora API)',
   },
 ];
 
@@ -235,7 +233,6 @@ function stripFencedCode(src) {
 // ---------------------------------------------------------------------------
 
 const findings = [];
-const newlyAllowlisted = [];
 
 for (const file of scanned) {
   let src;

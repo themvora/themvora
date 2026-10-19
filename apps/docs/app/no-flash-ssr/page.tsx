@@ -22,7 +22,7 @@ const reactSnippet = {
   filename: "main.tsx",
   code: `import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "@theme-kit/react";
+import { ThemeProvider } from "@themvora/react";
 
 // Flash-proof out of the box. The provider reads the persisted selection
 // (localStorage "theme-selection"), applies it before first paint, and
@@ -43,7 +43,7 @@ const vueSnippet = {
   lang: "ts",
   filename: "main.ts",
   code: `import { createApp } from "vue";
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 
 // Flash-proof out of the box — the provider injects the blocking bootstrap
 // and applies the persisted theme before first paint. No extra setup.
@@ -59,7 +59,7 @@ const svelteSnippet = {
   lang: "svelte",
   filename: "+layout.svelte",
   code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <!-- Flash-proof out of the box — the provider injects the blocking
@@ -75,7 +75,7 @@ const solidSnippet = {
   lang: "tsx",
   filename: "index.tsx",
   code: `import { render } from "solid-js/web";
-import { ThemeProvider } from "@theme-kit/solid";
+import { ThemeProvider } from "@themvora/solid";
 
 // Flash-proof out of the box — the provider injects the blocking bootstrap
 // and applies the persisted theme before first paint.
@@ -156,7 +156,7 @@ export default function NoFlashSSRPage() {
             The providers apply the theme before the first paint of the application content. If you
             want the theme applied on the very first frame — before the JavaScript bundle even
             loads — add the{" "}
-            <Link href="/vite-plugin" className="text-primary hover:underline">
+            <Link href="/vite-plugin" className="text-foreground underline hover:decoration-foreground">
               Vite plugin
             </Link>{" "}
             (build-time, zero runtime cost) or inline{" "}

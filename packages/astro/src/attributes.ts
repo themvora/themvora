@@ -13,11 +13,11 @@
 
 /**
  * Opts an element into the **bootstrap readout** contract: its text is owned by
- * Theme Kit.
+ * Themvora.
  *
  * @remarks
- * `data-tk-readout="theme" | "mode" | "family"` — or
- * `data-tk-readout="var:--theme-color-primary"` to display a resolved CSS
+ * `data-tv-readout="theme" | "mode" | "family"` — or
+ * `data-tv-readout="var:--theme-color-primary"` to display a resolved CSS
  * variable. The pre-paint bootstrap patches the element from `<head>`, before
  * the body is parsed, so the text is never painted with the server's guess and
  * then corrected; `getThemeController()` keeps it in sync from then on.
@@ -27,19 +27,19 @@
  *
  * @see {@link THEME_TOGGLE_ATTRIBUTE}
  */
-export const THEME_READOUT_ATTRIBUTE = "data-tk-readout";
+export const THEME_READOUT_ATTRIBUTE = "data-tv-readout";
 
 /**
- * Marks an element as a Theme Kit theme toggle.
+ * Marks an element as a Themvora theme toggle.
  *
  * @remarks
  * `<ThemeToggle />` sets it, and the component's bundled script delegates clicks
  * from any element that carries it. Delegation rather than a per-element
  * listener is what makes the attribute the whole contract: an application can
- * render its own `<button data-tk-toggle>` and get the behaviour without
+ * render its own `<button data-tv-toggle>` and get the behaviour without
  * importing the component, and a toggle added later by client-side navigation
  * still works.
  *
  * @see {@link THEME_READOUT_ATTRIBUTE}
  */
-export const THEME_TOGGLE_ATTRIBUTE = "data-tk-toggle";
+export const THEME_TOGGLE_ATTRIBUTE = "data-tv-toggle";

@@ -26,9 +26,12 @@ const root = join(here, "..");
 const SOURCE_DIR = join(root, "src");
 const OUT_DIR = join(SOURCE_DIR, "generated");
 
-/** Each entry: the `.svelte` file and the type its default export satisfies. */
+/** Each entry: the `.svelte` file, the type its default export satisfies, and
+ *  the module that declares that type (for the generated `.d.ts`). */
 const COMPONENTS = [
-  { name: "theme-scrollbar", propsType: "ThemeScrollbarProps" },
+  { name: "theme-scrollbar", propsType: "ThemeScrollbarProps", typesFrom: "../scrollbar-options" },
+  { name: "theme-provider", propsType: "ThemeProviderProps", typesFrom: "../index" },
+  { name: "theme-scope", propsType: "ThemeScopeProps", typesFrom: "../index" },
 ];
 
 /**
@@ -47,7 +50,7 @@ let stale = 0;
 
 mkdirSync(OUT_DIR, { recursive: true });
 
-for (const { name, propsType } of COMPONENTS) {
+for (const { name, propsType, typesFrom } of COMPONENTS) {
   const source = readFileSync(join(SOURCE_DIR, `${name}.svelte`), "utf8");
 
   const outputs = [];
@@ -64,7 +67,7 @@ for (const { name, propsType } of COMPONENTS) {
   // A hand-written declaration per variant, so `tsc` can resolve the import
   // without `allowJs` and without inspecting the compiled JS.
   const types = `import type { Component } from "svelte";
-import type { ${propsType} } from "../scrollbar-options";
+import type { ${propsType} } from "${typesFrom}";
 
 declare const Component_: Component<${propsType}>;
 export default Component_;

@@ -2,18 +2,35 @@ import type { ThemeDefinition } from "./model";
 import { resolveTokens } from "./resolve";
 
 /**
- * The name of a token group that can be emitted as CSS custom properties.
+ * Every token group that can be emitted as CSS custom properties, **in the
+ * canonical order groups are emitted**.
+ *
+ * The order is part of the contract, not an accident of declaration: anything
+ * that renders or compares token groups (the CSS emitter, the theme diff) reads
+ * it from here, so a group cannot appear in one order in one place and a
+ * different order in another.
+ *
+ * @see {@link TokenGroup}
  */
-export type TokenGroup =
-  | "colors"
-  | "spacing"
-  | "radius"
-  | "shadows"
-  | "borderWidths"
-  | "zIndex"
-  | "breakpoints"
-  | "typography"
-  | "code";
+export const TOKEN_GROUPS = [
+  "colors",
+  "spacing",
+  "radius",
+  "shadows",
+  "borderWidths",
+  "zIndex",
+  "breakpoints",
+  "typography",
+  "code",
+] as const;
+
+/**
+ * The name of a token group that can be emitted as CSS custom properties.
+ *
+ * Derived from {@link TOKEN_GROUPS} so the type and the runtime order can never
+ * disagree.
+ */
+export type TokenGroup = (typeof TOKEN_GROUPS)[number];
 
 /**
  * Options for {@link themeToCSSVariables}.

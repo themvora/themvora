@@ -56,7 +56,7 @@ const enableExamples: Record<
     label: "React",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider } from "@theme-kit/react";
+    code: `import { ThemeProvider } from "@themvora/react";
 
 <ThemeProvider
   defaultTheme="light"
@@ -70,7 +70,7 @@ const enableExamples: Record<
     lang: "tsx",
     title: "app/layout.tsx",
     code: `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 <ThemeProvider
   defaultTheme="light"
@@ -84,7 +84,7 @@ import { ThemeProvider } from "@theme-kit/next";
     lang: "vue",
     title: "App.vue",
     code: `<script setup>
-import { ThemeProvider } from "@theme-kit/vue";
+import { ThemeProvider } from "@themvora/vue";
 </script>
 
 <template>
@@ -101,7 +101,7 @@ import { ThemeProvider } from "@theme-kit/vue";
     lang: "svelte",
     title: "app.svelte",
     code: `<script>
-  import { ThemeProvider } from "@theme-kit/svelte";
+  import { ThemeProvider } from "@themvora/svelte";
 </script>
 
 <ThemeProvider
@@ -115,7 +115,7 @@ import { ThemeProvider } from "@theme-kit/vue";
     label: "Solid",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider } from "@theme-kit/solid";
+    code: `import { ThemeProvider } from "@themvora/solid";
 
 export function App() {
   return (
@@ -134,11 +134,11 @@ export function App() {
     title: "app.config.ts",
     code: `// app.config.ts
 import { ApplicationConfig } from "@angular/core";
-import { provideThemeKit } from "@theme-kit/angular";
+import { provideTheme } from "@themvora/angular";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({
+    provideTheme({
       defaultTheme: "light",
       transition: { enabled: true, preset: "smooth" },
     }),
@@ -150,27 +150,25 @@ export const appConfig: ApplicationConfig = {
     lang: "html",
     title: "index.html",
     code: `<script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-  defineCustomElements();
-
-  const provider = document.querySelector("theme-kit-provider");
-  provider.setAttribute("default-theme", "light");
-  provider.setAttribute(
-    "transition",
-    JSON.stringify({ enabled: true, preset: "smooth" })
-  );
+  // Registers every <themvora-*> element and their stylesheet.
+  import "@themvora/web";
 </script>
 
-<theme-kit-provider>
+<!-- \`transition\` is a provider attribute, so it is part of the markup and is
+     read when the element upgrades. -->
+<themvora-provider
+  default-theme="light"
+  transition='{"enabled":true,"preset":"smooth"}'
+>
   <your-app></your-app>
-</theme-kit-provider>`,
+</themvora-provider>`,
   },
   astro: {
     label: "Astro",
     lang: "astro",
     title: "src/pages/index.astro",
     code: `---
-import { ThemeProviderClient } from "@theme-kit/astro/client";
+import { ThemeProviderClient } from "@themvora/astro/client";
 ---
 
 <ThemeProviderClient
@@ -183,10 +181,10 @@ import { ThemeProviderClient } from "@theme-kit/astro/client";
     label: "Tailwind CSS",
     lang: "ts",
     title: "runtime.ts",
-    code: `import { createThemeRuntime } from "@theme-kit/core";
-import { synchronizeDarkClass } from "@theme-kit/tailwind";
+    code: `import { createThemeRuntime } from "@themvora/core";
+import { synchronizeDarkClass } from "@themvora/tailwind";
 
-// Tailwind maps tokens to CSS variables (via @import "@theme-kit/tailwind");
+// Tailwind maps tokens to CSS variables (via @import "@themvora/tailwind");
 // the actual transition is owned by the runtime in your framework shell.
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -200,8 +198,8 @@ synchronizeDarkClass(runtime.store.get());`,
     title: "nuxt.config.ts",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "light",
     transition: { enabled: true, preset: "smooth" },
   },
@@ -211,7 +209,7 @@ export default defineNuxtConfig({
     label: "Remix",
     lang: "tsx",
     title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@theme-kit/remix";
+    code: `import { ThemeProvider } from "@themvora/remix";
 
 export default function App() {
   return (
@@ -228,7 +226,7 @@ export default function App() {
     label: "Vanilla JS",
     lang: "ts",
     title: "main.ts",
-    code: `import { createThemeRuntime } from "@theme-kit/core";
+    code: `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -240,7 +238,7 @@ const runtime = createThemeRuntime({
 const viewTransitionSnippet = {
   lang: "ts",
   title: "view-transition.ts",
-  code: `import { createThemeRuntime } from "@theme-kit/core";
+  code: `import { createThemeRuntime } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   transition: {
@@ -297,7 +295,7 @@ const frameworkSnippets: Record<
     label: "React",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider, ThemeScope } from "@theme-kit/react";
+    code: `import { ThemeProvider, ThemeScope } from "@themvora/react";
 
 export function App() {
   return (
@@ -323,7 +321,7 @@ export function App() {
     lang: "tsx",
     title: "app/layout.tsx",
     code: `// app/layout.tsx
-import { ThemeProvider } from "@theme-kit/next";
+import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -341,7 +339,7 @@ export default function RootLayout({ children }) {
     lang: "vue",
     title: "App.vue",
     code: `<script setup>
-import { ThemeProvider, ThemeScope } from "@theme-kit/vue";
+import { ThemeProvider, ThemeScope } from "@themvora/vue";
 </script>
 
 <template>
@@ -366,7 +364,7 @@ import { ThemeProvider, ThemeScope } from "@theme-kit/vue";
     lang: "svelte",
     title: "app.svelte",
     code: `<script>
-  import { ThemeProvider, ThemeScope } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScope } from "@themvora/svelte";
 </script>
 
 <ThemeProvider
@@ -388,7 +386,7 @@ import { ThemeProvider, ThemeScope } from "@theme-kit/vue";
     label: "Solid",
     lang: "tsx",
     title: "App.tsx",
-    code: `import { ThemeProvider, ThemeScope } from "@theme-kit/solid";
+    code: `import { ThemeProvider, ThemeScope } from "@themvora/solid";
 
 export function App() {
   return (
@@ -415,11 +413,11 @@ export function App() {
     title: "app.config.ts",
     code: `// app.config.ts
 import { ApplicationConfig } from "@angular/core";
-import { provideThemeKit } from "@theme-kit/angular";
+import { provideTheme } from "@themvora/angular";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideThemeKit({
+    provideTheme({
       defaultTheme: "light",
       transition: { enabled: true, preset: "smooth" },
     }),
@@ -432,8 +430,8 @@ export const appConfig: ApplicationConfig = {
 
   <!-- Nested scoped region via directive -->
   <div
-    themeKitScope="plum-dark"
-    themeKitScopeTransition="{ enabled: true, duration: 300, easing: 'ease' }"
+    themvoraScope="plum-dark"
+    themvoraScopeTransition="{ enabled: true, duration: 300, easing: 'ease' }"
   >
     <app-widget></app-widget>
   </div>
@@ -443,41 +441,38 @@ export const appConfig: ApplicationConfig = {
     label: "Web Components",
     lang: "html",
     title: "index.html",
-    code: `<!-- Custom themes register as a JSON attribute so they survive server
-     render. Omit the attribute to use the built-in light/dark pair. -->
+    code: `<!-- Both the provider transition and the scope transition are attributes,
+     so nothing needs a script beyond the registration import. A scope inherits
+     the provider's transition unless \`theme-transition\` overrides it; pass
+     "false" to switch the animation off for one scope. -->
 <script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-
-  defineCustomElements();
-  const provider = document.querySelector("theme-kit-provider");
-  provider.setAttribute("default-theme", "light");
-  provider.setAttribute(
-    "transition",
-    JSON.stringify({ enabled: true, preset: "smooth" })
-  );
+  import "@themvora/web";
 </script>
 
-<theme-kit-provider>
+<themvora-provider
+  default-theme="light"
+  transition='{"enabled":true,"preset":"smooth"}'
+>
   <your-app></your-app>
 
   <!-- Nested scoped region -->
-  <theme-kit-scope
+  <themvora-scope
     theme="plum-dark"
     theme-transition='{"enabled":true,"duration":300,"easing":"ease"}'
   >
     <your-widget></your-widget>
-  </theme-kit-scope>
-</theme-kit-provider>`,
+  </themvora-scope>
+</themvora-provider>`,
   },
   tailwind: {
     label: "Tailwind CSS",
     lang: "css",
     title: "globals.css",
     code: `@import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 
 /* Tailwind is a CSS layer — transitions are owned by the runtime
-   (React/Vue/Svelte shell above). Theme Kit exposes transition
+   (React/Vue/Svelte shell above). Themvora exposes transition
    variables so you can animate token-driven utilities. */
 @theme {
   --transition-duration: 300ms;
@@ -491,7 +486,7 @@ export const appConfig: ApplicationConfig = {
     lang: "astro",
     title: "src/pages/index.astro",
     code: `---
-import { ThemeProviderClient } from "@theme-kit/astro/client";
+import { ThemeProviderClient } from "@themvora/astro/client";
 ---
 
 <html>
@@ -513,8 +508,8 @@ import { ThemeProviderClient } from "@theme-kit/astro/client";
     title: "nuxt.config.ts",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     defaultTheme: "light",
     transition: { enabled: true, preset: "smooth" },
   },
@@ -539,7 +534,7 @@ export default defineNuxtConfig({
     label: "Remix",
     lang: "tsx",
     title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@theme-kit/remix";
+    code: `import { ThemeProvider } from "@themvora/remix";
 
 export default function App() {
   return (
@@ -560,7 +555,7 @@ export default function App() {
   createThemeRuntime,
   createScopedThemeBinding,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // createScopedThemeBinding takes the registry positionally; the built-in set
 // (the neutral light/dark pair plus the preset families) is a valid registry,
@@ -603,7 +598,7 @@ export function AnimationGuide() {
         </SectionHeading>
         <Callout className="mb-4" title="Enabled by default">
           <p className="text-sm">
-            Theme Kit ships with{" "}
+            Themvora ships with{" "}
             <code className="mono text-[0.9em]">enabled: true</code>,{" "}
             <code className="mono text-[0.9em]">300ms</code>,{" "}
             <code className="mono text-[0.9em]">cubic-bezier(0.4, 0, 0.2, 1)</code>,
@@ -623,10 +618,10 @@ export function AnimationGuide() {
             {[
               ["React / Next / Svelte / Solid / Remix / Astro", 'transition={{ enabled: true, preset: "smooth" }}'],
               ["Vue / Nuxt", `:transition="{ enabled: true, preset: 'smooth' }"`],
-              ["Angular", `provideThemeKit({ transition: { enabled: true, preset: "smooth" } })`],
-              ["Web Components", `<theme-kit-provider transition='{"enabled":true,"preset":"smooth"}'></theme-kit-provider>`],
+              ["Angular", `provideTheme({ transition: { enabled: true, preset: "smooth" } })`],
+              ["Web Components", `<themvora-provider transition='{"enabled":true,"preset":"smooth"}'></themvora-provider>`],
               ["Vanilla JS", `createThemeRuntime({ transition: { enabled: true, preset: "smooth" } })`],
-              ["Tailwind", `@import "@theme-kit/tailwind"`],
+              ["Tailwind", `@import "@themvora/tailwind"`],
             ].map(([framework, syntax]) => (
               <div key={framework} className="flex flex-col gap-0.5">
                 <span className="text-xs font-medium opacity-60">{framework}</span>
@@ -664,6 +659,42 @@ body {
             Any element that reads them (including the page background above)
             cross-fades automatically on every theme change.
           </p>
+        </div>
+
+        <div className="mt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">
+            Change the configuration after mount
+          </h3>
+          <p className="text-sm opacity-70 leading-relaxed mb-3">
+            The <code className="mono text-xs">transition</code> prop is{" "}
+            <strong className="opacity-100">live</strong>. Changing{" "}
+            <code className="mono text-xs">duration</code>,{" "}
+            <code className="mono text-xs">easing</code>,{" "}
+            <code className="mono text-xs">preset</code>/
+            <code className="mono text-xs">properties</code>,{" "}
+            <code className="mono text-xs">useViewTransition</code> or{" "}
+            <code className="mono text-xs">enabled</code> takes effect on the
+            next theme change — no reload, no provider remount, and the theme
+            that is already on screen is not re-applied.
+          </p>
+          <Callout>
+            <strong>Live configuration</strong>
+            <span className="mx-1 opacity-40">|</span>
+            Set <code className="mono text-[0.9em]">transition={"{false}"}</code>{" "}
+            to make later changes instant: the persistent{" "}
+            <code className="mono text-[0.9em]">:root</code> transition rule is
+            removed, so a stale rule cannot interpolate later variable swaps.
+            Pass a config again to re-enable. Switching themes while a
+            transition is running cancels the in-flight animation first, and{" "}
+            <code className="mono text-[0.9em]">prefers-reduced-motion</code>{" "}
+            plus a one-off{" "}
+            <code className="mono text-[0.9em]">suppressTransition</code> are
+            still respected. An unusable{" "}
+            <code className="mono text-[0.9em]">duration</code>/
+            <code className="mono text-[0.9em]">easing</code> is reported as{" "}
+            <code className="mono text-[0.9em]">TV_CONFIG_OPTION_INVALID</code>{" "}
+            and the previous settings are kept.
+          </Callout>
         </div>
       </section>
 
@@ -740,8 +771,8 @@ body {
           <ol className="list-decimal list-inside mt-2 flex flex-col gap-1">
             <li>
               <strong>Install</strong> the framework package (
-              <code className="mono text-xs">@theme-kit/react</code>,{" "}
-              <code className="mono text-xs">@theme-kit/vue</code>, etc.).
+              <code className="mono text-xs">@themvora/react</code>,{" "}
+              <code className="mono text-xs">@themvora/vue</code>, etc.).
             </li>
             <li>
               <strong>Pick your themes</strong> — omit the{" "}
@@ -767,8 +798,8 @@ body {
             <li>
               <strong>Scope</strong> a nested region with{" "}
               <code className="mono text-xs">ThemeScope</code> (
-              <code className="mono text-xs">themeKitScope</code> in Angular,
-              <code className="mono text-xs">theme-kit-scope</code> in Web
+              <code className="mono text-xs">themvoraScope</code> in Angular,
+              <code className="mono text-xs">themvora-scope</code> in Web
               Components) for independent subtrees.
             </li>
           </ol>
@@ -803,7 +834,7 @@ body {
         </SectionHeading>
 
         <p className="text-sm opacity-70 leading-relaxed mb-4">
-          <strong className="opacity-100">Theme transitions are owned by theme-kit.</strong>{" "}
+          <strong className="opacity-100">Theme transitions are owned by themvora.</strong>{" "}
           The provider&apos;s transition engine (configured via the{" "}
           <code className="mono text-[0.9em]">transition</code> prop on{" "}
           <code className="mono text-[0.9em]">ThemeProvider</code> or{" "}
@@ -820,7 +851,7 @@ body {
           class in Tailwind, or a plain{" "}
           <code className="mono text-[0.9em]">transition: background-color 0.3s</code>{" "}
           in native CSS — that element re-eases the same value{" "}
-          <em>again</em>, on top of theme-kit&apos;s own interpolation. The
+          <em>again</em>, on top of themvora&apos;s own interpolation. The
           result is a double-eased, laggy switch. Leave color transitions to
           the library, in both Tailwind and hand-written CSS.
         </p>
@@ -830,7 +861,7 @@ body {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="rounded-xl border border-border bg-card px-4 py-3.5">
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success/15 text-success text-[11px] font-bold">✓</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success/15 text-foreground text-[11px] font-bold">✓</span>
               <span className="font-semibold text-sm">DO</span>
             </div>
             <ul className="flex flex-col gap-1.5 text-[13px] opacity-80 leading-relaxed">
@@ -874,7 +905,7 @@ body {
                 <code className="mono text-[0.9em]">border-color</code> on{" "}
                 <code className="mono text-[0.9em]">:root</code>,{" "}
                 <code className="mono text-[0.9em]">*</code>, or any themed
-                element — theme-kit handles that interpolation for you.
+                element — themvora handles that interpolation for you.
               </li>
             </ul>
           </div>
@@ -890,7 +921,7 @@ body {
         </SectionHeading>
         <p className="text-sm leading-relaxed opacity-80 mt-3">
           This table is a summary. The authoritative, generated reference is{" "}
-          <Link href="/api-reference/core" className="underline">@theme-kit/core API reference</Link>.
+          <Link href="/api-reference/core" className="underline">@themvora/core API reference</Link>.
         </p>
         <div className="flex flex-col gap-4 mt-4">
           <div className="rounded-xl border border-border overflow-hidden">
@@ -967,12 +998,12 @@ body {
                   },
                   {
                     name: "createAnimationsPlugin",
-                    module: "@theme-kit/core",
+                    module: "@themvora/core",
                     desc: "Official plugin — attaches a CSS transition to <html> (options.transition) via onBeforeThemeChange. A lightweight, manual alternative to the built-in runtime pipeline.",
                   },
                   {
                     name: "runtime.store.set(theme, { suppressTransition: true })",
-                    module: "@theme-kit/core",
+                    module: "@themvora/core",
                     desc: "The runtime-level toggle. Transitions are configured once at runtime creation; this per-update option forces an instant, non-animated apply for a single switch.",
                   },
                 ].map((item) => (

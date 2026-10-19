@@ -4,7 +4,7 @@ import {
   type ResolveInitialThemeOptions,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 /**
  * Resolves the initial theme state server-side from the request's theme

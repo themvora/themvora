@@ -79,21 +79,21 @@ export default function SunriseSunsetPage() {
             </svg>
           }
           title="Sunrise &amp; Sunset"
-          subtitle="@theme-kit/core · every framework"
+          subtitle="@themvora/core · every framework"
           description={
             <>
-              Follow the sun: Theme Kit switches the app automatically at
+              Follow the sun: Themvora switches the app automatically at
               sunrise and sunset.{" "}
               <strong>No configuration required</strong> —{" "}
               <code className="mono text-[0.9em]">lightTheme</code> /{" "}
               <code className="mono text-[0.9em]">darkTheme</code> adapt to
               whichever theme family the visitor has selected (falling back to
-              Theme Kit&apos;s neutral themes), and coordinates are
+              Themvora&apos;s neutral themes), and coordinates are
               auto-detected from each visitor&apos;s browser timezone — so the
               schedule works for every user anywhere in the world. Pass any of
               them explicitly when you want to pin a choice. The engine lives
               entirely in{" "}
-              <code className="mono text-[0.9em]">@theme-kit/core</code>{" "}
+              <code className="mono text-[0.9em]">@themvora/core</code>{" "}
               (NOAA-style solar math); every framework exposes it through a
               native reactive accessor —{" "}
               <code className="mono text-[0.9em]">useThemeSchedule()</code>{" "}

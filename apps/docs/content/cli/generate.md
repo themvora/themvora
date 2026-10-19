@@ -1,33 +1,54 @@
-# `theme-kit generate`
+# `themvora generate`
 
 ## Prerequisites
 - Node.js 22+
-- Project with @theme-kit/cli installed or npx access
+- Project with @themvora/cli installed or npx access
 
-Generate a complete theme from a single **seed color**. By default it derives
-a light + dark pair; `--mode light|dark` writes a single theme.
+Generate a complete theme from one of three sources: a **seed color**, a
+canonical **preset**, or a brand-inspired **brand** recipe. By default it
+derives a light + dark pair; `--mode light|dark` writes a single theme.
 
 <!-- cli-command:generated:start -->
-## Synopsis
-
-Derives a complete light + dark pair (or a single theme) from one seed color.
+## Synopsis — Generate a theme from a seed, preset, or brand
 
 ```text
 Usage:
-  theme-kit generate [options]
+  themvora generate [options]
 ```
 
-## Options
+### Options
 
 | Option | Description | Default |
 | ------ | ----------- | ------- |
-| `--seed <color>` | Source hex color (#rrggbb) | `#6366f1` |
-| `--family <name>` | Family name for the theme name | `"default"` |
-| `--mode <mode>` | light \| dark \| both | `both` |
-| `--code` | Also generate a tokens.code syntax palette (opt-in) | — |
-| `--output <file>` | Write JSON to a file instead of stdout | — |
+| `-s, --seed <color>` | Source hex color (#rrggbb). | `#6366f1` |
+| `--preset <id>` | Generate from a canonical preset. Run `themvora list presets` for the available values. | — |
+| `--brand <id>` | Generate from a brand-inspired recipe. Run `themvora list brands` for the available values. | — |
+| `-f, --family <name>` | Family name for the theme name. | `default` |
+| `-m, --mode <mode>` | Which mode(s) to emit. One of: `light`, `dark`, `both`. | `both` |
+| `--style <name>` | Visual language. Seed generation only. Run `themvora list styles` for the available values. | — |
+| `--contrast <level>` | Contrast contract to solve for. One of: `AA`. | `AA` |
+| `--code` | Also generate a tokens.code syntax palette. Seed generation only. | — |
+| `-o, --output <file>` | Write JSON to a file instead of stdout. | — |
+| `--dry-run` | Print what would be written without writing it. | — |
 
-> Generated from `packages/cli/src/cli.ts` — the same text `theme-kit generate --help` prints.
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | success |
+| `2` | usage/argument error |
+| `1` | command/runtime error |
+
+### Examples
+
+```bash
+themvora generate --seed "#6366f1"
+themvora generate --preset mint
+themvora generate --brand apple --output theme.json
+themvora generate --seed "#6366f1" --style editorial --mode light
+```
+
+> Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders.
 <!-- cli-command:generated:end -->
 
 > The CLI requires a hex seed (`#rrggbb`), e.g. `#6366f1`. In bash, zsh, and
@@ -35,6 +56,82 @@ Usage:
 > terminal: `--seed "#6366f1"`. Package managers (npm, pnpm, yarn) also run
 > `package.json` scripts through a shell, so keep the quotes there too — the
 > quotes are a shell concern, not part of the flag itself.
+
+## Three sources
+
+Exactly one source may be given per invocation. They are mutually exclusive, and
+supplying two is a usage error (`2`) rather than a silent winner.
+
+| Source | Flag | What it does |
+| ------ | ---- | ------------ |
+| Seed | `--seed <color>` (or a bare positional) | Generates a new palette from one colour. |
+| Preset | `--preset <id>` | Emits a curated preset, exactly as shipped. |
+| Brand | `--brand <id>` | Emits a brand-inspired recipe, exactly as shipped. |
+
+With no source at all, `generate` keeps its original behaviour: it derives from
+the default seed `#6366f1`.
+
+```bash
+themvora generate --seed "#6366f1"
+themvora generate --preset mint
+themvora generate --brand apple
+```
+
+Run `themvora list presets` / `themvora list brands` to see the identifiers.
+
+### Presets and brands are not re-derived
+
+`--preset` and `--brand` read the **resolved** theme from the canonical catalog,
+so the output is byte-for-byte the preset the documentation shows. The CLI never
+re-runs a recipe, which is why a preset can never drift from its docs page.
+
+```bash
+themvora generate --preset mint --mode light
+```
+
+```json
+{
+  "name": "mint-light",
+  "meta": {
+    "family": "mint",
+    "mode": "light",
+    "label": "Mint Light",
+    "generation": { "algorithm": "semantic-v2", "seed": "#059669", "style": "soft" }
+  }
+}
+```
+
+### Seed-only options
+
+A recipe pins its own family, style and curated tokens. Combining `--preset` or
+`--brand` with `--style`, `--code`, or `--family` is rejected with an
+explanation rather than silently ignored — the options below apply to seed
+generation only.
+
+### Unknown values
+
+An unknown id exits `2` and names the registry to consult. A near miss is
+corrected:
+
+```bash
+$ themvora generate --brand appple
+Usage: themvora generate [options]
+unknown brand "appple" — did you mean "apple"? — run "themvora list brands" to see the available brands
+```
+
+## Writing to a file
+
+`--output <file>` writes the JSON to a file. The confirmation line goes to
+**stderr**, so stdout stays free for a payload and the command can be piped.
+
+`--dry-run` performs no write at all: it reports what would happen on stderr and
+still prints the payload to stdout, so the result is inspectable without
+touching the filesystem.
+
+```bash
+themvora generate --preset mint --output theme.json --dry-run
+# stderr: would write theme.json (2894 bytes, preset "mint" (style soft))
+```
 ## What the generator derives
 
 Given a seed, `generate` (via `generateTheme`) derives the full semantic color
@@ -42,12 +139,12 @@ set: `background`, `foreground`, `card`, `popover`, `primary`,
 `primaryForeground`, `secondary`, `muted`, `accent`, destructive (with their
 foregrounds), `border`, `input`, `ring`, plus a `radius.lg` scale. The same
 model that builds the default presets is exposed here, so a generated family
-fits the rest of Theme Kit.
+fits the rest of Themvora.
 
 ## Light + dark pair (default)
 
 ```bash
-theme-kit generate --seed "#6366f1" --family indigo --output theme.json
+themvora generate --seed "#6366f1" --family indigo --output theme.json
 ```
 
 Writes:
@@ -134,7 +231,7 @@ Writes:
 ## A single mode
 
 ```bash
-theme-kit generate --seed "#6366f1" --family indigo --mode light \
+themvora generate --seed "#6366f1" --family indigo --mode light \
   --output indigo-light.json
 ```
 
@@ -146,7 +243,7 @@ generate a `tokens.code` block — a cohesive set of `--theme-code-*` variables
 hue, with distinguishable light/dark variants:
 
 ```bash
-theme-kit generate --seed "#6366f1" --family indigo --code \
+themvora generate --seed "#6366f1" --family indigo --code \
   --output indigo.json
 ```
 
@@ -170,7 +267,7 @@ Without `--code` no `code` block is emitted, so themes stay lean.
 ## Print to stdout
 
 ```bash
-theme-kit generate --seed "#10b981" --family mint
+themvora generate --seed "#10b981" --family mint
 ```
 
 ## Exit codes
@@ -178,7 +275,8 @@ theme-kit generate --seed "#10b981" --family mint
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | Generated (file written or printed). |
-| `2`  | Invalid `--seed` or `--mode`. |
+| `1`  | A command or runtime error. |
+| `2`  | Invalid source combination, unknown preset/brand, or invalid `--seed`/`--mode`/`--style`. |
 
 ## Next Steps
 - [Validate generated themes](./validate)
@@ -187,7 +285,7 @@ theme-kit generate --seed "#10b981" --family mint
 - [CLI reference](./reference)
 
 ## Related
-- [Theme Kit Quick Start](../quickstart)
+- [Themvora Quick Start](../quickstart)
 - [Custom Themes](../../custom-themes)
 - [API Reference](../../api-reference)
 

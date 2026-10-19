@@ -1,12 +1,12 @@
-## @theme-kit/bootstrap/angular
+## @themvora/bootstrap/angular
 Angular injection helper for the Bootstrap adapter
-(`@theme-kit/bootstrap/angular`).
+(`@themvora/bootstrap/angular`).
 
 `injectBootstrapTheme(runtime, options?)` registers the Bootstrap adapter on
-an explicitly provided Theme Kit runtime and unregisters it when the current
+an explicitly provided Themvora runtime and unregisters it when the current
 injection context is destroyed.
 
-> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -19,10 +19,10 @@ theme changes.
 Call in your component (or root) constructor or field initializer — the
 function uses `DestroyRef` to unregister the adapter, so it must run in an
 injection context (the runtime usually comes from
-`injectThemeRuntime()` in `@theme-kit/angular`):
+`injectThemeRuntime()` in `@themvora/angular`):
 
 ```ts
-import { injectBootstrapTheme } from "@theme-kit/bootstrap/angular";
+import { injectBootstrapTheme } from "@themvora/bootstrap/angular";
 
 export class AppComponent {
   adapter = injectBootstrapTheme(runtime);
@@ -33,7 +33,7 @@ export class AppComponent {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to register the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to register the adapter on. |
 | `options` | `InjectAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

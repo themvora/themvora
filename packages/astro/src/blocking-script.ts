@@ -4,7 +4,7 @@ import {
   themeToCSSVariables,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 /**
  * CSS variables of the fallback theme family, used by the pre-paint script
@@ -64,7 +64,7 @@ export interface BlockingScriptOptions {
    * The script validates the `theme-family` cookie against this list, so a
    * stale cookie — one written before the app changed its family set — cannot
    * survive into `data-theme-selection-family` or a
-   * `data-tk-readout="family"` element. Without it the browser keeps naming a
+   * `data-tv-readout="family"` element. Without it the browser keeps naming a
    * family the CSS map has no variables for while the theme resolves to
    * `__default-*`, and the server (which normalises through
    * `resolveSelection`) disagrees with it about the same page.
@@ -209,12 +209,12 @@ export function createBlockingScript(
 }
 
 /**
- * Re-exported from `@theme-kit/core` — the CSS-map and stylesheet builders live
+ * Re-exported from `@themvora/core` — the CSS-map and stylesheet builders live
  * there, not here, so that every surface that needs them shares one
  * implementation.
  *
  * @remarks
- * `themeKit()` and `provider.astro` both emit the `"system"` stylesheet, and a
+ * `themvora()` and `provider.astro` both emit the `"system"` stylesheet, and a
  * hand-rolled `<head>` needs the same primitives. Keeping a second copy in this
  * package was the drift the shared applier exists to prevent: the copies agree
  * today, and the only symptom of them diverging would be a wrong first paint on
@@ -225,7 +225,7 @@ export function createBlockingScript(
  * differently from the `theme-` default. Re-exporting core's version is
  * backward-compatible — the second parameter is optional — and restores it.
  *
- * The import path is unchanged (`@theme-kit/astro`), so this is a pure
+ * The import path is unchanged (`@themvora/astro`), so this is a pure
  * de-duplication with no API change.
  *
  * @see {@link createBlockingScript}
@@ -235,4 +235,4 @@ export {
   createThemeReadoutScript,
   darkModeCSSTemplate,
   systemModeCSSTemplate,
-} from "@theme-kit/core";
+} from "@themvora/core";

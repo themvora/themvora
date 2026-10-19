@@ -48,10 +48,10 @@ function skip(msg) {
   process.exit(0);
 }
 
-// --- Locate headless Chromium (Playwright cache or THEME_KIT_CHROME) --------
+// --- Locate headless Chromium (Playwright cache or THEMVORA_CHROME) --------
 function findChrome() {
-  if (process.env.THEME_KIT_CHROME && existsSync(process.env.THEME_KIT_CHROME)) {
-    return process.env.THEME_KIT_CHROME;
+  if (process.env.THEMVORA_CHROME && existsSync(process.env.THEMVORA_CHROME)) {
+    return process.env.THEMVORA_CHROME;
   }
   const pwRoot = process.env.LOCALAPPDATA
     ? join(process.env.LOCALAPPDATA, "ms-playwright")
@@ -93,7 +93,7 @@ function findWs() {
 
 const chrome = findChrome();
 const wsPath = findWs();
-if (!chrome) skip("headless Chromium not found (set THEME_KIT_CHROME or install Playwright browsers)");
+if (!chrome) skip("headless Chromium not found (set THEMVORA_CHROME or install Playwright browsers)");
 if (!wsPath) skip("the `ws` package is not installed (needed for the CDP transport)");
 
 const { default: WebSocket } = await import(`file://${wsPath.replaceAll("\\", "/")}/index.js`);
@@ -181,7 +181,7 @@ await waitForServer();
 
 // Detached Chrome: --user-data-dir makes it write DevToolsActivePort (host
 // port on line 1) — the reliable way to learn the ephemeral CDP endpoint.
-const profileDir = join(os.tmpdir(), `tk-audit-h-${process.pid}`);
+const profileDir = join(os.tmpdir(), `tv-audit-h-${process.pid}`);
 const child = spawn(
   chrome,
   ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profileDir}`, "--no-first-run", "--no-default-browser-check", "about:blank"],
@@ -299,8 +299,8 @@ for (const route of allRoutes) {
     });
     const text = String(result.value ?? "");
     const slug = apiSlug(route);
-    if (!text.includes(`@theme-kit/${slug}`)) {
-      fail(route, `API page does not mention its package (@theme-kit/${slug})`);
+    if (!text.includes(`@themvora/${slug}`)) {
+      fail(route, `API page does not mention its package (@themvora/${slug})`);
     }
     if (!text.includes("Related docs")) {
       fail(route, 'generated "Related docs" capability section missing');

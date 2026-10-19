@@ -1,14 +1,14 @@
 /**
  * Discovery fixture.
  *
- * Lives inside this package on purpose: `loadThemeKitConfig` resolves Vite
+ * Lives inside this package on purpose: `loadThemvoraConfig` resolves Vite
  * through whichever framework hosts it, and from here `astro` — and therefore
  * Vite — is reachable by walking up to `packages/astro/node_modules`. A fixture
  * in a temp directory outside the workspace would have no `node_modules` to walk
  * to, and the test would be measuring the resolver's fallback rather than the
  * integration's behaviour.
  */
-import { defineTheme, defineThemeKitConfig } from "@theme-kit/core";
+import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
   defineTheme({
@@ -23,7 +23,7 @@ const themes = [
   }),
 ];
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "fixture-dark",
   initialMode: "system",

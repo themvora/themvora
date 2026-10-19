@@ -5,7 +5,7 @@ import {
 } from "../../../components/og/card";
 import { libraries } from "../../../lib/libraries";
 
-export const alt = "Theme Kit library adapter";
+export const alt = "Themvora library adapter";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
@@ -19,7 +19,7 @@ export default async function OpengraphImage({
 
   return renderOgCard({
     eyebrow: "Library adapter",
-    title: lib?.name ?? "Theme Kit",
+    title: lib?.name ?? "Themvora",
     description: lib?.tagline,
   });
 }

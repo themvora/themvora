@@ -65,7 +65,7 @@ function registerCSSProperty(
   let node = propertyRegistrationNodes.get(target);
   if (!node) {
     node = document.createElement("style");
-    node.setAttribute("data-theme-kit-property-registration", "");
+    node.setAttribute("data-themvora-property-registration", "");
     document.head.appendChild(node);
     propertyRegistrationNodes.set(target, node);
   }
@@ -173,7 +173,7 @@ export function applyThemeTransition(
     let node = transitionNodes.get(target);
     if (!node) {
       node = document.createElement("style");
-      node.setAttribute("data-theme-kit-transition", "");
+      node.setAttribute("data-themvora-transition", "");
       document.head.appendChild(node);
       transitionNodes.set(target, node);
     }

@@ -195,7 +195,7 @@ examples, and TypeScript types must use the same terms ("theme family",
 
 ```text
 ┌─────────────────────────────────────────┐
-│ Theme Kit Release Validation             │
+│ Themvora Release Validation             │
 ├─────────────────────────────────────────┤
 │ exports              ✅                  │
 │ subpaths             ✅                  │

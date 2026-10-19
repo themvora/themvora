@@ -23,7 +23,7 @@ function vars(entries: Record<string, string>) {
 beforeEach(() => {
   document.documentElement.style.cssText = "";
   document.body.innerHTML = "";
-  document.querySelectorAll('style[data-theme-kit-transition]').forEach((n) => n.remove());
+  document.querySelectorAll('style[data-themvora-transition]').forEach((n) => n.remove());
   cancelThemeAnimation(document.documentElement);
 });
 
@@ -256,7 +256,7 @@ describe("Animation Coordinator", () => {
     const el = document.getElementById("self")!;
     // While the animation runs, the element's own color transition is muted so
     // it can't double-ease the inherited theme-colour interpolation.
-    expect(target.hasAttribute("data-theme-kit-animating")).toBe(true);
+    expect(target.hasAttribute("data-themvora-animating")).toBe(true);
     expect(getComputedStyle(el).transitionDuration).toBe("0s");
 
     await flushFrames();
@@ -266,7 +266,7 @@ describe("Animation Coordinator", () => {
     // (inline untouched, suppression attribute cleared so the rule no longer
     // applies).
     await new Promise((r) => setTimeout(r, 20));
-    expect(target.hasAttribute("data-theme-kit-animating")).toBe(false);
+    expect(target.hasAttribute("data-themvora-animating")).toBe(false);
     expect(el.getAttribute("style")).toContain("150ms");
   });
 

@@ -9,7 +9,7 @@ export default function NotFound() {
 
       <div className="relative text-center fade-up">
         <div
-          className="mono text-[7rem] sm:text-[10rem] leading-none font-black select-none gradient-text"
+          className="mono text-[7rem] sm:text-[10rem] leading-none font-black select-none display-accent"
           aria-hidden
         >
           404
@@ -19,7 +19,7 @@ export default function NotFound() {
         </h1>
         <p className="opacity-70 max-w-md mx-auto leading-relaxed mb-8">
           This page doesn&apos;t exist — maybe it was moved, renamed, or never
-          registered in the theme-kit registry.
+          registered in the themvora registry.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link href="/" className="btn btn-primary">

@@ -21,7 +21,7 @@ export function AdapterStory() {
           Bring your existing UI system
         </h2>
         <p className="opacity-70 max-w-2xl">
-          Theme Kit doesn&apos;t replace your component library. It gives your
+          Themvora doesn&apos;t replace your component library. It gives your
           component library a theme runtime. Two adapter classes cover the
           ecosystem.
         </p>

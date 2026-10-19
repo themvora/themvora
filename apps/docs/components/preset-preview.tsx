@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { themeToCSSVariables, type ThemeDefinition } from "@theme-kit/core";
+import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { Select } from "./ui/select";
 import { CopyButton } from "./ui/copy-button";
 import { CodeBlock } from "./code-block";
 import { highlightCode } from "../lib/highlight";
-import { c, colorsOf, contrastRatio } from "../lib/contrast";
+import { c, colorsOf } from "../lib/contrast";
+import { ContrastPanel } from "./preset-catalog";
 import {
   type PresetFamilyGroup,
   FrameworkSelector,
@@ -51,7 +52,7 @@ function PreviewedVariables({ theme }: { theme: ThemeDefinition }) {
       ext: "css",
     },
     ts: {
-      code: `import { defineTheme } from "@theme-kit/core";\n\nexport const ${identifierFor(
+      code: `import { defineTheme } from "@themvora/core";\n\nexport const ${identifierFor(
         theme.name,
       )} = defineTheme(${json});\n`,
       lang: "ts",
@@ -470,100 +471,13 @@ export function TokenDiffTable({ diffs }: { diffs: TokenDiff[] }) {
   );
 }
 
-function Badge({ pass, label }: { pass: boolean; label: string }) {
-  return (
-    <span
-      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-        pass
-          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          : "bg-red-500/10 text-red-600 dark:text-red-400"
-      }`}
-    >
-      {pass ? "PASS" : "FAIL"} {label}
-    </span>
-  );
-}
-
-/**
- * Measured contrast for specific foreground/background pairs, replacing
- * blanket "accessible" badges with actual numbers.
- */
-export function ContrastEvidence({ theme }: { theme: ThemeDefinition }) {
-  const colors = colorsOf(theme);
-  const pairs: [string, string, string][] = [
-    ["foreground", "background", "Body text on background"],
-    ["primaryForeground", "primary", "Primary button label"],
-    ["mutedForeground", "muted", "Muted text on muted surface"],
-    ["destructiveForeground", "destructive", "Destructive button label"],
-  ];
-  const rows = pairs
-    .map(([fgKey, bgKey, label]) => {
-      const fgV = colors[fgKey];
-      const bgV = colors[bgKey];
-      if (!fgV || !bgV) return null;
-      const ratio = contrastRatio(fgV, bgV);
-      if (!ratio) return null;
-      return { fgKey, bgKey, label, ratio, fgV, bgV };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border border-border overflow-hidden">
-      <div className="px-4 py-2 border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider opacity-60">
-        Measured contrast · WCAG relative luminance
-      </div>
-      <div className="divide-y divide-border">
-        {rows.map((row) => {
-          const passesAA = row.ratio >= 4.5;
-          const passesAALarge = row.ratio >= 3;
-          return (
-            <div
-              key={row.label}
-              className="px-4 py-2.5 flex flex-wrap items-center gap-3 text-sm"
-            >
-              <span className="inline-flex items-center gap-1.5 shrink-0">
-                <span
-                  className="w-4 h-4 rounded border border-black/10"
-                  style={{ background: row.fgV }}
-                  aria-hidden
-                />
-                on
-                <span
-                  className="w-4 h-4 rounded border border-black/10"
-                  style={{ background: row.bgV }}
-                  aria-hidden
-                />
-              </span>
-              <code className="mono text-[0.8em] opacity-60 shrink-0">
-                {row.fgKey}/{row.bgKey}
-              </code>
-              <span className="text-xs opacity-70 flex-1 min-w-0">
-                {row.label}
-              </span>
-              <span className="mono text-xs font-semibold shrink-0">
-                {row.ratio.toFixed(2)}:1
-              </span>
-              <span className="flex gap-1 shrink-0">
-                <Badge pass={passesAA} label="AA" />
-                <Badge pass={passesAALarge} label="AA Large" />
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /**
  * Framework-aware setup snippet for the previewed preset.
  *
  * Sits directly under the preview card. The framework picker defaults to
  * React, and the snippet re-renders for both the selected framework and the
  * previewed family/mode — every snippet uses the framework package's own
- * shipped API (`ThemeProvider` / `provideThemeKit` / `themeKit()` / …)
+ * shipped API (`ThemeProvider` / `provideTheme` / `themvora()` / …)
  * rather than dropping down to `createThemeRuntime`.
  */
 function PresetFrameworkSetup({
@@ -716,7 +630,7 @@ export function PresetComparison({
         </div>
       ) : null}
 
-      {theme ? <ContrastEvidence theme={theme} /> : null}
+      {theme ? <ContrastPanel theme={theme} /> : null}
 
       {/* The variables, the definition and the JSON for the preset you picked —
           everything needed to actually use it, rather than only look at it. */}

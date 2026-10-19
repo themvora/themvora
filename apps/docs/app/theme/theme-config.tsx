@@ -1,4 +1,4 @@
-import { defineTheme, getBuiltInThemes } from "@theme-kit/core";
+import { defineTheme, getBuiltInThemes } from "@themvora/core";
 
 interface scrollThumbProps {
   size?: number;
@@ -6,13 +6,13 @@ interface scrollThumbProps {
   className?: string;
 }
 
-export const themeKit = [
+export const themvora = [
   defineTheme({
-    name: "theme-kit-default-light",
+    name: "themvora-default-light",
     meta: {
-      family: "theme-kit",
+      family: "themvora",
       mode: "light",
-      label: "Theme Kit Light",
+      label: "Themvora Light",
       order: 10,
       tags: ["docs-site"],
     },
@@ -77,11 +77,11 @@ export const themeKit = [
     },
   }),
   defineTheme({
-    name: "theme-kit-default-dark",
+    name: "themvora-default-dark",
     meta: {
-      family: "theme-kit",
+      family: "themvora",
       mode: "dark",
-      label: "Theme Kit Dark",
+      label: "Themvora Dark",
       order: 10,
       tags: ["docs-site"],
     },
@@ -162,7 +162,14 @@ export const labThemes = [
         foreground: "#1c1917",
         card: "#ffffff",
         cardForeground: "#1c1917",
+        popover: "#ffffff",
+        popoverForeground: "#1c1917",
         muted: "#f5e6d3",
+        mutedForeground: "#6b5d4d",
+        secondary: "#fbeedd",
+        secondaryForeground: "#7c2d12",
+        accent: "#fed7aa",
+        accentForeground: "#7c2d12",
         primary: "#ea580c",
         primaryForeground: "#ffffff",
         destructive: "#dc2626",
@@ -170,6 +177,8 @@ export const labThemes = [
         success: "#16a34a",
         successForeground: "#ffffff",
         border: "#e7d5bf",
+        input: "#e7d5bf",
+        ring: "#ea580c",
       },
       radius: { lg: "14px" },
       shadows: { lg: "0 10px 30px rgba(28,25,23,0.10)" },
@@ -189,7 +198,14 @@ export const labThemes = [
         foreground: "#fafaf9",
         card: "#292524",
         cardForeground: "#fafaf9",
+        popover: "#292524",
+        popoverForeground: "#fafaf9",
         muted: "#44403c",
+        mutedForeground: "#d6d3d1",
+        secondary: "#3b3532",
+        secondaryForeground: "#fafaf9",
+        accent: "#7c2d12",
+        accentForeground: "#fed7aa",
         primary: "#fb923c",
         primaryForeground: "#1c1917",
         destructive: "#f87171",
@@ -197,6 +213,8 @@ export const labThemes = [
         success: "#4ade80",
         successForeground: "#1c1917",
         border: "#44403c",
+        input: "#44403c",
+        ring: "#fb923c",
       },
       radius: { lg: "14px" },
       shadows: { lg: "0 10px 30px rgba(0,0,0,0.45)" },
@@ -277,6 +295,8 @@ export const scopeThemes = [
   }),
 ];
 
+export const DEFAULT_THEME = "themvora-default-light";
+
 export const scrollThumbIcon = ({
   size = 24,
   color = "currentColor",
@@ -295,7 +315,7 @@ export const scrollThumbIcon = ({
         <path
           d="M12 19V5M12 5L5 12M12 5L19 12"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -314,7 +334,7 @@ export const scrollThumbIcon = ({
         <path
           d="M12 5V19M12 19L19 12M12 19L5 12"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -334,11 +354,11 @@ export const themeScrollbarColor = {
 
 /**
  * The full theme set the site ships: built-in neutral/preset/brand/
- * accessibility themes plus the docs-site theme-kit, lab, and scope families.
+ * accessibility themes plus the docs-site themvora, lab, and scope families.
  */
 export const themes = [
   ...getBuiltInThemes(),
-  ...themeKit,
+  ...themvora,
   ...labThemes,
   ...scopeThemes,
 ];
@@ -348,14 +368,23 @@ const scrollThumbIcons = scrollThumbIcon({ size: 24 });
 /** ThemeScrollbar options **/
 export const scrollbarConfig = {
   behavior: { autoHide: true },
+  /*
+   * The on-page TOC rail scrolls silently: native bars are hidden globally by the
+   * bootstrap, and the overlay strip is excluded here.
+   *
+   * Excluding the rail is the only place this can be done. The overlay is a
+   * `position: fixed` node appended to `<body>` — not a pseudo-element of the
+   * scrollport — so no amount of CSS on the rail itself can suppress it.
+   */
+  scope: { exclude: ["[data-toc-rail]"] },
   icons: {
     up: scrollThumbIcons.arrowUpIcon,
     down: scrollThumbIcons.arrowDownIcon,
   },
-  thickness: 8.5,
-  offset: 2,
   appearance: {
     ...themeScrollbarColor,
+    thickness: 8.5,
+    offset: 2,
     animationDuration: 130,
   },
 };
@@ -366,7 +395,7 @@ export const scrollbarConfig = {
  * their own browser timezone, so the schedule is correct anywhere in the
  * world. `lightTheme`/`darkTheme` are omitted on purpose — the schedule
  * auto-adapts to whichever theme family the visitor has selected (e.g. Plum →
- * plum-light/plum-dark) and falls back to Theme Kit's neutral light/dark
+ * plum-light/plum-dark) and falls back to Themvora's neutral light/dark
  * themes. Flip `enabled` to `true` (or call `schedule.enable()` from the
  * playground) to start switching at each visitor's local sunrise/sunset.
  */

@@ -1,5 +1,5 @@
 /**
- * Theme Kit Nuxt integration.
+ * Themvora Nuxt integration.
  *
  * The Nuxt module wires auto-imported `useTheme*` composables, the
  * `ThemeScope` / `ThemeScrollbar` / `ThemeInspector` components, and the
@@ -22,11 +22,11 @@ import type {
   ThemeMode,
   ThemeScheduleOptions,
   ThemeTransitionOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 /**
- * Configuration options for the `@theme-kit/nuxt` module, set under the
- * `themeKit` key in `nuxt.config.ts`. The module installs an app-wide theme
+ * Configuration options for the `@themvora/nuxt` module, set under the
+ * `themvora` key in `nuxt.config.ts`. The module installs an app-wide theme
  * runtime, registers the theme components and composables, and wires the
  * SSR-first cookie contract so the browser paints already themed.
  *
@@ -34,7 +34,7 @@ import type {
  * ```ts
  * // nuxt.config.ts
  * export default defineNuxtConfig({
- *   themeKit: {
+ *   themvora: {
  *     defaultTheme: "light",
  *     initialMode: "system",
  *     scrollbar: true,
@@ -57,12 +57,12 @@ export interface ModuleOptions {
   /**
    * Theme transitions. `false` disables them; `true` (or an options object)
    * enables smooth cross-fades on theme changes through the shared
-   * `@theme-kit/core` transition engine.
+   * `@themvora/core` transition engine.
    */
   transition?: boolean | ThemeTransitionOptions;
   /**
    * Custom scrollbar bootstrap. `true` (or options) emits the pre-paint CSS
-   * and the `tk-scrollbar` class on `<html>` so the native scrollbar is
+   * and the `tv-scrollbar` class on `<html>` so the native scrollbar is
    * hidden from first paint; mount `<ThemeScrollbar />` to create the
    * overlay engine (shared with every framework).
    */
@@ -81,8 +81,8 @@ export interface ModuleOptions {
 
 const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   meta: {
-    name: "@theme-kit/nuxt",
-    configKey: "themeKit",
+    name: "@themvora/nuxt",
+    configKey: "themvora",
     compatibility: { nuxt: "^3.10.0" },
   },
   defaults: {
@@ -98,7 +98,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
 
-    nuxt.options.runtimeConfig.public.themeKit = {
+    nuxt.options.runtimeConfig.public.themvora = {
       themes: options.themes ?? undefined,
       defaultTheme: options.defaultTheme ?? undefined,
       initialMode: options.initialMode ?? "system",
@@ -115,10 +115,10 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
     addPlugin(resolver.resolve("./runtime/plugin"));
 
     nuxt.hook("prepare:types", () => {
-      const { themes } = nuxt.options.runtimeConfig.public.themeKit as { themes?: ThemeDefinition[] };
+      const { themes } = nuxt.options.runtimeConfig.public.themvora as { themes?: ThemeDefinition[] };
       if (themes && themes.length > 0) {
         const themeNames = themes.map((t: ThemeDefinition) => `"${t.name}"`).join(" | ");
-        nuxt.options.alias["#theme-kit-themes"] = `{ name: ${themeNames} }`;
+        nuxt.options.alias["#themvora-themes"] = `{ name: ${themeNames} }`;
       }
     });
   },
@@ -144,15 +144,15 @@ export {
   useThemeLifecycle,
   useThemePacks,
   useThemeSchedule,
-} from "@theme-kit/vue";
-export type { ThemeProviderProps, ThemeScrollbarProps, ThemeScopeProps, ThemeInspectorProps } from "@theme-kit/vue";
-export * from "@theme-kit/core";
+} from "@themvora/vue";
+export type { ThemeProviderProps, ThemeScrollbarProps, ThemeScopeProps, ThemeInspectorProps } from "@themvora/vue";
+export * from "@themvora/core";
 
 export {
   computeFingerprint,
   resolveThemeFromCookies,
   createNuxtThemeBootstrapScript,
-  themeKitCookieNames,
+  themvoraCookieNames,
   parseCookieHeader,
 } from "./server";
 export type {

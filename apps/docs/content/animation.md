@@ -1,6 +1,6 @@
 # Animation & Transition
 
-Theme Kit provides a first-class transition system that animates every CSS property when themes change. Use the animations plugin for zero-config CSS transitions, or the View Transitions API for page-level animations.
+Themvora provides a first-class transition system that animates every CSS property when themes change. Use the animations plugin for zero-config CSS transitions, or the View Transitions API for page-level animations.
 
 > **Transitions are enabled by default.** The runtime ships with
 > `DEFAULT_THEME_TRANSITION` — `enabled: true`, `300ms`,
@@ -12,7 +12,7 @@ Theme Kit provides a first-class transition system that animates every CSS prope
 ## Quick start
 
 ```ts
-import { createThemeRuntime, createAnimationsPlugin } from "@theme-kit/core";
+import { createThemeRuntime, createAnimationsPlugin } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   plugins: [
@@ -91,8 +91,8 @@ animate:
 ```
 
 ```ts
-// Angular — provideThemeKit options
-provideThemeKit({
+// Angular — provideTheme options
+provideTheme({
   transition: { enabled: true, properties: ["color", "background-color"] },
 });
 ```
@@ -145,7 +145,7 @@ When no `preset` or `properties` is given, the `"smooth"` preset list is used
 The `createAnimationsPlugin` function creates a plugin that applies CSS transitions automatically before each theme change and removes them on destroy.
 
 ```ts
-import { createAnimationsPlugin } from "@theme-kit/core";
+import { createAnimationsPlugin } from "@themvora/core";
 
 const plugin = createAnimationsPlugin({
   transition: {
@@ -180,6 +180,47 @@ For a single switch, pass `suppressTransition` to the store set:
 runtime.store.set(theme, { suppressTransition: true });
 ```
 
+`suppressTransition` still overrides the configured transition for that one
+update, whatever the live configuration says.
+
+## Live transition configuration
+
+The `transition` prop is **live**: change it after mount and the next theme
+change uses the new options — no reload, no provider remount, and the current
+theme is not re-applied. Changing `duration`, `easing`, `preset`/`properties`,
+`useViewTransition` or `enabled` all take effect on subsequent transitions.
+
+```tsx
+// Renders with an instant switch…
+<ThemeProvider transition={false}>
+  <App />
+</ThemeProvider>
+
+// …then animates the next change, without a remount.
+<ThemeProvider transition={{ duration: 600, easing: "ease-in-out" }}>
+  <App />
+</ThemeProvider>
+```
+
+Details worth knowing:
+
+- Switching themes while a transition is still running cancels the in-flight
+  animation and starts the new one, so two runners never compete.
+- Disabling transitions removes the persistent `:root` transition rule, so later
+  variable swaps cannot interpolate through a stale rule.
+- `prefers-reduced-motion` is still respected, and an explicit
+  `suppressTransition` still wins for that single update.
+- An unusable `duration` (not a finite number `>= 0`) or `easing` (not a
+  non-empty string) is reported as `TV_CONFIG_OPTION_INVALID` and the previous
+  transition settings are kept.
+
+Framework-free runtimes use the same contract:
+
+```ts
+runtime.configure({ transition: { enabled: true, duration: 600 } });
+runtime.transition; // the live transition options
+```
+
 ## View Transitions API
 
 `useViewTransition` is enabled by default. When the browser supports
@@ -208,7 +249,7 @@ This uses the browser's `document.startViewTransition()` API for smooth page-lev
 You can also update tokens at runtime and they will transition smoothly:
 
 ```ts
-import { useThemeRuntime } from "@theme-kit/react";
+import { useThemeRuntime } from "@themvora/react";
 
 function LiveEditor() {
   const runtime = useThemeRuntime();

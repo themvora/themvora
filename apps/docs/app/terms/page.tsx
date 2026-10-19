@@ -8,7 +8,7 @@ import { SITE_URL, GITHUB_URL, CONTACT_URL, CONTACT_EMAIL } from "../../lib/site
 
 export const metadata = legalMetadata(
   "Terms of Use",
-  "The terms that apply to using the Theme Kit documentation website.",
+  "The terms that apply to using the Themvora documentation website.",
   "/terms",
 );
 
@@ -21,11 +21,11 @@ export default function TermsPage() {
       updated={updated}
       lead={
         <>
-          These terms apply to using the Theme Kit documentation website (
+          These terms apply to using the Themvora documentation website (
           <a href={SITE_URL} className="underline">
             {SITE_URL.replace(/^https?:\/\//, "")}
           </a>
-          ). They are about the website, not about the Theme Kit library —
+          ). They are about the website, not about the Themvora library —
           the library is MIT-licensed open source software, and your use of it
           in your own applications is governed by its{" "}
           <a href="/license" className="underline">license</a>, not by these
@@ -36,7 +36,7 @@ export default function TermsPage() {
       <LegalSection id="site" heading="The site">
         <p>
           The site provides documentation, a playground, and search for the
-          Theme Kit library. The playground runs entirely in your browser; the
+          Themvora library. The playground runs entirely in your browser; the
           site does not operate accounts, host user content, or provide any
           hosted service.
         </p>
@@ -46,17 +46,17 @@ export default function TermsPage() {
         <LegalList
           items={[
             <>
-              The Theme Kit library and the code examples shown on this site
+              The Themvora library and the code examples shown on this site
               are distributed under the{" "}
               <a href="/license" className="underline">MIT License</a>.
             </>,
             <>
               The documentation text and site design are provided for your use
-              in building with Theme Kit. Please do not republish large
+              in building with Themvora. Please do not republish large
               portions of the documentation as your own without attribution.
             </>,
             <>
-              The &ldquo;Theme Kit&rdquo; name and logo may be used to
+              The &ldquo;Themvora&rdquo; name and logo may be used to
               reference the project, but not in a way that suggests official
               endorsement of unrelated products.
             </>,
@@ -70,7 +70,7 @@ export default function TermsPage() {
           items={[
             <>attempt to disrupt, overload, or gain unauthorized access to the site or its hosting infrastructure</>,
             <>scrape the documentation at a scale that degrades the site for others</>,
-            <>misrepresent your affiliation with the Theme Kit project</>,
+            <>misrepresent your affiliation with the Themvora project</>,
             <>use the site in violation of applicable law</>,
           ]}
         />

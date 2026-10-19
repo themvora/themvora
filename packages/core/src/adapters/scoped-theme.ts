@@ -167,8 +167,8 @@ export interface ScopedThemePrePaintOptions {
    *  @defaultValue `"theme-"` */
   prefix?: string;
   /** CSS selector targeting the scope element (e.g.
-   *  `[data-theme-kit-scope="…"]`). Only used by the `@media` override.
-   *  @defaultValue `"[data-theme-kit-scope]"` */
+   *  `[data-themvora-scope="…"]`). Only used by the `@media` override.
+   *  @defaultValue `"[data-themvora-scope]"` */
   selector?: string;
 }
 
@@ -253,7 +253,7 @@ export function resolveScopedThemePrePaint<T extends ThemeDefinition>(
     ...scopeToCSSVariables(darkVars, prefix),
   };
 
-  const selector = options.selector ?? "[data-theme-kit-scope]";
+  const selector = options.selector ?? "[data-themvora-scope]";
   const css =
     `${selector} {\n${cssRules(lightVariables)}\n}\n` +
     `@media (prefers-color-scheme: dark) {\n${selector} {\n${cssRules(darkVariables)}\n}\n}`;
@@ -301,8 +301,13 @@ export function createScopedThemeBinding<T extends ThemeDefinition>(
   options: ScopedThemeBindingOptions = {},
 ) {
   const prefix = options.prefix ?? "theme-";
+  // The catalog is kept as a *reference*, not a copy. `runtime.themes` is the
+  // runtime's live list and a `configure()` that changes it mutates that array
+  // in place; copying it here is what previously left a scope rendering a theme
+  // the runtime no longer had.
+  let localThemes: readonly ThemeDefinition[] | undefined = options.localThemes;
   let baseThemes: readonly ThemeDefinition[] = [
-    ...(options.localThemes ?? []),
+    ...(localThemes ?? []),
     ...themes,
   ];
   let transition = options.transition;
@@ -358,6 +363,10 @@ export function createScopedThemeBinding<T extends ThemeDefinition>(
   }
 
   function apply(selectionValue: ScopedThemeSelection, animate: boolean) {
+    // Re-read the live catalog on every apply. The runtime replaces its theme
+    // list in place on `configure()`, so a copy taken at creation would keep
+    // resolving against themes that no longer exist.
+    baseThemes = [...(localThemes ?? []), ...themes];
     const theme = resolveScopedTheme<T>(
       baseThemes as readonly T[],
       selectionValue,
@@ -419,8 +428,19 @@ export function createScopedThemeBinding<T extends ThemeDefinition>(
       transition = nextTransition;
     },
     /** Update the local theme definitions (e.g. a late-loaded pack). */
-    setLocalThemes(localThemes: readonly ThemeDefinition[] | undefined) {
-      baseThemes = [...(localThemes ?? []), ...themes];
+    setLocalThemes(nextLocalThemes: readonly ThemeDefinition[] | undefined) {
+      localThemes = nextLocalThemes;
+      apply(currentSelection, false);
+    },
+    /**
+     * Re-resolve the current selection against the live catalog.
+     *
+     * Call this when the owning runtime's catalog changed (subscribe to
+     * `runtime.registry.subscribe`): the scope's theme may have been removed,
+     * or its definition replaced. Without it the element keeps the variables
+     * of a theme the runtime no longer knows about.
+     */
+    refresh() {
       apply(currentSelection, false);
     },
     destroy() {

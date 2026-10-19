@@ -1,0 +1,48 @@
+{
+  "name": "indigo-light",
+  "meta": {
+    "family": "indigo",
+    "mode": "light",
+    "label": "Indigo Light",
+    "order": 10,
+    "generation": {
+      "kind": "generated",
+      "algorithm": "semantic-v2",
+      "seed": "#6366f1",
+      "contrast": {
+        "text": 4.5,
+        "largeText": 3,
+        "ui": 3
+      },
+      "style": "editorial"
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#ecedee",
+      "foreground": "#1a1a1c",
+      "muted": "#e2e3e4",
+      "mutedForeground": "#626263",
+      "card": "#f6f6f8",
+      "cardForeground": "#1a1a1c",
+      "popover": "#f1f1f3",
+      "popoverForeground": "#1a1a1c",
+      "primary": "#5353d5",
+      "primaryForeground": "#fbfcfd",
+      "secondary": "#dedfe1",
+      "secondaryForeground": "#242425",
+      "accent": "#9c8500",
+      "accentForeground": "#111113",
+      "destructive": "#cc2827",
+      "destructiveForeground": "#fbfcfd",
+      "success": "#0a8234",
+      "successForeground": "#fbfcfd",
+      "border": "#cdced0",
+      "input": "#838485",
+      "ring": "#5353d5"
+    },
+    "radius": {
+      "lg": "8px"
+    }
+  }
+}

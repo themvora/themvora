@@ -11,7 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@theme-kit/core": path.resolve(root, "../core/src/index.ts"),
+      "@themvora/core": path.resolve(root, "../core/src/index.ts"),
     },
   },
 });

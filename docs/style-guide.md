@@ -1,8 +1,8 @@
 # Documentation style guide
 
 **Status: internal maintainer artifact. There is no public `/docs/style-guide`
-route, and there should not be one.** A public page describing how Theme Kit's
-documentation is written does not help anyone use Theme Kit; it would compete
+route, and there should not be one.** A public page describing how Themvora's
+documentation is written does not help anyone use Themvora; it would compete
 with product documentation in the public IA. The public site simply benefits
 from the standard being applied.
 
@@ -16,6 +16,10 @@ markdown, components, and generated files.
 **The shipped package is the only source of truth.** If the docs and the code
 disagree, the code wins and the docs are the bug. Everything below exists to make
 that disagreement impossible rather than merely unlikely.
+
+The second rule is §13: **semantic tokens describe meaning, not visual
+importance.** It is the one that governs colour, and it is the one most easily
+broken by a well-meaning edit.
 
 ---
 
@@ -38,7 +42,7 @@ note naming the command to run:
 
 ```md
 <!-- cli-command:generated:start -->
-> Generated from `packages/cli/src/cli.ts` … run `pnpm --filter @theme-kit/docs cli:generate`.
+> Generated from `packages/cli/src/cli.ts` … run `pnpm --filter @themvora/docs cli:generate`.
 <!-- cli-command:generated:end -->
 ```
 
@@ -150,7 +154,7 @@ examples and CLI docs. Use these forms:
 
 Additional rules:
 
-- **Package names are exact and scoped**: `@theme-kit/next`, never "the Next
+- **Package names are exact and scoped**: `@themvora/next`, never "the Next
   package" on first mention.
 - **Framework names**: React, Next.js, Vue, Nuxt, Svelte, SolidJS, Angular,
   Astro, Remix, Tailwind CSS v4.
@@ -198,7 +202,7 @@ immediately and cannot be verified.
 Use `Callout` with the narrowest fitting variant: `info`, `tip`, `warning`,
 `important`, `limitation`, `success`, `neutral`.
 
-- **`limitation`** is for honest boundaries. Theme Kit documents what it does not
+- **`limitation`** is for honest boundaries. Themvora documents what it does not
   do; do not soften a real limitation into a `tip`.
 - One callout per idea. Two stacked callouts means the prose needs rewriting.
 - Give it a `title` unless the variant icon alone is unambiguous.
@@ -263,7 +267,7 @@ order.
   merges layout metadata into every page, so one line there makes all ~66 routes
   claim the homepage as their canonical.
 - `title` is unique across the site; `check-links.mjs` fails on duplicates. The
-  layout appends `— Theme Kit`.
+  layout appends `— Themvora`.
 - `description` is one sentence, 120–160 characters, describing the page's
   answer rather than repeating its title.
 - Add the route to `lib/docs-routes.ts`. That single entry feeds the sidebar,
@@ -295,7 +299,7 @@ it against the shipped surface and §13 capability coverage.
 {
   "feature": "persistence",
   "framework": "react",
-  "packages": ["@theme-kit/core", "@theme-kit/react"],
+  "packages": ["@themvora/core", "@themvora/react"],
   "peerDependencies": ["react", "react-dom"],
   "files": ["src/App.tsx"],
   "entry": "src/App.tsx",
@@ -346,3 +350,99 @@ node scripts/docs/audits/audit-page-contracts.mjs
 `tsc` alone is not evidence that a snippet is correct: no typechecker sees code
 inside a template literal or a fenced block. And a green import audit is not an
 accuracy audit — it proves the import resolves, not that the call is right.
+
+---
+
+## 13. Semantic colour: meaning, not importance
+
+**Semantic tokens describe meaning, not visual importance.** A token must only be
+used in a context for which its contrast and its visual relationship are
+appropriate. **Brand and action colours are not substitutes for reading colours.**
+
+That sentence is the whole rule. Everything below is what it looks like in
+practice.
+
+### Why it exists
+
+The docs site used `text-primary` on the canvas in ~130 places. `primary` is an
+action and identity colour, and it clears 4.5:1 against `primaryForeground` in
+every shipped theme — but against the **canvas** in only 17 of 28 theme/mode
+pairs. In Slack dark it is **1.42:1**. The wordmark, the hero and the active nav
+item were the least legible things on the page, in the theme most likely to be
+looked at.
+
+Nothing was wrong with the generator. It had been asked a different question:
+*does this token contrast its pair?* It had never been asked *is this token
+readable where we are using it?*
+
+### The roles
+
+| Context | Role |
+| --- | --- |
+| Reading text — headings, body, navigation, labels, prose | `foreground` |
+| Supporting text — helper copy, metadata, timestamps | `mutedForeground` |
+| Text on a surface | `cardForeground` / `popoverForeground` |
+| Action surface, and its label | `primary` + `primaryForeground` |
+| Secondary action surface, and its label | `secondary` + `secondaryForeground` |
+| Neutral outlined control | `foreground` + `border` |
+| Brand emphasis or decoration | `primary` / `accent` — **advisory**, by deliberate choice |
+| Focus | `ring` |
+| Scrollbar thumb | context-resolved — see below |
+
+### The three mistakes this prevents
+
+**1. A brand colour as reading text.** A wordmark, a headline, an active nav item
+and a link are all text. Paint them `foreground`; carry the brand in a mark beside
+them — an underline, a rule, a coloured icon. The brand survives and the words
+stay readable.
+
+**2. A brand colour as a generic "important" colour.** `primary` does not mean
+"the colour for things that matter". It means "the action colour". Importance is
+carried by weight, size and position; colour carries meaning.
+
+**3. Removing the brand to be safe.** The opposite error, and equally wrong. A
+site that is entirely `foreground` is technically safe and visually lifeless. The
+target is a readable structure with the brand in the places that can carry it.
+
+### The hierarchy
+
+```
+                    foreground
+                        │
+               readable structure
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+     primary          accent          muted
+     actions         emphasis        support
+        │
+        ▼
+ primaryForeground
+```
+
+### Consumers resolve their own context
+
+Do **not** add a parallel vocabulary of "safe" tokens
+(`--color-safe-primary`, `--color-safe-scrollbar`, …). That explodes the semantic
+model to solve a problem the model already describes.
+
+Instead: a consumer that needs a *fallback* resolves it from the contract. The
+scrollbar is the reference implementation — it walks
+`primary → accent → foreground` and takes the first candidate that satisfies the
+`scrollbar-thumb-on-canvas` context, rather than assuming `primary` will do.
+
+The rule that matters: **a consumer never modifies the theme to solve its own
+visibility problem.** If the chosen role is unsuitable, the consumer picks a
+different role. The theme is correct.
+
+### Enforcement
+
+| Gate | What it catches |
+| --- | --- |
+| `audit-semantic-usage.mjs` | a shared primitive using a role its declared intent does not allow |
+| `audit-token-contexts.mjs` | a non-reading role painted onto a reading element at a call site |
+| `contexts.ts` | the contract itself — which role is supported where, and who owns it |
+| `preset-visual-fixture.tsx` | the contexts rendered side by side: mark, wordmark, nav, hero, link, scrollbar |
+
+The visual fixture is the one that matters most, because the failures this section
+describes are invisible to a contrast table and obvious on a board.

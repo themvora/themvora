@@ -1,4 +1,4 @@
-import { getContrastRatio, type ThemeDefinition } from "@theme-kit/core";
+import { getContrastRatio, type ThemeDefinition } from "@themvora/core";
 
 /**
  * Color helpers shared by the preset previews and the landing-page card.
@@ -26,7 +26,7 @@ const HEX6 = /^#?[0-9a-f]{6}$/i;
  * WCAG 2.x contrast ratio between two `#rrggbb` colors, or `null` when either
  * value is not a plain 6-digit hex.
  *
- * The maths is `getContrastRatio` from `@theme-kit/core` — the same function the
+ * The maths is `getContrastRatio` from `@themvora/core` — the same function the
  * package ships — so the documentation cannot drift from the thing it
  * documents. The guard around it is ours: token sets contain `rgba()` values
  * (the selection and highlight tints), and those should be skipped rather than

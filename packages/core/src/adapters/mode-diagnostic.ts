@@ -22,7 +22,7 @@ export function describeMode(value: unknown): string {
  * falls back to a valid theme while `getMode()` and every readout keep
  * reporting the invalid value. Callers ignore the call instead.
  *
- * This is the single emission site for `TK_MODE_INVALID`. Both `setMode`
+ * This is the single emission site for `TV_MODE_INVALID`. Both `setMode`
  * boundaries share it — the selection controller and the mode controller — so
  * the two cannot drift apart on the fields the public contract covers. Only the
  * message is boundary-neutral prose; `code`, `level`, `context` and `hint` are
@@ -33,7 +33,7 @@ export function describeMode(value: unknown): string {
 export function emitInvalidModeDiagnostic(received: unknown): void {
   emitDiagnostic(
     createDiagnostic({
-      code: "TK_MODE_INVALID",
+      code: "TV_MODE_INVALID",
       level: "warning",
       message:
         `setMode() received an unknown mode ${describeMode(received)}; ` +

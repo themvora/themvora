@@ -2,7 +2,7 @@ import type {
   ThemeDefinition,
   ThemeSelectionPersistenceAdapter,
   ThemeSelectionState,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 
 function parseState(value: string | null): ThemeSelectionState | null {
@@ -94,7 +94,7 @@ function readCookieSelection(fingerprint: string | null): ThemeSelectionState | 
  *
  * @remarks
  * Returns `null` during SSR (no `window`). The cookie contract matches the
- * other SSR integrations (`@theme-kit/next`, `@theme-kit/nuxt`, `@theme-kit/remix`).
+ * other SSR integrations (`@themvora/next`, `@themvora/nuxt`, `@themvora/remix`).
  *
  * @see {@link ThemeProviderClient}
  * @see `createThemePersistence`

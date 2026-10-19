@@ -9,8 +9,8 @@ import type {
   ThemeSchedule,
   ThemeScheduleSetOptions,
   ThemeScheduleState,
-} from "@theme-kit/core";
-import { EMPTY_THEME_SCHEDULE_STATE } from "@theme-kit/core";
+} from "@themvora/core";
+import { EMPTY_THEME_SCHEDULE_STATE, findGeneratedTheme, resolveGeneratedTheme } from "@themvora/core";
 import { requireGlobalRuntime } from "./shared-runtime";
 
 /**
@@ -25,7 +25,7 @@ import { requireGlobalRuntime } from "./shared-runtime";
  * the SSR HTML until something else happens to touch the store, which reads as
  * the page "fluctuating" on reload.
  *
- * `@theme-kit/react` already does this (`useThemeSelector`); the Astro hooks did
+ * `@themvora/react` already does this (`useThemeSelector`); the Astro hooks did
  * not, which is why the same components behaved differently across the two
  * integrations.
  */
@@ -105,6 +105,79 @@ export function useThemeValue<T extends ThemeDefinition>() {
  */
 export function useThemeTokens<T extends ThemeDefinition>(): ThemeTokens | undefined {
   return useThemeValue<T>().tokens;
+}
+
+/**
+ * Returns the theme produced by `generateTheme()` and registered with the
+ * provider. Client-only; re-renders when the resolved generated theme changes.
+ *
+ * Resolves the registered theme that carries the generator's origin marker
+ * (`meta.generation.kind === "generated"`); shipped presets never qualify. When
+ * both halves of one `generateTheme()` call are registered, the theme the active
+ * selection resolves to is returned.
+ *
+ * Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+ * holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+ * registered and the active selection does not identify one.
+ *
+ * Re-resolves on every settled change to the registry, store, or selection; if
+ * the generated theme is later removed, the same error is raised at the next
+ * render rather than a stale theme being returned.
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns The registered generated theme.
+ * @throws {ThemeError} `TV_GENERATION_THEME_NOT_FOUND` when no generated theme is
+ *   registered; `TV_GENERATION_THEME_AMBIGUOUS` when several are and the active
+ *   selection does not identify one.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useGeneratedTheme<T extends ThemeDefinition>(): T {
+  const runtime = useThemeRuntime<T>();
+
+  // Reacts to all three sources the resolution depends on: the registry (a
+  // `runtime.use(pack)` install adds generated themes without touching the
+  // store), the store (the active theme), and the selection.
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const unsubStore = runtime.store.subscribe(() => listener());
+      const unsubSelection = runtime.selection.subscribe
+        ? runtime.selection.subscribe(() => listener())
+        : () => {};
+      const unsubRegistry = runtime.registry.subscribe(() => listener());
+      return () => {
+        unsubStore();
+        unsubSelection();
+        unsubRegistry();
+      };
+    },
+    [runtime],
+  );
+
+  // The snapshot is the *current* resolution, never a cached one (see the React
+  // accessor): a null snapshot is a settled state, not a mid-restore gap.
+  const getSnapshot = useCallback(
+    () =>
+      findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T)
+        .theme,
+    [runtime],
+  );
+
+  const getServerSnapshot = useCallback(
+    () =>
+      findGeneratedTheme<T>(runtime.themes as readonly T[], runtime.initial.theme as T)
+        .theme,
+    [runtime],
+  );
+
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  if (theme === null) {
+    // Settled missing/ambiguous — raise the documented error at the read point.
+    resolveGeneratedTheme<T>(runtime.themes as readonly T[], runtime.store.get() as T);
+  }
+
+  return theme!;
 }
 
 /**

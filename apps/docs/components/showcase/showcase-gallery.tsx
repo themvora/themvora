@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getBuiltInThemes } from "@themvora/core";
 import {
   useTheme,
   useThemeRuntime,
   useSetThemeFamily,
   useSetThemeMode,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 
 import { COMPOSITIONS, type CompositionId } from "./compositions";
 import {
@@ -127,7 +127,7 @@ function FeaturedCard({
             </button>
             <Link
               href={entry.implementationHref}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-foreground underline hover:decoration-foreground"
             >
               {entry.implementationLabel} →
             </Link>
@@ -202,7 +202,7 @@ function GalleryCard({
           </button>
           <Link
             href={entry.implementationHref}
-            className="text-xs text-primary hover:underline"
+            className="text-xs text-foreground underline hover:decoration-foreground"
           >
             {entry.implementationLabel} →
           </Link>
@@ -245,11 +245,11 @@ export function ShowcaseGallery() {
   }, [open]);
 
   /**
-   * Only the families Theme Kit ships with, out of the box.
+   * Only the families Themvora ships with, out of the box.
    *
-   * The docs site registers three extra families of its own (`theme-kit`, `lab`,
+   * The docs site registers three extra families of its own (`themvora`, `lab`,
    * `scope`). Showing those would overstate the library — a reader would
-   * reasonably assume they could install Theme Kit and select "Lab". Membership
+   * reasonably assume they could install Themvora and select "Lab". Membership
    * in `getBuiltInThemes()` is the test, so a family the site adds later cannot
    * leak in.
    */
@@ -323,7 +323,7 @@ export function ShowcaseGallery() {
       <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
-            <div className="text-base font-semibold">Try Theme Kit</div>
+            <div className="text-base font-semibold">Try Themvora</div>
             <p className="text-[13px] text-muted-foreground m-0 mt-0.5 max-w-lg">
               These controls drive the real runtime. Pick a family or mode and every
               preview on this page restyles — same UI, same semantic tokens.
@@ -393,7 +393,7 @@ export function ShowcaseGallery() {
           ) : null}
         </div>
         <p className="text-[11px] text-muted-foreground mt-0 mb-3 pl-[4.5rem]">
-          These {families.length} families ship with Theme Kit. The site&apos;s own
+          These {families.length} families ship with Themvora. The site&apos;s own
           families are not listed.
         </p>
 
@@ -532,7 +532,7 @@ export function ShowcaseGallery() {
               {openEntry ? (
                 <Link
                   href={openEntry.implementationHref}
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs text-foreground underline hover:decoration-foreground"
                 >
                   {openEntry.implementationLabel} →
                 </Link>

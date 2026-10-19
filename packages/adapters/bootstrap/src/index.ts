@@ -1,10 +1,10 @@
 /**
- * Theme Kit Bootstrap adapter — framework-neutral entry.
+ * Themvora Bootstrap adapter — framework-neutral entry.
  *
  * Exports the React-free `createBootstrapAdapter` factory (also available from
- * `@theme-kit/bootstrap/factory`), the `createBootstrapVariables` generator,
+ * `@themvora/bootstrap/factory`), the `createBootstrapVariables` generator,
  * and the `injectBootstrapCSS` helper. Framework wrappers live on their own
- * subpaths: `useBootstrapTheme(runtime)` on `@theme-kit/bootstrap/react`, and
+ * subpaths: `useBootstrapTheme(runtime)` on `@themvora/bootstrap/react`, and
  * equivalent composables/injectables on `/vue`, `/svelte`, `/solid`, and
  * `/angular`.
  *
@@ -19,7 +19,7 @@ export { createBootstrapAdapter, createBootstrapVariables };
 export type { CreateBootstrapAdapterOptions } from "./adapter";
 export type { BootstrapAdapterOptions } from "./defaults";
 
-const STYLE_ID = "@theme-kit/bootstrap";
+const STYLE_ID = "@themvora/bootstrap";
 
 /**
  * Injects the Bootstrap compatibility CSS (idempotent, SSR-safe). Called

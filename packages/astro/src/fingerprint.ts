@@ -1,5 +1,5 @@
 /**
- * Re-exported from `@theme-kit/core`.
+ * Re-exported from `@themvora/core`.
  *
  * The fingerprint is part of the **stable cookie contract**
  * (`theme-mode` / `theme-family` / `theme-fingerprint`), so it has to be
@@ -9,4 +9,4 @@
  *
  * @see {@link computeFingerprint}
  */
-export { computeFingerprint } from "@theme-kit/core";
+export { computeFingerprint } from "@themvora/core";

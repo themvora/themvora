@@ -3,8 +3,8 @@ import type {
   ThemeRuntime,
   ThemeStore,
   ThemeTokens,
-} from "@theme-kit/core";
-import { resolveTokens } from "@theme-kit/core";
+} from "@themvora/core";
+import { resolveTokens } from "@themvora/core";
 
 /**
  * A thing from which an adapter can read the currently-resolved theme.
@@ -88,7 +88,7 @@ export function resolveAdapterSource<T extends ThemeDefinition>(
   }
 
   return {
-    name: "__theme_kit_adapter__",
+    name: "__themvora_adapter__",
     mode: undefined,
     tokens: resolveTokens((candidate ?? {}) as ThemeTokens),
   };

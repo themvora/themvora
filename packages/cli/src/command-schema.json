@@ -1,0 +1,938 @@
+{
+  "$comment": "The authoritative CLI command contract. Single source of truth for `themvora --help` output, the generated docs reference (apps/docs/scripts/generate-cli-reference.mjs) and shell completion. Edit here, never in a second place. JSON (not TS) so the docs script can read it without a build step.",
+  "version": 1,
+  "global": {
+    "options": [
+      {
+        "flag": "--help",
+        "alias": "-h",
+        "description": "Show help."
+      },
+      {
+        "flag": "--version",
+        "alias": "-v",
+        "description": "Show the installed version."
+      }
+    ]
+  },
+  "commands": [
+    {
+      "name": "generate",
+      "aliases": [
+        "gen"
+      ],
+      "title": "Generate a Theme",
+      "summary": "Generate a theme from a seed, preset, or brand",
+      "description": "Derives a complete light + dark pair (or a single theme) from one seed color, a canonical preset, or a brand-inspired recipe.",
+      "usage": "themvora generate [options]",
+      "positionals": [],
+      "options": [
+        {
+          "flag": "--seed",
+          "alias": "-s",
+          "value": "<color>",
+          "description": "Source hex color (#rrggbb).",
+          "default": "#6366f1"
+        },
+        {
+          "flag": "--preset",
+          "value": "<id>",
+          "description": "Generate from a canonical preset.",
+          "valuesFrom": "preset"
+        },
+        {
+          "flag": "--brand",
+          "value": "<id>",
+          "description": "Generate from a brand-inspired recipe.",
+          "valuesFrom": "brand"
+        },
+        {
+          "flag": "--family",
+          "alias": "-f",
+          "value": "<name>",
+          "description": "Family name for the theme name.",
+          "default": "default"
+        },
+        {
+          "flag": "--mode",
+          "alias": "-m",
+          "value": "<mode>",
+          "description": "Which mode(s) to emit.",
+          "values": [
+            "light",
+            "dark",
+            "both"
+          ],
+          "default": "both"
+        },
+        {
+          "flag": "--style",
+          "value": "<name>",
+          "description": "Visual language. Seed generation only.",
+          "valuesFrom": "style"
+        },
+        {
+          "flag": "--contrast",
+          "value": "<level>",
+          "description": "Contrast contract to solve for.",
+          "values": [
+            "AA"
+          ],
+          "default": "AA"
+        },
+        {
+          "flag": "--code",
+          "aliases": [
+            "--with-code"
+          ],
+          "description": "Also generate a tokens.code syntax palette. Seed generation only."
+        },
+        {
+          "flag": "--output",
+          "alias": "-o",
+          "value": "<file>",
+          "description": "Write JSON to a file instead of stdout."
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Print what would be written without writing it."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        }
+      ],
+      "examples": [
+        "themvora generate --seed \"#6366f1\"",
+        "themvora generate --preset mint",
+        "themvora generate --brand apple --output theme.json",
+        "themvora generate --seed \"#6366f1\" --style editorial --mode light"
+      ],
+      "json": false,
+      "interactive": false
+    },
+    {
+      "name": "list",
+      "aliases": [
+        "ls"
+      ],
+      "title": "List Registry Entries",
+      "summary": "List brands, presets, styles, and frameworks",
+      "description": "Lists the canonical registries: brand recipes, preset recipes, generation styles, and the frameworks `init` can scaffold.",
+      "usage": "themvora list [brands|presets|styles|frameworks]",
+      "positionals": [
+        {
+          "name": "<selector>",
+          "description": "One of: brands, presets, styles, frameworks. Omit to list every registry.",
+          "required": false,
+          "values": [
+            "brands",
+            "presets",
+            "styles",
+            "frameworks"
+          ]
+        }
+      ],
+      "options": [
+        {
+          "flag": "--ids",
+          "description": "Print only the identifiers, one per line. Needs a registry selector."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit structured registry data instead of a human-readable list."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "unknown selector"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        }
+      ],
+      "examples": [
+        "themvora list",
+        "themvora list presets",
+        "themvora list brands --json",
+        "themvora list presets --ids"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "validate",
+      "aliases": [
+        "check"
+      ],
+      "title": "Validate a Theme",
+      "summary": "Validate a theme",
+      "description": "Checks a theme file against the Themvora schema, required tokens, semantic relationships, and contrast contract.",
+      "usage": "themvora validate <file> [options]",
+      "positionals": [
+        {
+          "name": "<file>",
+          "description": "Theme file to validate.",
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "flag": "--file",
+          "alias": "-f",
+          "value": "<path>",
+          "description": "Theme file to validate (or pass it positionally)."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit a machine-readable report on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Suppress the success summary. Errors are still printed."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "theme is valid"
+        },
+        {
+          "code": 3,
+          "meaning": "validation failed (issues are listed)"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora validate theme.json",
+        "themvora validate theme.json --json",
+        "themvora check theme.json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "inspect",
+      "aliases": [
+        "info"
+      ],
+      "title": "Inspect a Theme",
+      "summary": "Inspect a theme",
+      "description": "Prints a human-readable summary of a theme's provenance, semantic token groups, and accessibility.",
+      "usage": "themvora inspect <file> [options]",
+      "positionals": [
+        {
+          "name": "<file>",
+          "description": "Theme file to inspect.",
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "flag": "--file",
+          "alias": "-f",
+          "value": "<path>",
+          "description": "Theme file to inspect (or pass it positionally)."
+        },
+        {
+          "flag": "--tokens",
+          "description": "Show semantic token groups only."
+        },
+        {
+          "flag": "--colors",
+          "description": "Show resolved color tokens only."
+        },
+        {
+          "flag": "--generation",
+          "description": "Show generation provenance only."
+        },
+        {
+          "flag": "--accessibility",
+          "description": "Show contrast and relationship diagnostics only."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the summary as JSON on stdout."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora inspect theme.json",
+        "themvora inspect theme.json --generation",
+        "themvora inspect theme.json --accessibility --json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "diff",
+      "aliases": [
+        "compare"
+      ],
+      "title": "Diff Two Themes",
+      "summary": "Diff two themes semantically",
+      "description": "Compares two theme sources and reports what changed, role by role. Every comparison decision comes from @themvora/core; this command resolves sources and renders the report.",
+      "usage": "themvora diff <a> <b> [options]",
+      "positionals": [
+        {
+          "name": "<a>",
+          "description": "First source: a theme file, a preset id, or a brand id. Resolved as file, then preset, then brand. Omit to use a flag instead.",
+          "required": false
+        },
+        {
+          "name": "<b>",
+          "description": "Second source, resolved the same way. Omit to use a flag instead.",
+          "required": false
+        }
+      ],
+      "options": [
+        {
+          "flag": "--preset",
+          "value": "<id>",
+          "description": "Use a canonical preset as a source, filling the first side without a positional.",
+          "valuesFrom": "preset"
+        },
+        {
+          "flag": "--brand",
+          "value": "<id>",
+          "description": "Use a brand recipe as a source. Repeat for the other side.",
+          "valuesFrom": "brand"
+        },
+        {
+          "flag": "--seed",
+          "value": "<color>",
+          "description": "Use a theme generated from this seed as a source. Repeat for the other side."
+        },
+        {
+          "flag": "--mode",
+          "value": "<mode>",
+          "description": "Compare only this visual mode.",
+          "values": [
+            "light",
+            "dark"
+          ]
+        },
+        {
+          "flag": "--all",
+          "description": "Include unchanged tokens in the report."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the diff report as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Print per-mode counts without the per-token rows."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "compared (whether or not differences exist)"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora diff mint iris",
+        "themvora diff theme.json --preset mint",
+        "themvora diff --brand apple --preset mint --mode light",
+        "themvora diff mint iris --json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "explain",
+      "aliases": [
+        "why"
+      ],
+      "title": "Explain a Theme",
+      "summary": "Explain how a theme was produced",
+      "description": "Explains a theme's source, recipe, identity or brand anchors, contrast contract, semantic mapping, and validation. Every value comes from an existing public API; nothing is derived.",
+      "usage": "themvora explain <file> [options]",
+      "positionals": [
+        {
+          "name": "<file>",
+          "description": "Theme file to explain. A preset id or brand id is also accepted.",
+          "required": false
+        }
+      ],
+      "options": [
+        {
+          "flag": "--preset",
+          "value": "<id>",
+          "description": "Explain a canonical preset.",
+          "valuesFrom": "preset"
+        },
+        {
+          "flag": "--brand",
+          "value": "<id>",
+          "description": "Explain a brand recipe, including its pinned anchors.",
+          "valuesFrom": "brand"
+        },
+        {
+          "flag": "--seed",
+          "value": "<color>",
+          "description": "Explain a theme generated from this seed."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the explanation as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Omit the semantic mapping, keeping the recipe and validation."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora explain --preset mint",
+        "themvora explain --brand apple",
+        "themvora explain --seed \"#6366f1\"",
+        "themvora explain theme.json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "audit",
+      "aliases": [],
+      "title": "Audit a Theme",
+      "summary": "Audit a theme or the shipped presets",
+      "description": "Audits a theme, or every shipped preset and brand, with the canonical scorecard. Stricter than validate: it gates on the full quality model rather than the structural contract alone.",
+      "usage": "themvora audit <file|presets> [options]",
+      "positionals": [
+        {
+          "name": "<scope>",
+          "description": "A theme file to audit, or `presets` to audit every shipped preset and brand.",
+          "required": true,
+          "values": [
+            "presets"
+          ]
+        }
+      ],
+      "options": [
+        {
+          "flag": "--strict",
+          "description": "Treat warnings as failures, as the repository's preset gate does."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the audit report as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Print only themes that fail or warn, plus the summary."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "audit passed"
+        },
+        {
+          "code": 3,
+          "meaning": "audit failed (checks are listed)"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora audit presets",
+        "themvora audit theme.json",
+        "themvora audit presets --strict --json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "doctor",
+      "aliases": [],
+      "title": "Check Project Health",
+      "summary": "Check a Themvora project's health",
+      "description": "Reports the health of a Themvora project: framework, package manager, installed packages, theme configuration, and theme files. Warnings and errors are distinct, and every actionable finding carries its correction.",
+      "usage": "themvora doctor [dir] [options]",
+      "positionals": [
+        {
+          "name": "<dir>",
+          "description": "Project directory to check. Defaults to the current directory.",
+          "required": false
+        }
+      ],
+      "options": [
+        {
+          "flag": "--json",
+          "description": "Emit the health report as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Show only warnings and errors."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "healthy (warnings alone do not fail)"
+        },
+        {
+          "code": 3,
+          "meaning": "an actionable health failure"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora doctor",
+        "themvora doctor ./my-app",
+        "themvora doctor --json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "init",
+      "aliases": [],
+      "title": "Create or Integrate a Project",
+      "summary": "Integrate Themvora into a project, or create one",
+      "description": "Scaffolds a new project with the framework's official generator, or integrates into an existing one, then wires the provider, the project configuration and the zero-flash bootstrap. The generated app is verified by running the project's own build and typecheck.",
+      "usage": "themvora init [dir] [options]",
+      "positionals": [
+        {
+          "name": "<dir>",
+          "description": "Project directory. Created when it does not exist. Defaults to the current directory.",
+          "required": false
+        }
+      ],
+      "options": [
+        {
+          "flag": "--framework",
+          "value": "<id>",
+          "description": "Target framework. Required for a new project; overrides detection in an existing one.",
+          "valuesFrom": "framework"
+        },
+        {
+          "flag": "--preset",
+          "value": "<id>",
+          "description": "Generate the theme from a canonical preset.",
+          "valuesFrom": "preset"
+        },
+        {
+          "flag": "--brand",
+          "value": "<id>",
+          "description": "Generate the theme from a brand-inspired recipe.",
+          "valuesFrom": "brand"
+        },
+        {
+          "flag": "--seed",
+          "value": "<color>",
+          "description": "Generate the theme from a seed colour."
+        },
+        {
+          "flag": "--styling",
+          "value": "<engine>",
+          "description": "Styling engine for the generated app: `css` (plain semantic stylesheet) or `tailwind` (Tailwind v4 via @themvora/tailwind).",
+          "default": "css"
+        },
+        {
+          "flag": "--package-manager",
+          "value": "<name>",
+          "description": "Package manager to use. Defaults to detection from the lockfile.",
+          "values": [
+            "npm",
+            "pnpm",
+            "yarn",
+            "bun"
+          ]
+        },
+        {
+          "flag": "--example",
+          "description": "Accepted and ignored. The showcase is always generated; kept so older scripts do not break."
+        },
+        {
+          "flag": "--plan",
+          "description": "Print what would happen and exit. Never writes or installs."
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Print the file operations and exit. Never writes, installs or scaffolds."
+        },
+        {
+          "flag": "--no-install",
+          "description": "Skip dependency installation. Build/typecheck verification is then skipped and reported as skipped, not failed, because it needs those dependencies."
+        },
+        {
+          "flag": "--force",
+          "description": "Replace files that exist and were not generated by themvora init."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the plan or the report as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Suppress progress output."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "the project was created or integrated and verified"
+        },
+        {
+          "code": 3,
+          "meaning": "the project was written but a verification step failed"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error, or existing files block the run"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora init my-app --framework react",
+        "themvora init my-app --framework next --preset mint",
+        "themvora init my-app --framework react --plan",
+        "themvora init my-app --framework react --no-install"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "add",
+      "aliases": [],
+      "title": "Add a Theme to a Project",
+      "summary": "Add a theme source to an existing project",
+      "description": "Adds a theme source to a project that `themvora init` already integrated. The project's generated registry records the sources it was built from, so `add` extends that list and regenerates the file — it never parses the TypeScript it wrote, and never rewrites a registry you maintain by hand.",
+      "usage": "themvora add <preset|brand|seed> <value> [options]",
+      "positionals": [
+        {
+          "name": "<kind>",
+          "description": "The source kind to add.",
+          "required": true,
+          "values": [
+            "preset",
+            "brand",
+            "seed"
+          ]
+        },
+        {
+          "name": "<value>",
+          "description": "The preset id, brand id, or seed colour.",
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "flag": "--dir",
+          "value": "<path>",
+          "description": "Project directory. Defaults to the current directory."
+        },
+        {
+          "flag": "--family",
+          "value": "<name>",
+          "description": "Theme family name, for a seed source."
+        },
+        {
+          "flag": "--style",
+          "value": "<name>",
+          "description": "Generation style, for a seed source.",
+          "valuesFrom": "style"
+        },
+        {
+          "flag": "--plan",
+          "description": "Print what would happen and exit. Never writes."
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Print the plan and exit. Never writes."
+        },
+        {
+          "flag": "--force",
+          "description": "Replace the registry even when it was not generated by Themvora."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the plan or the report as JSON on stdout."
+        },
+        {
+          "flag": "--quiet",
+          "description": "Suppress progress output."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "the registry was updated, or already had the source"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error, or a registry that cannot be extended"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error, or no Themvora registry"
+        }
+      ],
+      "examples": [
+        "themvora add preset mint",
+        "themvora add brand apple",
+        "themvora add seed \"#6366f1\" --family indigo",
+        "themvora add preset iris --dir ./my-app",
+        "themvora add preset iris --plan"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "migrate",
+      "aliases": [],
+      "title": "Migrate a Theme",
+      "summary": "Migrate a theme to the latest format",
+      "description": "Migrates a legacy theme file to the current Themvora format. Nothing is written by default: the migrated theme goes to stdout, --output writes elsewhere, and --write migrates the file in place.",
+      "usage": "themvora migrate <file> [options]",
+      "positionals": [
+        {
+          "name": "<file>",
+          "description": "Legacy theme file to migrate.",
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "flag": "--file",
+          "alias": "-f",
+          "value": "<path>",
+          "description": "Legacy theme file to migrate (or pass it positionally)."
+        },
+        {
+          "flag": "--output",
+          "alias": "-o",
+          "value": "<file>",
+          "description": "Write the migrated theme to a file."
+        },
+        {
+          "flag": "--write",
+          "description": "Migrate the file in place. This flag is the confirmation; without it the input is never overwritten."
+        },
+        {
+          "flag": "--dry-run",
+          "description": "Report what would change and write nothing."
+        },
+        {
+          "flag": "--json",
+          "description": "Emit the migration report as JSON on stdout. Add --write or --output to persist the result."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora migrate legacy.json",
+        "themvora migrate legacy.json --dry-run",
+        "themvora migrate legacy.json --write",
+        "themvora migrate legacy.json --output theme.json",
+        "themvora migrate legacy.json --dry-run --json"
+      ],
+      "json": true,
+      "interactive": false
+    },
+    {
+      "name": "export",
+      "aliases": [],
+      "title": "Export a Theme",
+      "summary": "Export a theme to CSS or JSON",
+      "description": "Exports theme tokens to CSS variables or a flat JSON map.",
+      "usage": "themvora export <file> [options]",
+      "positionals": [
+        {
+          "name": "<file>",
+          "description": "Theme file to export.",
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "flag": "--file",
+          "alias": "-f",
+          "value": "<path>",
+          "description": "Theme file to export (or pass it positionally)."
+        },
+        {
+          "flag": "--format",
+          "alias": "-F",
+          "value": "<fmt>",
+          "description": "Output format.",
+          "values": [
+            "css",
+            "json"
+          ],
+          "default": "css"
+        },
+        {
+          "flag": "--output",
+          "alias": "-o",
+          "value": "<file>",
+          "description": "Write the export to a file instead of stdout."
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        }
+      ],
+      "examples": [
+        "themvora export theme.json --format css",
+        "themvora export theme.json --format json --output tokens.json"
+      ],
+      "json": false,
+      "interactive": false
+    },
+    {
+      "name": "completion",
+      "aliases": [],
+      "title": "Shell Completion",
+      "summary": "Emit a shell completion script",
+      "description": "Prints a completion script for the given shell. Commands and flags come from this contract; registry values (presets, brands, styles, frameworks) are resolved by the script at completion time, so they cannot go stale.",
+      "usage": "themvora completion <shell>",
+      "positionals": [
+        {
+          "name": "<shell>",
+          "description": "One of: bash, zsh, fish, powershell.",
+          "required": true,
+          "values": [
+            "bash",
+            "zsh",
+            "fish",
+            "powershell"
+          ]
+        }
+      ],
+      "options": [
+        {
+          "flag": "--shell",
+          "value": "<name>",
+          "description": "The shell to generate for (or pass it positionally).",
+          "values": [
+            "bash",
+            "zsh",
+            "fish",
+            "powershell"
+          ]
+        }
+      ],
+      "exitCodes": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage/argument error"
+        },
+        {
+          "code": 1,
+          "meaning": "command/runtime error"
+        }
+      ],
+      "examples": [
+        "themvora completion bash",
+        "themvora completion zsh",
+        "themvora completion fish",
+        "themvora completion powershell"
+      ],
+      "json": false,
+      "interactive": false
+    }
+  ]
+}

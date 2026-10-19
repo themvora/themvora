@@ -14,7 +14,7 @@
  *    `docs/reference/public-api.json`, which is generated from the built `.d.ts`
  *    by `scripts/docs/public-api.mjs`.
  *  - Symbols classified `INTERNAL` are deliberately absent (Audit F).
- *  - Groupings follow the actual module layout of `@theme-kit/core`
+ *  - Groupings follow the actual module layout of `@themvora/core`
  *    (`src/accessibility.ts`, `src/scheduling.ts`, `src/persistence.ts`,
  *    `src/sync.ts`, `src/transition.ts`, `src/generation.ts`, `src/history.ts`,
  *    `src/plugins.ts`, `src/bootstrap.ts`, `src/scrollbar.ts`, `src/scope.ts`) so
@@ -64,7 +64,7 @@ export type Integration = {
   packages: Record<string, string[]>;
   /**
    * Package whose full public surface this integration re-exports (e.g.
-   * `@theme-kit/nuxt` re-exports core + vue). Lets the registry stay exact
+   * `@themvora/nuxt` re-exports core + vue). Lets the registry stay exact
    * without copying hundreds of names.
    */
   mirrors?: string[];
@@ -87,7 +87,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "A theme is a named, immutable definition of semantic tokens with light/dark variants that the runtime resolves and applies.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "ThemeDefinition",
         "defineTheme",
         "extendTheme",
@@ -105,6 +105,19 @@ export const capabilities: Record<string, Capability> = {
         "getNeutralThemes",
         "getPresetThemes",
         "getBrandPresets",
+        "getPresetCatalog",
+        "PresetCatalogEntry",
+        "PresetQuality",
+        "PresetCheck",
+        "PresetKind",
+        "BrandProvenance",
+        "BrandSource",
+        "BrandSourceKind",
+        "BrandReferenceColor",
+        "BrandColorClass",
+        "CatalogBrand",
+        "NormalizedAnchor",
+        "BRAND_PRESET_DISCLAIMER",
         "mergePresetTokens",
         "PresetFamily",
         "PresetOverrides",
@@ -116,7 +129,7 @@ export const capabilities: Record<string, Capability> = {
         "ThemeRegistry",
         "ThemeRegistryOptions",
       ],
-      "@theme-kit/core/vanilla": ["ThemeDefinition", "ThemeRegistry"],
+      "@themvora/core/vanilla": ["ThemeDefinition", "ThemeRegistry"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -129,7 +142,19 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Semantic token groups are the contract between a theme and the DOM: they flatten to CSS variables, never to hardcoded colors.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
+        // The role vocabulary itself — what a token can *be*. These live with
+        // `tokens` rather than in a capability of their own because a role with
+        // no token group is not a capability, it is a name.
+        "CORE_COLORS",
+        "CoreColor",
+        "OPTIONAL_SEMANTICS",
+        "OptionalSemantic",
+        "SEMANTIC_ROLE_GROUPS",
+        "SemanticRole",
+        "SemanticRoleGroup",
+        "isCoreColor",
+        "isOptionalSemantic",
         "CodeTokens",
         "auto",
         "contrast",
@@ -138,6 +163,7 @@ export const capabilities: Record<string, Capability> = {
         "GROUP_PROPERTIES",
         "GROUP_VAR_PREFIXES",
         "TokenGroup",
+        "TOKEN_GROUPS",
         "TokenRemap",
         "ThemeTokens",
         "flattenTokens",
@@ -151,8 +177,8 @@ export const capabilities: Record<string, Capability> = {
         "BuildThemeCssMapOptions",
         "CSSVariablesOptions",
       ],
-      "@theme-kit/angular": ["buildThemeCSSMap", "ThemeCSSMap", "BlockingScriptOptions"],
-      "@theme-kit/astro": ["buildThemeCssMap"],
+      "@themvora/angular": ["buildThemeCSSMap", "ThemeCSSMap", "BlockingScriptOptions"],
+      "@themvora/astro": ["buildThemeCssMap"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     adapters: ["mui", "chakra", "antd", "shadcn", "bootstrap", "daisyui", "open-props", "tailwind", "unocss"],
@@ -166,7 +192,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "ThemeFamilies",
         "ThemeModes",
         "ThemeMode",
@@ -182,37 +208,37 @@ export const capabilities: Record<string, Capability> = {
         "createSystemThemeBinding",
         "SystemThemeBindingOptions",
       ],
-      "@theme-kit/react": [
+      "@themvora/react": [
         "useThemeMode",
         "useThemeFamily",
         "useSetThemeMode",
         "useSetThemeFamily",
         "useToggleTheme",
       ],
-      "@theme-kit/next/client": [
+      "@themvora/next/client": [
         "useThemeMode",
         "useThemeFamily",
         "useSetThemeMode",
         "useSetThemeFamily",
         "useToggleTheme",
       ],
-      "@theme-kit/vue": ["useThemeMode", "useThemeFamily"],
-      // @theme-kit/nuxt does not ship the dedicated mode/family composables;
+      "@themvora/vue": ["useThemeMode", "useThemeFamily"],
+      // @themvora/nuxt does not ship the dedicated mode/family composables;
       // its auto-imported set is read through `useTheme`. (Reported as a
       // framework-parity gap — see docs/reference/README.md.)
-      "@theme-kit/nuxt": ["useTheme"],
-      "@theme-kit/svelte": ["useThemeMode", "useThemeFamily"],
-      "@theme-kit/solid": ["useThemeMode", "useThemeFamily"],
-      "@theme-kit/angular": ["ThemeState", "injectTheme"],
-      "@theme-kit/astro/client": [
+      "@themvora/nuxt": ["useTheme"],
+      "@themvora/svelte": ["useThemeMode", "useThemeFamily"],
+      "@themvora/solid": ["useThemeMode", "useThemeFamily"],
+      "@themvora/angular": ["ThemeState", "injectTheme"],
+      "@themvora/astro/client": [
         "useThemeMode",
         "useThemeFamily",
         "useSetThemeMode",
         "useSetThemeFamily",
         "useToggleTheme",
       ],
-      "@theme-kit/remix": ["useThemeMode", "useThemeFamily", "useSetThemeMode", "useSetThemeFamily", "useToggleTheme"],
-      "@theme-kit/web": ["useThemeMode", "useThemeFamily"],
+      "@themvora/remix": ["useThemeMode", "useThemeFamily", "useSetThemeMode", "useSetThemeFamily", "useToggleTheme"],
+      "@themvora/web": ["useThemeMode", "useThemeFamily"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -225,7 +251,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createThemeRuntime",
         "ThemeRuntime",
         "ThemeRuntimeOptions",
@@ -242,8 +268,8 @@ export const capabilities: Record<string, Capability> = {
         "DOMBindingOptions",
         "isSettled",
       ],
-      "@theme-kit/core/vanilla": ["ThemeKit", "ThemeKitOptions"],
-      "@theme-kit/react": [
+      "@themvora/core/vanilla": ["Themvora", "ThemvoraOptions"],
+      "@themvora/react": [
         "ThemeProvider",
         "ThemeProviderProps",
         "useTheme",
@@ -255,8 +281,8 @@ export const capabilities: Record<string, Capability> = {
         "CreateThemeRootOptions",
         "ThemeRootHandle",
       ],
-      "@theme-kit/next": ["ThemeProvider", "ThemeProviderProps"],
-      "@theme-kit/next/client": [
+      "@themvora/next": ["ThemeProvider", "ThemeProviderProps"],
+      "@themvora/next/client": [
         "ClientThemeProvider",
         "ClientThemeProviderProps",
         "useTheme",
@@ -265,9 +291,9 @@ export const capabilities: Record<string, Capability> = {
         "useThemeBatch",
         "useThemeTokens",
       ],
-      "@theme-kit/vue": ["provideThemeRuntime", "ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
-      "@theme-kit/nuxt": ["ThemeProvider", "ThemeProviderProps", "useTheme", "useThemeRuntime", "useThemeBatch"],
-      "@theme-kit/svelte": [
+      "@themvora/vue": ["provideThemeRuntime", "ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
+      "@themvora/nuxt": ["ThemeProvider", "ThemeProviderProps", "useTheme", "useThemeRuntime", "useThemeBatch"],
+      "@themvora/svelte": [
         "ThemeProvider",
         "getThemeRuntime",
         "setThemeRuntime",
@@ -275,17 +301,17 @@ export const capabilities: Record<string, Capability> = {
         "useThemeValue",
         "useThemeTokens",
       ],
-      "@theme-kit/solid": ["ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
-      "@theme-kit/angular": [
-        "provideThemeKit",
-        "provideThemeKitRuntime",
-        "ThemeKitProviderOptions",
-        "THEME_KIT_RUNTIME",
+      "@themvora/solid": ["ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
+      "@themvora/angular": [
+        "provideTheme",
+        "provideThemeRuntime",
+        "ThemeProviderOptions",
+        "THEME_RUNTIME",
         "injectThemeRuntime",
         "injectThemeBatch",
       ],
-      "@theme-kit/astro": [
-        "themeKit",
+      "@themvora/astro": [
+        "themvora",
         "getGlobalRuntime",
         "setGlobalRuntime",
         "requireGlobalRuntime",
@@ -294,10 +320,10 @@ export const capabilities: Record<string, Capability> = {
         "getThemeController",
         "createThemeController",
       ],
-      "@theme-kit/astro/client": ["ThemeProviderClient", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
-      "@theme-kit/remix": ["ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
-      "@theme-kit/web": [
-        "ThemeKitProvider",
+      "@themvora/astro/client": ["ThemeProviderClient", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
+      "@themvora/remix": ["ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
+      "@themvora/web": [
+        "ThemvoraProvider",
         "defineCustomElements",
         "getProviderRuntime",
         "useThemeRuntime",
@@ -315,7 +341,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "A scope re-resolves tokens for a subtree, optionally from a local theme definition, without mutating the global selection.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createScopedThemeBinding",
         "ScopedThemeBindingOptions",
         "ScopedThemeSelection",
@@ -342,7 +368,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createScopedThemeBinding",
         "ScopedThemeBindingOptions",
         "ScopedThemeSelection",
@@ -353,17 +379,17 @@ export const capabilities: Record<string, Capability> = {
         "resolveScopedThemePrePaint",
         "scopeToCSSVariables",
       ],
-      "@theme-kit/react": ["ThemeScope", "ThemeScopeProps", "useScopedTheme"],
-      "@theme-kit/next": ["ThemeScope", "ThemeScopeProps"],
-      "@theme-kit/next/client": ["ThemeScope", "useScopedTheme"],
-      "@theme-kit/vue": ["ThemeScope", "ThemeScopeProps"],
-      "@theme-kit/nuxt": ["ThemeScope"],
-      "@theme-kit/svelte": ["ThemeScope", "ThemeScopeProps"],
-      "@theme-kit/solid": ["ThemeScope", "ThemeScopeProps"],
-      "@theme-kit/angular": ["ThemeScopeDirective", "THEME_KIT_SCOPED_RUNTIME"],
-      "@theme-kit/astro/client": ["ThemeScope", "ThemeScopeProps"],
-      "@theme-kit/remix": ["ThemeScope"],
-      "@theme-kit/web": ["ThemeKitScope"],
+      "@themvora/react": ["ThemeScope", "ThemeScopeProps", "useScopedTheme"],
+      "@themvora/next": ["ThemeScope", "ThemeScopeProps"],
+      "@themvora/next/client": ["ThemeScope", "useScopedTheme"],
+      "@themvora/vue": ["ThemeScope", "ThemeScopeProps"],
+      "@themvora/nuxt": ["ThemeScope"],
+      "@themvora/svelte": ["ThemeScope", "ThemeScopeProps"],
+      "@themvora/solid": ["ThemeScope", "ThemeScopeProps"],
+      "@themvora/angular": ["ThemeScopeDirective", "THEME_SCOPED_RUNTIME"],
+      "@themvora/astro/client": ["ThemeScope", "ThemeScopeProps"],
+      "@themvora/remix": ["ThemeScope"],
+      "@themvora/web": ["ThemvoraScope"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -376,7 +402,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Diff-driven, group-aware CSS animations that run on every theme change and can be disabled per change.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "ThemeTransitionOptions",
         "createThemeDiff",
         "ThemeDiff",
@@ -413,7 +439,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createThemePersistence",
         "createDefaultPersistence",
         "ThemePersistenceAdapter",
@@ -427,19 +453,19 @@ export const capabilities: Record<string, Capability> = {
         "MigrateOptions",
         "MigrationStep",
       ],
-      "@theme-kit/react": ["useThemeRestore"],
-      "@theme-kit/vue": ["useThemeRestore"],
-      "@theme-kit/svelte": ["useThemeRestore"],
-      "@theme-kit/solid": ["useThemeRestore"],
-      "@theme-kit/angular": ["createAngularPersistence", "injectThemeRestore"],
-      "@theme-kit/astro": ["createAstroThemePersistence"],
-      "@theme-kit/remix": ["createRemixThemePersistence", "RemixThemePersistenceOptions"],
+      "@themvora/react": ["useThemeRestore"],
+      "@themvora/vue": ["useThemeRestore"],
+      "@themvora/svelte": ["useThemeRestore"],
+      "@themvora/solid": ["useThemeRestore"],
+      "@themvora/angular": ["createAngularPersistence", "injectThemeRestore"],
+      "@themvora/astro": ["createAstroThemePersistence"],
+      "@themvora/remix": ["createRemixThemePersistence", "RemixThemePersistenceOptions"],
       // The cookie helpers ship from the Nuxt server integration, not from core.
-      "@theme-kit/nuxt": [
+      "@themvora/nuxt": [
         "createNuxtThemeBootstrapScript",
         "resolveThemeFromCookies",
         "parseCookieHeader",
-        "themeKitCookieNames",
+        "themvoraCookieNames",
         "useThemeRestore",
       ],
     },
@@ -457,7 +483,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Keep every tab and window on the same selection using BroadcastChannel, SharedWorker or StorageEvent — chosen at runtime.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createMultiWindowSync",
         "MultiWindowSyncOptions",
         "createThemeBroadcast",
@@ -489,7 +515,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createThemeSchedule",
         "ThemeSchedule",
         "ThemeScheduleOptions",
@@ -508,16 +534,16 @@ export const capabilities: Record<string, Capability> = {
         "DEFAULT_SCHEDULED_LIGHT_THEME",
         "DEFAULT_SCHEDULED_DARK_THEME",
       ],
-      "@theme-kit/react": ["useThemeSchedule"],
-      "@theme-kit/next/client": ["useThemeSchedule"],
-      "@theme-kit/vue": ["useThemeSchedule", "ThemeScheduleController"],
-      "@theme-kit/nuxt": ["useThemeSchedule"],
-      "@theme-kit/svelte": ["useThemeSchedule", "getThemeSchedule"],
-      "@theme-kit/solid": ["useThemeSchedule"],
-      "@theme-kit/angular": ["injectThemeSchedule", "ThemeScheduleController"],
-      "@theme-kit/astro/client": ["useThemeSchedule"],
-      "@theme-kit/remix": ["useThemeSchedule"],
-      "@theme-kit/web": ["getThemeSchedule"],
+      "@themvora/react": ["useThemeSchedule"],
+      "@themvora/next/client": ["useThemeSchedule"],
+      "@themvora/vue": ["useThemeSchedule", "ThemeScheduleController"],
+      "@themvora/nuxt": ["useThemeSchedule"],
+      "@themvora/svelte": ["useThemeSchedule", "getThemeSchedule"],
+      "@themvora/solid": ["useThemeSchedule"],
+      "@themvora/angular": ["injectThemeSchedule", "ThemeScheduleController"],
+      "@themvora/astro/client": ["useThemeSchedule"],
+      "@themvora/remix": ["useThemeSchedule"],
+      "@themvora/web": ["getThemeSchedule"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -530,7 +556,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Compute solar times for a location (or the browser's time zone) and drive light/dark switching from real sunrise and sunset.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "calculateSunTimes",
         "CalculateSunTimesLocationOptions",
         "resolveSolarLocation",
@@ -557,7 +583,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Contrast validation, color-vision-deficiency simulation and ready-made high-contrast/large-text profiles.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createAccessibilityPlugin",
         "AccessibilityPluginOptions",
         "getAccessibilityProfiles",
@@ -588,14 +614,45 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "generateTheme",
         "GenerateThemeOptions",
         "GeneratedThemePair",
         "createGenerationPlugin",
         "GenerationPluginOptions",
+        "GenerationStyle",
+        "GENERATION_STYLE_NAMES",
+        "scoreTheme",
+        "measureThemeContrast",
+        "MeasuredPair",
+        "SEMANTIC_CONTEXTS",
+        "CONTEXT_RESTRICTIONS",
+        "auditSemanticContexts",
+        "auditActionProminence",
+        "ACTION_PROMINENCE_FLOOR",
+        "ActionProminence",
+        "contextFailures",
+        "describeRoleUsage",
+        "SemanticContext",
+        "ContextLevel",
+        "ContextOwner",
+        "ContextRequirement",
+        "ContextResult",
+        "ContextRestriction",
+        "FOREGROUND_PREFERENCE",
+        "ForegroundPreference",
+        "chooseForeground",
+        "preferredInk",
+        "hasForegroundPreference",
+        "PresetScore",
+        "CheckStatus",
+        "validateThemeLevels",
+        "ValidationLevel",
+        "LevelIssue",
+        "ValidateThemeLevelsOptions",
+        "MeasuredPair",
       ],
-      "@theme-kit/core/vanilla": ["generateTheme", "GenerateThemeOptions", "GeneratedThemePair"],
+      "@themvora/core/vanilla": ["generateTheme", "GenerateThemeOptions", "GeneratedThemePair"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -608,7 +665,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Every theme change is recorded; undo, redo and time-travel inspect the same canonical history the runtime owns.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createThemeHistory",
         "ThemeHistory",
         "ThemeHistoryOptions",
@@ -616,15 +673,15 @@ export const capabilities: Record<string, Capability> = {
         "createHistoryPlugin",
         "HistoryPluginOptions",
       ],
-      "@theme-kit/react": ["useThemeHistory", "useThemeTimeTravel"],
-      "@theme-kit/next/client": ["useThemeHistory", "useThemeTimeTravel"],
-      "@theme-kit/vue": ["useThemeHistory"],
-      "@theme-kit/nuxt": ["useThemeHistory"],
-      "@theme-kit/svelte": ["useThemeHistory"],
-      "@theme-kit/solid": ["useThemeHistory"],
-      "@theme-kit/angular": ["injectThemeHistory", "injectThemeTimeTravel", "ThemeHistoryState"],
-      "@theme-kit/astro/client": ["useThemeHistory"],
-      "@theme-kit/remix": ["useThemeHistory", "useThemeTimeTravel"],
+      "@themvora/react": ["useThemeHistory", "useThemeTimeTravel"],
+      "@themvora/next/client": ["useThemeHistory", "useThemeTimeTravel"],
+      "@themvora/vue": ["useThemeHistory"],
+      "@themvora/nuxt": ["useThemeHistory"],
+      "@themvora/svelte": ["useThemeHistory"],
+      "@themvora/solid": ["useThemeHistory"],
+      "@themvora/angular": ["injectThemeHistory", "injectThemeTimeTravel", "ThemeHistoryState"],
+      "@themvora/astro/client": ["useThemeHistory"],
+      "@themvora/remix": ["useThemeHistory", "useThemeTimeTravel"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -637,15 +694,15 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Capture and restore the full runtime state (selection, tokens, history position) as a single snapshot.",
     packages: {
-      "@theme-kit/core": ["ThemeRuntimeSnapshot"],
-      "@theme-kit/react": ["useThemeSnapshot"],
-      "@theme-kit/next/client": ["useThemeSnapshot"],
-      "@theme-kit/vue": ["useThemeSnapshot"],
-      "@theme-kit/nuxt": ["useThemeSnapshot"],
-      "@theme-kit/svelte": ["useThemeSnapshot"],
-      "@theme-kit/solid": ["useThemeSnapshot"],
-      "@theme-kit/angular": ["injectThemeSnapshot", "injectThemeRestore"],
-      "@theme-kit/remix": ["useThemeSnapshot"],
+      "@themvora/core": ["ThemeRuntimeSnapshot"],
+      "@themvora/react": ["useThemeSnapshot"],
+      "@themvora/next/client": ["useThemeSnapshot"],
+      "@themvora/vue": ["useThemeSnapshot"],
+      "@themvora/nuxt": ["useThemeSnapshot"],
+      "@themvora/svelte": ["useThemeSnapshot"],
+      "@themvora/solid": ["useThemeSnapshot"],
+      "@themvora/angular": ["injectThemeSnapshot", "injectThemeRestore"],
+      "@themvora/remix": ["useThemeSnapshot"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     limitations: ["A snapshot restores the whole runtime state, not just the current selection."],
@@ -659,7 +716,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createPluginManager",
         "PluginManager",
         "ThemePlugin",
@@ -687,12 +744,12 @@ export const capabilities: Record<string, Capability> = {
         "ThemeDebugger",
         "ThemePack",
       ],
-      "@theme-kit/react": ["useThemePacks"],
-      "@theme-kit/vue": ["useThemePacks"],
-      "@theme-kit/svelte": ["useThemePacks"],
-      "@theme-kit/solid": ["useThemePacks"],
-      "@theme-kit/angular": ["injectThemePacks"],
-      "@theme-kit/remix": ["useThemePacks"],
+      "@themvora/react": ["useThemePacks"],
+      "@themvora/vue": ["useThemePacks"],
+      "@themvora/svelte": ["useThemePacks"],
+      "@themvora/solid": ["useThemePacks"],
+      "@themvora/angular": ["injectThemePacks"],
+      "@themvora/remix": ["useThemePacks"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -705,7 +762,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Recoverable problems are reported as structured diagnostics: a stable code, a severity, structured context and a concrete correction. Creation, formatting and emission are separate steps, so the same diagnostic can be logged, collected or escalated without duplicating the logic that produced it.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createDiagnostic",
         "emitDiagnostic",
         "formatDiagnostic",
@@ -732,11 +789,11 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.",
     packages: {
-      "@theme-kit/core": [
-        "defineThemeKitConfig",
-        "ThemeKitConfig",
+      "@themvora/core": [
+        "defineThemvoraConfig",
+        "ThemvoraConfig",
         "ThemeBootstrapConfig",
-        "ThemeKitThemeConfig",
+        "ThemvoraThemeConfig",
         "toBootstrapConfig",
         "readTransportedConfig",
         "resolveRuntimeOptions",
@@ -769,45 +826,45 @@ export const capabilities: Record<string, Capability> = {
       // The config loader the build integrations share: it resolves
       // `theme.config.ts` by convention and is the reason the plugin and the
       // integration need no theme options of their own.
-      "@theme-kit/core/config": [
-        "loadThemeKitConfig",
-        "THEME_KIT_CONFIG_FILES",
+      "@themvora/core/config": [
+        "loadThemvoraConfig",
+        "THEMVORA_CONFIG_FILES",
       ],
-      "@theme-kit/core/vite": [
-        "themeKitVitePlugin",
-        "ThemeKitVitePlugin",
-        "ThemeKitVitePluginOptions",
-        "ThemeKitViteInjectedTag",
+      "@themvora/core/vite": [
+        "themvoraVitePlugin",
+        "ThemvoraVitePlugin",
+        "ThemvoraVitePluginOptions",
+        "ThemvoraViteInjectedTag",
         // The inline form, kept only for apps that have not moved to
         // `theme.config.ts`. Documented as deprecated on the plugin's options.
-        "ThemeKitThemeConfig",
+        "ThemvoraThemeConfig",
       ],
-      "@theme-kit/next/client": ["ThemeBootstrap", "ThemeBootstrapProps"],
-      "@theme-kit/vue": ["createVueThemeBootstrapScript"],
-      "@theme-kit/svelte": ["createSvelteThemeBootstrapScript"],
-      "@theme-kit/solid": ["createSolidThemeBootstrapScript"],
-      "@theme-kit/angular": ["createBlockingScriptContent"],
-      "@theme-kit/astro": [
+      "@themvora/next/client": ["ThemeBootstrap", "ThemeBootstrapProps"],
+      "@themvora/vue": ["createVueThemeBootstrapScript"],
+      "@themvora/svelte": ["createSvelteThemeBootstrapScript"],
+      "@themvora/solid": ["createSolidThemeBootstrapScript"],
+      "@themvora/angular": ["createBlockingScriptContent"],
+      "@themvora/astro": [
         "createBlockingScript",
         "computeFingerprint",
         "getInitialThemeState",
-        "ThemeKitIntegrationOptions",
+        "ThemvoraIntegrationOptions",
         "injectPrePaintScrollbarCSS",
         "systemModeCSSTemplate",
       ],
-      "@theme-kit/remix": ["ThemeHead", "ThemeHeadProps", "getInitialThemeState"],
-      "@theme-kit/nuxt": [
+      "@themvora/remix": ["ThemeHead", "ThemeHeadProps", "getInitialThemeState"],
+      "@themvora/nuxt": [
         "createNuxtThemeBootstrapScript",
         "NuxtThemeBootstrapOptions",
         "ResolveThemeFromCookiesOptions",
         "ModuleOptions",
         "computeFingerprint",
       ],
-      "@theme-kit/web": ["PRE_PAINT_SCROLLBAR_CSS", "injectPrePaintScrollbarCSS"],
+      "@themvora/web": ["PRE_PAINT_SCROLLBAR_CSS", "injectPrePaintScrollbarCSS"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     limitations: [
-      "`getInitialThemeState` is a server-only helper: it comes from `@theme-kit/remix/server` and `@theme-kit/astro`, never from a client entry.",
+      "`getInitialThemeState` is a server-only helper: it comes from `@themvora/remix/server` and `@themvora/astro`, never from a client entry.",
       "The Vite plugin is SPA-only; SSR frameworks get zero-flash from their own server integration.",
     ],
     apiReference: "/api-reference/core",
@@ -820,7 +877,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Themed overlay scrollbars that match the active theme and pre-paint before hydration.",
     packages: {
-      "@theme-kit/core": [
+      "@themvora/core": [
         "createThemeScrollbar",
         "createOverlayScrollbar",
         "OverlayScrollbarOptions",
@@ -832,21 +889,21 @@ export const capabilities: Record<string, Capability> = {
         "PRE_PAINT_SCROLLBAR_CSS",
         "PrePaintScrollbarOptions",
       ],
-      "@theme-kit/react": [
+      "@themvora/react": [
         "ThemeScrollbar",
         "ThemeScrollbarProps",
         "ThemeScrollbarAppearance",
         "ThemeScrollbarBehavior",
         "ThemeScrollbarIcons",
       ],
-      "@theme-kit/next": ["ThemeScrollbar", "ThemeScrollbarProps"],
-      "@theme-kit/vue": ["ThemeScrollbar", "ThemeScrollbarProps"],
-      "@theme-kit/svelte": ["ThemeScrollbar", "ThemeScrollbarProps"],
-      "@theme-kit/solid": ["ThemeScrollbar", "ThemeScrollbarProps"],
-      "@theme-kit/angular": ["ThemeScrollbarDirective"],
-      "@theme-kit/astro": ["ThemeKitScrollbar"],
-      "@theme-kit/remix": ["ThemeScrollbar", "ThemeScrollbarProps"],
-      "@theme-kit/web": ["ThemeKitScrollbar"],
+      "@themvora/next": ["ThemeScrollbar", "ThemeScrollbarProps"],
+      "@themvora/vue": ["ThemeScrollbar", "ThemeScrollbarProps"],
+      "@themvora/svelte": ["ThemeScrollbar", "ThemeScrollbarProps"],
+      "@themvora/solid": ["ThemeScrollbar", "ThemeScrollbarProps"],
+      "@themvora/angular": ["ThemeScrollbarDirective"],
+      "@themvora/astro": ["ThemvoraScrollbar"],
+      "@themvora/remix": ["ThemeScrollbar", "ThemeScrollbarProps"],
+      "@themvora/web": ["ThemvoraScrollbar"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -858,19 +915,46 @@ export const capabilities: Record<string, Capability> = {
     title: "CLI",
     category: "tooling",
     summary:
-      "The `theme-kit` command line: generate, validate, inspect, migrate and export themes and token maps in CI.",
+      "The `themvora` command line: list, generate, validate, inspect, diff, explain, audit, doctor, init, add, migrate, export and completion — themes and token maps, plus project integration, in CI.",
     packages: {
-      "@theme-kit/cli": [
+      "@themvora/cli": [
         "cmdGenerate",
+        "cmdList",
         "cmdValidate",
         "cmdInspect",
+        "cmdDiff",
+        "cmdExplain",
+        "cmdAudit",
+        "cmdDoctor",
+        "cmdInit",
+        "cmdAdd",
+        "cmdCompletion",
         "cmdMigrate",
         "cmdExport",
+        "run",
         "parseArgs",
         "ParsedArgs",
+        "ParsedFlag",
         "UsageError",
+        "CommandExit",
         "ExitCodes",
         "VERSION",
+      ],
+      // The semantic diff is a core capability the CLI orchestrates: the
+      // comparison itself never lives in the CLI.
+      "@themvora/core": [
+        "diffThemes",
+        "ThemeDiffReport",
+        "ThemeDiffSide",
+        "ThemeDiffOptions",
+        "ThemeDiffProvenance",
+        "ThemeGenerationProvenance",
+        "ThemeModeDiff",
+        "ThemeModeDiffCounts",
+        "ThemeModeGroupCounts",
+        "ThemeSet",
+        "ThemeTokenChange",
+        "ThemeTokenChangeStatus",
       ],
     },
     frameworks: [],
@@ -884,7 +968,7 @@ export const capabilities: Record<string, Capability> = {
     summary:
       "Inspect and drive the live runtime from a panel: adapters, history, snapshots and performance entries.",
     packages: {
-      "@theme-kit/devtools": [
+      "@themvora/devtools": [
         "createDevToolsPanel",
         "createDevToolsInspector",
         "createDevToolsPlugin",
@@ -894,15 +978,15 @@ export const capabilities: Record<string, Capability> = {
         "DevToolsState",
         "DevToolsPerformanceEntry",
       ],
-      "@theme-kit/react": ["ThemeInspector", "ThemeInspectorProps"],
-      "@theme-kit/next/client": ["ThemeInspector", "ThemeModeButton"],
-      "@theme-kit/vue": ["ThemeInspector", "ThemeInspectorProps"],
-      "@theme-kit/svelte": ["themeInspector", "ThemeInspectorProps"],
-      "@theme-kit/solid": ["ThemeInspector", "ThemeInspectorProps"],
-      "@theme-kit/angular": ["ThemeInspectorComponent"],
-      "@theme-kit/astro": ["ThemeKitInspector"],
-      "@theme-kit/remix": ["ThemeInspector", "ThemeInspectorProps"],
-      "@theme-kit/web": ["ThemeKitInspector"],
+      "@themvora/react": ["ThemeInspector", "ThemeInspectorProps"],
+      "@themvora/next/client": ["ThemeInspector", "ThemeModeButton"],
+      "@themvora/vue": ["ThemeInspector", "ThemeInspectorProps"],
+      "@themvora/svelte": ["themeInspector", "ThemeInspectorProps"],
+      "@themvora/solid": ["ThemeInspector", "ThemeInspectorProps"],
+      "@themvora/angular": ["ThemeInspectorComponent"],
+      "@themvora/astro": ["ThemvoraInspector"],
+      "@themvora/remix": ["ThemeInspector", "ThemeInspectorProps"],
+      "@themvora/web": ["ThemvoraInspector"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     limitations: [
@@ -919,7 +1003,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/react",
     peerPackages: ["react", "react-dom"],
     packages: {
-      "@theme-kit/react": [
+      "@themvora/react": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -962,7 +1046,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/next",
     peerPackages: ["next", "react", "react-dom"],
     packages: {
-      "@theme-kit/next": [
+      "@themvora/next": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeProviderBodyProps",
@@ -972,7 +1056,7 @@ export const integrations: Record<string, Integration> = {
         "ThemeScrollbar",
         "ThemeScrollbarProps",
       ],
-      "@theme-kit/next/client": [
+      "@themvora/next/client": [
         "ClientThemeProvider",
         "ClientThemeProviderProps",
         "ThemeBootstrap",
@@ -1011,7 +1095,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/vue",
     peerPackages: ["vue"],
     packages: {
-      "@theme-kit/vue": [
+      "@themvora/vue": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -1023,7 +1107,7 @@ export const integrations: Record<string, Integration> = {
         "ThemeScheduleController",
         "createVueThemeBootstrapScript",
         "provideThemeRuntime",
-        "ThemeKitSymbol",
+        "ThemeSymbol",
         "useTheme",
         "useThemeRuntime",
         "useThemeValue",
@@ -1045,14 +1129,14 @@ export const integrations: Record<string, Integration> = {
     kind: "framework",
     guide: "/framework-guides/nuxt",
     peerPackages: ["nuxt", "vue"],
-    // `@theme-kit/nuxt` re-exports the whole core surface plus its own
+    // `@themvora/nuxt` re-exports the whole core surface plus its own
     // auto-imported module surface. It does NOT re-export Vue-internal
-    // plumbing that has no Nuxt meaning: `ThemeKitSymbol`,
+    // plumbing that has no Nuxt meaning: `ThemeSymbol`,
     // `ThemeScheduleController`, `createVueThemeBootstrapScript`,
     // `provideThemeRuntime`.
-    mirrors: ["@theme-kit/core"],
+    mirrors: ["@themvora/core"],
     packages: {
-      "@theme-kit/nuxt": [
+      "@themvora/nuxt": [
         "ModuleOptions",
         "NuxtThemeBootstrapOptions",
         "ResolveThemeFromCookiesOptions",
@@ -1060,7 +1144,7 @@ export const integrations: Record<string, Integration> = {
         "computeFingerprint",
         "parseCookieHeader",
         "resolveThemeFromCookies",
-        "themeKitCookieNames",
+        "themvoraCookieNames",
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -1091,7 +1175,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/svelte",
     peerPackages: ["svelte"],
     packages: {
-      "@theme-kit/svelte": [
+      "@themvora/svelte": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -1108,7 +1192,7 @@ export const integrations: Record<string, Integration> = {
         // options narrower `ThemeScrollbar` calls internally. Both are public
         // because a custom component may need to reach the same runtime or
         // re-use the scrollbar's option resolution.
-        "ThemeKitKey",
+        "ThemeKey",
         "pickOptions",
         "useTheme",
         "useThemeRuntime",
@@ -1132,7 +1216,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/solid",
     peerPackages: ["solid-js"],
     packages: {
-      "@theme-kit/solid": [
+      "@themvora/solid": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -1164,12 +1248,12 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/angular",
     peerPackages: ["@angular/core", "@angular/common"],
     packages: {
-      "@theme-kit/angular": [
-        "provideThemeKit",
-        "provideThemeKitRuntime",
-        "ThemeKitProviderOptions",
-        "THEME_KIT_RUNTIME",
-        "THEME_KIT_SCOPED_RUNTIME",
+      "@themvora/angular": [
+        "provideTheme",
+        "provideThemeRuntime",
+        "ThemeProviderOptions",
+        "THEME_RUNTIME",
+        "THEME_SCOPED_RUNTIME",
         "injectTheme",
         "injectThemeRuntime",
         "injectThemeBatch",
@@ -1200,7 +1284,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/mui",
     peerPackages: ["@mui/material", "@emotion/react", "@emotion/styled", "react", "react-dom"],
     packages: {
-      "@theme-kit/mui": [
+      "@themvora/mui": [
         "createMuiAdapter", "MuiThemeAdapter", "createMuiTheme", "buildMuiThemeOptions",
         "MuiThemeProvider", "MuiThemeProviderProps", "useMuiTheme",
         "CreateMuiAdapterOptions", "MuiAdapterOptions", "DEFAULT_MUI_OPTIONS", "MUI_ADAPTER_ID",
@@ -1213,7 +1297,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/chakra",
     peerPackages: ["@chakra-ui/react", "react", "react-dom"],
     packages: {
-      "@theme-kit/chakra": [
+      "@themvora/chakra": [
         "createChakraAdapter", "ChakraThemeAdapter", "createChakraTheme", "buildChakraConfig",
         "ChakraThemeProvider", "ChakraThemeProviderProps", "useChakraTheme",
         "CreateChakraAdapterOptions", "ChakraAdapterOptions", "DEFAULT_CHAKRA_OPTIONS", "CHAKRA_ADAPTER_ID",
@@ -1226,7 +1310,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/antd",
     peerPackages: ["antd", "react", "react-dom"],
     packages: {
-      "@theme-kit/antd": [
+      "@themvora/antd": [
         "createAntdAdapter", "AntdThemeAdapter", "createAntdTheme", "buildAntdConfig",
         "AntdThemeProvider", "AntdThemeProviderProps", "useAntdTheme",
         "CreateAntdAdapterOptions", "AntdAdapterOptions", "DEFAULT_ANTD_OPTIONS", "ANTD_ADAPTER_ID",
@@ -1239,7 +1323,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/mantine",
     peerPackages: ["@mantine/core", "@mantine/hooks", "react", "react-dom"],
     packages: {
-      "@theme-kit/mantine": [
+      "@themvora/mantine": [
         "createMantineTheme", "MantineThemeProvider", "MantineThemeProviderProps", "useMantineTheme",
       ],
     },
@@ -1251,18 +1335,18 @@ export const integrations: Record<string, Integration> = {
     // Framework peers are conditional: only the subpath for the framework you use.
     peerPackages: ["tailwindcss", "react", "vue", "svelte", "solid-js", "@angular/core"],
     packages: {
-      "@theme-kit/shadcn": [
+      "@themvora/shadcn": [
         "createShadcnAdapter", "ShadcnAdapterOptions", "CreateShadcnAdapterOptions",
         "createShadcnVariables", "injectShadcnCSS",
       ],
-      "@theme-kit/shadcn/factory": [
+      "@themvora/shadcn/factory": [
         "createShadcnAdapter", "ShadcnAdapterOptions", "CreateShadcnAdapterOptions",
       ],
-      "@theme-kit/shadcn/react": ["useShadcnTheme"],
-      "@theme-kit/shadcn/vue": ["useShadcnTheme", "UseAdapterOptions"],
-      "@theme-kit/shadcn/svelte": ["useShadcnTheme", "UseAdapterOptions"],
-      "@theme-kit/shadcn/solid": ["useShadcnTheme", "UseAdapterOptions"],
-      "@theme-kit/shadcn/angular": ["injectShadcnTheme", "InjectAdapterOptions"],
+      "@themvora/shadcn/react": ["useShadcnTheme"],
+      "@themvora/shadcn/vue": ["useShadcnTheme", "UseAdapterOptions"],
+      "@themvora/shadcn/svelte": ["useShadcnTheme", "UseAdapterOptions"],
+      "@themvora/shadcn/solid": ["useShadcnTheme", "UseAdapterOptions"],
+      "@themvora/shadcn/angular": ["injectShadcnTheme", "InjectAdapterOptions"],
     },
   },
 
@@ -1272,9 +1356,9 @@ export const integrations: Record<string, Integration> = {
     // React is only needed when an island is used, so it stays opt-in.
     peerPackages: ["astro"],
     packages: {
-      "@theme-kit/astro": [
-        "themeKit",
-        "ThemeKitIntegrationOptions",
+      "@themvora/astro": [
+        "themvora",
+        "ThemvoraIntegrationOptions",
         "getInitialThemeState",
         "buildThemeCssMap",
         "computeFingerprint",
@@ -1292,10 +1376,10 @@ export const integrations: Record<string, Integration> = {
         "ThemeControllerOptions",
         "ThemeControllerState",
         "injectPrePaintScrollbarCSS",
-        "ThemeKitScrollbar",
-        "ThemeKitInspector",
+        "ThemvoraScrollbar",
+        "ThemvoraInspector",
       ],
-      "@theme-kit/astro/client": [
+      "@themvora/astro/client": [
         "ThemeProviderClient",
         "ThemeProviderClientProps",
         "ThemeScope",
@@ -1325,7 +1409,7 @@ export const integrations: Record<string, Integration> = {
       ],
       // The browser entry. It is framework-neutral (no React, no hooks) and must
       // never reach the Node/build entry, so it gets its own keys.
-      "@theme-kit/astro/runtime": [
+      "@themvora/astro/runtime": [
         "getThemeController",
         "createThemeController",
         "ThemeController",
@@ -1347,7 +1431,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/remix",
     peerPackages: ["@remix-run/react", "react", "react-dom"],
     packages: {
-      "@theme-kit/remix": [
+      "@themvora/remix": [
         "ThemeProvider",
         "ThemeProviderProps",
         "ThemeScope",
@@ -1377,7 +1461,7 @@ export const integrations: Record<string, Integration> = {
         "useThemeLifecycle",
         "useThemeBatch",
       ],
-      "@theme-kit/remix/server": ["getInitialThemeState"],
+      "@themvora/remix/server": ["getInitialThemeState"],
     },
   },
 
@@ -1387,18 +1471,18 @@ export const integrations: Record<string, Integration> = {
     // Framework peers are conditional: only the subpath for the framework you use.
     peerPackages: ["bootstrap", "react", "vue", "svelte", "solid-js", "@angular/core"],
     packages: {
-      "@theme-kit/bootstrap": [
+      "@themvora/bootstrap": [
         "createBootstrapAdapter", "BootstrapAdapterOptions", "CreateBootstrapAdapterOptions",
         "createBootstrapVariables", "injectBootstrapCSS",
       ],
-      "@theme-kit/bootstrap/factory": [
+      "@themvora/bootstrap/factory": [
         "createBootstrapAdapter", "BootstrapAdapterOptions", "CreateBootstrapAdapterOptions",
       ],
-      "@theme-kit/bootstrap/react": ["useBootstrapTheme"],
-      "@theme-kit/bootstrap/vue": ["useBootstrapTheme", "UseAdapterOptions"],
-      "@theme-kit/bootstrap/svelte": ["useBootstrapTheme", "UseAdapterOptions"],
-      "@theme-kit/bootstrap/solid": ["useBootstrapTheme", "UseAdapterOptions"],
-      "@theme-kit/bootstrap/angular": ["injectBootstrapTheme", "InjectAdapterOptions"],
+      "@themvora/bootstrap/react": ["useBootstrapTheme"],
+      "@themvora/bootstrap/vue": ["useBootstrapTheme", "UseAdapterOptions"],
+      "@themvora/bootstrap/svelte": ["useBootstrapTheme", "UseAdapterOptions"],
+      "@themvora/bootstrap/solid": ["useBootstrapTheme", "UseAdapterOptions"],
+      "@themvora/bootstrap/angular": ["injectBootstrapTheme", "InjectAdapterOptions"],
     },
   },
 
@@ -1407,18 +1491,18 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/daisyui",
     peerPackages: ["daisyui", "tailwindcss", "react", "vue", "svelte", "solid-js", "@angular/core"],
     packages: {
-      "@theme-kit/daisyui": [
+      "@themvora/daisyui": [
         "createDaisyAdapter", "DaisyAdapterOptions", "CreateDaisyAdapterOptions",
         "createDaisyVariables", "injectDaisyCSS",
       ],
-      "@theme-kit/daisyui/factory": [
+      "@themvora/daisyui/factory": [
         "createDaisyAdapter", "DaisyAdapterOptions", "CreateDaisyAdapterOptions",
       ],
-      "@theme-kit/daisyui/react": ["useDaisyTheme"],
-      "@theme-kit/daisyui/vue": ["useDaisyTheme", "UseAdapterOptions"],
-      "@theme-kit/daisyui/svelte": ["useDaisyTheme", "UseAdapterOptions"],
-      "@theme-kit/daisyui/solid": ["useDaisyTheme", "UseAdapterOptions"],
-      "@theme-kit/daisyui/angular": ["injectDaisyTheme", "InjectAdapterOptions"],
+      "@themvora/daisyui/react": ["useDaisyTheme"],
+      "@themvora/daisyui/vue": ["useDaisyTheme", "UseAdapterOptions"],
+      "@themvora/daisyui/svelte": ["useDaisyTheme", "UseAdapterOptions"],
+      "@themvora/daisyui/solid": ["useDaisyTheme", "UseAdapterOptions"],
+      "@themvora/daisyui/angular": ["injectDaisyTheme", "InjectAdapterOptions"],
     },
   },
 
@@ -1427,18 +1511,18 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/open-props",
     peerPackages: ["open-props", "react", "vue", "svelte", "solid-js", "@angular/core"],
     packages: {
-      "@theme-kit/open-props": [
+      "@themvora/open-props": [
         "createOpenPropsAdapter", "OpenPropsAdapterOptions", "CreateOpenPropsAdapterOptions",
         "createOpenPropsVariables", "injectOpenPropsCSS",
       ],
-      "@theme-kit/open-props/factory": [
+      "@themvora/open-props/factory": [
         "createOpenPropsAdapter", "OpenPropsAdapterOptions", "CreateOpenPropsAdapterOptions",
       ],
-      "@theme-kit/open-props/react": ["useOpenPropsTheme"],
-      "@theme-kit/open-props/vue": ["useOpenPropsTheme", "UseAdapterOptions"],
-      "@theme-kit/open-props/svelte": ["useOpenPropsTheme", "UseAdapterOptions"],
-      "@theme-kit/open-props/solid": ["useOpenPropsTheme", "UseAdapterOptions"],
-      "@theme-kit/open-props/angular": ["injectOpenPropsTheme", "InjectAdapterOptions"],
+      "@themvora/open-props/react": ["useOpenPropsTheme"],
+      "@themvora/open-props/vue": ["useOpenPropsTheme", "UseAdapterOptions"],
+      "@themvora/open-props/svelte": ["useOpenPropsTheme", "UseAdapterOptions"],
+      "@themvora/open-props/solid": ["useOpenPropsTheme", "UseAdapterOptions"],
+      "@themvora/open-props/angular": ["injectOpenPropsTheme", "InjectAdapterOptions"],
     },
   },
 
@@ -1447,7 +1531,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/tailwind",
     peerPackages: ["tailwindcss"],
     packages: {
-      "@theme-kit/tailwind": [
+      "@themvora/tailwind": [
         "createTailwindPlugin", "TailwindPluginOptions", "synchronizeDarkClass", "themeCSS",
       ],
     },
@@ -1458,7 +1542,7 @@ export const integrations: Record<string, Integration> = {
     guide: "/libraries/unocss",
     peerPackages: ["unocss", "@unocss/core"],
     packages: {
-      "@theme-kit/unocss": ["presetThemeKit", "createUnoTheme", "ThemeTokens"],
+      "@themvora/unocss": ["presetThemvora", "createUnoTheme", "ThemeTokens"],
     },
   },
 
@@ -1467,13 +1551,13 @@ export const integrations: Record<string, Integration> = {
     guide: "/adapters",
     peerPackages: [],
     packages: {
-      "@theme-kit/adapters": [
+      "@themvora/adapters": [
         "resolveAdapterSource", "AdapterSource", "AdapterResolvedTheme",
         "readColor", "readToken", "readFontSize", "readFontFamily", "readRadius", "readRadiusNumber",
         "readBreakpoints", "readNested",
         "rgbTriplet", "hexToRgb", "rgbToHex", "mixColors", "mixHex", "generateShades", "RGB",
       ],
-      "@theme-kit/adapters/react": ["useRuntimeThemeFactory", "useCSSVariables"],
+      "@themvora/adapters/react": ["useRuntimeThemeFactory", "useCSSVariables"],
     },
   },
 
@@ -1482,15 +1566,15 @@ export const integrations: Record<string, Integration> = {
     guide: "/framework-guides/web",
     peerPackages: [],
     packages: {
-      "@theme-kit/web": [
+      "@themvora/web": [
         "defineCustomElements",
-        "ThemeKitProvider",
-        "ThemeKitProviderProps",
-        "ThemeKitScope",
-        "ThemeKitScrollbar",
-        "ThemeKitToggle",
-        "ThemeKitSelect",
-        "ThemeKitInspector",
+        "ThemvoraProvider",
+        "ThemvoraProviderProps",
+        "ThemvoraScope",
+        "ThemvoraScrollbar",
+        "ThemvoraToggle",
+        "ThemvoraSelect",
+        "ThemvoraInspector",
         "getProviderRuntime",
         "getThemeSchedule",
         "injectPrePaintScrollbarCSS",

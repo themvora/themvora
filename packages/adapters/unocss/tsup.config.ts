@@ -7,5 +7,5 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   outDir: "dist",
-  external: ["unocss", "@unocss/core", "@theme-kit/core", "@theme-kit/adapters"],
+  external: ["unocss", "@unocss/core", "@themvora/core", "@themvora/adapters"],
 });

@@ -9,7 +9,7 @@ import {
   type InitialThemeResolution,
   type ThemeDefinition,
   type ThemeMode,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 import { publishTransportedConfig } from "./transport";
 import {
@@ -17,12 +17,12 @@ import {
   systemModeCSSTemplate,
   createBlockingScript,
 } from "./blocking-script";
-import type { ThemeKitThemeConfig } from "@theme-kit/core";
+import type { ThemvoraThemeConfig } from "@themvora/core";
 
 export interface Props {
   /**
    * The provider's theme configuration — the same object you pass to
-   * `themeKit({ config })` and `getInitialThemeState`.
+   * `themvora({ config })` and `getInitialThemeState`.
    *
    * @remarks
    * Prefer this to the individual props below. This component owns the
@@ -30,7 +30,7 @@ export interface Props {
    * island owns the runtime; giving all three one object is what stops them
    * disagreeing about the registry, the fallback theme or the initial mode.
    */
-  config?: ThemeKitThemeConfig<ThemeDefinition>;
+  config?: ThemvoraThemeConfig<ThemeDefinition>;
   /**
    * @deprecated Pass {@link Props.config} instead.
    */
@@ -46,7 +46,7 @@ export interface Props {
    *
    * @remarks
    * Pass `"system"` to follow `prefers-color-scheme`. Whatever you choose must
-   * match the `themeKit({ mode })` integration option and the `initialMode`
+   * match the `themvora({ mode })` integration option and the `initialMode`
    * given to the island that mounts the runtime — the integration owns the
    * injected script, this component owns the server render, and the island owns
    * the runtime, so none of the three can see the others' configuration.
@@ -72,18 +72,18 @@ export interface Props {
   lang?: string;
   /**
    * Emit the inline blocking bootstrap in `<head>`. Defaults to `true`.
-   * Pass `false` when the `themeKit()` integration already injects it, so it is
+   * Pass `false` when the `themvora()` integration already injects it, so it is
    * not emitted twice.
    */
   bootstrap?: boolean;
   /**
-   * Server-render the `tk-scrollbar` class and the pre-paint scrollbar CSS, so
-   * the native scrollbar is never painted — the same markup `@theme-kit/nuxt`
+   * Server-render the `tv-scrollbar` class and the pre-paint scrollbar CSS, so
+   * the native scrollbar is never painted — the same markup `@themvora/nuxt`
    * emits. Defaults to `false`.
    *
    * @remarks
    * Server rendering cannot detect the pointer type, so unlike the
-   * `themeKit({ scrollbar })` option (which keeps native scrollbars on
+   * `themvora({ scrollbar })` option (which keeps native scrollbars on
    * coarse-pointer devices unless `touch` is set) this applies to every
    * device. Enable it only when the page mounts `ThemeScrollbar`.
    */
@@ -105,7 +105,7 @@ const {
 // renders them.
 //
 // The integration already transports it to the browser by injecting
-// `window.__THEME_KIT_CONFIG__` into `<head>` — but `injectScript` emits a
+// `window.__THEMVORA_CONFIG__` into `<head>` — but `injectScript` emits a
 // `<script>` tag, which does nothing during SSR. Without this publish an island
 // renders its server markup from the built-in themes and its hydrated markup
 // from the real registry, React reports a text mismatch (error #418) and
@@ -223,7 +223,7 @@ const blockingScript = createBlockingScript(fingerprint, themeCssMap, {
 });
 const htmlClass = [
   themeMode === "dark" ? "dark" : "",
-  scrollbar ? "tk-scrollbar" : "",
+  scrollbar ? "tv-scrollbar" : "",
 ]
   .filter(Boolean)
   .join(" ");
@@ -265,9 +265,9 @@ const ssrStyle = (
     */}
     <meta charset="utf-8" />
     {bootstrap && <script set:html={blockingScript} />}
-    {/* `data-theme-kit` lets the integration's own stylesheet install detect
+    {/* `data-themvora` lets the integration's own stylesheet install detect
         this element and skip, so the two never stack a duplicate sheet. */}
-    {systemStyle && <style data-theme-kit="system" set:html={systemStyle} />}
+    {systemStyle && <style data-themvora="system" set:html={systemStyle} />}
     {scrollbar && <style set:html={createPrePaintScrollbarCSS()} />}
     <slot name="head" />
   </head>

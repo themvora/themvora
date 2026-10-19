@@ -1,6 +1,77 @@
-# @theme-kit/nuxt
+# @themvora/nuxt
+
+## Install
+
+```bash
+npm install @themvora/core @themvora/nuxt nuxt
+```
+
+`@themvora/nuxt` builds on `@themvora/core`, so those are installed explicitly rather than relied on transitively.
 
 Nuxt 3 module with SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar, and auto-imported composables/components.
+
+## Set up
+
+```ts
+// nuxt.config.ts
+import { defineNuxtConfig } from "nuxt/config";
+
+export default defineNuxtConfig({
+  // The module owns the provider — there is no component to mount.
+  modules: ["@themvora/nuxt"],
+  themvora: {
+    defaultTheme: "plum-light",
+    initialMode: "system",
+  },
+});
+```
+
+`@themvora/nuxt` is a Nuxt **module**. Import the composables from
+`@themvora/vue` in app code — Nuxt's import-protection rejects importing a
+module's entry-point from an application file.
+
+## Add a small UI
+
+A heading, a card and a button. The button reads the current theme and changes
+it — nothing is styled yet.
+
+```vue
+<script setup lang="ts">
+import { useTheme } from "@themvora/vue";
+
+const { theme, mode, toggleTheme } = useTheme();
+</script>
+
+<template>
+  <main class="page">
+    <h1>Themvora</h1>
+    <p>{{ theme.name }} · {{ mode }}</p>
+    <button type="button" @click="toggleTheme()">Toggle theme</button>
+  </main>
+</template>
+```
+
+## Style it with Themvora tokens
+
+Themvora emits one CSS variable per token, so your own classes read the active
+theme without any per-theme CSS:
+
+```css
+.page {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.card {
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+  padding: var(--theme-spacing-4);
+}
+```
+
+Nothing is re-rendered on a switch — the variables change and the styles follow.
 
 ## Reference snippet
 
@@ -9,8 +80,8 @@ Nuxt 3 module with SSR-first theming, zero-flash bootstrap, cookie + localStorag
 import { themes } from "./themes";
 
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "mint-light",
     initialMode: "system",
@@ -51,11 +122,11 @@ The module's runtime plugin resolves the initial theme on the server from the `t
 
 ## Client
 
-After hydration, the plugin installs one app-wide runtime (provided to `useTheme()` and every auto-imported composable, plus `nuxtApp.$themeKit` / `$themeKitRuntime`). Selection changes are mirrored back to cookies via `createNuxtThemePersistence()` so the server renders the same theme on the next request, and localStorage + `storage` events keep tabs in sync.
+After hydration, the plugin installs one app-wide runtime (provided to `useTheme()` and every auto-imported composable, plus `nuxtApp.$themvora` / `$themvoraRuntime`). Selection changes are mirrored back to cookies via `createNuxtThemePersistence()` so the server renders the same theme on the next request, and localStorage + `storage` events keep tabs in sync.
 
 ## Config
 
-`configKey: "themeKit"` accepts:
+`configKey: "themvora"` accepts:
 
 - `themes`, `defaultTheme`, `initialMode`, `initialFamily`
 - `transition` — `false`, or `{ enabled, duration, easing }` for config-driven CSS transitions on theme changes
@@ -64,11 +135,11 @@ After hydration, the plugin installs one app-wide runtime (provided to `useTheme
 
 ## Module
 
-- Nuxt 3 module (`configKey: "themeKit"`) with `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar` and `storageKey` options.
+- Nuxt 3 module (`configKey: "themvora"`) with `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar` and `storageKey` options.
 - Auto-imports composables, registers `ThemeProvider`, `ThemeScope` and `ThemeScrollbar`, and installs the runtime plugin.
-- Re-exports the Vue integration plus the full `@theme-kit/core` surface, and the SSR helpers (`resolveThemeFromCookies`, `computeFingerprint`, `parseCookieHeader`, `themeKitCookieNames`, `createNuxtThemeBootstrapScript`).
+- Re-exports the Vue integration plus the full `@themvora/core` surface, and the SSR helpers (`resolveThemeFromCookies`, `computeFingerprint`, `parseCookieHeader`, `themvoraCookieNames`, `createNuxtThemeBootstrapScript`).
 
 ## Documentation
 
-Full API reference and guides: [Theme Kit docs](https://theme-kit-dev.vercel.app).
-All packages: [npm](https://www.npmjs.com/org/theme-kit).
+Full API reference and guides: [Themvora docs](https://themvora-dev.vercel.app).
+All packages: [npm](https://www.npmjs.com/org/themvora).

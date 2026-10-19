@@ -1,11 +1,11 @@
-## @theme-kit/solid
-Theme Kit Solid integration.
+## @themvora/solid
+Themvora Solid integration.
 
 Provides the `ThemeProvider`, `ThemeScope`, `ThemeScrollbar`, and
 `ThemeInspector` components, the `useTheme*` hooks, and the SSR
 bootstrap-script helper.
 
-> Generated from `packages/solid/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/solid/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -32,7 +32,7 @@ blocking `<script>` inside `<head>`.
 ### `ThemeInspector(props): Element`
 Renders the floating theme inspector for the active runtime.
 
-Defines and mounts the `<theme-kit-inspector>` custom element, forwarding the
+Defines and mounts the `<themvora-inspector>` custom element, forwarding the
 given position, size, z-index, `class`, and `style` props. The inspector
 reads the active theme from the runtime and lets users inspect and switch
 themes at runtime.
@@ -73,7 +73,7 @@ without DOM bindings; the persisted selection is applied client-side before
 first paint via an injected bootstrap script.
 
 ```ts
-import { ThemeProvider } from "@theme-kit/solid";
+import { ThemeProvider } from "@themvora/solid";
 
 function App() {
   return (
@@ -130,6 +130,31 @@ only manages the scrollbar lifecycle for the surrounding content.
 ---
 
 
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): Accessor<T>`
+Reactive access to the theme produced by `generateTheme()` and registered
+with the provider, as a Solid signal.
+
+Resolves the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`); shipped presets never qualify. When
+both halves of one `generateTheme()` call are registered, the signal tracks
+the theme the active selection resolves to. The subscription is disposed on
+component cleanup.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+reactive read rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `Accessor<T>` — A Solid signal holding the registered generated theme.
+
+---
+
+
 ### `useTheme<T extends ThemeDefinition<string>>(): { family: Accessor<string>; mode: Accessor<ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Accessor<T>; toggleTheme: __type(): void }`
 Reactive access to the current theme selection plus actions to change it.
 
@@ -143,7 +168,7 @@ Must be called inside a component rendered within a `ThemeProvider`.
   the `setMode`, `setFamily`, and `toggleTheme` actions.
 
 ```ts
-import { useTheme } from "@theme-kit/solid";
+import { useTheme } from "@themvora/solid";
 
 function ThemeToggle() {
   const { mode, setMode, toggleTheme } = useTheme();
@@ -336,15 +361,15 @@ Props accepted by ThemeInspector.
 
 Configures the floating theme inspector's position, size, and z-index, plus
 optional `class` and `style` forwarded to the underlying
-`<theme-kit-inspector>` element.
+`<themvora-inspector>` element.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `bottom` (optional) | `number` | Distance from the bottom of the viewport, in px. Default 104. |
-| `class` (optional) | `string` | Forwarded to the underlying <theme-kit-inspector> element. |
+| `class` (optional) | `string` | Forwarded to the underlying <themvora-inspector> element. |
 | `right` (optional) | `number` | Distance from the right edge of the viewport, in px. Default 32. |
 | `size` (optional) | `number` | Toggle button size, in px. Default 40. |
-| `style` (optional) | `string` | Inline styles forwarded to the underlying <theme-kit-inspector> element. |
+| `style` (optional) | `string` | Inline styles forwarded to the underlying <themvora-inspector> element. |
 | `zIndex` (optional) | `number` | Z-index for the floating toggle and panel. Default 9999. |
 
 ---
@@ -405,7 +430,7 @@ scope mirrors the provider's selection inside its own boundary.
 
 ### `ThemeScrollbarProps`
 
-**Extends** `OverlayScrollbarOptions`
+**Extends** `ScrollbarGroupedOptions`
 Props accepted by ThemeScrollbar.
 
 Extends OverlayScrollbarOptions so the scrollbar can be configured
@@ -413,40 +438,11 @@ with the same options used by `createOverlayScrollbar`.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Custom thumb color while the user is dragging it. When set, overrides the theme-derived active color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
-| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. |
-| `arrowIconRenderer` (optional) | `__type(button: HTMLDivElement, dir: ScrollbarArrowDir): void` | Framework hook: invoked for every arrow button that has custom content, so framework wrappers (React/Vue/Svelte/...) can render framework-owned elements (JSX/VNodes/...) into the button. When set it replaces the `innerHTML`/node injection for `arrowIcon`-style options. |
-| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
-| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Fade the thumb/track out while idle. Default `true` (macOS-style). |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Which axes to render. Defaults to both. |
+| `appearance` (optional) | `ScrollbarAppearanceOptions` | — |
+| `behavior` (optional) | `ScrollbarBehaviorOptions` | Grouped settings - the canonical form; a flat option wins over it. |
 | `children` (optional) | `Element` | The subtree the scrollbar is applied to. |
-| `clickToJump` (optional) | `boolean` | Clicking the empty track scrolls smoothly to that position. Default `true`. |
-| `dir` (optional) | `"ltr" \| "rtl" \| "auto"` | Text direction. Defaults to the resolved `dir` / CSS `direction`. |
-| `draggable` (optional) | `boolean` | Allow dragging the thumb to scroll. Default `true`. |
-| `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
-| `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
-| `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
-| `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
-| `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `number` | Gap between the thumb and the container edge in px. Default `2`. |
-| `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
-| `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
-| `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
-| `thickness` (optional) | `number` | Resting thumb thickness (width for vertical, height for horizontal). Default `8`. |
-| `thumbColor` (optional) | `string` | Custom thumb color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `thumbHoverColor` (optional) | `string` | Custom thumb color while hovered. When set, overrides the theme-derived hover color. Default `undefined` (uses `thumbColor` or theme-derived). |
-| `thumbOpacity` (optional) | `number` | Thumb opacity while visible. Default `0.7`. |
-| `touch` (optional) | `boolean` | Native (touch) devices: keep native scrollbars by default. Pass `true` to force the overlay on coarse-pointer devices. Default `false`. |
-| `trackColor` (optional) | `string` | Custom track color (any CSS color string). When set, overrides the theme-derived color. Default `undefined` (theme-derived). |
-| `trackOpacity` (optional) | `number` | Track strip opacity (0 = invisible). Default `0.25`. |
-| `zIndex` (optional) | `number` | Z-index for the overlay strips. Defaults to the tracked container's own `z-index` (so the scrollbar stays inside its container's stacking order — e.g. below a sticky header). The document scrollbar defaults to `55` (above typical sticky headers, below full-screen modal backdrops) and containers without a z-index default to `30`. Overriding lets you force scrollbars above fixed headers/modals if you need to. |
+| `icons` (optional) | `ScrollbarIconOptions<string>` | Arrow button icons: the arrow entry covers all four directions (per-direction entries win), plus the shared glyph size in CSS px. |
+| `scope` (optional) | `ScrollbarScopeOptions` | — |
 
 ---
 

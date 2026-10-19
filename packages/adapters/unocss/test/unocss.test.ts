@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { defineTheme } from "@theme-kit/core";
-import { presetThemeKit, createUnoTheme } from "../src";
+import { defineTheme } from "@themvora/core";
+import { presetThemvora, createUnoTheme } from "../src";
 
 const tokens = defineTheme({
   name: "test",
@@ -22,15 +22,15 @@ const tokens = defineTheme({
   },
 });
 
-describe("presetThemeKit", () => {
+describe("presetThemvora", () => {
   it("returns a preset object with a theme", () => {
-    const preset = presetThemeKit();
-    expect(preset.name).toBe("@theme-kit/unocss");
+    const preset = presetThemvora();
+    expect(preset.name).toBe("@themvora/unocss");
     expect(preset.theme).toBeTruthy();
   });
 
   it("exposes color tokens as var() references", () => {
-    const preset = presetThemeKit();
+    const preset = presetThemvora();
     const theme = preset.theme as Record<string, unknown>;
     const colors = theme.colors as Record<string, unknown>;
     expect(colors.background).toBe("var(--theme-color-background)");

@@ -1,10 +1,10 @@
-## @theme-kit/bootstrap/svelte
-Svelte composable for the Bootstrap adapter (`@theme-kit/bootstrap/svelte`).
+## @themvora/bootstrap/svelte
+Svelte composable for the Bootstrap adapter (`@themvora/bootstrap/svelte`).
 
 `useBootstrapTheme(runtime, options?)` installs the Bootstrap adapter onto
-an explicitly provided Theme Kit runtime and disposes it on unmount.
+an explicitly provided Themvora runtime and disposes it on unmount.
 
-> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/bootstrap/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -15,10 +15,10 @@ Kit runtime. Maintains a tagged `:root` style element with concrete
 theme changes.
 
 Must be called during component initialization, passing the runtime from
-your Theme Kit provider (e.g. `getThemeRuntime()` from `@theme-kit/svelte`):
+your Themvora provider (e.g. `getThemeRuntime()` from `@themvora/svelte`):
 
 ```ts
-import { useBootstrapTheme } from "@theme-kit/bootstrap/svelte";
+import { useBootstrapTheme } from "@themvora/bootstrap/svelte";
 
 useBootstrapTheme(runtime);
 ```
@@ -30,7 +30,7 @@ and is disposed via Svelte's effect tree.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to install the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to install the adapter on. |
 | `options` | `UseAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

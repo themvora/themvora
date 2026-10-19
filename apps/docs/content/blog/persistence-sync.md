@@ -1,18 +1,18 @@
 ---
 title: "Persistence and multi-window sync, explained"
 date: 2026-08-18
-description: "How Theme Kit remembers the user's choice across reloads and keeps every tab in sync — persistence adapters, BroadcastChannel, SharedWorker, and the StorageEvent fallback."
+description: "How Themvora remembers the user's choice across reloads and keeps every tab in sync — persistence adapters, BroadcastChannel, SharedWorker, and the StorageEvent fallback."
 tags: persistence, sync, adapters
 ---
 
-Two things make theming feel like it's actually "saved": the theme survives a reload, and it stays consistent across tabs. Both are harder than they look — and both are solved by small, replaceable adapters in Theme Kit.
+Two things make theming feel like it's actually "saved": the theme survives a reload, and it stays consistent across tabs. Both are harder than they look — and both are solved by small, replaceable adapters in Themvora.
 
 ## Persistence: the selection outlives the page
 
 The runtime persists the *selection* — `{ mode, family }` — not the theme definition:
 
 ```ts
-import { createThemeRuntime, createPersistencePlugin } from "@theme-kit/core";
+import { createThemeRuntime, createPersistencePlugin } from "@themvora/core";
 
 const runtime = createThemeRuntime({
   plugins: [createPersistencePlugin()],
@@ -34,10 +34,10 @@ Because persistence is an adapter (`get`/`set`/`remove`/`subscribe`), you can ba
 
 ## Multi-window sync: every tab follows
 
-Two tabs each run their own runtime. When tab A flips to dark, tab B should too. Theme Kit ships `createMultiWindowSync()`, which picks the best available transport:
+Two tabs each run their own runtime. When tab A flips to dark, tab B should too. Themvora ships `createMultiWindowSync()`, which picks the best available transport:
 
 ```ts
-import { createMultiWindowSync } from "@theme-kit/core";
+import { createMultiWindowSync } from "@themvora/core";
 
 const sync = createMultiWindowSync({ prefer: "auto" });
 

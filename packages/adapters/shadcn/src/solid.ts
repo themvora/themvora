@@ -1,8 +1,8 @@
 /**
- * Solid composable for the shadcn/ui adapter (`@theme-kit/shadcn/solid`).
+ * Solid composable for the shadcn/ui adapter (`@themvora/shadcn/solid`).
  *
  * `useShadcnTheme(runtime, options?)` installs the shadcn adapter onto an
- * explicitly provided Theme Kit runtime and disposes it on cleanup.
+ * explicitly provided Themvora runtime and disposes it on cleanup.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createShadcnAdapter } from "./adapter";
 
@@ -35,10 +35,10 @@ export interface UseAdapterOptions {
  * variables, kept in sync as the active theme changes.
  *
  * Must be called within a Solid reactive root, passing the runtime from your
- * Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/solid`):
+ * Themvora provider (e.g. `useThemeRuntime()` from `@themvora/solid`):
  *
  * ```tsx
- * import { useShadcnTheme } from "@theme-kit/shadcn/solid";
+ * import { useShadcnTheme } from "@themvora/shadcn/solid";
  *
  * function App() {
  *   useShadcnTheme(runtime);
@@ -46,7 +46,7 @@ export interface UseAdapterOptions {
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

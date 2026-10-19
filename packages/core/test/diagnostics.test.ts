@@ -83,7 +83,7 @@ afterEach(() => {
 describe("diagnostic model", () => {
   it("derives the docs link from the code", () => {
     const diagnostic = createDiagnostic({
-      code: "TK_MODE_INVALID",
+      code: "TV_MODE_INVALID",
       level: "warning",
       message: "x",
     });
@@ -92,12 +92,12 @@ describe("diagnostic model", () => {
     // that moves with the docs site, while the path and fragment are the
     // contract that makes the link land on the right entry.
     expect(diagnostic.docs).toContain("/reference/diagnostics");
-    expect(diagnostic.docs?.endsWith("#tk_mode_invalid")).toBe(true);
+    expect(diagnostic.docs?.endsWith("#tv_mode_invalid")).toBe(true);
   });
 
   it("omits fields that were not supplied", () => {
     const diagnostic = createDiagnostic({
-      code: "TK_MODE_INVALID",
+      code: "TV_MODE_INVALID",
       level: "warning",
       message: "x",
     });
@@ -109,7 +109,7 @@ describe("diagnostic model", () => {
 
   it("renders context, hint and docs in development", () => {
     const diagnostic = createDiagnostic({
-      code: "TK_MODE_INVALID",
+      code: "TV_MODE_INVALID",
       level: "warning",
       message: "bad mode",
       context: { api: "setMode", property: "mode", received: "purple", expected: "light | dark | system" },
@@ -118,7 +118,7 @@ describe("diagnostic model", () => {
 
     const text = formatDiagnostic(diagnostic, { dev: true });
 
-    expect(text).toContain("TK_MODE_INVALID");
+    expect(text).toContain("TV_MODE_INVALID");
     expect(text).toContain("api: setMode");
     expect(text).toContain('received: "purple"');
     expect(text).toContain("expected: light | dark | system");
@@ -127,7 +127,7 @@ describe("diagnostic model", () => {
 
   it("renders a single line outside development, without hiding the code", () => {
     const diagnostic = createDiagnostic({
-      code: "TK_MODE_INVALID",
+      code: "TV_MODE_INVALID",
       level: "warning",
       message: "bad mode",
       context: { api: "setMode" },
@@ -137,13 +137,13 @@ describe("diagnostic model", () => {
     const text = formatDiagnostic(diagnostic, { dev: false });
 
     expect(text).not.toContain("\n");
-    expect(text).toContain("TK_MODE_INVALID");
+    expect(text).toContain("TV_MODE_INVALID");
     expect(text).toContain("bad mode");
   });
 
   it("routes warnings to console.warn and errors to console.error", () => {
-    emitDiagnostic(createDiagnostic({ code: "TK_MODE_INVALID", level: "warning", message: "w" }));
-    emitDiagnostic(createDiagnostic({ code: "TK_A11Y_CONTRAST_VIOLATION", level: "error", message: "e" }));
+    emitDiagnostic(createDiagnostic({ code: "TV_MODE_INVALID", level: "warning", message: "w" }));
+    emitDiagnostic(createDiagnostic({ code: "TV_A11Y_CONTRAST_VIOLATION", level: "error", message: "e" }));
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledTimes(1);
@@ -152,7 +152,7 @@ describe("diagnostic model", () => {
   it("passes the structured diagnostic to the sink", () => {
     emitDiagnostic(
       createDiagnostic({
-        code: "TK_MODE_INVALID",
+        code: "TV_MODE_INVALID",
         level: "warning",
         message: "w",
         context: { api: "setMode", received: "purple" },
@@ -165,7 +165,7 @@ describe("diagnostic model", () => {
   it("suppresses a repeated identical diagnostic", () => {
     const make = () =>
       createDiagnostic({
-        code: "TK_MODE_INVALID",
+        code: "TV_MODE_INVALID",
         level: "warning",
         message: "w",
         context: { api: "setMode", received: "purple" },
@@ -180,7 +180,7 @@ describe("diagnostic model", () => {
   it("does not suppress a diagnostic with different context", () => {
     emitDiagnostic(
       createDiagnostic({
-        code: "TK_MODE_INVALID",
+        code: "TV_MODE_INVALID",
         level: "warning",
         message: "w",
         context: { api: "setMode", received: "purple" },
@@ -188,7 +188,7 @@ describe("diagnostic model", () => {
     );
     emitDiagnostic(
       createDiagnostic({
-        code: "TK_MODE_INVALID",
+        code: "TV_MODE_INVALID",
         level: "warning",
         message: "w",
         context: { api: "setMode", received: "mauve" },
@@ -200,7 +200,7 @@ describe("diagnostic model", () => {
 
   it("emits again after resetDiagnosticEmission()", () => {
     const make = () =>
-      createDiagnostic({ code: "TK_MODE_INVALID", level: "warning", message: "w" });
+      createDiagnostic({ code: "TV_MODE_INVALID", level: "warning", message: "w" });
 
     emitDiagnostic(make());
     resetDiagnosticEmission();
@@ -211,7 +211,7 @@ describe("diagnostic model", () => {
 
   it("can bypass deduplication", () => {
     const make = () =>
-      createDiagnostic({ code: "TK_MODE_INVALID", level: "warning", message: "w" });
+      createDiagnostic({ code: "TV_MODE_INVALID", level: "warning", message: "w" });
 
     emitDiagnostic(make(), { dedupe: false });
     emitDiagnostic(make(), { dedupe: false });
@@ -248,7 +248,7 @@ describe("ThemeError", () => {
     const cause = new Error("root");
     const err = ThemeError.fromDiagnostic(
       createDiagnostic({
-        code: "TK_PLUGIN_DESTROY_FAILED",
+        code: "TV_PLUGIN_DESTROY_FAILED",
         level: "warning",
         message: "plugin blew up",
         context: { api: "pluginManager.destroy", received: "a" },
@@ -256,7 +256,7 @@ describe("ThemeError", () => {
       }),
     );
 
-    expect(err.code).toBe("TK_PLUGIN_DESTROY_FAILED");
+    expect(err.code).toBe("TV_PLUGIN_DESTROY_FAILED");
     expect(err.context?.received).toBe("a");
     expect(err.cause).toBe(cause);
   });
@@ -285,7 +285,7 @@ describe("setMode validation (decision A)", () => {
     rt.destroy();
   });
 
-  it("emits TK_MODE_INVALID and leaves the selection unchanged for an invalid mode", () => {
+  it("emits TV_MODE_INVALID and leaves the selection unchanged for an invalid mode", () => {
     const rt = runtime();
     const before = rt.selection.getMode();
     const themeBefore = rt.snapshot().theme.name;
@@ -293,7 +293,7 @@ describe("setMode validation (decision A)", () => {
     rt.selection.setMode("purple" as never);
 
     const diagnostic = diagnosticFrom(warn);
-    expect(diagnostic?.code).toBe("TK_MODE_INVALID");
+    expect(diagnostic?.code).toBe("TV_MODE_INVALID");
     expect(diagnostic?.level).toBe("warning");
     expect(diagnostic?.context?.api).toBe("setMode");
     expect(diagnostic?.context?.property).toBe("mode");
@@ -379,13 +379,13 @@ describe("createThemeModeController setMode validation (decision A, second bound
     controller.destroy();
   });
 
-  it("emits TK_MODE_INVALID with the established contract fields", () => {
+  it("emits TV_MODE_INVALID with the established contract fields", () => {
     const { controller } = build();
 
     controller.setMode("purple" as never);
 
     const diagnostic = diagnosticFrom(warn);
-    expect(diagnostic?.code).toBe("TK_MODE_INVALID");
+    expect(diagnostic?.code).toBe("TV_MODE_INVALID");
     expect(diagnostic?.level).toBe("warning");
     expect(diagnostic?.context?.api).toBe("setMode");
     expect(diagnostic?.context?.property).toBe("mode");
@@ -529,7 +529,7 @@ describe("validateTheme issue codes (decision B)", () => {
 
     expect(result.valid).toBe(false);
     const issue = result.issues[0]!;
-    expect(issue.code).toBe("TK_THEME_TOKEN_MISSING");
+    expect(issue.code).toBe("TV_THEME_TOKEN_MISSING");
     expect(issue.type).toBe("missing");
     expect(issue.path).toBe("colors.foreground");
     expect(issue.context.api).toBe("validateTheme");
@@ -540,7 +540,7 @@ describe("validateTheme issue codes (decision B)", () => {
   it("codes a missing tokens group", () => {
     const result = validateTheme({ name: "empty" } as ThemeDefinition);
 
-    expect(result.issues[0]!.code).toBe("TK_THEME_TOKEN_MISSING");
+    expect(result.issues[0]!.code).toBe("TV_THEME_TOKEN_MISSING");
     expect(result.issues[0]!.path).toBe("tokens");
   });
 
@@ -572,13 +572,13 @@ describe("accessibility plugin diagnostics (decision C)", () => {
       tokens: { colors: { background: "#ffffff", foreground: "#f2f2f2" } },
     });
 
-  it("emits TK_A11Y_CONTRAST_VIOLATION at warning level by default", () => {
+  it("emits TV_A11Y_CONTRAST_VIOLATION at warning level by default", () => {
     const plugin = createAccessibilityPlugin();
 
     plugin.onAfterThemeChange?.({ theme: poorTheme() });
 
     const diagnostic = diagnosticFrom(warn);
-    expect(diagnostic?.code).toBe("TK_A11Y_CONTRAST_VIOLATION");
+    expect(diagnostic?.code).toBe("TV_A11Y_CONTRAST_VIOLATION");
     expect(diagnostic?.level).toBe("warning");
     expect(diagnostic?.context?.received).toBe("poor");
   });
@@ -598,7 +598,7 @@ describe("accessibility plugin diagnostics (decision C)", () => {
 
     plugin.onAfterThemeChange?.({ theme: poorTheme() });
 
-    expect(diagnosticFrom(error)?.code).toBe("TK_A11Y_CONTRAST_VIOLATION");
+    expect(diagnosticFrom(error)?.code).toBe("TV_A11Y_CONTRAST_VIOLATION");
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -623,7 +623,7 @@ describe("accessibility plugin diagnostics (decision C)", () => {
 });
 
 describe("scheduled plugin diagnostics (decision C)", () => {
-  it("emits TK_SCHEDULE_THEME_UNRESOLVED when the pair cannot be resolved", () => {
+  it("emits TV_SCHEDULE_THEME_UNRESOLVED when the pair cannot be resolved", () => {
     // The plugin installs from `onRuntimeCreated`, so registering it with a
     // runtime is the path that actually resolves the pair.
     const runtime = createThemeRuntime({
@@ -638,7 +638,7 @@ describe("scheduled plugin diagnostics (decision C)", () => {
     });
 
     const diagnostic = diagnosticFrom(warn);
-    expect(diagnostic?.code).toBe("TK_SCHEDULE_THEME_UNRESOLVED");
+    expect(diagnostic?.code).toBe("TV_SCHEDULE_THEME_UNRESOLVED");
     expect(diagnostic?.level).toBe("warning");
     expect(diagnostic?.context?.api).toBe("createScheduledPlugin");
     expect(diagnostic?.context?.expected).toBe(
@@ -682,7 +682,7 @@ describe("pluginManager.destroy failure isolation (decision D)", () => {
     pm.destroy();
 
     const diagnostic = diagnosticFrom(warn);
-    expect(diagnostic?.code).toBe("TK_PLUGIN_DESTROY_FAILED");
+    expect(diagnostic?.code).toBe("TV_PLUGIN_DESTROY_FAILED");
     expect(diagnostic?.level).toBe("warning");
     expect(diagnostic?.context?.received).toBe("a-broken");
     expect(diagnostic?.cause).toBe(boom);

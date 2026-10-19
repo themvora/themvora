@@ -1,12 +1,12 @@
-## @theme-kit/remix
-Theme Kit Remix integration.
+## @themvora/remix
+Themvora Remix integration.
 
 Provides the SSR-safe `ThemeProvider`, the `ThemeHead` blocking script
 for zero-flash bootstrapping, and the cookie-backed
 `createRemixThemePersistence`, plus the React `ThemeScope`,
 `ThemeScrollbar`, and `ThemeInspector` re-exports.
 
-> Generated from `packages/remix/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/remix/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -28,10 +28,10 @@ resolves the exact same state on the next request.
 
 Returns `null` during SSR (no `window`), so the runtime falls back to its
 default persistence behavior on the server. The cookie contract matches
-`@theme-kit/next` and `@theme-kit/nuxt`.
+`@themvora/next` and `@themvora/nuxt`.
 
 ```ts
-import { createRemixThemePersistence } from "@theme-kit/remix";
+import { createRemixThemePersistence } from "@themvora/remix";
 
 const persistence = createRemixThemePersistence(myThemes, "light", {
   key: "my-theme-selection",
@@ -61,12 +61,12 @@ stylesheets and the browser paints already themed. Pair with
 
 ```ts
 // app/root.tsx
-import { ThemeHead } from "@theme-kit/remix";
+import { ThemeHead } from "@themvora/remix";
 
 export function Layout({ children }) {
   return (
-    // `tk-scrollbar` must be rendered here, not added by a script.
-    <html className="tk-scrollbar">
+    // `tv-scrollbar` must be rendered here, not added by a script.
+    <html className="tv-scrollbar">
       <head>
         <ThemeHead themes={myThemes} defaultTheme="light" scrollbar />
       </head>
@@ -122,7 +122,7 @@ and then from the theme cookies `ThemeHead`'s script reads — see
 ThemeProviderProps.initial for the hydration caveat.
 
 ```ts
-import { ThemeProvider } from "@theme-kit/remix";
+import { ThemeProvider } from "@themvora/remix";
 
 export default function App({ children }) {
   return (
@@ -171,12 +171,18 @@ Creates the custom scrollbar overlay.
 
 Lifecycle:
   mount  → create overlay → measure → attach listeners
-  paint  → add tk-scrollbar-ready
+  paint  → add tv-scrollbar-ready
   destroy → remove overlay
 
-Props are organized into three optional groups — `behavior`, `appearance`
-and `icons` — but every option is also accepted as a flat, top-level prop
-(flat props win over the grouped ones).
+Props are four optional groups — `behavior`, `appearance`, `scope` and
+`icons` — plus `children`, which is accepted for JSX symmetry only.
+
+  <ThemeScrollbar
+    behavior={{ autoHide: true, smooth: true }}
+    appearance={{ thickness: 8, radius: 999 }}
+    scope={{ include: [".panel"] }}
+    icons={{ up: <ArrowUpIcon />, size: 12 }}
+  />
 
   <ThemeScrollbar
     behavior={{ autoHide: true, smooth: true }}
@@ -191,6 +197,38 @@ and `icons` — but every option is also accepted as a flat, top-level prop
 | `props` | `ThemeScrollbarProps` | — |
 
 **Returns** `null`
+
+---
+
+
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): T`
+The theme produced by `generateTheme()` and registered with the provider.
+
+Returns the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`) — never a shipped preset, and never
+inferred from a theme's id, family or colors. Generate one and pass the result
+to `ThemeProvider`:
+
+```tsx
+const generated = generateTheme({ seed: "#635BFF", family: "brand" });
+<ThemeProvider themes={[generated.light, generated.dark]}>{children}</ThemeProvider>
+```
+
+When both halves of one `generateTheme()` call are registered, the theme the
+active selection resolves to is returned. If several generated themes are
+registered and none is active, the call throws rather than guessing.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+render rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `T` — The registered generated theme.
 
 ---
 
@@ -216,7 +254,7 @@ Get a stable `setMode` function (does not re-render on change).
 
 
 ### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
-The primary Theme Kit hook. Returns the current theme, mode, family and
+The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
    When you pass the theme tuple element type, `setFamily` and `setMode`
@@ -224,7 +262,7 @@ The primary Theme Kit hook. Returns the current theme, mode, family and
    built-in set is used below so the example stands alone):
 
    ```ts
-   import { getBuiltInThemes } from "@theme-kit/core";
+   import { getBuiltInThemes } from "@themvora/core";
 
    const themes = getBuiltInThemes();
    const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme<typeof themes[number]>();
@@ -275,7 +313,7 @@ Subscribe to runtime lifecycle events (theme changed, mode changed, …).
 
 The handler is typed per event name, so `on("beforeThemeChange", ({ next }) => …)`
 gives you the theme definitions rather than `unknown` — the same precision
-`runtime.lifecycle.on` has in `@theme-kit/core`.
+`runtime.lifecycle.on` has in `@themvora/core`.
 
 **See also:** `useTheme`
 
@@ -315,13 +353,13 @@ Get a restore function that re-applies a previously captured snapshot.
 
 
 ### `useThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Get the active Theme Kit runtime from context. Throws when used outside a
+Get the active Themvora runtime from context. Throws when used outside a
 `ThemeProvider`. Pass the theme tuple element type to type the runtime's
 store/selection against your registry — any registry works, so the built-in
 set is used here to keep the example self-contained:
 
 ```ts
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getBuiltInThemes } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 const runtime = useThemeRuntime<typeof themes[number]>();
@@ -443,7 +481,7 @@ dark-mode CSS fallback.
 | ------ | ---- | ----------- |
 | `defaultTheme` (optional) | `T["name"]` | Fallback theme name when no selection is persisted. |
 | `mode` (optional) | `ThemeMode` | Fallback mode when no selection is persisted. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to. Pass `"system"` to follow `prefers-color-scheme` instead, and give `ThemeProvider` the matching `initialMode` so the script and the runtime resolve the same theme on a first visit. Leaving the two out of step produces a wrong-theme flash: the script paints one theme and the runtime corrects it. |
-| `scrollbar` (optional) | `boolean` | Hide the native scrollbar from the very first paint, so the Theme Kit overlay (`ThemeScrollbar`) is the only scrollbar from frame one — no native-bar-then-overlay swap while the bundle hydrates. Defaults to `false`. |
+| `scrollbar` (optional) | `boolean` | Hide the native scrollbar from the very first paint, so the Themvora overlay (`ThemeScrollbar`) is the only scrollbar from frame one — no native-bar-then-overlay swap while the bundle hydrates. Defaults to `false`. |
 | `themes` | `readonly T[]` | The theme registry the blocking script resolves against. |
 
 ---
@@ -489,42 +527,11 @@ grouped ones).
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `activeThumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.activeThumbColor`. |
-| `animationDuration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.animationDuration`. |
-| `appearance` (optional) | `ThemeScrollbarAppearance` | Grouped appearance options. Flat props override these. |
-| `arrowDownIcon` (optional) | `ReactNode` | JSX / element for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ReactNode` | JSX / element rendered inside every arrow button (overrides the built-in CSS triangle). Accepts any `ReactNode`. |
-| `arrowLeftIcon` (optional) | `ReactNode` | JSX / element for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ReactNode` | JSX / element for the "scroll right" button. Falls back to `arrowIcon`. |
-| `arrows` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.arrows`. |
-| `arrowUpIcon` (optional) | `ReactNode` | JSX / element for the "scroll up" button. Falls back to `arrowIcon`. |
-| `autoHide` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.autoHide`. |
-| `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
-| `axes` (optional) | `ScrollbarAxis[]` | Flat alias for `OverlayScrollbarOptions.axes`. |
-| `behavior` (optional) | `ThemeScrollbarBehavior` | Grouped behavior options. Flat props (e.g. `autoHide`) override these. |
-| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). |
-| `clickToJump` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.clickToJump`. |
-| `dir` (optional) | `"ltr" \| "rtl" \| "auto"` | Flat alias for `OverlayScrollbarOptions.dir`. |
-| `draggable` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.draggable`. |
-| `duration` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.duration`. |
-| `exclude` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.exclude`. |
-| `hoverExpand` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.hoverExpand`. |
-| `hoverThickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.hoverThickness`. |
-| `icons` (optional) | `ThemeScrollbarIcons` | Grouped arrow button icons. Flat `arrow*Icon` props override these. |
-| `include` (optional) | `string[] \| null` | Flat alias for `OverlayScrollbarOptions.include`. |
-| `minThumbSize` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.minThumbSize`. |
-| `offset` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.offset`. |
-| `overscroll` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.overscroll`. |
-| `radius` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.radius`. |
-| `smooth` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.smooth`. |
-| `thickness` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thickness`. |
-| `thumbColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbColor`. |
-| `thumbHoverColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.thumbHoverColor`. |
-| `thumbOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.thumbOpacity`. |
-| `touch` (optional) | `boolean` | Flat alias for `OverlayScrollbarOptions.touch`. |
-| `trackColor` (optional) | `string` | Flat alias for `OverlayScrollbarOptions.trackColor`. |
-| `trackOpacity` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.trackOpacity`. |
-| `zIndex` (optional) | `number` | Flat alias for `OverlayScrollbarOptions.zIndex`. |
+| `appearance` (optional) | `ThemeScrollbarAppearance` | The look and size of every rail. |
+| `behavior` (optional) | `ThemeScrollbarBehavior` | How the overlay scrolls and hides. |
+| `children` (optional) | `ReactNode` | Renders nothing visible; kept for API symmetry (the overlay is created against the runtime, not the component tree). It is deliberately ignored by option resolution and change detection. |
+| `icons` (optional) | `ThemeScrollbarIcons` | Arrow button icons, plus the shared glyph size. |
+| `scope` (optional) | `ThemeScrollbarScope` | Which scrollable containers the overlay tracks. |
 
 ---
 

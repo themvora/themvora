@@ -15,8 +15,8 @@ beforeEach(() => {
   // the DOM bindings: reset styles, clear stored selection, and undo any attrs
   // a prior test left on the shared <html>.
   document.documentElement.style.cssText = "";
-  document.querySelectorAll('style[data-theme-kit-transition]').forEach((n) => n.remove());
-  document.documentElement.removeAttribute("data-theme-kit-animating");
+  document.querySelectorAll('style[data-themvora-transition]').forEach((n) => n.remove());
+  document.documentElement.removeAttribute("data-themvora-animating");
   document.documentElement.classList.remove("dark");
   document.documentElement.removeAttribute("data-theme");
   window.localStorage.clear();

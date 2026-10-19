@@ -1,8 +1,8 @@
 /**
- * Svelte composable for the shadcn/ui adapter (`@theme-kit/shadcn/svelte`).
+ * Svelte composable for the shadcn/ui adapter (`@themvora/shadcn/svelte`).
  *
  * `useShadcnTheme(runtime, options?)` installs the shadcn adapter onto an
- * explicitly provided Theme Kit runtime and disposes it on unmount.
+ * explicitly provided Themvora runtime and disposes it on unmount.
  *
  * @packageDocumentation
  */
@@ -13,7 +13,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createShadcnAdapter } from "./adapter";
 
@@ -35,10 +35,10 @@ export interface UseAdapterOptions {
  * variables, kept in sync as the active theme changes.
  *
  * Must be called during component initialization, passing the runtime from
- * your Theme Kit provider (e.g. `getThemeRuntime()` from `@theme-kit/svelte`):
+ * your Themvora provider (e.g. `getThemeRuntime()` from `@themvora/svelte`):
  *
  * ```ts
- * import { useShadcnTheme } from "@theme-kit/shadcn/svelte";
+ * import { useShadcnTheme } from "@themvora/shadcn/svelte";
  *
  * useShadcnTheme(runtime);
  * ```
@@ -46,7 +46,7 @@ export interface UseAdapterOptions {
  * The adapter installs synchronously (guarded on `window`, so it is SSR-safe)
  * and is disposed via Svelte's effect tree.
  *
- * @param runtime The active Theme Kit runtime to install the adapter on.
+ * @param runtime The active Themvora runtime to install the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

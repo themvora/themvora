@@ -42,33 +42,33 @@ function snippetBlock(snippet: { lang: string; title: string; code: string }) {
 const cssImportSnippet = {
   lang: "css",
   title: "globals.css / app.css / style.css",
-  code: `@import "@theme-kit/core/scrollbar.css";`,
+  code: `@import "@themvora/core/scrollbar.css";`,
 };
 
 const prePaintCSS = {
   lang: "css",
   title: "How it works",
   code: `/* Phase 1 — Bootstrap (before first paint):
-   The @theme-kit/next ThemeProvider (or the bootstrap
-   script in vanilla JS) adds the \`tk-scrollbar\` class
+   The @themvora/next ThemeProvider (or the bootstrap
+   script in vanilla JS) adds the \`tv-scrollbar\` class
    to <html> and inlines this
-   <style data-theme-kit-pre-paint="scrollbar"> in
+   <style data-themvora-pre-paint="scrollbar"> in
    <head>. This hides native scrollbars immediately —
    no flash:
 
-     html.tk-scrollbar,
-     html.tk-scrollbar * {
+     html.tv-scrollbar,
+     html.tv-scrollbar * {
        scrollbar-width: none;
        -ms-overflow-style: none;
      }
-     html.tk-scrollbar *::-webkit-scrollbar {
+     html.tv-scrollbar *::-webkit-scrollbar {
        width: 0; height: 0;
      }
 
    Phase 2 — the engine: every managed container also gets
-     data-theme-kit-scrollbar="overlay"
+     data-themvora-scrollbar="overlay"
    so its native track is hidden while the custom overlay
-   strips (position: fixed, marked data-theme-kit-host)
+   strips (position: fixed, marked data-themvora-host)
    are drawn over it. The browser still performs all
    scrolling; the overlay only represents it. */`,
 };
@@ -76,7 +76,7 @@ const prePaintCSS = {
 const prePaintSnippet = {
   lang: "ts",
   title: "build-head.ts — pre-paint script",
-  code: `import { createPrePaintScrollbarScript } from "@theme-kit/core";
+  code: `import { createPrePaintScrollbarScript } from "@themvora/core";
 
 // Called once in your server render or build step. The generated
 // <script> is blocking, runs in <1ms, and is idempotent.
@@ -94,14 +94,14 @@ const head = [
 const ssrCssSnippet = {
   lang: "ts",
   title: "SSR — inline the CSS instead of a script",
-  code: `import { createPrePaintScrollbarCSS } from "@theme-kit/core";
+  code: `import { createPrePaintScrollbarCSS } from "@themvora/core";
 
 // In your server-rendered <head>: hidden from the very first paint,
 // no blocking <script>, and no hydration mismatches.
 export function Head() {
   return (
     <head>
-      <html lang="en" className="tk-scrollbar" />
+      <html lang="en" className="tv-scrollbar" />
       <style dangerouslySetInnerHTML={{ __html: createPrePaintScrollbarCSS() }} />
     </head>
   );
@@ -114,8 +114,8 @@ const vanillaSnippet = {
   code: `import {
   createThemeRuntime,
   createThemeScrollbar,
-} from "@theme-kit/core";
-import "@theme-kit/core/scrollbar.css";
+} from "@themvora/core";
+import "@themvora/core/scrollbar.css";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -158,7 +158,7 @@ export default function CustomScrollbarPage() {
             </svg>
           }
           title="Custom Scrollbar"
-          subtitle="@theme-kit/core"
+          subtitle="@themvora/core"
           description={
             <>
               Replace the browser&apos;s default scrollbar with a
@@ -175,12 +175,12 @@ export default function CustomScrollbarPage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {
               label: "CSS Import",
-              value: "@theme-kit/core/scrollbar.css in your global styles",
+              value: "@themvora/core/scrollbar.css in your global styles",
             },
             {
               label: "Provider",
@@ -214,7 +214,7 @@ export default function CustomScrollbarPage() {
             <span className="mx-1 opacity-40">|</span>
             Add{" "}
             <code className="mono text-[0.9em]">
-              @import "@theme-kit/core/scrollbar.css";
+              @import "@themvora/core/scrollbar.css";
             </code>{" "}
             to your global stylesheet (
             <code className="mono text-[0.9em]">globals.css</code>
@@ -311,9 +311,9 @@ export default function CustomScrollbarPage() {
             <li>
               Don&apos;t manually hide native scrollbars with{" "}
               <code className="mono text-[0.9em]">overflow: hidden</code> or{" "}
-              <code className="mono text-[0.9em">::-webkit-scrollbar</code>{" "}
+              <code className="mono text-[0.9em]">::-webkit-scrollbar</code>{" "}
               CSS — the bootstrap handles this automatically via the{" "}
-              <code className="mono text-[0.9em]">tk-scrollbar</code> class.
+              <code className="mono text-[0.9em]">tv-scrollbar</code> class.
             </li>
             <li>
               Use <code className="mono text-[0.9em]">include</code> to scope
@@ -321,8 +321,8 @@ export default function CustomScrollbarPage() {
               only want custom scrollbars in certain areas.
             </li>
             <li>
-              Use <code className="mono text-[0.9em]">appearance.include</code>{" "}
-              and <code className="mono text-[0.9em]">appearance.exclude</code>{" "}
+              Use <code className="mono text-[0.9em]">scope.include</code>{" "}
+              and <code className="mono text-[0.9em]">scope.exclude</code>{" "}
               for per-scrollbar configuration.
             </li>
             <li>
@@ -349,7 +349,7 @@ export default function CustomScrollbarPage() {
                 It renders client-side, so there&apos;s no server pre-paint hook.
                 On Vite, pass{" "}
                 <code className="mono text-[0.9em]">scrollbar: true</code> to{" "}
-                <code className="mono text-[0.9em]">themeKitVitePlugin</code> and
+                <code className="mono text-[0.9em]">themvoraVitePlugin</code> and
                 it injects the blocking pre-paint script for you; otherwise add
                 the script yourself (see{" "}
                 <code className="mono text-[0.9em]">Framework-agnostic</code>) or
@@ -363,7 +363,7 @@ export default function CustomScrollbarPage() {
             Without pre-paint hiding, the browser paints the native scrollbar
             for a frame before the overlay engine mounts — a visible flash.
             The supported frameworks inline a tiny CSS block + the{" "}
-            <code className="mono text-[0.9em]">tk-scrollbar</code> class during
+            <code className="mono text-[0.9em]">tv-scrollbar</code> class during
             SSR (no blocking script, no hydration mismatch).
           </Callout>
           <Callout className="mt-3">
@@ -371,10 +371,18 @@ export default function CustomScrollbarPage() {
             <span className="mx-1 opacity-40">|</span>
             Mounting <code className="mono text-[0.9em]">ThemeScrollbar</code>{" "}
             (or calling <code className="mono text-[0.9em]">createOverlayScrollbar</code>)
-            automatically applies the <code className="mono text-[0.9em]">tk-scrollbar</code>{" "}
+            automatically applies the <code className="mono text-[0.9em]">tv-scrollbar</code>{" "}
             class + hiding CSS if none is present. The engine is self-sufficient;
             you only need the pre-paint script when you want to prevent the
             initial flash on a server-rendered page.
+          </Callout>
+          <Callout className="mt-3">
+            <strong>Arrow glyph size</strong>
+            <span className="mx-1 opacity-40">|</span>
+            <code className="mono text-[0.9em]">icons.size</code> sets the size of
+            all four glyphs in CSS px. It is clamped to the arrow button's
+            usable area (and floored at 8px while space allows), so a large
+            value can never overflow a thin scrollbar.
           </Callout>
           <Callout className="mt-3">
             <strong>Built-in arrow icons</strong>
@@ -402,7 +410,7 @@ export default function CustomScrollbarPage() {
             JSX frameworks (React/Next/Solid/Remix) use object props; Vue/Nuxt
             use <code className="mono text-[0.9em]">:prop</code>; Svelte uses
             snippet attributes; Angular binds
-            <code className="mono text-[0.9em]">[themeKitScrollbarOptions]</code>;
+            <code className="mono text-[0.9em]">[themvoraScrollbarOptions]</code>;
             Web Components use individual attributes; Vanilla JS uses a single
             options object on
             <code className="mono text-[0.9em]">createThemeScrollbar</code>.
@@ -440,22 +448,22 @@ export default function CustomScrollbarPage() {
             lang: "css",
             title: "CSS custom properties",
             code: `:root {
-  --tk-scrollbar-thumb: #ff6b6b;
-  --tk-scrollbar-track: #2d2d2d;
-  --tk-scrollbar-thumb-hover: #ff8888;
-  --tk-scrollbar-thumb-active: #ff4444;
+  --tv-scrollbar-thumb: #ff6b6b;
+  --tv-scrollbar-track: #2d2d2d;
+  --tv-scrollbar-thumb-hover: #ff8888;
+  --tv-scrollbar-thumb-active: #ff4444;
 }
 
 /* Dark mode override */
 .dark {
-  --tk-scrollbar-thumb: #7c3aed;
-  --tk-scrollbar-track: #1e1e1e;
-  --tk-scrollbar-thumb-hover: #a855f7;
-  --tk-scrollbar-thumb-active: #d946ef;
+  --tv-scrollbar-thumb: #7c3aed;
+  --tv-scrollbar-track: #1e1e1e;
+  --tv-scrollbar-thumb-hover: #a855f7;
+  --tv-scrollbar-thumb-active: #d946ef;
 }`,
           })}
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            The CSS variables are defined on the overlay host element (<code className="mono text-[0.9em]">[data-theme-kit-host]</code>) with theme-derived defaults, so the scrollbar automatically follows your active theme. Custom values override the defaults.
+            The CSS variables are defined on the overlay host element (<code className="mono text-[0.9em]">[data-themvora-host]</code>) with theme-derived defaults, so the scrollbar automatically follows your active theme. Custom values override the defaults.
           </p>
         </section>
 
@@ -472,7 +480,7 @@ export default function CustomScrollbarPage() {
         <section id="containers" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={8}
-            desc="Use appearance.include to scope the overlay to a specific scrollable container instead of the window."
+            desc="Use scope.include to track specific scrollable containers instead of the whole window."
           >
             Container scrollbars
           </SectionHeading>
@@ -482,7 +490,7 @@ export default function CustomScrollbarPage() {
         <section id="vanilla" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={9}
-            desc="The overlay engine lives in @theme-kit/core, so you can mount it without React, Vue, Svelte, or any framework — with an identical option surface."
+            desc="The overlay engine lives in @themvora/core, so you can mount it without React, Vue, Svelte, or any framework — with an identical option surface."
           >
             Framework-agnostic (vanilla JS)
           </SectionHeading>
@@ -522,7 +530,7 @@ export default function CustomScrollbarPage() {
             script and inline{" "}
             <code className="mono text-[0.9em]">createPrePaintScrollbarCSS()</code>{" "}
             as a <code className="mono text-[0.9em]">&lt;style&gt;</code>{" "}
-            alongside a <code className="mono text-[0.9em]">tk-scrollbar</code>{" "}
+            alongside a <code className="mono text-[0.9em]">tv-scrollbar</code>{" "}
             class on <code className="mono text-[0.9em]">&lt;html&gt;</code> — no
             blocking script, no hydration mismatch.
           </p>

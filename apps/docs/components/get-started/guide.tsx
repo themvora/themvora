@@ -21,7 +21,7 @@ export type FrameworkHtml = {
 };
 
 const defineThemeCode = `// themes.ts
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 export const themes = [
   defineTheme({
@@ -32,10 +32,15 @@ export const themes = [
         background: "#fafcf8",
         foreground: "#17211a",
         card: "#ffffff",
+        cardForeground: "#17211a",
+        popover: "#ffffff",
+        popoverForeground: "#17211a",
         primary: "#3f9d63",
         primaryForeground: "#ffffff",
         secondary: "#ecf3ec",
+        secondaryForeground: "#17211a",
         accent: "#d9ecde",
+        accentForeground: "#17211a",
         muted: "#f1f5ef",
         mutedForeground: "#64706a",
         destructive: "#dc2626",
@@ -57,10 +62,15 @@ export const themes = [
         background: "#0d1210",
         foreground: "#e8f1ea",
         card: "#141b17",
+        cardForeground: "#e8f1ea",
+        popover: "#141b17",
+        popoverForeground: "#e8f1ea",
         primary: "#4cb377",
         primaryForeground: "#0d1210",
         secondary: "#1a231d",
+        secondaryForeground: "#e8f1ea",
         accent: "#1d2d22",
+        accentForeground: "#c9e6d3",
         muted: "#161f1a",
         mutedForeground: "#93a39a",
         destructive: "#f87171",
@@ -199,15 +209,15 @@ export function GetStartedGuide({
         <p className="mt-4 text-xs opacity-50">
           Selected: <span className="font-semibold opacity-80">{fw.name}</span>{" "}
           — installing <span className="mono">{fw.pkg}</span> alongside{" "}
-          <span className="mono">@theme-kit/core</span>.
+          <span className="mono">@themvora/core</span>.
         </p>
       </section>
 
       <div className="flex flex-col gap-12">
         <Step step="1" title="Install" id="install">
           <p className="text-sm opacity-70 leading-relaxed mb-4">
-            Theme Kit is two packages: the framework-agnostic{" "}
-            <span className="mono">@theme-kit/core</span> containing themes,
+            Themvora is two packages: the framework-agnostic{" "}
+            <span className="mono">@themvora/core</span> containing themes,
             tokens and the runtime, plus a thin{" "}
             <span className="mono">{fw.pkg}</span> adapter.
           </p>
@@ -224,13 +234,13 @@ export function GetStartedGuide({
           <p className="text-xs opacity-70 mb-3">
             The exported <span className="mono">themes</span> array is your
             registry. Every snippet below also runs on the built-in set —{" "}
-            <span className="mono">mint-light</span> ships with Theme Kit — so
+            <span className="mono">mint-light</span> ships with Themvora — so
             you can copy them as-is. To use the themes you just defined, hand
             the array to the provider:{" "}
             <span className="mono">themes=&#123;themes&#125;</span> in
             React/Solid/Svelte/Remix,{" "}
             <span className="mono">:themes=&quot;themes&quot;</span> in Vue,{" "}
-            <span className="mono">provideThemeKit(&#123; themes &#125;)</span>{" "}
+            <span className="mono">provideTheme(&#123; themes &#125;)</span>{" "}
             in Angular, and the <span className="mono">themes</span> option in{" "}
             <span className="mono">nuxt.config</span> /{" "}
             <span className="mono">astro.config</span>.
@@ -277,14 +287,14 @@ export function GetStartedGuide({
             step 1). See the{" "}
             <Link
               href={`/framework-guides/${fw.slug}`}
-              className="text-primary font-medium no-underline hover:underline"
+              className="text-foreground font-medium no-underline underline hover:decoration-foreground"
             >
               {fw.name} guide
             </Link>{" "}
             or the{" "}
             <Link
               href="/packages"
-              className="text-primary font-medium no-underline hover:underline"
+              className="text-foreground font-medium no-underline underline hover:decoration-foreground"
             >
               package map
             </Link>{" "}
@@ -300,14 +310,14 @@ export function GetStartedGuide({
           {fw.slug === "next" ? (
             <div className="mt-4">
               <Callout title="Why the Next.js integration differs">
-                Theme Kit resolves the initial selection on the server and
+                Themvora resolves the initial selection on the server and
                 applies the theme before hydration — preventing the flash of an
                 incorrect theme. It reads cookies, validates the persisted
                 fingerprint, and emits inline CSS variables plus a blocking
                 bootstrap script.
                 <Link
                   href="/zero-flash"
-                  className="inline-flex items-center gap-1 text-primary font-medium no-underline hover:underline ml-1"
+                  className="inline-flex items-center gap-1 text-foreground font-medium no-underline underline hover:decoration-foreground ml-1"
                 >
                   Learn how Zero Flash works →
                 </Link>
@@ -373,7 +383,7 @@ export function GetStartedGuide({
 
       <section className="mt-16">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">
-          Your first Theme Kit application
+          Your first Themvora application
         </h2>
         <p className="opacity-70 max-w-2xl mb-8">
           Five minutes in — this is a real demo running the same runtime the

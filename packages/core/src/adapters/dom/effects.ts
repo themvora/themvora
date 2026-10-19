@@ -17,9 +17,38 @@ export interface DOMEffectsOptions {
    * @see {@link DOMBindingOptions.selection}
    */
   selection?: DOMSelectionSource | null;
+  /**
+   * Write **only** the selection attributes, leaving every theme attribute,
+   * the `dark` class and `color-scheme` untouched.
+   *
+   * The selection subscription needs this: it fires *before* the store updates
+   * (the controller notifies selection listeners, then commits the theme), so
+   * re-applying the theme from that callback would write the **previous**
+   * theme's `data-theme` first and the new one a moment later. Two writes per
+   * change means two visual states per change — a flash, and a View Transition
+   * that starts on the old theme and is immediately skipped by the new one.
+   */
+  selectionOnly?: boolean;
 }
 
 export function applyDOMEffects(options: DOMEffectsOptions) {
+  // Selection-only refresh: a same-theme selection change (e.g. `system`
+  // resolving to the theme that is already applied) emits no store change, so
+  // these two attributes still need updating — and nothing else does.
+  if (options.selectionOnly) {
+    if (!options.selection) return;
+
+    const selectionBatch = createDOMWriteBatch();
+    const selection = options.selection.getSelection();
+    selectionBatch.setAttribute("data-theme-selection-mode", selection.mode);
+    selectionBatch.setAttribute(
+      "data-theme-selection-family",
+      selection.family ?? null,
+    );
+    selectionBatch.flush(options.target);
+    return;
+  }
+
   // The Animation Coordinator (driven by the CSS-variables binding) owns theme
   // transitions. This binding only flips identity/attributes instantly. When
   // transitions are explicitly disabled or suppressed, inject a `transition:

@@ -44,8 +44,8 @@ for (const mode of ["light", "dark"]) {
   // The docs persist the selection in cookies; set them before the first load.
   await ctx.addCookies([
     { name: "theme-mode", value: mode, domain: "localhost", path: "/" },
-    { name: "theme-family", value: "theme-kit", domain: "localhost", path: "/" },
-    { name: "theme-name", value: `theme-kit-default-${mode}`, domain: "localhost", path: "/" },
+    { name: "theme-family", value: "themvora", domain: "localhost", path: "/" },
+    { name: "theme-name", value: `themvora-default-${mode}`, domain: "localhost", path: "/" },
   ]);
   await page.goto(base + "/custom-scrollbar", {
     waitUntil: "networkidle",
@@ -58,14 +58,14 @@ for (const mode of ["light", "dark"]) {
   await page.waitForTimeout(900);
 
   const info = await page.evaluate(() => {
-    const thumbs = [...document.querySelectorAll(".tk-thumb")].map((el) => {
+    const thumbs = [...document.querySelectorAll(".tv-thumb")].map((el) => {
       const cs = getComputedStyle(el);
       return {
         bg: cs.backgroundColor,
         opacity: cs.opacity,
         w: cs.width,
         h: cs.height,
-        host: el.closest("[data-theme-kit-host]")?.getAttribute("data-theme-kit-scrollbar") ?? "window",
+        host: el.closest("[data-themvora-host]")?.getAttribute("data-themvora-scrollbar") ?? "window",
       };
     });
     return {
@@ -74,13 +74,13 @@ for (const mode of ["light", "dark"]) {
       background: getComputedStyle(document.documentElement).getPropertyValue("--theme-color-background").trim(),
       primary: getComputedStyle(document.documentElement).getPropertyValue("--theme-color-primary").trim(),
       accent: getComputedStyle(document.documentElement).getPropertyValue("--theme-color-accent").trim(),
-      thumbVar: (() => { const h = document.querySelector("[data-theme-kit-host]"); return h ? getComputedStyle(h).getPropertyValue("--tk-scrollbar-thumb").trim() : "(unset)"; })(),
+      thumbVar: (() => { const h = document.querySelector("[data-themvora-host]"); return h ? getComputedStyle(h).getPropertyValue("--tv-scrollbar-thumb").trim() : "(unset)"; })(),
       thumbs,
     };
   });
 
   console.log(`--- requested ${mode}: mode=${info.mode} bg=${info.background} primary=${info.primary} accent=${info.accent}`);
-  console.log(`    --tk-scrollbar-thumb = ${info.thumbVar || "(unset — engine default applies)"}`);
+  console.log(`    --tv-scrollbar-thumb = ${info.thumbVar || "(unset — engine default applies)"}`);
   for (const t of info.thumbs.slice(0, 4)) {
     console.log(`  ${t.host.padEnd(10)} bg=${t.bg} opacity=${t.opacity} size=${t.w}x${t.h}`);
   }

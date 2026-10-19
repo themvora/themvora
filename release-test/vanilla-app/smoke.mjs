@@ -1,7 +1,7 @@
-// ESM consumer smoke test — installs @theme-kit/core from the published tarball
+// ESM consumer smoke test — installs @themvora/core from the published tarball
 // and exercises the core public API without any DOM.
-import { createThemeStore, createThemeRuntime } from "@theme-kit/core";
-import { ThemeKit } from "@theme-kit/core/vanilla";
+import { createThemeStore, createThemeRuntime } from "@themvora/core";
+import { Themvora } from "@themvora/core/vanilla";
 
 function assert(cond, label) {
   if (!cond) {
@@ -40,8 +40,8 @@ try {
   assert(false, `runtime.destroy() twice threw: ${e.message}`);
 }
 
-// 3. vanilla ThemeKit (DOM-free: document is undefined in node)
-assert(typeof ThemeKit === "function", "ThemeKit class exported from /vanilla");
-assert(typeof ThemeKit.init === "function", "ThemeKit.init static");
+// 3. vanilla Themvora (DOM-free: document is undefined in node)
+assert(typeof Themvora === "function", "Themvora class exported from /vanilla");
+assert(typeof Themvora.init === "function", "Themvora.init static");
 
 console.log("\nvanilla-app ESM smoke: ALL PASS");

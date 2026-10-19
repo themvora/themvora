@@ -1,7 +1,7 @@
 ---
 title: "Scoped themes: isolate a subtree without leaving the runtime"
 date: 2026-08-17
-description: "Scope a theme to a single region — a video player, an embedded widget, a legacy component — with ThemeScope, the theme-kit-scope element, or an imperative binding."
+description: "Scope a theme to a single region — a video player, an embedded widget, a legacy component — with ThemeScope, the themvora-scope element, or an imperative binding."
 tags: scoped, islands, advanced
 ---
 
@@ -12,7 +12,7 @@ Global theming is the common case, but some regions of a page need their own the
 Every framework exposes a `ThemeScope` that wraps a subtree and themes only it:
 
 ```tsx
-import { ThemeScope } from "@theme-kit/react";
+import { ThemeScope } from "@themvora/react";
 
 export function VideoPlayerPage() {
   return (
@@ -49,7 +49,7 @@ Or you can pin `family` and `mode` together. The scoped selection is resolved ag
 When you don't control JSX — a video player, legacy DOM, or an element from another library — scope the element directly:
 
 ```ts
-import { createScopedThemeBinding, getBuiltInThemes } from "@theme-kit/core";
+import { createScopedThemeBinding, getBuiltInThemes } from "@themvora/core";
 
 const player = document.getElementById("player")!;
 
@@ -67,9 +67,9 @@ binding.destroy();
 Web Components get a declarative element instead:
 
 ```html
-<theme-kit-scope theme="plum-dark">
+<themvora-scope theme="plum-dark">
   <p>Scoped to plum-dark</p>
-</theme-kit-scope>
+</themvora-scope>
 ```
 
 ## Local themes for genuinely isolated islands
@@ -77,7 +77,7 @@ Web Components get a declarative element instead:
 Sometimes a region needs themes that don't exist in the global registry — a component that ships its own palette. The `themes` prop layers local definitions on top:
 
 ```tsx
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme = defineTheme({
   name: "compact-light",

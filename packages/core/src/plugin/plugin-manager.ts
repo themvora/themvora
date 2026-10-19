@@ -25,7 +25,7 @@ import { createDiagnostic, emitDiagnostic } from "../diagnostics";
  * on every plugin (in priority order) and clears the registry.
  *
  * `destroy` is failure-isolated: a plugin whose `onDestroy` throws is reported
- * with `TK_PLUGIN_DESTROY_FAILED` and the remaining plugins are still
+ * with `TV_PLUGIN_DESTROY_FAILED` and the remaining plugins are still
  * destroyed, so one broken plugin cannot leak the rest.
  *
  * @see {@link PluginManager}
@@ -41,7 +41,7 @@ export function createPluginManager<T extends ThemeDefinition>(): PluginManager<
   return {
     use(plugin) {
       if (plugins.has(plugin.name)) {
-        console.warn(`[theme-kit] Plugin "${plugin.name}" is already registered. Skipping.`);
+        console.warn(`[themvora] Plugin "${plugin.name}" is already registered. Skipping.`);
         return () => {};
       }
       plugins.set(plugin.name, plugin);
@@ -68,7 +68,7 @@ export function createPluginManager<T extends ThemeDefinition>(): PluginManager<
         } catch (error) {
           emitDiagnostic(
             createDiagnostic({
-              code: "TK_PLUGIN_DESTROY_FAILED",
+              code: "TV_PLUGIN_DESTROY_FAILED",
               level: "warning",
               message:
                 `Plugin "${plugin.name}" threw while being destroyed. ` +

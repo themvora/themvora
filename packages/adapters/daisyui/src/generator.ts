@@ -2,10 +2,10 @@ import type {
   AdapterPlugin,
   AdapterPluginContext,
   ThemeTokens,
-} from "@theme-kit/core";
-import { resolveTokens } from "@theme-kit/core";
-import type { AdapterResolvedTheme } from "@theme-kit/adapters";
-import { readColor, readToken } from "@theme-kit/adapters";
+} from "@themvora/core";
+import { resolveTokens } from "@themvora/core";
+import type { AdapterResolvedTheme } from "@themvora/adapters";
+import { readColor, readToken } from "@themvora/adapters";
 import { resolveDaisyTheme, deriveDaisyColors } from "./tokens";
 import { createDaisyRefineContext } from "./refine";
 
@@ -87,7 +87,7 @@ export function generateDaisyVariables(
 
 /**
  * Programmatic alternative to `daisyui.css`. Returns concrete daisyUI 5 CSS
- * variable values for a given set of Theme Kit tokens.
+ * variable values for a given set of Themvora tokens.
  *
  * @deprecated prefer `generateDaisyVariables` or `createDaisyAdapter`.
  */

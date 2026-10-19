@@ -97,7 +97,7 @@ export function DocumentationComposition({ chrome = true }: CompositionProps = {
                 </div>
 
                 <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 mb-3">
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-primary mb-0.5">
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-foreground mb-0.5">
                     <Icon icon="ph:info" width={11} height={11} />
                     Note
                   </div>
@@ -127,7 +127,7 @@ export function DocumentationComposition({ chrome = true }: CompositionProps = {
                       <span className="text-primary">import</span> {"{ defineTheme }"}{" "}
                       <span className="text-primary">from</span>{" "}
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        &quot;@theme-kit/core&quot;
+                        &quot;@themvora/core&quot;
                       </span>
                       {"\n"}
                       <span className="text-muted-foreground select-none">2  </span>

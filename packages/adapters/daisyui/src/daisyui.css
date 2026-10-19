@@ -1,9 +1,9 @@
 /*!
- * @theme-kit/daisyui
+ * @themvora/daisyui
  *
- * Maps Theme Kit semantic tokens onto daisyUI 5 CSS variables. Theme Kit is
+ * Maps Themvora semantic tokens onto daisyUI 5 CSS variables. Themvora is
  * the source of truth; each daisyUI variable below aliases a `--theme-*`
- * variable that the Theme Kit runtime owns and updates automatically.
+ * variable that the Themvora runtime owns and updates automatically.
  */
 
 :root {

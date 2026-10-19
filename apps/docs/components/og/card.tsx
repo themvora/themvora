@@ -15,7 +15,7 @@ import { ImageResponse } from "next/og";
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = "image/png";
 export const OG_ALT =
-  "Theme Kit — framework-agnostic theming with semantic tokens";
+  "Themvora — framework-agnostic theming with semantic tokens";
 
 const BG = "#0b0d1a";
 const FG = "#eceeff";
@@ -107,7 +107,7 @@ export function renderOgCard({
             color: MUTED,
           }}
         >
-          <div style={{ display: "flex" }}>Theme Kit</div>
+          <div style={{ display: "flex" }}>Themvora</div>
           <div style={{ display: "flex", color: PRIMARY }}>themekit.dev</div>
         </div>
       </div>

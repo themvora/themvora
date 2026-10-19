@@ -51,7 +51,7 @@ const installCommands: Record<
   Record<PackageManager, InstallCommandEntry>
 > = Object.fromEntries(
   frameworks.map((fw) => {
-    const pkgsArg = ["@theme-kit/core", fw.pkg, ...(fw.extraPackages ?? [])].join(
+    const pkgsArg = ["@themvora/core", fw.pkg, ...(fw.extraPackages ?? [])].join(
       " ",
     );
     const byManager = Object.fromEntries(
@@ -120,7 +120,7 @@ const astroHtml = astro
       reactInstall: Object.fromEntries(
         MANAGERS.map((manager) => {
           const pkgsArg = [
-            "@theme-kit/core",
+            "@themvora/core",
             astro.pkg,
             "@astrojs/react",
             "react",
@@ -138,7 +138,7 @@ const astroHtml = astro
 
 const buildIncludedCode = `// The provider falls back to these two when you pass no \`themes\` prop:
 // the neutral "light" and "dark" themes.
-import { getBuiltInThemes, getNeutralThemes } from "@theme-kit/core";
+import { getBuiltInThemes, getNeutralThemes } from "@themvora/core";
 
 const [light, dark] = getNeutralThemes();
 

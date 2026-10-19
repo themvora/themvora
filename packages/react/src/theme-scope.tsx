@@ -18,7 +18,7 @@ import {
   type ThemeDefinition,
   type ThemeMode,
   type ThemeTransitionOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { useThemeRuntime } from "./provider";
 
 /**
@@ -155,7 +155,7 @@ export function ThemeScope({
     const prePaint = resolveScopedThemePrePaint(
       combinedThemes,
       withGlobalMode(baseSelection, runtime.selection.getMode()),
-      { selector: `[data-theme-kit-scope="${scopeId}"]` },
+      { selector: `[data-themvora-scope="${scopeId}"]` },
     );
     initial.current = {
       systemBased: prePaint.systemBased,
@@ -238,6 +238,16 @@ export function ThemeScope({
     });
   }, [runtime]);
 
+  // Follow the provider's catalog. A `themes` change can leave the active
+  // theme untouched, so the store subscription above never fires for it — and
+  // without this the binding keeps the variables of a theme the runtime has
+  // already dropped.
+  useEffect(() => {
+    return runtime.registry.subscribe(() => {
+      bindingRef.current?.refresh();
+    });
+  }, [runtime]);
+
   const combinedClassName = [
     className,
     initial.current.isDark ? "dark" : "",
@@ -263,12 +273,12 @@ export function ThemeScope({
       className={combinedClassName || undefined}
       data-theme={initial.current.name}
       data-mode={initial.current.isDark ? "dark" : "light"}
-      data-theme-kit-scope={scopeId}
+      data-themvora-scope={scopeId}
       {...rest}
     >
       {initial.current.css ? (
         <style
-          data-theme-kit-scope-style={scopeId}
+          data-themvora-scope-style={scopeId}
           dangerouslySetInnerHTML={{ __html: initial.current.css }}
         />
       ) : null}
@@ -344,6 +354,14 @@ export function useScopedTheme(
       bindingRef.current.update(selectionRef.current);
     }
   }, [runtime, ref, selection, scopeTransition]);
+
+  // A catalog change is not a store change: re-resolve so the hook cannot keep
+  // a theme the runtime has removed.
+  useEffect(() => {
+    return runtime.registry.subscribe(() => {
+      bindingRef.current?.refresh();
+    });
+  }, [runtime]);
 
   return bindingRef;
 }

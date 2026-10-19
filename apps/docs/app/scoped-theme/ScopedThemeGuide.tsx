@@ -18,30 +18,34 @@ const scopeExamples: Record<
   react: {
     lang: "tsx",
     title: "app.tsx",
-    code: `import { ThemeScope } from "@theme-kit/react";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+    code: `import { ThemeProvider, ThemeScope } from "@themvora/react";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const scopeTransition: ThemeTransitionOptions = { duration: 300, easing: "cubic-bezier(0.4, 0, 0.2, 1)" };
 
-<ThemeProvider>
-  <ThemeScope theme="plum-dark" transition={scopeTransition}>
-    <Sidebar />
-  </ThemeScope>
-</ThemeProvider>`,
+export function App() {
+  return (
+    <ThemeProvider>
+      <ThemeScope theme="plum-dark" transition={scopeTransition}>
+        <Sidebar />
+      </ThemeScope>
+    </ThemeProvider>
+  );
+}`,
   },
   next: {
     lang: "tsx",
     title: "scoped-panel.tsx",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/next/client";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/next/client";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
 export function ScopedPanel() {
   return (
-    <ThemeScope theme="slack-dark" transition={transition}>
+    <ThemeScope theme="plum-dark" transition={transition}>
       <Notifications />
     </ThemeScope>
   );
@@ -51,8 +55,8 @@ export function ScopedPanel() {
     lang: "vue",
     title: "App.vue",
     code: `<script setup>
-import { ThemeScope } from "@theme-kit/vue";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/vue";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 </script>
@@ -67,8 +71,8 @@ const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
     lang: "svelte",
     title: "App.svelte",
     code: `<script>
-import { ThemeScope } from "@theme-kit/svelte";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/svelte";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 </script>
@@ -82,8 +86,8 @@ const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
   solid: {
     lang: "tsx",
     title: "app.tsx",
-    code: `import { ThemeScope } from "@theme-kit/solid";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+    code: `import { ThemeScope } from "@themvora/solid";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
@@ -101,15 +105,15 @@ export function App() {
     lang: "ts",
     title: "app-banner.ts",
     code: `import { Component } from "@angular/core";
-import { ThemeScopeDirective } from "@theme-kit/angular";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScopeDirective } from "@themvora/angular";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
 @Component({
   selector: "app-banner",
   template: \`
-    <div [themeKitScope]="'plum-dark'" [themeKitScopeTransition]="transition">
+    <div [themvoraScope]="'plum-dark'" [themvoraScopeTransition]="transition">
       <p>This subtree uses the plum-dark palette with transition.</p>
     </div>
   \`,
@@ -121,17 +125,18 @@ export class BannerComponent {}`,
   web: {
     lang: "html",
     title: "index.html",
-    code: `<theme-kit-provider default-theme="mint-light">
+    code: `<themvora-provider default-theme="mint-light">
   <your-app></your-app>
 
-  <theme-kit-scope theme="plum-dark" theme-transition='{"duration":300,"easing":"ease"}'>
+  <themvora-scope theme="plum-dark" theme-transition='{"duration":300,"easing":"ease"}'>
     <aside>Scoped to plum-dark</aside>
-  </theme-kit-scope>
-</theme-kit-provider>
+  </themvora-scope>
+</themvora-provider>
 
 <script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-  defineCustomElements();
+  // Registers every <themvora-*> element and their stylesheet. No manual
+  // registration step is needed.
+  import "@themvora/web";
 </script>`,
   },
   tailwind: {
@@ -158,7 +163,7 @@ export class BannerComponent {}`,
     lang: "astro",
     title: "src/components/Scoped.astro",
     code: `---
-import { ThemeScope } from "@theme-kit/astro/client";
+import { ThemeScope } from "@themvora/astro/client";
 ---
 
 <div class="scoped-region">
@@ -171,8 +176,8 @@ import { ThemeScope } from "@theme-kit/astro/client";
     lang: "vue",
     title: "ScopedPanel.vue",
     code: `<script setup>
-import { ThemeScope } from "@theme-kit/nuxt";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/nuxt";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 </script>
@@ -188,8 +193,8 @@ const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
     title: "scoped-panel.tsx",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/remix";
-import type { ThemeTransitionOptions } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/remix";
+import type { ThemeTransitionOptions } from "@themvora/core";
 
 const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
 
@@ -213,7 +218,7 @@ const imperativeExamples: Record<
     code: `"use client";
 
 import { useRef } from "react";
-import { useScopedTheme } from "@theme-kit/react";
+import { useScopedTheme } from "@themvora/react";
 
 export function Preview({ themeName }: { themeName: string | null }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -228,7 +233,7 @@ export function Preview({ themeName }: { themeName: string | null }) {
     code: `"use client";
 
 import { useRef } from "react";
-import { useScopedTheme } from "@theme-kit/next/client";
+import { useScopedTheme } from "@themvora/next/client";
 
 export function Preview({ themeName }: { themeName: string | null }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -243,7 +248,7 @@ export function Preview({ themeName }: { themeName: string | null }) {
     code: `"use client";
 
 import { useRef } from "react";
-import { useScopedTheme } from "@theme-kit/react";
+import { useScopedTheme } from "@themvora/react";
 
 export function Preview({ themeName }: { themeName: string | null }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -257,8 +262,8 @@ export function Preview({ themeName }: { themeName: string | null }) {
     title: "App.vue — imperative binding",
     code: `<script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { useThemeRuntime } from "@theme-kit/vue";
-import { createScopedThemeBinding } from "@theme-kit/core";
+import { useThemeRuntime } from "@themvora/vue";
+import { createScopedThemeBinding } from "@themvora/core";
 
 const el = ref<HTMLElement | null>(null);
 const runtime = useThemeRuntime();
@@ -278,8 +283,8 @@ onUnmounted(() => binding?.destroy());
     lang: "svelte",
     title: "App.svelte — imperative binding",
     code: `<script>
-  import { getThemeRuntime } from "@theme-kit/svelte";
-  import { createScopedThemeBinding } from "@theme-kit/core";
+  import { getThemeRuntime } from "@themvora/svelte";
+  import { createScopedThemeBinding } from "@themvora/core";
   import { onMount } from "svelte";
 
   let el: HTMLDivElement;
@@ -297,8 +302,8 @@ onUnmounted(() => binding?.destroy());
     lang: "tsx",
     title: "Solid — imperative binding",
     code: `import { onMount, onCleanup } from "solid-js";
-import { useThemeRuntime } from "@theme-kit/solid";
-import { createScopedThemeBinding } from "@theme-kit/core";
+import { useThemeRuntime } from "@themvora/solid";
+import { createScopedThemeBinding } from "@themvora/core";
 
 function Preview() {
   let el: HTMLDivElement | undefined;
@@ -316,12 +321,12 @@ function Preview() {
     lang: "ts",
     title: "Angular — ThemeScopeDirective",
     code: `import { Component } from "@angular/core";
-import { ThemeScopeDirective } from "@theme-kit/angular";
+import { ThemeScopeDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-preview",
   template: \`
-    <div [themeKitScope]="'plum-dark'">
+    <div [themvoraScope]="'plum-dark'">
       Scoped to plum-dark
     </div>
   \`,
@@ -332,17 +337,17 @@ export class PreviewComponent {}`,
   },
   web: {
     lang: "html",
-    title: "index.html — theme-kit-scope",
-    code: `<theme-kit-scope theme="plum-dark">
+    title: "index.html — themvora-scope",
+    code: `<themvora-scope theme="plum-dark">
   <p>Scoped to plum-dark</p>
-</theme-kit-scope>`,
+</themvora-scope>`,
   },
   tailwind: {
     lang: "ts",
     title: "core — createScopedThemeBinding",
     code: `// Tailwind is a CSS layer — imperative scoping
 // uses the core binding, same as vanilla JS.
-import { createScopedThemeBinding, getBuiltInThemes } from "@theme-kit/core";
+import { createScopedThemeBinding, getBuiltInThemes } from "@themvora/core";
 
 // createScopedThemeBinding takes the registry positionally; the built-in set
 // is a valid registry, so no theme file is needed.
@@ -355,7 +360,7 @@ binding.destroy();`,
     lang: "astro",
     title: "Astro — ThemeScope",
     code: `---
-import { ThemeScope } from "@theme-kit/astro/client";
+import { ThemeScope } from "@themvora/astro/client";
 ---
 <ThemeScope theme="plum-dark">
   <div>Scoped to plum-dark</div>
@@ -379,9 +384,9 @@ const localThemeExamples: Record<
   react: {
     lang: "tsx",
     title: "React — local themes",
-    code: `import { ThemeScope } from "@theme-kit/react";
-import type { ThemeDefinition } from "@theme-kit/core";
-import { defineTheme } from "@theme-kit/core";
+    code: `import { ThemeScope } from "@themvora/react";
+import type { ThemeDefinition } from "@themvora/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme: ThemeDefinition = defineTheme({
   name: "compact-light",
@@ -397,18 +402,22 @@ const compactTheme: ThemeDefinition = defineTheme({
   },
 });
 
-<ThemeScope themes={[compactTheme]} theme="compact-light">
-  <EditorToolbar />
-</ThemeScope>`,
+export function ScopedEditor() {
+  return (
+    <ThemeScope themes={[compactTheme]} theme="compact-light">
+      <EditorToolbar />
+    </ThemeScope>
+  );
+}`,
   },
   next: {
     lang: "tsx",
     title: "Next.js — local themes",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/next/client";
-import type { ThemeDefinition } from "@theme-kit/core";
-import { defineTheme } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/next/client";
+import type { ThemeDefinition } from "@themvora/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme: ThemeDefinition = defineTheme({
   name: "compact-light",
@@ -436,9 +445,9 @@ export function ScopedPanel() {
     lang: "vue",
     title: "Vue — local themes",
     code: `<script setup>
-import { ThemeScope } from "@theme-kit/vue";
-import type { ThemeDefinition } from "@theme-kit/core";
-import { defineTheme } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/vue";
+import type { ThemeDefinition } from "@themvora/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme: ThemeDefinition = defineTheme({
   name: "compact-light",
@@ -465,8 +474,8 @@ const compactTheme: ThemeDefinition = defineTheme({
     lang: "svelte",
     title: "Svelte — local themes",
     code: `<script>
-  import { ThemeScope } from "@theme-kit/svelte";
-  import { defineTheme } from "@theme-kit/core";
+  import { ThemeScope } from "@themvora/svelte";
+  import { defineTheme } from "@themvora/core";
 
   const compactTheme = defineTheme({
     name: "compact-light",
@@ -490,9 +499,9 @@ const compactTheme: ThemeDefinition = defineTheme({
   solid: {
     lang: "tsx",
     title: "Solid — local themes",
-    code: `import { ThemeScope } from "@theme-kit/solid";
-import type { ThemeDefinition } from "@theme-kit/core";
-import { defineTheme } from "@theme-kit/core";
+    code: `import { ThemeScope } from "@themvora/solid";
+import type { ThemeDefinition } from "@themvora/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme: ThemeDefinition = defineTheme({
   name: "compact-light",
@@ -508,9 +517,13 @@ const compactTheme: ThemeDefinition = defineTheme({
   },
 });
 
-<ThemeScope themes={[compactTheme]} theme="compact-light">
-  <EditorToolbar />
-</ThemeScope>`,
+export function ScopedEditor() {
+  return (
+    <ThemeScope themes={[compactTheme]} theme="compact-light">
+      <EditorToolbar />
+    </ThemeScope>
+  );
+}`,
   },
   angular: {
     lang: "ts",
@@ -521,7 +534,7 @@ import {
   createScopedThemeBinding,
   defineTheme,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // A local theme is just a ThemeDefinition — define it wherever you like.
 const compactTheme = defineTheme({
@@ -547,13 +560,13 @@ binding.destroy();`,
   web: {
     lang: "ts",
     title: "core — imperative local themes",
-    code: `// The <theme-kit-scope> element doesn't support local themes.
+    code: `// The <themvora-scope> element doesn't support local themes.
 // Use the imperative core binding with localThemes:
 import {
   createScopedThemeBinding,
   defineTheme,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // A local theme is just a ThemeDefinition — define it wherever you like.
 const compactTheme = defineTheme({
@@ -584,7 +597,7 @@ import {
   createScopedThemeBinding,
   defineTheme,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // A local theme is just a ThemeDefinition — define it wherever you like.
 const compactTheme = defineTheme({
@@ -616,7 +629,7 @@ import {
   createScopedThemeBinding,
   defineTheme,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // A local theme is just a ThemeDefinition — define it wherever you like.
 const compactTheme = defineTheme({
@@ -642,7 +655,26 @@ binding.destroy();`,
   nuxt: {
     lang: "vue",
     title: "Nuxt — local themes",
-    code: `<template>
+    code: `<script setup>
+import { ThemeScope } from "@themvora/nuxt";
+import { defineTheme } from "@themvora/core";
+
+// A local theme is a plain ThemeDefinition — it never enters the global
+// registry, so the scope is the only place that can see it.
+const compactTheme = defineTheme({
+  name: "compact-light",
+  meta: { family: "compact", mode: "light" },
+  tokens: {
+    colors: {
+      background: "#ffffff",
+      foreground: "#18181b",
+      primary: "#6366f1",
+    },
+  },
+});
+</script>
+
+<template>
   <ThemeScope :themes="[compactTheme]" theme="compact-light">
     <EditorToolbar />
   </ThemeScope>
@@ -653,9 +685,9 @@ binding.destroy();`,
     title: "Remix — local themes",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/remix";
-import type { ThemeDefinition } from "@theme-kit/core";
-import { defineTheme } from "@theme-kit/core";
+import { ThemeScope } from "@themvora/remix";
+import type { ThemeDefinition } from "@themvora/core";
+import { defineTheme } from "@themvora/core";
 
 const compactTheme: ThemeDefinition = defineTheme({
   name: "compact-light",
@@ -688,7 +720,7 @@ const transitionExamples: Record<
   react: {
     lang: "tsx",
     title: "React — transition prop",
-    code: `import { ThemeScope } from "@theme-kit/react";
+    code: `import { ThemeScope } from "@themvora/react";
 
 <ThemeScope theme="plum-dark" />
 
@@ -704,7 +736,7 @@ const transitionExamples: Record<
     title: "Next.js — transition prop",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/next/client";
+import { ThemeScope } from "@themvora/next/client";
 
 <ThemeScope theme="plum-dark" />
 
@@ -742,7 +774,7 @@ import { ThemeScope } from "@theme-kit/next/client";
   solid: {
     lang: "tsx",
     title: "Solid — transition prop",
-    code: `import { ThemeScope } from "@theme-kit/solid";
+    code: `import { ThemeScope } from "@themvora/solid";
 
 <ThemeScope theme="plum-dark" />
 
@@ -757,15 +789,15 @@ import { ThemeScope } from "@theme-kit/next/client";
     lang: "ts",
     title: "Angular — transition directive",
     code: `import { Component } from "@angular/core";
-import { ThemeScopeDirective } from "@theme-kit/angular";
+import { ThemeScopeDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-scope",
   template: \`
-    <div [themeKitScope]="'plum-dark'"></div>
+    <div [themvoraScope]="'plum-dark'"></div>
     <div
-      [themeKitScope]="'plum-dark'"
-      [themeKitScopeTransition]="{ duration: 150 }"
+      [themvoraScope]="'plum-dark'"
+      [themvoraScopeTransition]="{ duration: 150 }"
     ></div>
   \`,
   standalone: true,
@@ -776,12 +808,12 @@ export class ScopeComponent {}`,
   web: {
     lang: "html",
     title: "Web — scope element",
-    code: `<theme-kit-scope theme="plum-dark"></theme-kit-scope>
+    code: `<themvora-scope theme="plum-dark"></themvora-scope>
 
-<theme-kit-scope
+<themvora-scope
   theme="plum-dark"
   theme-transition='{"duration":150}'
-></theme-kit-scope>`,
+></themvora-scope>`,
   },
   tailwind: {
     lang: "css",
@@ -799,7 +831,7 @@ export class ScopeComponent {}`,
     lang: "astro",
     title: "Astro — transition prop",
     code: `---
-import { ThemeScope } from "@theme-kit/astro/client";
+import { ThemeScope } from "@themvora/astro/client";
 ---
 
 <ThemeScope theme="plum-dark" />
@@ -825,7 +857,7 @@ import { ThemeScope } from "@theme-kit/astro/client";
     title: "Remix — transition prop",
     code: `"use client";
 
-import { ThemeScope } from "@theme-kit/remix";
+import { ThemeScope } from "@themvora/remix";
 
 <ThemeScope theme="plum-dark" />
 
@@ -913,15 +945,15 @@ const nestedScopeExamples: Record<
     lang: "ts",
     title: "Angular — nested scopes",
     code: `import { Component } from "@angular/core";
-import { ThemeScopeDirective } from "@theme-kit/angular";
+import { ThemeScopeDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-dashboard",
   template: \`
-    <div [themeKitScope]="'mint-light'">
+    <div [themvoraScope]="'mint-light'">
       <Dashboard />
 
-      <div [themeKitScope]="'plum-dark'">
+      <div [themvoraScope]="'plum-dark'">
         <CodeEditor />
       </div>
     </div>
@@ -934,15 +966,15 @@ export class DashboardComponent {}`,
   web: {
     lang: "html",
     title: "Web — nested scopes",
-    code: `<theme-kit-provider themes='...' default-theme="light">
-  <theme-kit-scope theme="mint-light">
+    code: `<themvora-provider themes="mint-light mint-dark plum-light plum-dark" default-theme="mint-light">
+  <themvora-scope theme="mint-light">
     <dashboard-component></dashboard-component>
 
-    <theme-kit-scope theme="plum-dark">
+    <themvora-scope theme="plum-dark">
       <code-editor></code-editor>
-    </theme-kit-scope>
-  </theme-kit-scope>
-</theme-kit-provider>`,
+    </themvora-scope>
+  </themvora-scope>
+</themvora-provider>`,
   },
   tailwind: {
     lang: "css",
@@ -962,8 +994,8 @@ export class DashboardComponent {}`,
     lang: "astro",
     title: "Astro — nested scopes",
     code: `---
-import { ThemeProviderClient } from "@theme-kit/astro/client";
-import { ThemeScope } from "@theme-kit/astro/client";
+import { ThemeProviderClient } from "@themvora/astro/client";
+import { ThemeScope } from "@themvora/astro/client";
 ---
 <ThemeProviderClient defaultTheme="light">
   <ThemeScope theme="mint-light">
@@ -1027,7 +1059,7 @@ export function ScopedThemeGuide() {
       <Prerequisites
         items={[
           {
-            label: "Theme Kit provider mounted",
+            label: "Themvora provider mounted",
             value: "A global ThemeProvider wrapping your app",
             href: "/quick-start",
           },
@@ -1038,7 +1070,7 @@ export function ScopedThemeGuide() {
           },
           {
             label: "Framework adapter installed",
-            value: "@theme-kit/react, /next, /vue, or /angular",
+            value: "@themvora/react, /next, /vue, or /angular",
             href: "/get-started",
           },
         ]}
@@ -1090,7 +1122,7 @@ export function ScopedThemeGuide() {
   createThemeRuntime,
   createScopedThemeBinding,
   getBuiltInThemes,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 // createScopedThemeBinding takes the registry positionally; the built-in set
 // is a valid registry, so no theme file is needed. createThemeRuntime falls
@@ -1178,7 +1210,7 @@ binding.destroy();`,
           <li>
             Dark scoped themes add a{" "}
             <code className="mono text-[0.9em]">dark</code> class to the scope
-            element, keeping Theme Kit&apos;s "
+            element, keeping Themvora&apos;s "
             <code className="mono text-[0.9em]">@custom-variant dark</code>"
             Tailwind trick working inside the island.
           </li>
@@ -1190,7 +1222,12 @@ binding.destroy();`,
           <li>
             The scope resolves its theme from the registry, so it updates
             automatically when the global mode changes (family fallback), and
-            re-renders when the underlying theme definition is swapped.
+            re-renders when the underlying theme definition is swapped. It also
+            follows the catalog itself: when the provider&apos;s{" "}
+            <code className="mono text-[0.9em]">themes</code> changes, every
+            scope re-resolves in place — a scope whose theme left the catalog
+            moves to the catalog&apos;s first theme rather than keeping stale
+            variables.
           </li>
           <li>
             Server-rendered scopes pre-paint correctly too: an explicit

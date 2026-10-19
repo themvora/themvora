@@ -25,10 +25,27 @@ const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
  */
 export function InstallCommand({
   commands,
+  value,
+  onChange,
 }: {
   commands: Record<PackageManager, InstallCommandEntry>;
+  /**
+   * Controlled selection.
+   *
+   * Omit both to let the component own its state — that is what every existing
+   * caller does. Pass them when two install steps must move together, so a
+   * reader who picks `npm` doesn't get an npm command for the library and a
+   * pnpm one for Themvora.
+   */
+  value?: PackageManager;
+  onChange?: (manager: PackageManager) => void;
 }) {
-  const [active, setActive] = useState<PackageManager>("pnpm");
+  const [internal, setInternal] = useState<PackageManager>("pnpm");
+  const active = value ?? internal;
+  const setActive = (manager: PackageManager) => {
+    setInternal(manager);
+    onChange?.(manager);
+  };
   const baseId = useId();
   const tabRefs = useRef<Partial<Record<PackageManager, HTMLButtonElement | null>>>(
     {},

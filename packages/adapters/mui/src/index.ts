@@ -1,7 +1,7 @@
 /**
- * Theme Kit MUI adapter.
+ * Themvora MUI adapter.
  *
- * Bridges a Theme Kit runtime to MUI's theme: `MuiThemeProvider`,
+ * Bridges a Themvora runtime to MUI's theme: `MuiThemeProvider`,
  * `buildMuiThemeOptions`, and the runtime adapter (`createMuiAdapter` /
  * `useMuiTheme`).
  *

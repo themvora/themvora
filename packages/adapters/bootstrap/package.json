@@ -1,5 +1,5 @@
 {
-  "name": "@theme-kit/bootstrap",
+  "name": "@themvora/bootstrap",
   "license": "MIT",
   "version": "2.0.0",
   "type": "module",
@@ -76,8 +76,8 @@
     }
   },
   "dependencies": {
-    "@theme-kit/adapters": "workspace:^",
-    "@theme-kit/core": "workspace:^"
+    "@themvora/adapters": "workspace:^",
+    "@themvora/core": "workspace:^"
   },
   "devDependencies": {
     "@angular/core": "^22.0.0",
@@ -90,14 +90,14 @@
     "vitest": "^4.0.0",
     "vue": "^3.4.0"
   },
-  "description": "Bootstrap adapter for Theme Kit.",
+  "description": "Bootstrap adapter for Themvora.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/themekit-dev/theme-kit.git"
+    "url": "git+https://github.com/themvora/themvora.git"
   },
-  "homepage": "https://theme-kit-dev.vercel.app",
+  "homepage": "https://themvora-dev.vercel.app",
   "bugs": {
-    "url": "https://github.com/themekit-dev/theme-kit/issues"
+    "url": "https://github.com/themvora/themvora/issues"
   },
   "keywords": [
     "theme",

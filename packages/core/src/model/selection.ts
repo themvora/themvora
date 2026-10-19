@@ -65,7 +65,7 @@ export function getThemeFamilies(themes: readonly ThemeDefinition[]): string[] {
  * {@link ThemeSelectionState}. It matches no theme, so every downstream lookup
  * silently falls back to `themes[0]` — while the selection keeps naming a family
  * that is not on screen. Anything that renders the selection (a
- * `data-tk-readout="family"` element, `data-theme-selection-family`) then shows
+ * `data-tv-readout="family"` element, `data-theme-selection-family`) then shows
  * a value that contradicts the theme actually applied, and the server and the
  * browser can disagree about it, which is a visible correction on load.
  *

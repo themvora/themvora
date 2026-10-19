@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 import {
   getBlockingScriptContent,
   getDarkModeCSS,
@@ -8,7 +8,7 @@ import { computeFingerprint } from "../src/fingerprint";
 
 /**
  * The pre-paint script is the only thing standing between a reload and a flash
- * of the wrong theme, and until this file existed `@theme-kit/remix` had no
+ * of the wrong theme, and until this file existed `@themvora/remix` had no
  * test that executed it. Everything here runs the real generated script.
  */
 const themes = [

@@ -1,17 +1,17 @@
 /**
- * Theme Kit Astro integration.
+ * Themvora Astro integration.
  *
  * This entry point is **framework-neutral**: it ships the Astro integration
- * (`themeKit`), the zero-flash server helpers (`createBlockingScript`,
+ * (`themvora`), the zero-flash server helpers (`createBlockingScript`,
  * `buildThemeCssMap`, `darkModeCSSTemplate`, `systemModeCSSTemplate`,
  * `computeFingerprint`, `getInitialThemeState`), the Astro-specific
  * `ThemePersistence`, the browser-side `getThemeController()` /
  * `createThemeController()` API, the shared-runtime accessors, and the
- * framework-neutral `ThemeKitScrollbar` / `ThemeKitInspector` re-exports from
- * `@theme-kit/web`. None of it imports React.
+ * framework-neutral `ThemvoraScrollbar` / `ThemvoraInspector` re-exports from
+ * `@themvora/web`. None of it imports React.
  *
  * The React island (`ThemeProviderClient`), the React hooks, and the React
- * `ThemeScope` live behind the opt-in `@theme-kit/astro/client` subpath, which
+ * `ThemeScope` live behind the opt-in `@themvora/astro/client` subpath, which
  * is the only entry that depends on React.
  *
  * @remarks
@@ -19,18 +19,18 @@
  *
  * | Level | Import | Client framework |
  * | ----- | ------ | ---------------- |
- * | Declare the configuration once | `@theme-kit/astro/provider.astro` | none |
- * | Toggle the theme | `@theme-kit/astro/ThemeToggle.astro` | none |
+ * | Declare the configuration once | `@themvora/astro/provider.astro` | none |
+ * | Toggle the theme | `@themvora/astro/ThemeToggle.astro` | none |
  * | Custom browser interaction | `getThemeController()` | none |
- * | React components inside Astro | `@theme-kit/astro/client` | React (optional) |
+ * | React components inside Astro | `@themvora/astro/client` | React (optional) |
  *
  * @packageDocumentation
  */
-export { themeKit } from "./integration";
-export type { ThemeKitIntegrationOptions } from "./integration";
+export { themvora } from "./integration";
+export type { ThemvoraIntegrationOptions } from "./integration";
 export { default } from "./integration";
 
-export { ThemeKitScrollbar, ThemeKitInspector, injectPrePaintScrollbarCSS } from "@theme-kit/web";
+export { ThemvoraScrollbar, ThemvoraInspector, injectPrePaintScrollbarCSS } from "@themvora/web";
 
 export { computeFingerprint } from "./fingerprint";
 export {

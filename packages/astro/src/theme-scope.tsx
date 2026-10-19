@@ -5,7 +5,7 @@ import {
   createScopedThemeBinding,
   type ThemeDefinition,
   type ThemeTransitionOptions,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { getGlobalRuntime } from "./shared-runtime";
 
 /**
@@ -91,7 +91,15 @@ export function ThemeScope({ theme, children, className, transition }: ThemeScop
       scopeTransition ? { transition: scopeTransition } : {},
     );
 
+    // The catalog is not the theme: a `themes` change that preserves the active
+    // selection never reaches the store, so without this the binding keeps the
+    // variables of a theme the runtime has already dropped.
+    const unsubscribeThemes = rt.registry.subscribe(() => {
+      binding.refresh();
+    });
+
     return () => {
+      unsubscribeThemes();
       binding.destroy();
     };
   }, [theme, transition]);

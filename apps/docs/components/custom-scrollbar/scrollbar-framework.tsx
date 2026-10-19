@@ -14,11 +14,12 @@ export type ScrollbarFramework =
   | "react"
   | "next"
   | "vue"
+  | "nuxt"
   | "svelte"
   | "solid"
   | "angular"
+  | "astro"
   | "web"
-  | "nuxt"
   | "remix"
   | "vanilla";
 
@@ -38,6 +39,7 @@ export const SCROLLBAR_FRAMEWORKS: {
   { id: "svelte", label: "Svelte" },
   { id: "solid", label: "Solid" },
   { id: "angular", label: "Angular" },
+  { id: "astro", label: "Astro" },
   { id: "web", label: "Web Components" },
   { id: "nuxt", label: "Nuxt" },
   { id: "remix", label: "Remix" },
@@ -128,7 +130,7 @@ export function ScrollbarFrameworkCode({
 export const MOUNT_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
   react: {
     lang: "tsx",
-    code: `import { ThemeProvider, ThemeScrollbar } from "@theme-kit/react";
+    code: `import { ThemeProvider, ThemeScrollbar } from "@themvora/react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 export default function Layout({ children }) {
@@ -146,7 +148,7 @@ export default function Layout({ children }) {
   },
   next: {
     lang: "tsx",
-    code: `import { ThemeProvider, ThemeScrollbar } from "@theme-kit/next";
+    code: `import { ThemeProvider, ThemeScrollbar } from "@themvora/next";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 export default function RootLayout({ children }) {
@@ -168,7 +170,7 @@ export default function RootLayout({ children }) {
   vue: {
     lang: "vue",
     code: `<script setup>
-import { ThemeProvider, ThemeScrollbar } from "@theme-kit/vue";
+import { ThemeProvider, ThemeScrollbar } from "@themvora/vue";
 </script>
 
 <template>
@@ -181,17 +183,17 @@ import { ThemeProvider, ThemeScrollbar } from "@theme-kit/vue";
   svelte: {
     lang: "svelte",
     code: `<script>
-  import { ThemeProvider, ThemeScrollbar } from "@theme-kit/svelte";
+  import { ThemeProvider, ThemeScrollbar } from "@themvora/svelte";
 </script>
 
 <ThemeProvider {themes} defaultTheme="light">
-  <ThemeScrollbar autoHide />
+  <ThemeScrollbar behavior={{ autoHide: true }} />
   {@render children()}
 </ThemeProvider>`,
   },
   solid: {
     lang: "tsx",
-    code: `import { ThemeProvider, ThemeScrollbar } from "@theme-kit/solid";
+    code: `import { ThemeProvider, ThemeScrollbar } from "@themvora/solid";
 
 export default function App() {
   return (
@@ -206,40 +208,56 @@ export default function App() {
     lang: "tsx",
     code: `import { Component } from "@angular/core";
 import {
-  provideThemeKit,
+  provideTheme,
   ThemeScrollbarDirective,
-} from "@theme-kit/angular";
+} from "@themvora/angular";
 
 @Component({
   selector: "app-root",
   template: \`
     <div
-      themeKitScrollbar
-      [themeKitScrollbarOptions]="{ autoHide: true, arrows: true }"
+      themvoraScrollbar
+      [themvoraScrollbarOptions]="{
+      behavior: { autoHide: true },
+      appearance: { arrows: true },
+    }"
     ></div>
     <router-outlet />
   \`,
   standalone: true,
   imports: [ThemeScrollbarDirective],
-  providers: [provideThemeKit()],
+  providers: [provideTheme()],
 })
 export class AppComponent {}`,
   },
+  astro: {
+    lang: "astro",
+    code: `---
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+---
+
+<ThemeScrollbar
+  behavior={{ autoHide: true }}
+  appearance={{ thickness: 8, radius: 999 }}
+  icons={{ up: "^", down: "v" }}
+/>`,
+  },
   web: {
     lang: "html",
-    code: `<theme-kit-scrollbar auto-hide thickness="8" radius="999"></theme-kit-scrollbar>
+    code: `<themvora-scrollbar auto-hide thickness="8" radius="999"></themvora-scrollbar>
 
 <script type="module">
-  import { defineCustomElements } from "@theme-kit/web";
-  defineCustomElements(); // registers <theme-kit-provider>, <theme-kit-scrollbar>, ...
+  // Registers every <themvora-*> element, including <themvora-scrollbar>, and
+  // injects their stylesheet.
+  import "@themvora/web";
 </script>`,
   },
   nuxt: {
     lang: "vue",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "light",
     scrollbar: true, // server-rendered pre-paint scrollbar CSS
@@ -248,13 +266,13 @@ export default defineNuxtConfig({
 
 // app.vue — ThemeScrollbar is auto-imported by the module
 <template>
-  <ThemeScrollbar auto-hide />
+  <ThemeScrollbar :behavior="{ autoHide: true }" />
   <NuxtPage />
 </template>`,
   },
   remix: {
     lang: "tsx",
-    code: `import { ThemeProvider, ThemeScrollbar } from "@theme-kit/remix";
+    code: `import { ThemeProvider, ThemeScrollbar } from "@themvora/remix";
 
 export default function App() {
   return (
@@ -270,8 +288,8 @@ export default function App() {
     code: `import {
   createThemeRuntime,
   createThemeScrollbar,
-} from "@theme-kit/core";
-import "@theme-kit/core/scrollbar.css";
+} from "@themvora/core";
+import "@themvora/core/scrollbar.css";
 import themes from "./themes";
 
 const runtime = createThemeRuntime({
@@ -316,25 +334,25 @@ export const OPTIONS_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
     hoverThickness: 12,
     radius: 999,
     minThumbSize: 40,
-    offset: 2,
+    offset: 4,
     trackOpacity: 0.2,
     thumbOpacity: 0.7,
     zIndex: 9999,
     duration: 180,
     animationDuration: 180,
-    include: [".panel"],
-    exclude: [".no-scroll"],
     thumbColor: "#ff6b6b",
     trackColor: "#2d2d2d",
     activeThumbColor: "#ff4444",
     thumbHoverColor: "#ff8888",
   }}
+  scope={{ include: [".panel"], exclude: [".no-scroll"] }}
   icons={{
     arrow: <ScrollIcon />,
     up: <ArrowUp />,
     down: <ArrowDown />,
     left: <ArrowLeft />,
     right: <ArrowRight />,
+    size: 12,
   }}
 />`,
   },
@@ -375,28 +393,34 @@ export const OPTIONS_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
   angular: {
     lang: "tsx",
     code: `<div
-  themeKitScrollbar
-  [themeKitScrollbarOptions]="{
-    autoHide: true,
-    arrows: true,
-    thickness: 8,
-    radius: 999,
-    hoverThickness: 12,
-    arrowUpIcon: chevronUp,
-    arrowDownIcon: chevronDown
+  themvoraScrollbar
+  [themvoraScrollbarOptions]="{
+    behavior: { autoHide: true },
+    appearance: { arrows: true, thickness: 8, radius: 999, hoverThickness: 12 },
+    scope: { include: ['.panel'] },
+    icons: { up: chevronUp, down: chevronDown, size: 12 }
   }"
 ></div>`,
   },
+  astro: {
+    lang: "astro",
+    code: `<ThemeScrollbar
+  behavior={{ autoHide: true, hoverExpand: false, axes: ["vertical", "horizontal"] }}
+  appearance={{ arrows: true, thickness: 8, radius: 999, minThumbSize: 40, offset: { right: 4, top: 4, bottom: 4 } }}
+  scope={{ include: [".panel"], exclude: [".no-scroll"] }}
+  icons={{ arrow: "^", up: "^", down: "v", size: 12 }}
+/>`,
+  },
   web: {
     lang: "html",
-    code: `<theme-kit-scrollbar
+    code: `<themvora-scrollbar
   auto-hide
   arrows
   thickness="8"
   radius="999"
   hover-thickness="12"
   arrow-up-icon="data:image/svg+xml,..."
-></theme-kit-scrollbar>`,
+></themvora-scrollbar>`,
   },
   nuxt: {
     lang: "vue",
@@ -435,7 +459,7 @@ export const OPTIONS_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
   hoverThickness: 12,
   radius: 999,
   minThumbSize: 40,
-  offset: 2,
+  offset: 4,
   trackOpacity: 0.2,
   thumbOpacity: 0.7,
   duration: 180,
@@ -453,8 +477,8 @@ export const FLASHFREE_SNIPPETS: Partial<
     lang: "tsx",
     code: `// Server-rendered: pass \`scrollbar\` to the Next.js ThemeProvider.
 // It inlines createPrePaintScrollbarCSS() into the SSR <head> + the
-// tk-scrollbar class — no blocking script, no hydration mismatch.
-import { ThemeProvider, ThemeScrollbar } from "@theme-kit/next";
+// tv-scrollbar class — no blocking script, no hydration mismatch.
+import { ThemeProvider, ThemeScrollbar } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return (
@@ -469,11 +493,11 @@ export default function RootLayout({ children }) {
     lang: "ts",
     code: `// Server-rendered: set \`scrollbar: true\` in the module config.
 // Nuxt inlines createPrePaintScrollbarCSS() into the SSR <head> +
-// the tk-scrollbar class — no blocking script, no hydration mismatch.
+// the tv-scrollbar class — no blocking script, no hydration mismatch.
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "light",
     scrollbar: true,
@@ -482,12 +506,13 @@ export default defineNuxtConfig({
   },
   remix: {
     lang: "tsx",
-    code: `// Server-rendered: render \`tk-scrollbar\` on <html> and pass
+    code: `// Server-rendered: render \`tv-scrollbar\` on <html> and pass
 // \`scrollbar\` to <ThemeHead>. It inlines createPrePaintScrollbarCSS()
 // into the SSR <head> — no blocking script, no hydration mismatch.
-import { ThemeHead, ThemeProvider } from "@theme-kit/remix";
+import type { ReactNode } from "react";
+import { ThemeHead, ThemeProvider } from "@themvora/remix";
 
-export function Layout({ children }) {
+export function Layout({ children }: { children: ReactNode }) {
   const { initial } = useLoaderData<typeof loader>();
   const family = initial.theme.meta?.family ?? initial.selection.family;
 
@@ -496,7 +521,7 @@ export function Layout({ children }) {
     // the server renders them too — that is what keeps the two in agreement.
     <html
       lang="en"
-      className="tk-scrollbar"
+      className="tv-scrollbar"
       data-theme={initial.theme.name}
       data-theme-mode={initial.selection.mode === "dark" ? "dark" : "light"}
       {...(family ? { "data-theme-family": family } : {})}
@@ -515,12 +540,12 @@ export function Layout({ children }) {
   vanilla: {
     lang: "ts",
     code: `// Server rendered: inline createPrePaintScrollbarCSS() + the
-// tk-scrollbar class instead of a blocking <script>.
-import { createPrePaintScrollbarCSS } from "@theme-kit/core";
+// tv-scrollbar class instead of a blocking <script>.
+import { createPrePaintScrollbarCSS } from "@themvora/core";
 
 const head = [
   "<!doctype html>",
-  '<html class="tk-scrollbar">',
+  '<html class="tv-scrollbar">',
   '  <head>',
   \`    <style>\${createPrePaintScrollbarCSS()}</style>\`,
   '  </head>',
@@ -534,7 +559,7 @@ export const ARROW_SNIPPETS: Partial<
 > = {
   react: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/react";
+    code: `import { ThemeScrollbar } from "@themvora/react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 // Pass any ReactNode as arrow icons via the icons group
@@ -547,7 +572,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
   },
   next: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/next";
+    code: `import { ThemeScrollbar } from "@themvora/next";
 
 <ThemeScrollbar
   icons={{
@@ -559,7 +584,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
   vue: {
     lang: "vue",
     code: `<script setup>
-import { ThemeScrollbar } from "@theme-kit/vue";
+import { ThemeScrollbar } from "@themvora/vue";
 </script>
 
 <template>
@@ -574,7 +599,7 @@ import { ThemeScrollbar } from "@theme-kit/vue";
   svelte: {
     lang: "svelte",
     code: `<script>
-  import { ThemeScrollbar } from "@theme-kit/svelte";
+  import { ThemeScrollbar } from "@themvora/svelte";
 </script>
 
 <ThemeScrollbar
@@ -586,7 +611,7 @@ import { ThemeScrollbar } from "@theme-kit/vue";
   },
   solid: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/solid";
+    code: `import { ThemeScrollbar } from "@themvora/solid";
 
 <ThemeScrollbar
   icons={{
@@ -598,16 +623,15 @@ import { ThemeScrollbar } from "@theme-kit/vue";
   angular: {
     lang: "ts",
     code: `import { Component } from "@angular/core";
-import { ThemeScrollbarDirective } from "@theme-kit/angular";
+import { ThemeScrollbarDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-root",
   template: \`
     <div
-      themeKitScrollbar
-      [themeKitScrollbarOptions]="{
-        arrowUpIcon: chevronUp,
-        arrowDownIcon: chevronDown
+      themvoraScrollbar
+      [themvoraScrollbarOptions]="{
+        icons: { up: chevronUp, down: chevronDown, size: 12 }
       }"
     ></div>
   \`,
@@ -616,12 +640,21 @@ import { ThemeScrollbarDirective } from "@theme-kit/angular";
 })
 export class AppComponent {}`,
   },
+  astro: {
+    lang: "astro",
+    code: `---
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+---
+
+// Arrow content is an HTML string — Astro has no client icon components.
+<ThemeScrollbar icons={{ up: "<b>^</b>", down: "<b>v</b>", size: 12 }} />`,
+  },
   web: {
     lang: "html",
-    code: `<theme-kit-scrollbar
+    code: `<themvora-scrollbar
   arrow-up-icon="data:image/svg+xml,..."
   arrow-down-icon="data:image/svg+xml,..."
-></theme-kit-scrollbar>`,
+></themvora-scrollbar>`,
   },
   nuxt: {
     lang: "vue",
@@ -637,7 +670,7 @@ export class AppComponent {}`,
   },
   remix: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/remix";
+    code: `import { ThemeScrollbar } from "@themvora/remix";
 
 <ThemeScrollbar
   icons={{
@@ -662,11 +695,11 @@ export const CONTAINER_SNIPPETS: Partial<
 > = {
   react: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/react";
+    code: `import { ThemeScrollbar } from "@themvora/react";
 
 // Scrollbar scoped to a specific container
 <ThemeScrollbar
-  appearance={{ include: [".panel"] }}
+  scope={{ include: [".panel"] }}
 />
 
 <div className="panel" style={{ overflow: "auto", height: 400 }}>
@@ -675,10 +708,10 @@ export const CONTAINER_SNIPPETS: Partial<
   },
   next: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/next";
+    code: `import { ThemeScrollbar } from "@themvora/next";
 
 <ThemeScrollbar
-  appearance={{ include: [".panel"] }}
+  scope={{ include: [".panel"] }}
 />
 
 <div className="panel" style={{ overflow: "auto", height: 400 }}>
@@ -689,7 +722,7 @@ export const CONTAINER_SNIPPETS: Partial<
     lang: "vue",
     code: `<template>
   <ThemeScrollbar
-    :appearance="{ include: ['.panel'] }"
+    :scope="{ include: ['.panel'] }"
   />
 
   <div class="panel" style="overflow: auto; height: 400px">
@@ -700,7 +733,7 @@ export const CONTAINER_SNIPPETS: Partial<
   svelte: {
     lang: "svelte",
     code: `<ThemeScrollbar
-  appearance={{ include: [".panel"] }}
+  scope={{ include: [".panel"] }}
 />
 
 <div class="panel" style="overflow: auto; height: 400px">
@@ -709,10 +742,10 @@ export const CONTAINER_SNIPPETS: Partial<
   },
   solid: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/solid";
+    code: `import { ThemeScrollbar } from "@themvora/solid";
 
 <ThemeScrollbar
-  appearance={{ include: [".panel"] }}
+  scope={{ include: [".panel"] }}
 />
 
 <div class="panel" style={{ overflow: "auto", height: "400px" }}>
@@ -722,14 +755,14 @@ export const CONTAINER_SNIPPETS: Partial<
   angular: {
     lang: "ts",
     code: `import { Component } from "@angular/core";
-import { ThemeScrollbarDirective } from "@theme-kit/angular";
+import { ThemeScrollbarDirective } from "@themvora/angular";
 
 @Component({
   selector: "app-root",
   template: \`
     <div
-      themeKitScrollbar
-      [themeKitScrollbarOptions]="{ include: ['.panel'] }"
+      themvoraScrollbar
+      [themvoraScrollbarOptions]="{ scope: { include: ['.panel'] } }"
     ></div>
 
     <div class="panel" style="overflow: auto; height: 400px">
@@ -741,9 +774,17 @@ import { ThemeScrollbarDirective } from "@theme-kit/angular";
 })
 export class AppComponent {}`,
   },
+  astro: {
+    lang: "astro",
+    code: `<ThemeScrollbar scope={{ include: [".panel"] }} />
+
+<div class="panel" style="overflow: auto; height: 400px">
+  <long-content />
+</div>`,
+  },
   web: {
     lang: "html",
-    code: `<theme-kit-scrollbar include=".panel"></theme-kit-scrollbar>
+    code: `<themvora-scrollbar include=".panel"></themvora-scrollbar>
 
 <div class="panel" style="overflow: auto; height: 400px">
   <long-content></long-content>
@@ -753,7 +794,7 @@ export class AppComponent {}`,
     lang: "vue",
     code: `<template>
   <ThemeScrollbar
-    :appearance="{ include: ['.panel'] }"
+    :scope="{ include: ['.panel'] }"
   />
 
   <div class="panel" style="overflow: auto; height: 400px">
@@ -763,10 +804,10 @@ export class AppComponent {}`,
   },
   remix: {
     lang: "tsx",
-    code: `import { ThemeScrollbar } from "@theme-kit/remix";
+    code: `import { ThemeScrollbar } from "@themvora/remix";
 
 <ThemeScrollbar
-  appearance={{ include: [".panel"] }}
+  scope={{ include: [".panel"] }}
 />
 
 <div className="panel" style={{ overflow: "auto", height: 400 }}>
@@ -775,7 +816,7 @@ export class AppComponent {}`,
   },
   vanilla: {
     lang: "ts",
-    code: `import { createThemeScrollbar } from "@theme-kit/core";
+    code: `import { createThemeScrollbar } from "@themvora/core";
 
 // Scope the overlay to specific containers via the options object
 createThemeScrollbar(store, {

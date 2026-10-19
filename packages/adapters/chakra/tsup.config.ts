@@ -10,8 +10,8 @@ export default defineConfig({
   external: [
     "react",
     "react-dom",
-    "@theme-kit/core",
-    "@theme-kit/adapters",
+    "@themvora/core",
+    "@themvora/adapters",
     "@chakra-ui/react",
   ],
 });

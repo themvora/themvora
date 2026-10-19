@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSyncFirstRoot } from "../src/sync-first-root";
-import { themeKitVitePlugin } from "../src/vite-plugin";
+import { themvoraVitePlugin } from "../src/vite-plugin";
 import { defineTheme } from "../src/model";
 
 /**
@@ -105,7 +105,7 @@ describe("createSyncFirstRoot", () => {
     );
 
     createRoot(STUB_CONTAINER).render("app");
-    // A library creating its own root from an effect — Theme Kit's own
+    // A library creating its own root from an effect — Themvora's own
     // ThemeScrollbar does this, once per arrow. Flushing here would put
     // `flushSync` inside React's commit phase and React would log
     // "flushSync was called from inside a lifecycle method".
@@ -126,10 +126,10 @@ describe("createSyncFirstRoot", () => {
   });
 });
 
-describe("themeKitVitePlugin — syncFirstRender scoping", () => {
+describe("themvoraVitePlugin — syncFirstRender scoping", () => {
   const themes = [defineTheme({ name: "mint-light", meta: { family: "mint", mode: "light" } })];
-  const plugin = () => themeKitVitePlugin({ themes, defaultTheme: "mint-light" });
-  const virtualId = "\0virtual:theme-kit/react-dom-client";
+  const plugin = () => themvoraVitePlugin({ themes, defaultTheme: "mint-light" });
+  const virtualId = "\0virtual:themvora/react-dom-client";
 
   it("aliases react-dom/client for application code", () => {
     const id = plugin().resolveId?.("react-dom/client", "/app/src/main.tsx");
@@ -160,7 +160,7 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
       virtualId,
     );
     expect(source).toContain("export * from");
-    expect(source).toContain("__tkCreateRoot as createRoot");
+    expect(source).toContain("__tvCreateRoot as createRoot");
     // The shim itself must not mention the real module's `createRoot` at all:
     // re-exporting it and declaring a local of the same name in one module is
     // what made a bundler emit `createSyncFirstRoot(createRoot, …)`, a
@@ -180,10 +180,10 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
     const p = plugin();
     p.configResolved?.({ build: { ssr: "src/entry-server.tsx" } });
     // Nothing is painted on a server, so the shim can do no good there — and it
-    // breaks the build: @theme-kit/react imports react-dom/client, so an SSR
+    // breaks the build: @themvora/react imports react-dom/client, so an SSR
     // bundle would pull the shim in and evaluate it in Node.
     expect(p.resolveId?.("react-dom/client", "/app/src/main.tsx")).toBeNull();
-    expect(p.resolveId?.("virtual:theme-kit/react-dom-client-wrapper", "/app/x")).toBeNull();
+    expect(p.resolveId?.("virtual:themvora/react-dom-client-wrapper", "/app/x")).toBeNull();
   });
 
   it("lets its own modules resolve the real react-dom/client", () => {
@@ -191,10 +191,10 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
     // Marked internal. `skipSelf` does not skip this plugin when resolution is
     // initiated from `load`, and that call has no importer to key off — without
     // the marker the wrapper imports the shim, which imports the wrapper, and
-    // Vite fails with "Failed to resolve import virtual:theme-kit/...".
+    // Vite fails with "Failed to resolve import virtual:themvora/...".
     expect(
       p.resolveId?.("react-dom/client", undefined, {
-        custom: { themeKitInternal: true },
+        custom: { themvoraInternal: true },
       }),
     ).toBeNull();
     // An unmarked application import is still aliased.
@@ -206,10 +206,10 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
     // the wrapper.
     expect(
       plugin().resolveId?.(
-        "virtual:theme-kit/react-dom-client-wrapper",
-        "\0virtual:theme-kit/react-dom-client",
+        "virtual:themvora/react-dom-client-wrapper",
+        "\0virtual:themvora/react-dom-client",
       ),
-    ).toBe("\0virtual:theme-kit/react-dom-client-wrapper");
+    ).toBe("\0virtual:themvora/react-dom-client-wrapper");
   });
 
   it("lets its own modules resolve the real react-dom/client", () => {
@@ -217,10 +217,10 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
     // Marked internal. `skipSelf` does not skip this plugin when resolution is
     // initiated from `load`, and that call has no importer to key off — without
     // the marker the wrapper imports the shim, which imports the wrapper, and
-    // Vite fails with "Failed to resolve import virtual:theme-kit/...".
+    // Vite fails with "Failed to resolve import virtual:themvora/...".
     expect(
       p.resolveId?.("react-dom/client", undefined, {
-        custom: { themeKitInternal: true },
+        custom: { themvoraInternal: true },
       }),
     ).toBeNull();
     // An unmarked application import is still aliased.
@@ -232,10 +232,10 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
     // the wrapper.
     expect(
       plugin().resolveId?.(
-        "virtual:theme-kit/react-dom-client-wrapper",
-        " virtual:theme-kit/react-dom-client",
+        "virtual:themvora/react-dom-client-wrapper",
+        " virtual:themvora/react-dom-client",
       ),
-    ).toBe(" virtual:theme-kit/react-dom-client-wrapper");
+    ).toBe(" virtual:themvora/react-dom-client-wrapper");
   });
 
   it("derives the bootstrap from the provider's config", async () => {
@@ -247,7 +247,7 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
       meta: { family: "plum", mode: "dark" },
       tokens: { colors: { background: "#0f0520" } },
     });
-    const withConfig = themeKitVitePlugin({
+    const withConfig = themvoraVitePlugin({
       config: { themes: [only], defaultTheme: "plum-dark", initialMode: "dark" },
     });
     const tags = (await withConfig.transformIndexHtml("")) as { children?: string }[];
@@ -262,7 +262,7 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
       meta: { family: "plum", mode: "dark" },
       tokens: { colors: { background: "#0f0520" } },
     });
-    const plugin = themeKitVitePlugin({
+    const plugin = themvoraVitePlugin({
       // Deliberately contradictory: `config` is the single source, so the
       // inline registry must not leak into the emitted script.
       themes: [defineTheme({ name: "mint-light", meta: { family: "mint", mode: "light" } })],
@@ -276,18 +276,18 @@ describe("themeKitVitePlugin — syncFirstRender scoping", () => {
   });
 
   it("says what is missing when no registry is given", async () => {
-    const plugin = themeKitVitePlugin({} as never);
+    const plugin = themvoraVitePlugin({} as never);
     await expect(plugin.transformIndexHtml("")).rejects.toThrow(/theme registry/);
   });
 
   it("drops the shim entirely when opted out", () => {
-    const opted = themeKitVitePlugin({ themes, defaultTheme: "mint-light", syncFirstRender: false });
+    const opted = themvoraVitePlugin({ themes, defaultTheme: "mint-light", syncFirstRender: false });
     expect(opted.resolveId).toBeUndefined();
     expect(opted.load).toBeUndefined();
   });
 });
 
-describe("themeKitVitePlugin — dev prerender", () => {
+describe("themvoraVitePlugin — dev prerender", () => {
   const themes = [defineTheme({ name: "mint-light", meta: { family: "mint", mode: "light" } })];
   const EMPTY_HTML = '<!doctype html><html><body><div id="root"></div></body></html>';
 
@@ -296,7 +296,7 @@ describe("themeKitVitePlugin — dev prerender", () => {
     render?: () => string,
     opts: { css?: string } = {},
   ) {
-    const plugin = themeKitVitePlugin({
+    const plugin = themvoraVitePlugin({
       themes,
       defaultTheme: "mint-light",
       ...(ssrEntry !== undefined ? { ssrEntry } : {}),
@@ -305,7 +305,7 @@ describe("themeKitVitePlugin — dev prerender", () => {
       ssrLoadModule: async () => ({ render: render ?? (() => "<p>prerendered</p>") }),
       pluginContainer: {
         resolveId: async (id: string) =>
-          id === "@theme-kit/core/scrollbar.css"
+          id === "@themvora/core/scrollbar.css"
             ? { id: opts.css ?? "/pkg/core/dist/scrollbar.css" }
             : null,
       },
@@ -336,13 +336,13 @@ describe("themeKitVitePlugin — dev prerender", () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it("makes Theme Kit's stylesheet render-blocking in dev", async () => {
+  it("makes Themvora's stylesheet render-blocking in dev", async () => {
     // Vite injects CSS through JS in dev, so prerendered markup would paint
     // unstyled — a one-frame flash of unstyled content. A real link is
     // render-blocking, so the first paint is already styled.
     const result = await devPlugin(undefined).transformIndexHtml(EMPTY_HTML);
     const tags = (result as { tags: { tag: string; attrs?: Record<string, string> }[] }).tags;
-    const link = tags.find((t) => t.attrs?.["data-theme-kit"] === "stylesheet");
+    const link = tags.find((t) => t.attrs?.["data-themvora"] === "stylesheet");
     expect(link).toBeTruthy();
     expect(link?.tag).toBe("link");
     // `?direct` is load-bearing: without it Vite serves the JS transform of the

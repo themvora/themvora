@@ -30,13 +30,13 @@ export default function LibrariesPage() {
       <PageHeader
         eyebrow="Adapters"
           title="Libraries"
-          description="Adapters bridge Theme Kit semantic tokens to the libraries you already use. CSS-variable adapters inject live variables; generated adapters rebuild a library theme on every theme change; build-time integrations expose tokens as utilities."
+          description="Adapters bridge Themvora semantic tokens to the libraries you already use. CSS-variable adapters inject live variables; generated adapters rebuild a library theme on every theme change; build-time integrations expose tokens as utilities."
         />
 
         <Callout className="mb-10">
           <span className="block">
             Every snippet is real — it is executed against the actual{" "}
-            <code className="mono text-[0.9em]">@theme-kit/*</code> packages,
+            <code className="mono text-[0.9em]">@themvora/*</code> packages,
             and reference copies ship alongside each package in{" "}
             <code className="mono text-[0.9em]">packages/</code>.
           </span>

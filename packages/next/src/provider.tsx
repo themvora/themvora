@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
-import type {
-  InitialThemeResolution,
-  ThemeDefinition,
-} from "@theme-kit/core";
+import React, { useEffect, useMemo, useRef } from "react";
+import {
+  createThemeRuntime,
+  type InitialThemeResolution,
+  type ThemeDefinition,
+  type ThemeRuntime,
+} from "@themvora/core";
 import {
   ThemeProvider as ReactThemeProvider,
   useThemeRuntime,
-} from "@theme-kit/react";
+} from "@themvora/react";
 import { createNextThemePersistence } from "./persistence";
 import { computeFingerprint } from "./fingerprint";
 
@@ -16,18 +18,18 @@ export interface ClientThemeProviderProps<T extends ThemeDefinition> {
   initial: InitialThemeResolution<T>;
   themes?: readonly T[];
   defaultTheme?: string;
-  transition?: boolean | import("@theme-kit/core").ThemeTransitionOptions;
+  transition?: boolean | import("@themvora/core").ThemeTransitionOptions;
   /**
    * Sunrise/sunset scheduling. Created client-side only — the server resolves
    * the initial theme (zero-flash) and the client schedule takes over
    * activation. Configure via `useThemeSchedule()`.
    */
-  scheduled?: false | import("@theme-kit/core").ScheduledThemeOptions<T>;
+  scheduled?: false | import("@themvora/core").ScheduledThemeOptions<T>;
   /**
    * Library adapters installed onto the created runtime. Each adapter keeps its
    * own injected `<style>` in sync as the theme changes.
    */
-  adapters?: import("@theme-kit/core").ThemeAdapter<T>[];
+  adapters?: import("@themvora/core").ThemeAdapter<T>[];
   children: React.ReactNode;
 }
 
@@ -97,16 +99,74 @@ export function ClientThemeProvider<T extends ThemeDefinition>({
     [themes, defaultTheme],
   );
 
+  // Next's server provider emits the cookie-backed bootstrap into <head>. On the
+  // client, create the runtime from that already-applied DOM state and hand it to
+  // the React context provider as caller-owned. This is important for two
+  // reasons: React's owned-runtime bootstrap reads localStorage (a second source
+  // which can overwrite Next's cookie selection), and its initial-state layout
+  // effect deliberately reapplies the server snapshot. Both are correct for a
+  // generic React SSR app, but Next has already done the authoritative handoff.
+  //
+  // createThemeRuntime keeps `runtime.initial` equal to the server's `initial`
+  // snapshot while its live store adopts `data-theme-ready`, so hydration still
+  // uses the server snapshot and the client keeps the theme that was painted.
+  // The runtime is created **once** and reconfigured in place. Recreating it on
+  // every prop change (the previous `useMemo` deps) discarded runtime state —
+  // history, the adopted `data-theme-ready` selection — and churned the React
+  // context. Configuration changes (`themes` / `defaultTheme` / `initial`) are
+  // forwarded to the adopted runtime and applied through the shared
+  // `runtime.configure()` contract by the React provider below.
+  const runtime = useMemo(() => {
+    const options = {
+      ...(themes ? { themes } : {}),
+      ...(defaultTheme !== undefined
+        ? { defaultTheme: defaultTheme as T["name"] }
+        : {}),
+      initial,
+      readPersistenceOnInit: false,
+      persistence,
+      dom: false as const,
+      cssVariables: false as const,
+      ...(transition !== undefined ? { transition } : {}),
+      ...(scheduled !== undefined ? { scheduled } : {}),
+      ...(adapters ? { adapters } : {}),
+    };
+    return createThemeRuntime(options);
+    // Created once: the creation-time snapshot of the props; later changes flow
+    // through `configure` (see the React provider).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // This wrapper owns the externally-created runtime. Defer destruction by one
+  // task so React StrictMode's simulated cleanup/setup pair can cancel it, just
+  // like the React provider does for runtimes it owns itself.
+  const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (destroyTimerRef.current !== null) {
+      clearTimeout(destroyTimerRef.current);
+      destroyTimerRef.current = null;
+    }
+
+    return () => {
+      destroyTimerRef.current = setTimeout(() => {
+        destroyTimerRef.current = null;
+        runtime.destroy();
+      }, 0);
+    };
+  }, [runtime]);
+
   return (
-     <ReactThemeProvider
-       initial={initial}
-       {...(themes ? { themes } : {})}
-       readPersistenceOnInit={false}
-       persistence={persistence}
-       {...(transition !== undefined ? { transition } : {})}
-       {...(scheduled !== undefined ? { scheduled } : {})}
-       {...(adapters ? { adapters } : {})}
-     >
+    <ReactThemeProvider
+      runtime={runtime as ThemeRuntime<T>}
+      initial={initial}
+      {...(themes ? { themes } : {})}
+      {...(defaultTheme !== undefined ? { defaultTheme: defaultTheme as T["name"] } : {})}
+      readPersistenceOnInit={false}
+      persistence={persistence}
+      {...(transition !== undefined ? { transition } : {})}
+      {...(scheduled !== undefined ? { scheduled } : {})}
+      {...(adapters ? { adapters } : {})}
+    >
       <CookieSync fingerprint={fingerprint} />
       {children}
     </ReactThemeProvider>

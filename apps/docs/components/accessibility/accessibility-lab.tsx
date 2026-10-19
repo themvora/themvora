@@ -10,8 +10,8 @@ import {
   validateThemeContrast,
   type ContrastCheck,
   type CVDType,
-} from "@theme-kit/core";
-import { useTheme, useThemeRuntime } from "@theme-kit/next/client";
+} from "@themvora/core";
+import { useTheme, useThemeRuntime } from "@themvora/next/client";
 import { CodeBlock } from "../code-block";
 import { highlightCode } from "../../lib/highlight";
 
@@ -229,7 +229,7 @@ export function AccessibilityLab({ compact = false }: { compact?: boolean }) {
           </h2>
           <p className="opacity-70 max-w-2xl leading-relaxed">
             Every check below runs against the real accessibility toolkit in{" "}
-            <code className="mono text-[0.9em]">@theme-kit/core</code> —{" "}
+            <code className="mono text-[0.9em]">@themvora/core</code> —{" "}
             <code className="mono text-[0.9em]">getContrastRatio</code>,{" "}
             <code className="mono text-[0.9em]">validateThemeContrast</code> and{" "}
             <code className="mono text-[0.9em]">simulateCVD</code>.

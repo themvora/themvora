@@ -16,13 +16,13 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/persistence") },
   title: "Persistence",
   description:
-    "How Theme Kit persists theme selection across visits: localStorage, custom adapters, cookie-based server-side persistence, and disabling persistence entirely.",
+    "How Themvora persists theme selection across visits: localStorage, custom adapters, cookie-based server-side persistence, and disabling persistence entirely.",
 };
 
 const howItWorksSnippet = {
   lang: "ts",
   title: "core — default persistence with the plugin",
-  code: `import { createPersistencePlugin } from "@theme-kit/core";
+  code: `import { createPersistencePlugin } from "@themvora/core";
 
 // The persistence plugin writes the full selection state
 // (mode + family) to localStorage under "theme-selection".
@@ -51,7 +51,7 @@ const runtime = createThemeRuntime({
 const customAdapterSnippet = {
   lang: "ts",
   title: "custom — sessionStorage adapter",
-  code: `import type { ThemeSelectionPersistenceAdapter } from "@theme-kit/core";
+  code: `import type { ThemeSelectionPersistenceAdapter } from "@themvora/core";
 
 function createSessionStoragePersistence(
   key = "theme-selection",
@@ -88,7 +88,7 @@ const cookiesAdapterSnippet = {
   lang: "ts",
   title: "custom — cookie adapter",
   code: [
-    `import type { ThemeSelectionPersistenceAdapter } from "@theme-kit/core";`,
+    `import type { ThemeSelectionPersistenceAdapter } from "@themvora/core";`,
     ``,
     `function parseCookies(header: string): Record<string, string> {`,
     `  return Object.fromEntries(`,
@@ -133,7 +133,7 @@ const cookiesAdapterSnippet = {
 const urlHashSnippet = {
   lang: "ts",
   title: "custom — URL hash adapter",
-  code: `import type { ThemeSelectionPersistenceAdapter } from "@theme-kit/core";
+  code: `import type { ThemeSelectionPersistenceAdapter } from "@themvora/core";
 
 // Persist the theme in the URL hash so links share the state.
 function createUrlHashPersistence(): ThemeSelectionPersistenceAdapter {
@@ -181,8 +181,8 @@ const serverSideSnippet = {
 "use client";
 
 import { useEffect, useState } from "react";
-import { ThemeProvider } from "@theme-kit/react";
-import type { ThemeSelectionState } from "@theme-kit/core";
+import { ThemeProvider } from "@themvora/react";
+import type { ThemeSelectionState } from "@themvora/core";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [selection, setSelection] = useState<ThemeSelectionState | null>(null);
@@ -250,7 +250,7 @@ const vsSyncSnippet = {
   createThemeRuntime,
   createThemeSelectionBroadcast,
   createPersistencePlugin,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 const runtime = createThemeRuntime({
   defaultTheme: "light",
@@ -280,7 +280,7 @@ export default function PersistencePage() {
           title="Remember the user's choice"
           description={
             <>
-              Theme Kit remembers which theme the user picked so the next visit
+              Themvora remembers which theme the user picked so the next visit
               starts on the right one. Persistence is opt-in, pluggable, and
               designed to work alongside — not replace — cross-tab sync.
             </>
@@ -291,7 +291,7 @@ export default function PersistencePage() {
           items={[
             {
               label: "Core Package",
-              value: "@theme-kit/core",
+              value: "@themvora/core",
               href: "/packages/core",
             },
             {
@@ -347,7 +347,7 @@ export default function PersistencePage() {
           <p className="text-sm opacity-80 leading-relaxed mb-3">
             By default the plugin uses{" "}
             <code className="mono text-[0.9em]">theme-selection</code> as the
-            storage key. If multiple Theme Kit apps run on the same origin,
+            storage key. If multiple Themvora apps run on the same origin,
             pass a unique key to each one.
           </p>
           <CodeBlock
@@ -519,7 +519,7 @@ export default function PersistencePage() {
           </p>
           <p className="mt-3 text-sm">
             <Link href="/api-reference/core" className="underline">
-              @theme-kit/core API reference
+              @themvora/core API reference
             </Link>
           </p>
         </section>
@@ -568,7 +568,7 @@ export default function PersistencePage() {
             {
               title: "Architecture",
               href: "/architecture",
-              description: "How Theme Kit manages state",
+              description: "How Themvora manages state",
             },
           ]}
         />

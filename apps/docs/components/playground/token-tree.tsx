@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import { useThemeTokens } from "@theme-kit/next/client";
-import type { ThemeTokens } from "@theme-kit/core";
+import { useThemeTokens } from "@themvora/next/client";
+import type { ThemeTokens } from "@themvora/core";
 import { CopyButton } from "../ui/copy-button";
 import { Icon } from "@iconify/react";
 

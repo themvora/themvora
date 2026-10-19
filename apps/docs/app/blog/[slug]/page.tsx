@@ -82,7 +82,7 @@ export default async function BlogPostPage({
             <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
               ← Older Post
             </span>
-            <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary">
+            <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
               {next.title}
             </span>
             {next.description ? (
@@ -102,7 +102,7 @@ export default async function BlogPostPage({
             <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
               Newer Post →
             </span>
-            <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary">
+            <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
               {prev.title}
             </span>
             {prev.description ? (

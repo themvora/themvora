@@ -97,7 +97,7 @@ export const CONCEPT_EDITORIAL: Record<string, ConceptEditorial> = {
     group: "theming",
     complexity: "beginner",
     whatYouLearn:
-      "The minimum viable Theme Kit setup: define a theme, wrap the app, read the active theme.",
+      "The minimum viable Themvora setup: define a theme, wrap the app, read the active theme.",
     whyItWorks:
       "The provider owns a single runtime instance, so every component reads the same store. Nothing is duplicated per component and nothing needs prop-drilling.",
     variations: [
@@ -504,7 +504,7 @@ export const FRAMEWORKS: string[] = [
   ...new Set([...STARTERS.map((s) => s.framework), ...CONCEPTS.map((c) => c.framework)]),
 ].sort();
 
-/** Distinct @theme-kit packages used by any example, for the filter bar. */
+/** Distinct @themvora packages used by any example, for the filter bar. */
 export const PACKAGES_USED: string[] = [
   ...new Set([...STARTERS.flatMap((s) => s.packages), ...CONCEPTS.flatMap((c) => c.packages)]),
 ].sort();

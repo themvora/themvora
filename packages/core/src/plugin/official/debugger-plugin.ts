@@ -13,7 +13,7 @@ export interface DebuggerPluginOptions {
   logPersistence?: boolean;
   /** Log history events. Default `false`. */
   logHistory?: boolean;
-  /** Prefix used for all debug log output. Default `"[theme-kit:debug]"`. */
+  /** Prefix used for all debug log output. Default `"[themvora:debug]"`. */
   label?: string;
 }
 
@@ -42,7 +42,7 @@ export function createDebuggerPlugin<T extends ThemeDefinition>(
     logTokenUpdates: true,
     logPersistence: true,
     logHistory: false,
-    label: "[theme-kit:debug]",
+    label: "[themvora:debug]",
     ...options,
   };
 

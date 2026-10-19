@@ -1,0 +1,647 @@
+{
+  "$comment": "Documented CLI examples, executed by run-examples.mjs against isolated fixtures. Every `--flag` here must exist in packages/cli/src/command-schema.json — the runner asserts that, so a documented example cannot reference a flag the parser rejects.",
+  "version": 1,
+  "examples": [
+    {
+      "id": "generate-seed-pair",
+      "argv": [
+        "generate",
+        "--seed",
+        "#ea580c",
+        "--mode",
+        "both"
+      ],
+      "stdoutContains": [
+        "\"light\"",
+        "\"dark\""
+      ],
+      "validateStdoutAsTheme": true
+    },
+    {
+      "id": "generate-preset",
+      "argv": [
+        "generate",
+        "--preset",
+        "mint"
+      ],
+      "stdoutContains": [
+        "mint-light",
+        "mint-dark"
+      ],
+      "validateStdoutAsTheme": true
+    },
+    {
+      "id": "generate-brand",
+      "argv": [
+        "generate",
+        "--brand",
+        "apple"
+      ],
+      "stdoutContains": [
+        "apple-light"
+      ],
+      "validateStdoutAsTheme": true
+    },
+    {
+      "id": "generate-family",
+      "argv": [
+        "generate",
+        "--seed",
+        "#ea580c",
+        "--family",
+        "indigo"
+      ],
+      "stdoutContains": [
+        "indigo-light"
+      ]
+    },
+    {
+      "id": "generate-mode-light",
+      "argv": [
+        "generate",
+        "--seed",
+        "#ea580c",
+        "--mode",
+        "light"
+      ],
+      "stdoutContains": [
+        "\"tokens\""
+      ],
+      "validateStdoutAsTheme": true
+    },
+    {
+      "id": "generate-code-tokens",
+      "argv": [
+        "generate",
+        "--seed",
+        "#ea580c",
+        "--code"
+      ],
+      "stdoutContains": [
+        "code"
+      ]
+    },
+    {
+      "id": "generate-unknown-preset",
+      "argv": [
+        "generate",
+        "--preset",
+        "nope"
+      ],
+      "exit": 2,
+      "stderrContains": [
+        "unknown preset"
+      ]
+    },
+    {
+      "id": "list-presets-ids",
+      "argv": [
+        "list",
+        "presets",
+        "--ids"
+      ],
+      "stdoutContains": [
+        "mint",
+        "iris"
+      ]
+    },
+    {
+      "id": "list-frameworks-ids",
+      "argv": [
+        "list",
+        "frameworks",
+        "--ids"
+      ],
+      "stdoutContains": [
+        "react",
+        "next",
+        "vue",
+        "svelte",
+        "solid"
+      ]
+    },
+    {
+      "id": "list-styles-json",
+      "argv": [
+        "list",
+        "styles",
+        "--json"
+      ],
+      "stdoutIsJson": true
+    },
+    {
+      "id": "diff-two-presets",
+      "argv": [
+        "diff",
+        "mint",
+        "iris"
+      ],
+      "stdoutContains": [
+        "changed"
+      ]
+    },
+    {
+      "id": "diff-json",
+      "argv": [
+        "diff",
+        "mint",
+        "iris",
+        "--json"
+      ],
+      "stdoutIsJson": true
+    },
+    {
+      "id": "explain-preset",
+      "argv": [
+        "explain",
+        "--preset",
+        "mint"
+      ],
+      "stdoutContains": [
+        "semantic mapping",
+        "validation"
+      ]
+    },
+    {
+      "id": "explain-brand-anchors",
+      "argv": [
+        "explain",
+        "--brand",
+        "apple"
+      ],
+      "stdoutContains": [
+        "anchors"
+      ]
+    },
+    {
+      "id": "audit-presets",
+      "argv": [
+        "audit",
+        "presets"
+      ],
+      "stdoutContains": [
+        "pass"
+      ]
+    },
+    {
+      "id": "doctor-project",
+      "argv": [
+        "doctor",
+        "."
+      ],
+      "stdoutContains": [
+        "framework",
+        "Themvora packages"
+      ],
+      "exit": 3,
+      "$comment": "The fixture project has no @themvora packages installed, which is an actionable health failure — hence exit 3."
+    },
+    {
+      "id": "doctor-json",
+      "argv": [
+        "doctor",
+        ".",
+        "--json"
+      ],
+      "exit": 3,
+      "stdoutIsJson": true
+    },
+    {
+      "id": "completion-bash",
+      "argv": [
+        "completion",
+        "bash"
+      ],
+      "stdoutContains": [
+        "complete -o default -F _themvora_complete themvora"
+      ]
+    },
+    {
+      "id": "completion-unknown-shell",
+      "argv": [
+        "completion",
+        "tcsh"
+      ],
+      "exit": 2,
+      "stderrContains": [
+        "unknown shell"
+      ]
+    },
+    {
+      "id": "validate-generated",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "validate",
+        "theme.json"
+      ],
+      "stdoutContains": [
+        "valid"
+      ]
+    },
+    {
+      "id": "validate-json",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "validate",
+        "theme.json",
+        "--json"
+      ],
+      "stdoutIsJson": true
+    },
+    {
+      "id": "inspect-json",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "inspect",
+        "theme.json",
+        "--json"
+      ],
+      "stdoutIsJson": true
+    },
+    {
+      "id": "export-css",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "export",
+        "theme.json",
+        "--format",
+        "css"
+      ],
+      "stdoutContains": [
+        "--theme-color-background",
+        "--theme-color-primary"
+      ]
+    },
+    {
+      "id": "export-json",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "export",
+        "theme.json",
+        "--format",
+        "json"
+      ],
+      "stdoutContains": [
+        "background"
+      ]
+    },
+    {
+      "id": "migrate-dry-run-writes-nothing",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "migrate",
+        "theme.json",
+        "--dry-run"
+      ],
+      "stdoutContains": [
+        "themvora migrate — plan"
+      ],
+      "unchangedPaths": [
+        "theme.json"
+      ]
+    },
+    {
+      "id": "migrate-dry-run-json",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "migrate",
+        "theme.json",
+        "--dry-run",
+        "--json"
+      ],
+      "stdoutIsJson": true
+    },
+    {
+      "id": "migrate-write-in-place",
+      "setup": [
+        [
+          "generate",
+          "--preset",
+          "mint",
+          "--output",
+          "theme.json"
+        ]
+      ],
+      "argv": [
+        "migrate",
+        "theme.json",
+        "--write"
+      ],
+      "writes": [
+        "theme.json"
+      ]
+    },
+    {
+      "id": "init-plan-writes-nothing",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "themvora init — plan",
+        "npm create vite@latest",
+        "built-in neutral"
+      ]
+    },
+    {
+      "id": "init-plan-preset-source",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--preset",
+        "mint",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "preset mint",
+        "mint-light"
+      ]
+    },
+    {
+      "id": "init-plan-brand-source",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--brand",
+        "apple",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "brand apple",
+        "apple-light"
+      ]
+    },
+    {
+      "id": "init-plan-seed-source",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--seed",
+        "#6366f1",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "seed #6366f1"
+      ]
+    },
+    {
+      "id": "init-plan-example-flag",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--example",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "example    yes"
+      ]
+    },
+    {
+      "id": "init-plan-no-install",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--no-install",
+        "--plan"
+      ],
+      "stdoutNotContains": [
+        "npm install @themvora/core"
+      ]
+    },
+    {
+      "id": "init-dry-run-writes-nothing",
+      "argv": [
+        "init",
+        "my-app",
+        "--framework",
+        "react",
+        "--dry-run"
+      ],
+      "stdoutContains": [
+        "themvora init — plan"
+      ],
+      "writesNothing": true
+    },
+    {
+      "id": "init-existing-project",
+      "argv": [
+        "init",
+        ".",
+        "--framework",
+        "react",
+        "--preset",
+        "mint",
+        "--no-install"
+      ],
+      "writes": [
+        "theme.config.ts",
+        "src/styles.css",
+        "src/ThemeSwitcher.tsx"
+      ]
+    },
+    {
+      "id": "init-twice-is-idempotent",
+      "setup": [
+        [
+          "init",
+          ".",
+          "--framework",
+          "react",
+          "--preset",
+          "mint",
+          "--no-install"
+        ]
+      ],
+      "argv": [
+        "init",
+        ".",
+        "--framework",
+        "react",
+        "--preset",
+        "mint",
+        "--no-install"
+      ],
+      "stdoutContains": [
+        "0 created · 0 updated"
+      ]
+    },
+    {
+      "id": "init-requires-framework",
+      "argv": [
+        "init",
+        "app-missing",
+        "--plan"
+      ],
+      "exit": 2,
+      "stderrContains": [
+        "a new project needs --framework"
+      ]
+    },
+    {
+      "id": "add-preset",
+      "setup": [
+        [
+          "init",
+          "app",
+          "--framework",
+          "react",
+          "--preset",
+          "mint",
+          "--no-install"
+        ]
+      ],
+      "argv": [
+        "add",
+        "brand",
+        "apple",
+        "--dir",
+        "app"
+      ],
+      "stdoutContains": [
+        "apple-light"
+      ]
+    },
+    {
+      "id": "add-is-idempotent",
+      "setup": [
+        [
+          "init",
+          "app",
+          "--framework",
+          "react",
+          "--preset",
+          "mint",
+          "--no-install"
+        ],
+        [
+          "add",
+          "brand",
+          "apple",
+          "--dir",
+          "app"
+        ]
+      ],
+      "argv": [
+        "add",
+        "brand",
+        "apple",
+        "--dir",
+        "app"
+      ],
+      "stdoutContains": [
+        "Already present"
+      ]
+    },
+    {
+      "id": "add-plan-writes-nothing",
+      "setup": [
+        [
+          "init",
+          "app",
+          "--framework",
+          "react",
+          "--preset",
+          "mint",
+          "--no-install"
+        ]
+      ],
+      "argv": [
+        "add",
+        "brand",
+        "apple",
+        "--dir",
+        "app",
+        "--plan"
+      ],
+      "stdoutContains": [
+        "themvora add — plan"
+      ],
+      "unchangedPaths": [
+        "app/theme.config.ts"
+      ]
+    },
+    {
+      "id": "add-without-registry",
+      "argv": [
+        "add",
+        "preset",
+        "mint",
+        "--dir",
+        "."
+      ],
+      "exit": 2,
+      "stderrContains": [
+        "no Themvora theme registry"
+      ]
+    }
+  ]
+}

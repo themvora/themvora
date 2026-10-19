@@ -1,6 +1,6 @@
-import type { ThemeDefinition } from "@theme-kit/core";
-import type { AdapterResolvedTheme } from "@theme-kit/adapters";
-import { resolveAdapterSource } from "@theme-kit/adapters";
+import type { ThemeDefinition } from "@themvora/core";
+import type { AdapterResolvedTheme } from "@themvora/adapters";
+import { resolveAdapterSource } from "@themvora/adapters";
 
 export interface OpenPropsColorState {
   background: string | undefined;

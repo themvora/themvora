@@ -1,24 +1,24 @@
-## @theme-kit/open-props/vue
-Vue composable for the Open Props adapter (`@theme-kit/open-props/vue`).
+## @themvora/open-props/vue
+Vue composable for the Open Props adapter (`@themvora/open-props/vue`).
 
 `useOpenPropsTheme(runtime, options?)` installs the Open Props adapter onto
-an explicitly provided Theme Kit runtime and disposes it on unmount.
+an explicitly provided Themvora runtime and disposes it on unmount.
 
-> Generated from `packages/open-props/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/open-props/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
 ### `useOpenPropsTheme<T extends ThemeDefinition<string>>(runtime, options): ThemeAdapter<T>`
-Vue composable that installs the Open Props adapter onto the given Theme Kit
+Vue composable that installs the Open Props adapter onto the given Themvora
 runtime. Maintains a tagged `:root` style element with concrete `--brand`,
 `--link`, `--size-*` and related variables, kept in sync as the active theme
 changes.
 
 Must be called in a component's `setup` scope, passing the runtime from your
-Theme Kit provider (e.g. `useThemeRuntime()` from `@theme-kit/vue`):
+Themvora provider (e.g. `useThemeRuntime()` from `@themvora/vue`):
 
 ```ts
-import { useOpenPropsTheme } from "@theme-kit/open-props/vue";
+import { useOpenPropsTheme } from "@themvora/open-props/vue";
 
 useOpenPropsTheme(runtime);
 ```
@@ -27,7 +27,7 @@ useOpenPropsTheme(runtime);
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<T>` | The active Theme Kit runtime to install the adapter on. |
+| `runtime` | `ThemeRuntime<T>` | The active Themvora runtime to install the adapter on. |
 | `options` | `UseAdapterOptions` | Adapter options. Defaults to `{}`. |
 
 **Returns** `ThemeAdapter<T>` — The installed adapter instance.

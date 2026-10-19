@@ -5,8 +5,8 @@ import {
   useTheme,
   useThemeRuntime,
   useSetThemeFamily,
-} from "@theme-kit/next/client";
-import type { ThemeDefinition } from "@theme-kit/core";
+} from "@themvora/next/client";
+import type { ThemeDefinition } from "@themvora/core";
 
 type FamilyGroup = {
   family: string;
@@ -74,7 +74,7 @@ export function ThemeGallery() {
       (g) =>
         g.light &&
         g.dark &&
-        !["theme-kit", "lab", "scope"].includes(g.family),
+        !["themvora", "lab", "scope"].includes(g.family),
     );
   }, [runtime.themes]);
 

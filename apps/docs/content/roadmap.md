@@ -7,7 +7,7 @@ What has shipped, and what is next. Checked items are in the current release
 
 - [x] **Framework picker pass.** One selector at the top of a page drives every snippet below it, across `/custom-themes`, `/scoped-theme`, `/sunrise-sunset`, `/animation` and `/custom-scrollbar`. The picker leaves out Tailwind and UnoCSS, because they are CSS integrations with no provider to mount.
 - [x] **Scheduling in every framework.** `useThemeSchedule()`, `getThemeSchedule()` and `injectThemeSchedule()` exist for React, Next, Vue, Nuxt, Svelte, Solid, Angular, Remix, Astro and Web Components.
-- [x] **Custom scrollbar overlay.** Theme-aware overlay with native physics, arrows, auto-hide and pre-paint CSS. Ships in `@theme-kit/core` with a wrapper per framework.
+- [x] **Custom scrollbar overlay.** Theme-aware overlay with native physics, arrows, auto-hide and pre-paint CSS. Ships in `@themvora/core` with a wrapper per framework.
 - [x] **Nuxt integration.** SSR theme resolution, cookie and localStorage sync, zero-flash bootstrap, config-driven transitions and scrollbar.
 - [x] **Playground.** Live theme switcher, interactive token tree, history and time-travel, solar schedule demo, scrollbar lab.
 - [x] **Theme Studio.** Generate a light/dark pair from a seed colour and apply it to the running site.
@@ -19,7 +19,7 @@ What has shipped, and what is next. Checked items are in the current release
 - [x] **Docs/API parity audit.** Every documented API is checked against the real package exports.
 - [x] **Blog.** Markdown-driven release notes and deep dives.
 - [x] **Recipes.** Nine task-oriented patterns at `/recipes`, each with a package-manager install command and prev/next navigation.
-- [x] **Showcase.** Seven themed interfaces you can filter and restyle live, plus the real surfaces Theme Kit runs on.
+- [x] **Showcase.** Seven themed interfaces you can filter and restyle live, plus the real surfaces Themvora runs on.
 - [x] **Styled 404 page** that matches the design system.
 - [x] **Mobile docs navigation.** Animated menu and drawer for the docs sidebar.
 
@@ -43,7 +43,7 @@ Later in Q3 we closed out the documentation system itself:
 
 ### 2026 — Q4
 
-- [ ] **Page transitions.** Smooth route transitions using Theme Kit's View Transitions support. Theme transitions already use it; routes do not.
+- [ ] **Page transitions.** Smooth route transitions using Themvora's View Transitions support. Theme transitions already use it; routes do not.
 - [ ] **Interactive diagrams.** Animated mode, family and token diagrams in Core Concepts.
 - [ ] **Plugins and lifecycle lab.** A plugin playground that logs lifecycle events as they fire.
 
@@ -54,8 +54,8 @@ Later in Q3 we closed out the documentation system itself:
 
 ## Guiding principles
 
-The documentation website is built with Theme Kit itself. Every theme change on
-this site goes through Theme Kit's runtime. Every example in the docs runs against
+The documentation website is built with Themvora itself. Every theme change on
+this site goes through Themvora's runtime. Every example in the docs runs against
 the real packages — nothing is mocked or simulated. When a feature lands, the
-documentation adopts it internally wherever that makes sense. Theme Kit powers
-Theme Kit.
+documentation adopts it internally wherever that makes sense. Themvora powers
+Themvora.

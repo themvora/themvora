@@ -1,9 +1,9 @@
 /**
  * Angular injection helper for the Open Props adapter
- * (`@theme-kit/open-props/angular`).
+ * (`@themvora/open-props/angular`).
  *
  * `injectOpenPropsTheme(runtime, options?)` registers the Open Props adapter
- * on an explicitly provided Theme Kit runtime and unregisters it when the
+ * on an explicitly provided Themvora runtime and unregisters it when the
  * current injection context is destroyed.
  *
  * @packageDocumentation
@@ -14,7 +14,7 @@ import type {
   ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
-} from "@theme-kit/core";
+} from "@themvora/core";
 
 import { createOpenPropsAdapter } from "./adapter";
 
@@ -38,17 +38,17 @@ export interface InjectAdapterOptions {
  * Call in your component (or root) constructor or field initializer — the
  * function uses `DestroyRef` to unregister the adapter, so it must run in an
  * injection context (the runtime usually comes from
- * `injectThemeRuntime()` in `@theme-kit/angular`):
+ * `injectThemeRuntime()` in `@themvora/angular`):
  *
  * ```ts
- * import { injectOpenPropsTheme } from "@theme-kit/open-props/angular";
+ * import { injectOpenPropsTheme } from "@themvora/open-props/angular";
  *
  * export class AppComponent {
  *   adapter = injectOpenPropsTheme(runtime);
  * }
  * ```
  *
- * @param runtime The active Theme Kit runtime to register the adapter on.
+ * @param runtime The active Themvora runtime to register the adapter on.
  * @param options Adapter options. Defaults to `{}`.
  * @returns The installed adapter instance.
  *

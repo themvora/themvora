@@ -10,10 +10,10 @@ Current groups:
 
 | Group | Members | Why they move together |
 |---|---|---|
-| foundation | `@theme-kit/core`, `@theme-kit/web` | Shared primitives every other package builds on. |
+| foundation | `@themvora/core`, `@themvora/web` | Shared primitives every other package builds on. |
 
-Framework integrations, adapters and tooling are **not** grouped: `@theme-kit/astro` can ship a major
-without dragging `@theme-kit/core`, `@theme-kit/react` or `@theme-kit/vue` into one.
+Framework integrations, adapters and tooling are **not** grouped: `@themvora/astro` can ship a major
+without dragging `@themvora/core`, `@themvora/react` or `@themvora/vue` into one.
 
 ### Internal dependency ranges
 
@@ -52,7 +52,7 @@ Given `MAJOR.MINOR.PATCH`:
 
 ### Additional rules
 
-- **`@theme-kit/core` is the contract.** A breaking change in core is a major for every package that
+- **`@themvora/core` is the contract.** A breaking change in core is a major for every package that
   re-exports or depends on it (`react`, `next`, `vue`, `nuxt`, `svelte`, `solid`, `angular`, `astro`,
   `remix`, `web`, `tailwind`, `cli`, `devtools`, all adapters). This is intentional: consumers get one
   version to reason about.

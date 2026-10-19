@@ -4,7 +4,7 @@ import type { ThemeRuntime } from "../runtime";
 /**
  * How faithfully an adapter reproduces the target library's native feel.
  *
- * - `exact`      — only map what Theme Kit defines; change nothing.
+ * - `exact`      — only map what Themvora defines; change nothing.
  * - `native`     — behave like the library: derive missing semantic concepts
  *                  (e.g. success/warning/info) and make small feel adjustments.
  * - `aggressive` — fully emulate the library: also adjust spacing, typography,
@@ -55,6 +55,43 @@ export interface ThemeAdapter<T extends ThemeDefinition = ThemeDefinition> {
    * Stable identifier used for reference counting and deduplication.
    */
   readonly id: string;
+
+  /**
+   * The semantic roles this adapter cannot function without.
+   *
+   * Declaring requirements turns a silent, per-library failure into a
+   * checkable contract. Without it, an adapter that needs `primaryForeground`
+   * and finds nothing simply emits a variable with an empty value, and the
+   * component renders unreadable content — which is exactly the class of defect
+   * the integration laboratory kept finding.
+   *
+   * A role listed here must resolve; an adapter may assume it is present.
+   *
+   * @see {@link ThemeAdapter.optional}
+   * @see {@link CoreColor}
+   */
+  readonly requires?: {
+    /** Core colour roles the adapter requires. */
+    colors?: readonly string[];
+    /** Non-colour token groups the adapter requires (e.g. `radius`). */
+    tokens?: readonly string[];
+  };
+
+  /**
+   * Roles the adapter *can* use but does not require.
+   *
+   * These are capabilities: `warning` and `info` are genuine semantic roles that
+   * many libraries have no slot for. An adapter lists them here and degrades
+   * gracefully when the theme omits them — by deriving a value, or by omitting
+   * the library token entirely. **Never by fabricating one**, which would look
+   * like support while nothing consumed it.
+   *
+   * @see {@link OptionalSemantic}
+   */
+  readonly optional?: {
+    /** Optional colour roles the adapter can consume. */
+    colors?: readonly string[];
+  };
 
   /**
    * Whether this adapter applies to the given runtime.

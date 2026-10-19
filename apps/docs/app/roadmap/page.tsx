@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/roadmap") },
   title: "Roadmap",
   description:
-    "Where Theme Kit is heading — themes, adapters, tooling, and the community surface.",
+    "Where Themvora is heading — themes, adapters, tooling, and the community surface.",
 };
 
 interface RoadmapItem {
@@ -155,8 +155,8 @@ export default function RoadmapPage() {
             </svg>
           }
           title="Roadmap"
-          subtitle="Theme Kit"
-          description="Where Theme Kit is heading — themes, adapters, tooling, and the community surface. Checked items are shipped in the current release."
+          subtitle="Themvora"
+          description="Where Themvora is heading — themes, adapters, tooling, and the community surface. Checked items are shipped in the current release."
         />
 
         <div className="flex flex-col gap-10">

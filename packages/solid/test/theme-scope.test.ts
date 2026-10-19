@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "solid-js/web";
 import { createComponent } from "solid-js";
-import { ThemeProvider, ThemeScope } from "@theme-kit/solid";
-import { createThemeRuntime, type ThemeDefinition } from "@theme-kit/core";
+import { ThemeProvider, ThemeScope } from "@themvora/solid";
+import { createThemeRuntime, type ThemeDefinition } from "@themvora/core";
 
 const themes: ThemeDefinition[] = [
   { name: "forest-light", meta: { family: "forest", mode: "light" }, tokens: { colors: { background: "#f0fff0", card: "#ffffff" } } },

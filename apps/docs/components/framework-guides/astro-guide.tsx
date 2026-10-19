@@ -264,7 +264,7 @@ function GuideNav({ guide }: { guide: FrameworkSetupGuide }) {
           <li key={item.id}>
             <a
               href={`#${item.id}`}
-              className="text-xs opacity-70 no-underline hover:text-primary hover:opacity-100"
+              className="text-xs opacity-70 no-underline hover:text-foreground hover:opacity-100"
             >
               {item.label}
             </a>
@@ -450,7 +450,7 @@ function SnippetBlock({ snippet }: { snippet: FrameworkSnippet }) {
 function CompareCell({ value }: { value: string }): ReactNode {
   const normalised = value.toLowerCase();
   if (normalised === "yes") {
-    return <span className="font-medium text-primary">Yes</span>;
+    return <span className="font-medium text-foreground">Yes</span>;
   }
   if (normalised === "no") {
     return <span className="opacity-50">No</span>;

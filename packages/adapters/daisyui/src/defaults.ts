@@ -1,7 +1,7 @@
-import type { AdapterStrategy } from "@theme-kit/core";
+import type { AdapterStrategy } from "@themvora/core";
 
-export const DAISY_STYLE_ID = "@theme-kit/daisyui";
-export const DAISY_VARIABLES_STYLE_ID = "theme-kit-daisy-variables";
+export const DAISY_STYLE_ID = "@themvora/daisyui";
+export const DAISY_VARIABLES_STYLE_ID = "themvora-daisy-variables";
 
 /**
  * Options for the daisyUI adapter.

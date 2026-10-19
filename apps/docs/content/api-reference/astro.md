@@ -1,20 +1,20 @@
-## @theme-kit/astro
-Theme Kit Astro integration.
+## @themvora/astro
+Themvora Astro integration.
 
 This entry point is **framework-neutral**: it ships the Astro integration
-(`themeKit`), the zero-flash server helpers (`createBlockingScript`,
+(`themvora`), the zero-flash server helpers (`createBlockingScript`,
 `buildThemeCssMap`, `darkModeCSSTemplate`, `systemModeCSSTemplate`,
 `computeFingerprint`, `getInitialThemeState`), the Astro-specific
 `ThemePersistence`, the browser-side `getThemeController()` /
 `createThemeController()` API, the shared-runtime accessors, and the
-framework-neutral `ThemeKitScrollbar` / `ThemeKitInspector` re-exports from
-`@theme-kit/web`. None of it imports React.
+framework-neutral `ThemvoraScrollbar` / `ThemvoraInspector` re-exports from
+`@themvora/web`. None of it imports React.
 
 The React island (`ThemeProviderClient`), the React hooks, and the React
-`ThemeScope` live behind the opt-in `@theme-kit/astro/client` subpath, which
+`ThemeScope` live behind the opt-in `@themvora/astro/client` subpath, which
 is the only entry that depends on React.
 
-> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -86,7 +86,7 @@ them made the runtime overwrite an already-correct first paint.
 **Returns** `ThemeSelectionPersistenceAdapter | null` — A persistence adapter, or `null` when running outside the browser.
 
 Returns `null` during SSR (no `window`). The cookie contract matches the
-other SSR integrations (`@theme-kit/next`, `@theme-kit/nuxt`, `@theme-kit/remix`).
+other SSR integrations (`@themvora/next`, `@themvora/nuxt`, `@themvora/remix`).
 
 ---
 
@@ -141,7 +141,7 @@ any runtime already installed, so two calls give two runtimes racing to write
 `<html>`.
 
 ```ts
-import { createThemeController } from "@theme-kit/astro";
+import { createThemeController } from "@themvora/astro";
 
 const theme = createThemeController({ themes: myTestThemes });
 theme.setMode("dark");
@@ -206,12 +206,12 @@ theme registry, so it works from any Astro server context
 
 Pair this with `provider.astro` (which paints the themed `<html>` on the
 server) and pass the result to the opt-in React island
-(`@theme-kit/astro/client`) as its `initial` prop so hydration matches.
+(`@themvora/astro/client`) as its `initial` prop so hydration matches.
 
 ```ts
 ---
-import { getInitialThemeState } from "@theme-kit/astro";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getInitialThemeState } from "@themvora/astro";
+import { getBuiltInThemes } from "@themvora/core";
 
 const initial = await getInitialThemeState(Astro.request, {
   themes: getBuiltInThemes(),
@@ -255,7 +255,7 @@ and `prefers-color-scheme`, none of which exist on a server — call it from a
 <button id="theme-toggle">Toggle theme</button>
 
 <script>
-  import { getThemeController } from "@theme-kit/astro";
+  import { getThemeController } from "@themvora/astro";
 
   const theme = getThemeController();
 
@@ -271,12 +271,12 @@ and `prefers-color-scheme`, none of which exist on a server — call it from a
 ### `injectPrePaintScrollbarCSS(): void`
 Injects the pre-paint scrollbar-hiding CSS and class into the document.
 
-Framework-free (vanilla JS). Adds a `<style id="tk-scrollbar-style">` with
-the pre-paint scrollbar CSS and the `tk-scrollbar` class to the document
+Framework-free (vanilla JS). Adds a `<style id="tv-scrollbar-style">` with
+the pre-paint scrollbar CSS and the `tv-scrollbar` class to the document
 root so the native scrollbar is hidden before first paint. Idempotent and a
 no-op on the server.
 
-**See also:** `ThemeKitScrollbar`
+**See also:** `ThemvoraScrollbar`
 
 **Returns** `void`
 
@@ -295,7 +295,7 @@ Returns the app-wide global runtime, throwing when none has been installed.
 
 ### `setGlobalRuntime(runtime): void`
 Installs the given runtime as the app-wide global runtime and, in the
-browser, publishes it where the rest of Theme Kit looks for it.
+browser, publishes it where the rest of Themvora looks for it.
 
 **See also:** `getGlobalRuntime`
 
@@ -308,13 +308,13 @@ browser, publishes it where the rest of Theme Kit looks for it.
 Three publications, all of them the same runtime:
 
 1. the module-level `globalRuntime` — what this package's hooks read;
-2. `window.__themeKitRuntime` — the documented escape hatch;
-3. `document.documentElement.__themeKitRuntime` plus a `theme-ready` event —
-   which is how `@theme-kit/web`'s custom elements (`<theme-kit-scrollbar>`,
-   `<theme-kit-inspector>`, `<theme-kit-toggle>`, …) find a runtime. They
+2. `window.__themvoraRuntime` — the documented escape hatch;
+3. `document.documentElement.__themvoraRuntime` plus a `theme-ready` event —
+   which is how `@themvora/web`'s custom elements (`<themvora-scrollbar>`,
+   `<themvora-inspector>`, `<themvora-toggle>`, …) find a runtime. They
    resolve it by walking **DOM ancestors** for that property, and they only
    fall back to waiting for `theme-ready`, which until now was dispatched
-   solely by `<theme-kit-provider>`. Without these two lines an Astro app
+   solely by `<themvora-provider>`. Without these two lines an Astro app
    that installs its runtime from a React island had no way to use the
    framework-neutral elements at all — the runtime existed, but nothing in
    the element tree could see it.
@@ -350,28 +350,28 @@ the no-preference branch.
 ---
 
 
-### `themeKit(options): AstroIntegration`
-Theme Kit Astro integration. Registers the pre-paint theme bootstrap with
+### `themvora(options): AstroIntegration`
+Themvora Astro integration. Registers the pre-paint theme bootstrap with
 Astro so every page is themed before first paint (zero-flash), without
 requiring a client-side framework runtime.
 
-**See also:** `ThemeKitIntegrationOptions`
+**See also:** `ThemvoraIntegrationOptions`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `options` | `ThemeKitIntegrationOptions` | The integration options (see ThemeKitIntegrationOptions). |
+| `options` | `ThemvoraIntegrationOptions` | The integration options (see ThemvoraIntegrationOptions). |
 
 **Returns** `AstroIntegration` — An Astro integration to register in `astro.config.ts`.
 
 **Config discovery.** The integration finds the application's
 `theme.config.ts` in Astro's root, trying `theme.config.ts`, `.tsx`, `.mts`,
 `.mjs`, `.js` and `.cjs` in that order, and requires a default export — the
-object defineThemeKitConfig returns. Passing `config` skips discovery
+object defineThemvoraConfig returns. Passing `config` skips discovery
 and accepts either the object or a path to it.
 
 **Two consumers, one declaration.** The discovered configuration is projected
 twice: buildBootstrap derives the blocking script from it, and the
-same projection is injected as `window.__THEME_KIT_CONFIG__` from `<head>`.
+same projection is injected as `window.__THEMVORA_CONFIG__` from `<head>`.
 The island reads that global instead of taking theme props, so the markup the
 server renders and the markup the browser hydrates come from the same
 registry — a mismatch there is visible as the panel repainting as the real
@@ -382,9 +382,9 @@ When the app has no discoverable config, the built-in neutral themes are used
 and nothing fails.
 
 The integration owns the framework/build boundary only. Server-rendering the
-themed `<html>` element is handled by `@theme-kit/astro/provider.astro`, and
+themed `<html>` element is handled by `@themvora/astro/provider.astro`, and
 interactive controls are opt-in islands — React users import the island from
-`@theme-kit/astro/client`, which is the only entry that depends on React.
+`@themvora/astro/client`, which is the only entry that depends on React.
 
 The bootstrap is injected at the **`head-inline`** stage, and that choice is
 load-bearing rather than incidental. `before-hydration` looks equivalent —
@@ -421,10 +421,10 @@ attributes.
 ```ts
 // astro.config.ts — register the integration. No theme data.
 import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });
 ```
 
@@ -432,21 +432,21 @@ export default defineConfig({
 
 ## Classes
 
-### `class ThemeKitInspector`
+### `class ThemvoraInspector`
 
-**Extends** `CustomElementBase`
-Custom element `<theme-kit-inspector>` that inspects the active theme.
+**Extends** `ThemvoraRuntimeConsumer`
+Custom element `<themvora-inspector>` that inspects the active theme.
 
 Framework-free (vanilla JS). Renders a floating toggle that opens a panel
 showing the active theme's identity, selection, tokens, and resolved CSS
 variables, updating live as the theme changes. Observes the `bottom`,
 `right`, `size`, and `z-index` attributes.
 
-**See also:** `defineCustomElements`, `ThemeKitProvider`
+**See also:** `defineCustomElements`, `ThemvoraProvider`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `constructor` | `ThemeKitInspector` | — |
+| `constructor` | `ThemvoraInspector` | — |
 | `accessKey` | `string` | The **`HTMLElement.accessKey`** property sets the keystroke which a user can press to jump to a given element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKey) |
 | readonly `accessKeyLabel` | `string` | The **`HTMLElement.accessKeyLabel`** read-only property returns a string containing the element's browser-assigned access key (if any); otherwise it returns an empty string. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKeyLabel) |
 | `ariaActiveDescendantElement` | `Element \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaActiveDescendantElement) |
@@ -502,27 +502,26 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `ariaValueText` | `string \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueText) |
 | readonly `assignedSlot` | `HTMLSlotElement \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/assignedSlot) |
 | readonly `ATTRIBUTE_NODE` | `2` | — |
-| readonly `attributes` | `NamedNodeMap` | The **`Element.attributes`** property returns a live collection of all attribute nodes registered to the specified node. It is a NamedNodeMap, not an Array, so it has no Array methods and the Attr nodes' indexes may differ among browsers. To be more specific, attributes is a key/value pair of strings that represents any information regarding that attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes) |
+| readonly `attributes` | `NamedNodeMap` | The **`Element.attributes`** property returns a live collection of all attribute nodes registered to the specified node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes) |
 | readonly `attributeStyleMap` | `StylePropertyMap` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attributeStyleMap) |
-| `autocapitalize` | `string` | The **`autocapitalize`** property of the HTMLElement interface represents the element's capitalization behavior for user input. It is available on all HTML elements, though it doesn't affect all of them, including: [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocapitalize) |
+| `autocapitalize` | `string` | The **`autocapitalize`** property of the HTMLElement interface represents the element's capitalization behavior for user input. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocapitalize) |
 | `autocorrect` | `boolean` | The **`autocorrect`** property of the HTMLElement interface controls whether or not autocorrection of editable text is enabled for spelling and/or punctuation errors. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocorrect) |
 | `autofocus` | `boolean` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autofocus) |
 | readonly `baseURI` | `string` | The read-only **`baseURI`** property of the Node interface returns the absolute base URL of the document containing the node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/baseURI) |
 | readonly `CDATA_SECTION_NODE` | `4` | node is a CDATASection node. |
 | readonly `childElementCount` | `number` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/childElementCount) |
-| readonly `childNodes` | `NodeListOf<ChildNode>` | The read-only **`childNodes`** property of the Node interface returns a live NodeList of child nodes of the given element where the first child node is assigned index 0. Child nodes include elements, text and comments. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes) |
+| readonly `childNodes` | `NodeListOf<ChildNode>` | The read-only **`childNodes`** property of the Node interface returns a live the first child node is assigned index `0`. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes) |
 | readonly `children` | `HTMLCollection` | Returns the child elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/children) |
-| `className` | `string` | The **`className`** property of the Element interface gets and sets the value of the class attribute of the specified element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/className) |
-| readonly `clientHeight` | `number` | The **`clientHeight`** read-only property of the Element interface is zero for elements with no CSS or inline layout boxes; otherwise, it's the inner height of an element in pixels. It includes padding but excludes borders, margins, and horizontal scrollbars (if present). [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientHeight) |
-| readonly `clientLeft` | `number` | The **`clientLeft`** read-only property of the Element interface returns the width of the left border of an element in pixels. It includes the width of the vertical scrollbar if the text direction of the element is right-to-left and if there is an overflow causing a left vertical scrollbar to be rendered. clientLeft does not include the left margin or the left padding. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientLeft) |
+| `className` | `string` | The **`className`** property of the of the specified element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/className) |
+| readonly `clientHeight` | `number` | The **`clientHeight`** read-only property of the Element interface is zero for elements with no CSS or inline layout boxes; otherwise, it's the inner height of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientHeight) |
+| readonly `clientLeft` | `number` | The **`clientLeft`** read-only property of the Element interface returns the width of the left border of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientLeft) |
 | readonly `clientTop` | `number` | The **`clientTop`** read-only property of the Element interface returns the width of the top border of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientTop) |
-| readonly `clientWidth` | `number` | The **`clientWidth`** read-only property of the Element interface is zero for inline elements and elements with no CSS; otherwise, it's the inner width of an element in pixels. It includes padding but excludes borders, margins, and vertical scrollbars (if present). [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientWidth) |
+| readonly `clientWidth` | `number` | The **`clientWidth`** read-only property of the Element interface is zero for inline elements and elements with no CSS; otherwise, it's the inner width of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientWidth) |
 | readonly `COMMENT_NODE` | `8` | node is a Comment node. |
 | `contentEditable` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/contentEditable) |
-| readonly `currentCSSZoom` | `number` | The **`currentCSSZoom`** read-only property of the Element interface provides the "effective" CSS zoom of an element, taking into account the zoom applied to the element and all its parent elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/currentCSSZoom) |
-| readonly `customElementRegistry` | `CustomElementRegistry \| null` | — |
+| readonly `currentCSSZoom` | `number` | The **`currentCSSZoom`** read-only property of the Element interface provides the 'effective' CSS `zoom` of an element, taking into account the zoom applied to the element and all its parent elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/currentCSSZoom) |
 | readonly `dataset` | `DOMStringMap` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset) |
-| `dir` | `string` | The **`HTMLElement.dir`** property indicates the text writing directionality of the content of the current element. It reflects the element's dir attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dir) |
+| `dir` | `string` | The **`HTMLElement.dir`** property indicates the text writing directionality of the content of the current element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dir) |
 | readonly `DOCUMENT_FRAGMENT_NODE` | `11` | node is a DocumentFragment node. |
 | readonly `DOCUMENT_NODE` | `9` | node is a document. |
 | readonly `DOCUMENT_POSITION_CONTAINED_BY` | `16` | Set when other is a descendant of node. |
@@ -537,32 +536,32 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `enterKeyHint` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/enterKeyHint) |
 | readonly `ENTITY_NODE` | `6` | — |
 | readonly `ENTITY_REFERENCE_NODE` | `5` | — |
-| readonly `firstChild` | `ChildNode \| null` | The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or null if the node has no children. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild) |
+| readonly `firstChild` | `ChildNode \| null` | The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or `null` if the node has no children. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild) |
 | readonly `firstElementChild` | `Element \| null` | Returns the first child that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/firstElementChild) |
-| `hidden` | `boolean \| "until-found"` | The HTMLElement property **`hidden`** reflects the value of the element's hidden attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidden) |
-| `id` | `string` | The **`id`** property of the Element interface represents the element's identifier, reflecting the id global attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/id) |
-| `inert` | `boolean` | The HTMLElement property **`inert`** reflects the value of the element's inert attribute. It is a boolean value that, when present, makes the browser "ignore" user input events for the element, including focus events and events from assistive technologies. The browser may also ignore page search and text selection in the element. This can be useful when building UIs such as modals where you would want to "trap" the focus inside the modal when it's visible. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inert) |
-| `innerHTML` | `string` | The **`innerHTML`** property of the Element interface gets or sets the HTML or XML markup contained within the element, omitting any shadow roots in both cases. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/innerHTML) |
+| `hidden` | `boolean` | The HTMLElement property **`hidden`** reflects the value of the element's `hidden` attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidden) |
+| `id` | `string` | The **`id`** property of the Element interface represents the element's identifier, reflecting the **`id`** global attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/id) |
+| `inert` | `boolean` | The HTMLElement property **`inert`** reflects the value of the element's `inert` attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inert) |
+| `innerHTML` | `string` | The **`innerHTML`** property of the Element interface gets or sets the HTML or XML markup contained within the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/innerHTML) |
 | `innerText` | `string` | The **`innerText`** property of the HTMLElement interface represents the rendered text content of a node and its descendants. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/innerText) |
 | `inputMode` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inputMode) |
 | readonly `isConnected` | `boolean` | The read-only **`isConnected`** property of the Node interface returns a boolean indicating whether the node is connected (directly or indirectly) to a Document object. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isConnected) |
 | readonly `isContentEditable` | `boolean` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/isContentEditable) |
-| `lang` | `string` | The **`lang`** property of the HTMLElement interface indicates the base language of an element's attribute values and text content, in the form of a BCP 47 language tag. It reflects the element's lang attribute; the xml:lang attribute does not affect this property. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/lang) |
-| readonly `lastChild` | `ChildNode \| null` | The read-only **`lastChild`** property of the Node interface returns the last child of the node, or null if there are no child nodes. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild) |
+| `lang` | `string` | The **`lang`** property of the HTMLElement interface indicates the base language of an element's attribute values and text content, in the form of a MISSING: RFC(5646, 'BCP 47 language identifier tag')]. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/lang) |
+| readonly `lastChild` | `ChildNode \| null` | The read-only **`lastChild`** property of the Node interface returns the last child of the node, or `null` if there are no child nodes. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild) |
 | readonly `lastElementChild` | `Element \| null` | Returns the last child that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastElementChild) |
 | readonly `localName` | `string` | The **`Element.localName`** read-only property returns the local part of the qualified name of an element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/localName) |
-| readonly `namespaceURI` | `string \| null` | The **`Element.namespaceURI`** read-only property returns the namespace URI of the element, or null if the element is not in a namespace. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/namespaceURI) |
+| readonly `namespaceURI` | `string \| null` | The **`Element.namespaceURI`** read-only property returns the namespace URI of the element, or `null` if the element is not in a namespace. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/namespaceURI) |
 | readonly `nextElementSibling` | `Element \| null` | Returns the first following sibling that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/nextElementSibling) |
-| readonly `nextSibling` | `ChildNode \| null` | The read-only **`nextSibling`** property of the Node interface returns the node immediately following the specified one in their parent's childNodes, or returns null if the specified node is the last child in the parent element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling) |
+| readonly `nextSibling` | `ChildNode \| null` | The read-only **`nextSibling`** property of the Node interface returns the node immediately following the specified one in their parent's Node.childNodes, or returns `null` if the specified node is the last child in the parent element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling) |
 | readonly `nodeName` | `string` | The read-only **`nodeName`** property of Node returns the name of the current node as a string. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeName) |
-| readonly `nodeType` | `number` | The read-only **`nodeType`** property of a Node interface is an integer that identifies what the node is. It distinguishes different kinds of nodes from each other, such as elements, text, and comments. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType) |
+| readonly `nodeType` | `number` | The read-only **`nodeType`** property of a Node interface is an integer that identifies what the node is. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType) |
 | `nodeValue` | `string \| null` | The **`nodeValue`** property of the Node interface returns or sets the value of the current node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeValue) |
-| `nonce` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce) |
+| `nonce` (optional) | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce) |
 | readonly `NOTATION_NODE` | `12` | — |
 | readonly `offsetHeight` | `number` | The **`offsetHeight`** read-only property of the HTMLElement interface returns the height of an element, including vertical padding and borders, as an integer. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetHeight) |
-| readonly `offsetLeft` | `number` | The **`offsetLeft`** read-only property of the HTMLElement interface returns the number of pixels that the upper left corner of the current element is offset to the left within the HTMLElement.offsetParent node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetLeft) |
+| readonly `offsetLeft` | `number` | The **`offsetLeft`** read-only property of the HTMLElement interface returns the number of pixels that the _upper left corner_ of the current element is offset to the left within the HTMLElement.offsetParent node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetLeft) |
 | readonly `offsetParent` | `Element \| null` | The **`HTMLElement.offsetParent`** read-only property returns a reference to the element which is the closest (nearest in the containment hierarchy) positioned ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetParent) |
-| readonly `offsetTop` | `number` | The **`offsetTop`** read-only property of the HTMLElement interface returns the distance from the outer border of the current element (including its margin) to the top padding edge of the offsetParent, the closest positioned ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetTop) |
+| readonly `offsetTop` | `number` | The **`offsetTop`** read-only property of the HTMLElement interface returns the distance from the outer border of the current element (including its margin) to the top padding edge of the HTMLelement.offsetParent, the _closest positioned_ ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetTop) |
 | readonly `offsetWidth` | `number` | The **`offsetWidth`** read-only property of the HTMLElement interface returns the layout width of an element as an integer. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetWidth) |
 | `onabort` | `__type(this: GlobalEventHandlers, ev: UIEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/abort_event) |
 | `onanimationcancel` | `__type(this: GlobalEventHandlers, ev: AnimationEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/animationcancel_event) |
@@ -580,7 +579,6 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `onchange` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/change_event) |
 | `onclick` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/click_event) |
 | `onclose` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/close_event) |
-| `oncommand` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/command_event) |
 | `oncontextlost` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextlost_event) |
 | `oncontextmenu` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/contextmenu_event) |
 | `oncontextrestored` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextrestored_event) |
@@ -604,7 +602,7 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `onfullscreenchange` | `__type(this: Element, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/fullscreenchange_event) |
 | `onfullscreenerror` | `__type(this: Element, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/fullscreenerror_event) |
 | `ongotpointercapture` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/gotpointercapture_event) |
-| `oninput` | `__type(this: GlobalEventHandlers, ev: InputEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/input_event) |
+| `oninput` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/input_event) |
 | `oninvalid` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/invalid_event) |
 | `onkeydown` | `__type(this: GlobalEventHandlers, ev: KeyboardEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/keydown_event) |
 | `onkeypress` | `__type(this: GlobalEventHandlers, ev: KeyboardEvent): any \| null` | — |
@@ -667,24 +665,24 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `onwebkitanimationstart` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | — |
 | `onwebkittransitionend` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | — |
 | `onwheel` | `__type(this: GlobalEventHandlers, ev: WheelEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/wheel_event) |
-| `outerHTML` | `string` | The **`outerHTML`** attribute of the Element interface gets or sets the HTML or XML markup of the element and its descendants, omitting any shadow roots in both cases. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/outerHTML) |
-| `outerText` | `string` | The **`outerText`** property of the HTMLElement interface returns the same value as HTMLElement.innerText. When used as a setter it replaces the whole current node with the given text (this differs from innerText, which replaces the content inside the current node). [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/outerText) |
+| `outerHTML` | `string` | The **`outerHTML`** attribute of the Element DOM interface gets the serialized HTML fragment describing the element including its descendants. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/outerHTML) |
+| `outerText` | `string` | The **`outerText`** property of the HTMLElement interface returns the same value as HTMLElement.innerText. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/outerText) |
 | readonly `ownerDocument` | `Document` | The read-only **`ownerDocument`** property of the Node interface returns the top-level document object of the node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument) |
-| readonly `parentElement` | `HTMLElement \| null` | The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or null if the node either has no parent, or its parent isn't a DOM Element. Node.parentNode on the other hand returns any kind of parent, regardless of its type. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement) |
+| readonly `parentElement` | `HTMLElement \| null` | The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or `null` if the node either has no parent, or its parent isn't a DOM Element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement) |
 | readonly `parentNode` | `ParentNode \| null` | The read-only **`parentNode`** property of the Node interface returns the parent of the specified node in the DOM tree. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode) |
-| `popover` | `string \| null` | The **`popover`** property of the HTMLElement interface gets and sets an element's popover state via JavaScript ("auto", "hint", or "manual"), and can be used for feature detection. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover) |
-| readonly `prefix` | `string \| null` | The **`Element.prefix`** read-only property returns the namespace prefix of the specified element, or null if no prefix is specified. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/prefix) |
+| `popover` | `string \| null` | The **`popover`** property of the HTMLElement interface gets and sets an element's popover state via JavaScript (`'auto'`, `'hint'`, or `'manual'`), and can be used for feature detection. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover) |
+| readonly `prefix` | `string \| null` | The **`Element.prefix`** read-only property returns the namespace prefix of the specified element, or `null` if no prefix is specified. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/prefix) |
 | readonly `previousElementSibling` | `Element \| null` | Returns the first preceding sibling that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/previousElementSibling) |
-| readonly `previousSibling` | `ChildNode \| null` | The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's childNodes list, or null if the specified node is the first in that list. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling) |
+| readonly `previousSibling` | `ChildNode \| null` | The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's or `null` if the specified node is the first in that list. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling) |
 | readonly `PROCESSING_INSTRUCTION_NODE` | `7` | node is a ProcessingInstruction node. |
 | `role` | `string \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/role) |
 | readonly `scrollHeight` | `number` | The **`scrollHeight`** read-only property of the Element interface is a measurement of the height of an element's content, including content not visible on the screen due to overflow. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollHeight) |
-| `scrollLeft` | `number` | The **`scrollLeft`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its left edge. This value is subpixel precise in modern browsers, meaning that it isn't necessarily a whole number. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollLeft) |
-| `scrollTop` | `number` | The **`scrollTop`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its top edge. This value is subpixel precise in modern browsers, meaning that it isn't necessarily a whole number. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollTop) |
+| `scrollLeft` | `number` | The **`scrollLeft`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its left edge. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollLeft) |
+| `scrollTop` | `number` | The **`scrollTop`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its top edge. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollTop) |
 | readonly `scrollWidth` | `number` | The **`scrollWidth`** read-only property of the Element interface is a measurement of the width of an element's content, including content not visible on the screen due to overflow. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollWidth) |
-| readonly `shadowRoot` | `ShadowRoot \| null` | The **`Element.shadowRoot`** read-only property represents the shadow root hosted by the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/shadowRoot) |
+| readonly `shadowRoot` | `ShadowRoot \| null` | The `Element.shadowRoot` read-only property represents the shadow root hosted by the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/shadowRoot) |
 | `slot` | `string` | The **`slot`** property of the Element interface returns the name of the shadow DOM slot the element is inserted in. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/slot) |
-| `spellcheck` | `boolean` | The **`spellcheck`** property of the HTMLElement interface represents a boolean value that controls the spell-checking hint. It is available on all HTML elements, though it doesn't affect all of them. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/spellcheck) |
+| `spellcheck` | `boolean` | The **`spellcheck`** property of the HTMLElement interface represents a boolean value that controls the spell-checking hint. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/spellcheck) |
 | `tabIndex` | `number` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/tabIndex) |
 | readonly `tagName` | `string` | The **`tagName`** read-only property of the Element interface returns the tag name of the element on which it's called. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/tagName) |
 | readonly `TEXT_NODE` | `3` | node is a Text node. |
@@ -694,6 +692,7 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `observedAttributes` | `string[]` | — |
 | `classList` | `void` | — |
 | `part` | `void` | — |
+| `runtime` | `void` | — |
 | `style` | `void` | — |
 | `textContent` | `void` | — |
 | `addEventListener` | `void` | — |
@@ -745,9 +744,11 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `isSameNode` | `boolean` | — |
 | `lookupNamespaceURI` | `string \| null` | — |
 | `lookupPrefix` | `string \| null` | — |
-| `matches` | `this is HTMLElementTagNameMap[K]` | — |
-| `moveBefore` | `void` | — |
+| `matches` | `boolean` | — |
 | `normalize` | `void` | — |
+| `onCatalogChange` | `void` | — |
+| `onDetach` | `void` | — |
+| `onRuntime` | `void` | — |
 | `prepend` | `void` | — |
 | `querySelector` | `HTMLElementTagNameMap[K] \| null` | — |
 | `querySelectorAll` | `NodeListOf<HTMLElementTagNameMap[K]>` | — |
@@ -779,21 +780,36 @@ variables, updating live as the theme changes. Observes the `bottom`,
 | `webkitMatchesSelector` | `boolean` | — |
 | `define` | `void` | — |
 
-Requires an ancestor `<theme-kit-provider>`. If the provider is not yet
+**Attributes.** All four are positional and optional:
+
+- `bottom` — distance from the bottom of the viewport, in px (default `104`).
+- `right` — distance from the right edge, in px (default `32`).
+- `size` — toggle button size, in px (default `40`).
+- `z-index` — stacking order of the toggle and panel (default `9999`).
+
+Non-numeric values are ignored in favour of the default.
+
+**Properties.** None of its own beyond the standard `HTMLElement` surface.
+
+**Events.** Dispatches nothing of its own.
+
+**Slots.** None — the panel is built from the runtime's data.
+
+Requires an ancestor `<themvora-provider>`. If the provider is not yet
 initialized, it waits for the `theme-ready` event. `define()` is SSR-safe
 and no-ops when `customElements` is unavailable.
 
 ```ts
-<theme-kit-inspector bottom="24" right="24"></theme-kit-inspector>
+<themvora-inspector bottom="24" right="24"></themvora-inspector>
 ```
 
 ---
 
 
-### `class ThemeKitScrollbar`
+### `class ThemvoraScrollbar`
 
-**Extends** `CustomElementBase`
-Phase 2 — ThemeKitScrollbar (Web Component): overlay only.
+**Extends** `ThemvoraRuntimeConsumer`
+Phase 2 — ThemvoraScrollbar (Web Component): overlay only.
 
 Creates the custom scrollbar overlay.
 
@@ -802,7 +818,7 @@ Lifecycle:
                        ↓ (Phase 1)
   connectedCallback  → create overlay → measure → attach listeners
                        ↓ (Phase 2)
-  later              → add tk-scrollbar-ready
+  later              → add tv-scrollbar-ready
                        ↓ (Phase 3)
 
 Phase 1 is injected synchronously in `connectedCallback`. For static HTML
@@ -810,11 +826,11 @@ served via the Vite plugin (scrollbar: true), the pre-paint script in <head>
 runs before first paint. This component's injection is a fallback for
 dynamically-inserted scrollbar elements (which may have already painted).
 
-**See also:** `ThemeKitProvider`
+**See also:** `ThemvoraProvider`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `constructor` | `ThemeKitScrollbar` | — |
+| `constructor` | `ThemvoraScrollbar` | — |
 | `accessKey` | `string` | The **`HTMLElement.accessKey`** property sets the keystroke which a user can press to jump to a given element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKey) |
 | readonly `accessKeyLabel` | `string` | The **`HTMLElement.accessKeyLabel`** read-only property returns a string containing the element's browser-assigned access key (if any); otherwise it returns an empty string. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKeyLabel) |
 | `ariaActiveDescendantElement` | `Element \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaActiveDescendantElement) |
@@ -870,27 +886,26 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `ariaValueText` | `string \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/ariaValueText) |
 | readonly `assignedSlot` | `HTMLSlotElement \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/assignedSlot) |
 | readonly `ATTRIBUTE_NODE` | `2` | — |
-| readonly `attributes` | `NamedNodeMap` | The **`Element.attributes`** property returns a live collection of all attribute nodes registered to the specified node. It is a NamedNodeMap, not an Array, so it has no Array methods and the Attr nodes' indexes may differ among browsers. To be more specific, attributes is a key/value pair of strings that represents any information regarding that attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes) |
+| readonly `attributes` | `NamedNodeMap` | The **`Element.attributes`** property returns a live collection of all attribute nodes registered to the specified node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes) |
 | readonly `attributeStyleMap` | `StylePropertyMap` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attributeStyleMap) |
-| `autocapitalize` | `string` | The **`autocapitalize`** property of the HTMLElement interface represents the element's capitalization behavior for user input. It is available on all HTML elements, though it doesn't affect all of them, including: [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocapitalize) |
+| `autocapitalize` | `string` | The **`autocapitalize`** property of the HTMLElement interface represents the element's capitalization behavior for user input. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocapitalize) |
 | `autocorrect` | `boolean` | The **`autocorrect`** property of the HTMLElement interface controls whether or not autocorrection of editable text is enabled for spelling and/or punctuation errors. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocorrect) |
 | `autofocus` | `boolean` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autofocus) |
 | readonly `baseURI` | `string` | The read-only **`baseURI`** property of the Node interface returns the absolute base URL of the document containing the node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/baseURI) |
 | readonly `CDATA_SECTION_NODE` | `4` | node is a CDATASection node. |
 | readonly `childElementCount` | `number` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/childElementCount) |
-| readonly `childNodes` | `NodeListOf<ChildNode>` | The read-only **`childNodes`** property of the Node interface returns a live NodeList of child nodes of the given element where the first child node is assigned index 0. Child nodes include elements, text and comments. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes) |
+| readonly `childNodes` | `NodeListOf<ChildNode>` | The read-only **`childNodes`** property of the Node interface returns a live the first child node is assigned index `0`. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes) |
 | readonly `children` | `HTMLCollection` | Returns the child elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/children) |
-| `className` | `string` | The **`className`** property of the Element interface gets and sets the value of the class attribute of the specified element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/className) |
-| readonly `clientHeight` | `number` | The **`clientHeight`** read-only property of the Element interface is zero for elements with no CSS or inline layout boxes; otherwise, it's the inner height of an element in pixels. It includes padding but excludes borders, margins, and horizontal scrollbars (if present). [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientHeight) |
-| readonly `clientLeft` | `number` | The **`clientLeft`** read-only property of the Element interface returns the width of the left border of an element in pixels. It includes the width of the vertical scrollbar if the text direction of the element is right-to-left and if there is an overflow causing a left vertical scrollbar to be rendered. clientLeft does not include the left margin or the left padding. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientLeft) |
+| `className` | `string` | The **`className`** property of the of the specified element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/className) |
+| readonly `clientHeight` | `number` | The **`clientHeight`** read-only property of the Element interface is zero for elements with no CSS or inline layout boxes; otherwise, it's the inner height of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientHeight) |
+| readonly `clientLeft` | `number` | The **`clientLeft`** read-only property of the Element interface returns the width of the left border of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientLeft) |
 | readonly `clientTop` | `number` | The **`clientTop`** read-only property of the Element interface returns the width of the top border of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientTop) |
-| readonly `clientWidth` | `number` | The **`clientWidth`** read-only property of the Element interface is zero for inline elements and elements with no CSS; otherwise, it's the inner width of an element in pixels. It includes padding but excludes borders, margins, and vertical scrollbars (if present). [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientWidth) |
+| readonly `clientWidth` | `number` | The **`clientWidth`** read-only property of the Element interface is zero for inline elements and elements with no CSS; otherwise, it's the inner width of an element in pixels. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/clientWidth) |
 | readonly `COMMENT_NODE` | `8` | node is a Comment node. |
 | `contentEditable` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/contentEditable) |
-| readonly `currentCSSZoom` | `number` | The **`currentCSSZoom`** read-only property of the Element interface provides the "effective" CSS zoom of an element, taking into account the zoom applied to the element and all its parent elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/currentCSSZoom) |
-| readonly `customElementRegistry` | `CustomElementRegistry \| null` | — |
+| readonly `currentCSSZoom` | `number` | The **`currentCSSZoom`** read-only property of the Element interface provides the 'effective' CSS `zoom` of an element, taking into account the zoom applied to the element and all its parent elements. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/currentCSSZoom) |
 | readonly `dataset` | `DOMStringMap` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset) |
-| `dir` | `string` | The **`HTMLElement.dir`** property indicates the text writing directionality of the content of the current element. It reflects the element's dir attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dir) |
+| `dir` | `string` | The **`HTMLElement.dir`** property indicates the text writing directionality of the content of the current element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dir) |
 | readonly `DOCUMENT_FRAGMENT_NODE` | `11` | node is a DocumentFragment node. |
 | readonly `DOCUMENT_NODE` | `9` | node is a document. |
 | readonly `DOCUMENT_POSITION_CONTAINED_BY` | `16` | Set when other is a descendant of node. |
@@ -905,32 +920,32 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `enterKeyHint` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/enterKeyHint) |
 | readonly `ENTITY_NODE` | `6` | — |
 | readonly `ENTITY_REFERENCE_NODE` | `5` | — |
-| readonly `firstChild` | `ChildNode \| null` | The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or null if the node has no children. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild) |
+| readonly `firstChild` | `ChildNode \| null` | The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or `null` if the node has no children. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild) |
 | readonly `firstElementChild` | `Element \| null` | Returns the first child that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/firstElementChild) |
-| `hidden` | `boolean \| "until-found"` | The HTMLElement property **`hidden`** reflects the value of the element's hidden attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidden) |
-| `id` | `string` | The **`id`** property of the Element interface represents the element's identifier, reflecting the id global attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/id) |
-| `inert` | `boolean` | The HTMLElement property **`inert`** reflects the value of the element's inert attribute. It is a boolean value that, when present, makes the browser "ignore" user input events for the element, including focus events and events from assistive technologies. The browser may also ignore page search and text selection in the element. This can be useful when building UIs such as modals where you would want to "trap" the focus inside the modal when it's visible. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inert) |
-| `innerHTML` | `string` | The **`innerHTML`** property of the Element interface gets or sets the HTML or XML markup contained within the element, omitting any shadow roots in both cases. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/innerHTML) |
+| `hidden` | `boolean` | The HTMLElement property **`hidden`** reflects the value of the element's `hidden` attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidden) |
+| `id` | `string` | The **`id`** property of the Element interface represents the element's identifier, reflecting the **`id`** global attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/id) |
+| `inert` | `boolean` | The HTMLElement property **`inert`** reflects the value of the element's `inert` attribute. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inert) |
+| `innerHTML` | `string` | The **`innerHTML`** property of the Element interface gets or sets the HTML or XML markup contained within the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/innerHTML) |
 | `innerText` | `string` | The **`innerText`** property of the HTMLElement interface represents the rendered text content of a node and its descendants. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/innerText) |
 | `inputMode` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inputMode) |
 | readonly `isConnected` | `boolean` | The read-only **`isConnected`** property of the Node interface returns a boolean indicating whether the node is connected (directly or indirectly) to a Document object. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isConnected) |
 | readonly `isContentEditable` | `boolean` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/isContentEditable) |
-| `lang` | `string` | The **`lang`** property of the HTMLElement interface indicates the base language of an element's attribute values and text content, in the form of a BCP 47 language tag. It reflects the element's lang attribute; the xml:lang attribute does not affect this property. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/lang) |
-| readonly `lastChild` | `ChildNode \| null` | The read-only **`lastChild`** property of the Node interface returns the last child of the node, or null if there are no child nodes. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild) |
+| `lang` | `string` | The **`lang`** property of the HTMLElement interface indicates the base language of an element's attribute values and text content, in the form of a MISSING: RFC(5646, 'BCP 47 language identifier tag')]. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/lang) |
+| readonly `lastChild` | `ChildNode \| null` | The read-only **`lastChild`** property of the Node interface returns the last child of the node, or `null` if there are no child nodes. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild) |
 | readonly `lastElementChild` | `Element \| null` | Returns the last child that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastElementChild) |
 | readonly `localName` | `string` | The **`Element.localName`** read-only property returns the local part of the qualified name of an element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/localName) |
-| readonly `namespaceURI` | `string \| null` | The **`Element.namespaceURI`** read-only property returns the namespace URI of the element, or null if the element is not in a namespace. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/namespaceURI) |
+| readonly `namespaceURI` | `string \| null` | The **`Element.namespaceURI`** read-only property returns the namespace URI of the element, or `null` if the element is not in a namespace. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/namespaceURI) |
 | readonly `nextElementSibling` | `Element \| null` | Returns the first following sibling that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/nextElementSibling) |
-| readonly `nextSibling` | `ChildNode \| null` | The read-only **`nextSibling`** property of the Node interface returns the node immediately following the specified one in their parent's childNodes, or returns null if the specified node is the last child in the parent element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling) |
+| readonly `nextSibling` | `ChildNode \| null` | The read-only **`nextSibling`** property of the Node interface returns the node immediately following the specified one in their parent's Node.childNodes, or returns `null` if the specified node is the last child in the parent element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling) |
 | readonly `nodeName` | `string` | The read-only **`nodeName`** property of Node returns the name of the current node as a string. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeName) |
-| readonly `nodeType` | `number` | The read-only **`nodeType`** property of a Node interface is an integer that identifies what the node is. It distinguishes different kinds of nodes from each other, such as elements, text, and comments. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType) |
+| readonly `nodeType` | `number` | The read-only **`nodeType`** property of a Node interface is an integer that identifies what the node is. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType) |
 | `nodeValue` | `string \| null` | The **`nodeValue`** property of the Node interface returns or sets the value of the current node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeValue) |
-| `nonce` | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce) |
+| `nonce` (optional) | `string` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce) |
 | readonly `NOTATION_NODE` | `12` | — |
 | readonly `offsetHeight` | `number` | The **`offsetHeight`** read-only property of the HTMLElement interface returns the height of an element, including vertical padding and borders, as an integer. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetHeight) |
-| readonly `offsetLeft` | `number` | The **`offsetLeft`** read-only property of the HTMLElement interface returns the number of pixels that the upper left corner of the current element is offset to the left within the HTMLElement.offsetParent node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetLeft) |
+| readonly `offsetLeft` | `number` | The **`offsetLeft`** read-only property of the HTMLElement interface returns the number of pixels that the _upper left corner_ of the current element is offset to the left within the HTMLElement.offsetParent node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetLeft) |
 | readonly `offsetParent` | `Element \| null` | The **`HTMLElement.offsetParent`** read-only property returns a reference to the element which is the closest (nearest in the containment hierarchy) positioned ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetParent) |
-| readonly `offsetTop` | `number` | The **`offsetTop`** read-only property of the HTMLElement interface returns the distance from the outer border of the current element (including its margin) to the top padding edge of the offsetParent, the closest positioned ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetTop) |
+| readonly `offsetTop` | `number` | The **`offsetTop`** read-only property of the HTMLElement interface returns the distance from the outer border of the current element (including its margin) to the top padding edge of the HTMLelement.offsetParent, the _closest positioned_ ancestor element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetTop) |
 | readonly `offsetWidth` | `number` | The **`offsetWidth`** read-only property of the HTMLElement interface returns the layout width of an element as an integer. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetWidth) |
 | `onabort` | `__type(this: GlobalEventHandlers, ev: UIEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/abort_event) |
 | `onanimationcancel` | `__type(this: GlobalEventHandlers, ev: AnimationEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/animationcancel_event) |
@@ -948,7 +963,6 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `onchange` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/change_event) |
 | `onclick` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/click_event) |
 | `onclose` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/close_event) |
-| `oncommand` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/command_event) |
 | `oncontextlost` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextlost_event) |
 | `oncontextmenu` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/contextmenu_event) |
 | `oncontextrestored` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextrestored_event) |
@@ -972,7 +986,7 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `onfullscreenchange` | `__type(this: Element, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/fullscreenchange_event) |
 | `onfullscreenerror` | `__type(this: Element, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/fullscreenerror_event) |
 | `ongotpointercapture` | `__type(this: GlobalEventHandlers, ev: PointerEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/gotpointercapture_event) |
-| `oninput` | `__type(this: GlobalEventHandlers, ev: InputEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/input_event) |
+| `oninput` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/input_event) |
 | `oninvalid` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/invalid_event) |
 | `onkeydown` | `__type(this: GlobalEventHandlers, ev: KeyboardEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/keydown_event) |
 | `onkeypress` | `__type(this: GlobalEventHandlers, ev: KeyboardEvent): any \| null` | — |
@@ -1035,24 +1049,24 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `onwebkitanimationstart` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | — |
 | `onwebkittransitionend` | `__type(this: GlobalEventHandlers, ev: Event): any \| null` | — |
 | `onwheel` | `__type(this: GlobalEventHandlers, ev: WheelEvent): any \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/wheel_event) |
-| `outerHTML` | `string` | The **`outerHTML`** attribute of the Element interface gets or sets the HTML or XML markup of the element and its descendants, omitting any shadow roots in both cases. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/outerHTML) |
-| `outerText` | `string` | The **`outerText`** property of the HTMLElement interface returns the same value as HTMLElement.innerText. When used as a setter it replaces the whole current node with the given text (this differs from innerText, which replaces the content inside the current node). [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/outerText) |
+| `outerHTML` | `string` | The **`outerHTML`** attribute of the Element DOM interface gets the serialized HTML fragment describing the element including its descendants. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/outerHTML) |
+| `outerText` | `string` | The **`outerText`** property of the HTMLElement interface returns the same value as HTMLElement.innerText. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/outerText) |
 | readonly `ownerDocument` | `Document` | The read-only **`ownerDocument`** property of the Node interface returns the top-level document object of the node. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument) |
-| readonly `parentElement` | `HTMLElement \| null` | The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or null if the node either has no parent, or its parent isn't a DOM Element. Node.parentNode on the other hand returns any kind of parent, regardless of its type. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement) |
+| readonly `parentElement` | `HTMLElement \| null` | The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or `null` if the node either has no parent, or its parent isn't a DOM Element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement) |
 | readonly `parentNode` | `ParentNode \| null` | The read-only **`parentNode`** property of the Node interface returns the parent of the specified node in the DOM tree. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode) |
-| `popover` | `string \| null` | The **`popover`** property of the HTMLElement interface gets and sets an element's popover state via JavaScript ("auto", "hint", or "manual"), and can be used for feature detection. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover) |
-| readonly `prefix` | `string \| null` | The **`Element.prefix`** read-only property returns the namespace prefix of the specified element, or null if no prefix is specified. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/prefix) |
+| `popover` | `string \| null` | The **`popover`** property of the HTMLElement interface gets and sets an element's popover state via JavaScript (`'auto'`, `'hint'`, or `'manual'`), and can be used for feature detection. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover) |
+| readonly `prefix` | `string \| null` | The **`Element.prefix`** read-only property returns the namespace prefix of the specified element, or `null` if no prefix is specified. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/prefix) |
 | readonly `previousElementSibling` | `Element \| null` | Returns the first preceding sibling that is an element, and null otherwise. [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/previousElementSibling) |
-| readonly `previousSibling` | `ChildNode \| null` | The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's childNodes list, or null if the specified node is the first in that list. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling) |
+| readonly `previousSibling` | `ChildNode \| null` | The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's or `null` if the specified node is the first in that list. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling) |
 | readonly `PROCESSING_INSTRUCTION_NODE` | `7` | node is a ProcessingInstruction node. |
 | `role` | `string \| null` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/role) |
 | readonly `scrollHeight` | `number` | The **`scrollHeight`** read-only property of the Element interface is a measurement of the height of an element's content, including content not visible on the screen due to overflow. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollHeight) |
-| `scrollLeft` | `number` | The **`scrollLeft`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its left edge. This value is subpixel precise in modern browsers, meaning that it isn't necessarily a whole number. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollLeft) |
-| `scrollTop` | `number` | The **`scrollTop`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its top edge. This value is subpixel precise in modern browsers, meaning that it isn't necessarily a whole number. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollTop) |
+| `scrollLeft` | `number` | The **`scrollLeft`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its left edge. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollLeft) |
+| `scrollTop` | `number` | The **`scrollTop`** property of the Element interface gets or sets the number of pixels by which an element's content is scrolled from its top edge. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollTop) |
 | readonly `scrollWidth` | `number` | The **`scrollWidth`** read-only property of the Element interface is a measurement of the width of an element's content, including content not visible on the screen due to overflow. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollWidth) |
-| readonly `shadowRoot` | `ShadowRoot \| null` | The **`Element.shadowRoot`** read-only property represents the shadow root hosted by the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/shadowRoot) |
+| readonly `shadowRoot` | `ShadowRoot \| null` | The `Element.shadowRoot` read-only property represents the shadow root hosted by the element. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/shadowRoot) |
 | `slot` | `string` | The **`slot`** property of the Element interface returns the name of the shadow DOM slot the element is inserted in. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/slot) |
-| `spellcheck` | `boolean` | The **`spellcheck`** property of the HTMLElement interface represents a boolean value that controls the spell-checking hint. It is available on all HTML elements, though it doesn't affect all of them. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/spellcheck) |
+| `spellcheck` | `boolean` | The **`spellcheck`** property of the HTMLElement interface represents a boolean value that controls the spell-checking hint. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/spellcheck) |
 | `tabIndex` | `number` | [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/tabIndex) |
 | readonly `tagName` | `string` | The **`tagName`** read-only property of the Element interface returns the tag name of the element on which it's called. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/tagName) |
 | readonly `TEXT_NODE` | `3` | node is a Text node. |
@@ -1061,6 +1075,7 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `writingSuggestions` | `string` | The **`writingSuggestions`** property of the HTMLElement interface is a string indicating if browser-provided writing suggestions should be enabled under the scope of the element or not. [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/writingSuggestions) |
 | `classList` | `void` | — |
 | `part` | `void` | — |
+| `runtime` | `void` | — |
 | `style` | `void` | — |
 | `textContent` | `void` | — |
 | `observedAttributes` | `void` | — |
@@ -1113,9 +1128,11 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `isSameNode` | `boolean` | — |
 | `lookupNamespaceURI` | `string \| null` | — |
 | `lookupPrefix` | `string \| null` | — |
-| `matches` | `this is HTMLElementTagNameMap[K]` | — |
-| `moveBefore` | `void` | — |
+| `matches` | `boolean` | — |
 | `normalize` | `void` | — |
+| `onCatalogChange` | `void` | — |
+| `onDetach` | `void` | — |
+| `onRuntime` | `void` | — |
 | `prepend` | `void` | — |
 | `querySelector` | `HTMLElementTagNameMap[K] \| null` | — |
 | `querySelectorAll` | `NodeListOf<HTMLElementTagNameMap[K]>` | — |
@@ -1147,12 +1164,38 @@ dynamically-inserted scrollbar elements (which may have already painted).
 | `webkitMatchesSelector` | `boolean` | — |
 | `define` | `void` | — |
 
+**Attributes.** Every option is an attribute; changing one rebuilds the
+overlay. Booleans are presence-based: present (any value except `false` or
+`0`) enables, absent or `false` disables. Numbers are unitless pixels.
+
+- Behaviour — `auto-hide`, `auto-hide-delay`, `hover-expand`, `draggable`,
+  `click-to-jump`, `smooth`, `overscroll`, `touch`.
+- Arrows — `arrows`, `arrow-icon`, `arrow-up-icon`, `arrow-down-icon`,
+  `arrow-left-icon`, `arrow-right-icon` (SVG markup or URL).
+- Geometry — `thickness`, `hover-thickness`, `radius`, `min-thumb-size`,
+  `icon-size`, `offset` (uniform inset), `offset-top`, `offset-right`,
+  `offset-bottom`, `offset-left` (per-side insets win over `offset`).
+- Motion and paint — `track-opacity`, `thumb-opacity`, `duration`,
+  `animation-duration`, `thumb-color`, `track-color`, `active-thumb-color`,
+  `thumb-hover-color`. Colors default to the active theme's tokens.
+- Placement — `z-index`, `dir` (`ltr` / `rtl` / `auto`), `axes`
+  (comma-separated `vertical` / `horizontal`), `include` / `exclude`
+  (comma-separated CSS selectors for the containers to track).
+
+**Properties.** None of its own beyond the standard `HTMLElement` surface.
+
+**Events.** Dispatches nothing of its own; it adds `tv-scrollbar-ready` to
+the element once the overlay is measured and attached.
+
+**Slots.** None — the element renders nothing into the document flow; the
+overlay it creates lives outside it.
+
 ---
 
 ## Interfaces
 
 ### `ThemeController<T extends ThemeDefinition>`
-A framework-neutral controller over the app-wide Theme Kit runtime.
+A framework-neutral controller over the app-wide Themvora runtime.
 
 **See also:** `getThemeController`, `createThemeController`
 
@@ -1209,21 +1252,21 @@ The reactive state a ThemeController publishes to its subscribers.
 ---
 
 
-### `ThemeKitIntegrationOptions`
-Options for themeKit. Configures the theme registry the injected
+### `ThemvoraIntegrationOptions`
+Options for themvora. Configures the theme registry the injected
 bootstrap resolves against and the fallback selection used when no
 persisted cookie is present.
 
-**See also:** `themeKit`
+**See also:** `themvora`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `config` (optional) | `ThemeKitThemeConfig<ThemeDefinition<string>>` | The provider's theme configuration — the same object you pass to `getInitialThemeState` and `provider.astro`. |
+| `config` (optional) | `ThemvoraThemeConfig<ThemeDefinition<string>>` | The provider's theme configuration — the same object you pass to `getInitialThemeState` and `provider.astro`. |
 | `defaultTheme` (optional) | `string` | Fallback theme name when no selection is persisted. |
 | `injectBootstrap` (optional) | `boolean` | Set to `false` to skip injecting the pre-paint bootstrap script (e.g. when you emit it yourself with `createBlockingScript`). Defaults to `true`. |
 | `mode` (optional) | `ThemeMode` | Fallback mode when no selection is persisted. Defaults to the fallback theme's own mode — the mode `defaultTheme` resolves to. |
 | `navigation` (optional) | `boolean` | Keep the resolved theme across Astro client-side navigations (`<ClientRouter />`). Defaults to `true`. |
-| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide the native scrollbar before first paint, so the Theme Kit overlay scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame — the same guarantee the Vite plugin and the Nuxt module provide. `true` hides it on fine-pointer (desktop) devices; pass `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to `false` — only enable it when the page actually mounts `ThemeScrollbar`. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide the native scrollbar before first paint, so the Themvora overlay scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame — the same guarantee the Vite plugin and the Nuxt module provide. `true` hides it on fine-pointer (desktop) devices; pass `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to `false` — only enable it when the page actually mounts `ThemeScrollbar`. |
 | `themes` (optional) | `readonly ThemeDefinition<string>[]` | The theme registry the bootstrap resolves against. Defaults to the built-in neutral themes when omitted or empty. |
 
 ---
@@ -1238,8 +1281,8 @@ Options for createThemeController / getThemeController.
 `Partial<Omit<ThemeRuntimeOptions<T>, "persistence" | "readPersistenceOnInit">> & { readouts?: boolean }`
 
 Every field is optional, and every field is an *override*. The application
-configuration is already in the browser — `themeKit()` transports
-`theme.config.ts` as `window.__THEME_KIT_CONFIG__` from `<head>` — so the
+configuration is already in the browser — `themvora()` transports
+`theme.config.ts` as `window.__THEMVORA_CONFIG__` from `<head>` — so the
 runtime is built from that. Passing `themes` / `defaultTheme` /
 `initialMode` / `initialFamily` here is for a test, a storybook, or an
 island that deliberately wants a different registry.

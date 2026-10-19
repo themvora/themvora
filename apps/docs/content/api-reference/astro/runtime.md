@@ -1,13 +1,13 @@
-## @theme-kit/astro/runtime
-Browser entry for the Theme Kit Astro integration
-(`@theme-kit/astro/runtime`).
+## @themvora/astro/runtime
+Browser entry for the Themvora Astro integration
+(`@themvora/astro/runtime`).
 
 This is the **framework-neutral client API**, and it is the entry a `<script>`
 in a `.astro` file should import. It ships the global runtime controller —
 `getThemeController()` / `createThemeController()` — plus the low-level
 shared-runtime accessors, and it imports no client framework.
 
-> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -28,7 +28,7 @@ any runtime already installed, so two calls give two runtimes racing to write
 `<html>`.
 
 ```ts
-import { createThemeController } from "@theme-kit/astro";
+import { createThemeController } from "@themvora/astro";
 
 const theme = createThemeController({ themes: myTestThemes });
 theme.setMode("dark");
@@ -78,7 +78,7 @@ and `prefers-color-scheme`, none of which exist on a server — call it from a
 <button id="theme-toggle">Toggle theme</button>
 
 <script>
-  import { getThemeController } from "@theme-kit/astro";
+  import { getThemeController } from "@themvora/astro";
 
   const theme = getThemeController();
 
@@ -103,7 +103,7 @@ Returns the app-wide global runtime, throwing when none has been installed.
 
 ### `setGlobalRuntime(runtime): void`
 Installs the given runtime as the app-wide global runtime and, in the
-browser, publishes it where the rest of Theme Kit looks for it.
+browser, publishes it where the rest of Themvora looks for it.
 
 **See also:** `getGlobalRuntime`
 
@@ -116,13 +116,13 @@ browser, publishes it where the rest of Theme Kit looks for it.
 Three publications, all of them the same runtime:
 
 1. the module-level `globalRuntime` — what this package's hooks read;
-2. `window.__themeKitRuntime` — the documented escape hatch;
-3. `document.documentElement.__themeKitRuntime` plus a `theme-ready` event —
-   which is how `@theme-kit/web`'s custom elements (`<theme-kit-scrollbar>`,
-   `<theme-kit-inspector>`, `<theme-kit-toggle>`, …) find a runtime. They
+2. `window.__themvoraRuntime` — the documented escape hatch;
+3. `document.documentElement.__themvoraRuntime` plus a `theme-ready` event —
+   which is how `@themvora/web`'s custom elements (`<themvora-scrollbar>`,
+   `<themvora-inspector>`, `<themvora-toggle>`, …) find a runtime. They
    resolve it by walking **DOM ancestors** for that property, and they only
    fall back to waiting for `theme-ready`, which until now was dispatched
-   solely by `<theme-kit-provider>`. Without these two lines an Astro app
+   solely by `<themvora-provider>`. Without these two lines an Astro app
    that installs its runtime from a React island had no way to use the
    framework-neutral elements at all — the runtime existed, but nothing in
    the element tree could see it.
@@ -132,7 +132,7 @@ Three publications, all of them the same runtime:
 ## Interfaces
 
 ### `ThemeController<T extends ThemeDefinition>`
-A framework-neutral controller over the app-wide Theme Kit runtime.
+A framework-neutral controller over the app-wide Themvora runtime.
 
 **See also:** `getThemeController`, `createThemeController`
 
@@ -198,8 +198,8 @@ Options for createThemeController / getThemeController.
 `Partial<Omit<ThemeRuntimeOptions<T>, "persistence" | "readPersistenceOnInit">> & { readouts?: boolean }`
 
 Every field is optional, and every field is an *override*. The application
-configuration is already in the browser — `themeKit()` transports
-`theme.config.ts` as `window.__THEME_KIT_CONFIG__` from `<head>` — so the
+configuration is already in the browser — `themvora()` transports
+`theme.config.ts` as `window.__THEMVORA_CONFIG__` from `<head>` — so the
 runtime is built from that. Passing `themes` / `defaultTheme` /
 `initialMode` / `initialFamily` here is for a test, a storybook, or an
 island that deliberately wants a different registry.
@@ -210,21 +210,21 @@ island that deliberately wants a different registry.
 
 ### `THEME_READOUT_ATTRIBUTE`
 Opts an element into the **bootstrap readout** contract: its text is owned by
-Theme Kit.
+Themvora.
 
 **See also:** `THEME_TOGGLE_ATTRIBUTE`
 
-`"data-tk-readout"`
+`"data-tv-readout"`
 
 ---
 
 
 ### `THEME_TOGGLE_ATTRIBUTE`
-Marks an element as a Theme Kit theme toggle.
+Marks an element as a Themvora theme toggle.
 
 **See also:** `THEME_READOUT_ATTRIBUTE`
 
-`"data-tk-toggle"`
+`"data-tv-toggle"`
 
 ---
 

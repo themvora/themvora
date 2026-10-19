@@ -1,19 +1,19 @@
-## @theme-kit/astro/client
-React island entry for Theme Kit's Astro integration
-(`@theme-kit/astro/client`).
+## @themvora/astro/client
+React island entry for Themvora's Astro integration
+(`@themvora/astro/client`).
 
 This is the **only** entry that depends on React. Import it explicitly when
 you chose a React island in your Astro project:
 
 ```tsx
-import { ThemeProviderClient, useTheme } from "@theme-kit/astro/client";
+import { ThemeProviderClient, useTheme } from "@themvora/astro/client";
 ```
 
-The framework-neutral root entry (`@theme-kit/astro`) does not import React,
+The framework-neutral root entry (`@themvora/astro`) does not import React,
 so projects that use Astro components only never pull a client framework
 runtime into their bundle.
 
-> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/astro/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -50,7 +50,7 @@ island.
 
 ```ts
 ---
-import { ThemeProviderClient } from "@theme-kit/astro/client";
+import { ThemeProviderClient } from "@themvora/astro/client";
 ---
 <ThemeProviderClient client:load initial={initial} />
 ```
@@ -85,7 +85,7 @@ correct from frame one instead of correcting itself after hydration.
 Two attributes make that work, and this component is the reason callers do not
 have to know about them:
 
-- `data-tk-readout` marks the node as bootstrap-owned, so the end-of-body
+- `data-tv-readout` marks the node as bootstrap-owned, so the end-of-body
   patch script (see `createThemeReadoutScript`) writes the resolved value into
   it.
 - `suppressHydrationWarning` tells React that this text node is intentionally
@@ -105,7 +105,7 @@ thrown — so this is progressive enhancement, not a hard runtime dependency.
 
 A value that is not one of the three semantic kinds — a resolved CSS variable,
 say — is not covered here. Use the raw contract for that:
-`data-tk-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
+`data-tv-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
 on the element that renders the value.
 
 ```ts
@@ -145,6 +145,30 @@ changes (`theme`, `transition`) and the cross-fade between them.
   <p>This content uses the brand-dark theme.</p>
 </ThemeScope>
 ```
+
+---
+
+
+### `useGeneratedTheme<T extends ThemeDefinition<string>>(): T`
+Returns the theme produced by `generateTheme()` and registered with the
+provider. Client-only; re-renders when the resolved generated theme changes.
+
+Resolves the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`); shipped presets never qualify. When
+both halves of one `generateTheme()` call are registered, the theme the active
+selection resolves to is returned.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+render rather than a stale theme being returned.
+
+**See also:** `useThemeValue`
+
+**Returns** `T` — The registered generated theme.
 
 ---
 

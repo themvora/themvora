@@ -6,8 +6,18 @@ import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
+import { InlineCode } from "../../components/ui/inline-code";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
+import {
+  InstallCommand,
+  type PackageManager,
+} from "../../components/install-command";
+import {
+  CANONICAL_STYLES,
+  CANONICAL_STYLES_NOTE,
+  CANONICAL_STYLES_STEP,
+} from "../../lib/frameworks";
 import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
@@ -15,25 +25,152 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/vanilla") },
   title: "Framework-Free",
   description:
-    "Use Theme Kit without React, Vue, or Svelte — a single ThemeKit class gives you mode switching, family selection, CSS variable binding, and localStorage persistence.",
+    "Use Themvora without React, Vue, or Svelte — a single Themvora class gives you mode switching, family selection, CSS variable binding, and localStorage persistence.",
 };
 
-const initSnippet = {
-  lang: "ts",
-  title: "basic setup",
-  code: `import { ThemeKit } from "@theme-kit/core/vanilla";
+const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
 
-const kit = new ThemeKit({
-  defaultTheme: "light",
+const installCommands = Object.fromEntries(
+  MANAGERS.map((manager) => {
+    const code =
+      manager === "npm"
+        ? "npm install @themvora/core"
+        : `${manager} add @themvora/core`;
+    return [manager, { code, html: highlightCode(code, "bash") }];
+  }),
+) as Record<PackageManager, { code: string; html: string }>;
+
+/** Step 2 — the minimal project: a container and the entry module. */
+const setupHtmlSnippet = {
+  lang: "html",
+  title: "index.html",
+  code: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+  </head>
+  <body>
+    <!-- Themvora writes the active theme's CSS custom properties onto <html>,
+         so any element in the document can read them. -->
+    <main id="app">
+      <h1>Hello, themed world</h1>
+      <p>Current theme: <strong id="theme-name"></strong></p>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>`,
+};
+
+const setupTsSnippet = {
+  lang: "ts",
+  title: "src/main.ts",
+  code: `import "./style.css";
+
+import { Themvora } from "@themvora/core/vanilla";
+
+// Omitting themes uses the built-in set. initialMode follows the OS on a first
+// visit, and every later change is persisted to localStorage.
+const kit = new Themvora({ defaultTheme: "light", initialMode: "system" });
+
+const readout = document.querySelector<HTMLElement>("#theme-name");
+
+if (!readout) {
+  throw new Error("index.html must contain a #theme-name element.");
+}
+
+const render = () => {
+  readout.textContent = kit.theme.name;
+
+  for (const button of document.querySelectorAll<HTMLElement>("[data-mode]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === kit.mode));
+  }
+  for (const button of document.querySelectorAll<HTMLElement>("[data-family]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.family === kit.family));
+  }
+};
+
+// Controls are plain buttons carrying data-mode / data-family. Delegating from
+// the document means the wiring does not depend on when they are rendered.
+document.addEventListener("click", (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLElement>(
+    "[data-mode], [data-family]",
+  );
+  if (!button) return;
+
+  const { mode, family } = button.dataset;
+
+  if (mode === "light" || mode === "dark" || mode === "system") {
+    kit.setMode(mode);
+  }
+  if (family) {
+    kit.setFamily(family);
+  }
 });
 
-// ThemeKit.init({ defaultTheme: "light" }) is the same thing.`,
+// Every change is persisted and emitted as an event.
+kit.on("themeChange", render);
+kit.on("modeChange", render);
+kit.on("familyChange", render);
+render();`,
+};
+
+/** Step 3 — the same file, with the UI the step-2 wiring already drives. */
+const uiHtmlSnippet = {
+  lang: "html",
+  title: "index.html",
+  code: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+  </head>
+  <body>
+    <main id="app">
+      <h1>Themvora</h1>
+      <p>Current theme: <strong id="theme-name"></strong></p>
+
+      <p id="controls">
+        <button type="button" data-mode="light">Light</button>
+        <button type="button" data-mode="dark">Dark</button>
+        <button type="button" data-mode="system">System</button>
+        <button type="button" data-family="default">Default</button>
+        <button type="button" data-family="plum">Plum</button>
+      </p>
+
+      <section class="surface">
+        <h2>Themed card</h2>
+        <p class="muted">Surface, border and text follow the active theme.</p>
+        <button class="btn" type="button">Primary action</button>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>`,
+};
+
+// The stylesheet the framework guides show is one shared definition, kept in
+// `lib/frameworks.tsx` (where the mirror generator can evaluate it), so this
+// page references it rather than keeping a copy that could drift. The example
+// completeness gate resolves `code:` literals it can read in this file, so an
+// imported constant is invisible to it — that single, justified entry is frozen
+// in docs/reference/baselines/examples-baseline.json.
+const stylesSnippet = {
+  lang: "css",
+  title: "src/style.css",
+  code: CANONICAL_STYLES,
 };
 
 const readSnippet = {
   lang: "ts",
   title: "reading state",
-  code: `// The full active theme definition (name, tokens, mode, etc.)
+  code: `// The full active theme definition (name, tokens, mode, …)
 const current = kit.theme;
 
 // The current mode: "light", "dark", or "system"
@@ -42,30 +179,8 @@ const mode = kit.mode;
 // The current family: "default", "plum", "mint", …
 const family = kit.family;
 
-// All registered themes
-const all = kit.themes;`,
-};
-
-const subscribeSnippet = {
-  lang: "ts",
-  title: "subscribing to changes",
-  code: `// Fires when any theme change occurs
-const unsub = kit.on("themeChange", (theme) => {
-  console.log("New theme:", theme.name);
-});
-
-// Fires when only the mode changes
-kit.on("modeChange", (mode) => {
-  console.log("Mode:", mode);
-});
-
-// Fires when only the family changes
-kit.on("familyChange", (family) => {
-  console.log("Family:", family);
-});
-
-// Later — clean up
-unsub();`,
+// Every registered theme
+const themes = kit.themes;`,
 };
 
 const switchSnippet = {
@@ -84,110 +199,81 @@ kit.setFamily("mint");
 kit.toggleTheme();`,
 };
 
+const subscribeSnippet = {
+  lang: "ts",
+  title: "subscribing to changes",
+  code: `// Fires on every theme change
+const unsubscribe = kit.on("themeChange", (theme) => {
+  console.log("New theme:", theme.name);
+});
+
+// Fires when only the mode changes
+kit.on("modeChange", (mode) => {
+  console.log("Mode:", mode);
+});
+
+// Fires when only the family changes
+kit.on("familyChange", (family) => {
+  console.log("Family:", family);
+});
+
+// Later — clean up
+unsubscribe();`,
+};
+
 const domSnippet = {
   lang: "ts",
-  title: "manual CSS variable binding",
-  code: `// By default ThemeKit binds CSS variables to <html> automatically.
-// To target a specific element instead:
-const kit = new ThemeKit({ target: document.getElementById("app") });
+  title: "custom target and manual tokens",
+  code: `// By default Themvora binds CSS variables to <html>. To target one element
+// instead (the "!" satisfies strict narrowing):
+const scoped = new Themvora({ target: document.getElementById("app")! });
 
-// Get a flat map of CSS custom properties for the current theme
-const vars = kit.toCSSVariables();
-// → { "--theme-color-primary": "#7c3aed", … }
+// A flat map of the current theme's custom properties
+const vars = scoped.toCSSVariables();
+// → { "--theme-color-primary": "#0d162e", … }
 
-// Update individual tokens at runtime
-kit.update({ colors: { primary: "#10b981" } });`,
+// Merge partial tokens into the active theme at runtime
+scoped.update({ colors: { primary: "#10b981" } });`,
 };
 
 const persistSnippet = {
   lang: "ts",
   title: "persistence",
-  code: `// Persistence is automatic — mode and family are saved to
-// localStorage on every change and restored on init.
-
-// To write the current selection explicitly (useful if you
-// defer setup or change persistence strategy):
+  code: `// Mode and family are written to localStorage on every change and restored
+// when a new instance is created.
 kit.setMode("dark");
 kit.setFamily("plum");
-// ^ already persisted — no extra call needed
+// ^ already persisted under the "theme-selection" key — no extra call needed
 
-// To access the persisted values before instantiating:
-const saved = JSON.parse(localStorage.getItem("theme-kit") ?? "{}");
-console.log(saved.mode, saved.family);`,
+// To read the saved selection before instantiating:
+const saved = JSON.parse(localStorage.getItem("theme-selection") ?? "{}");
+console.log(saved.mode, saved.family); // "dark", "plum"`,
 };
 
-const fullHtmlSnippet = {
-  lang: "html",
-  title: "full HTML page",
-  code: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Theme Kit — Vanilla</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      padding: 2rem;
-      background: var(--theme-color-background);
-      color: var(--theme-color-foreground);
-    }
-    button {
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--theme-color-border);
-      background: var(--theme-color-card);
-      color: var(--theme-color-foreground);
-      cursor: pointer;
-    }
-    button:hover { border-color: var(--theme-color-primary); }
-    .active { border-color: var(--theme-color-primary); font-weight: 600; }
-  </style>
-</head>
-<body>
-  <h1>Theme Kit — Vanilla</h1>
-  <div id="controls" style="display:flex;gap:0.5rem;margin-bottom:1.5rem">
-    <button data-mode="light">Light</button>
-    <button data-mode="dark">Dark</button>
-    <button data-mode="system">System</button>
-    <button data-family="default">Default</button>
-    <button data-family="plum">Plum</button>
-  </div>
-  <p id="status"></p>
+const customThemesSnippet = {
+  lang: "ts",
+  title: "your own themes",
+  code: `import { defineTheme } from "@themvora/core";
+import { Themvora } from "@themvora/core/vanilla";
 
-  <script type="module">
-    import { ThemeKit } from "https://esm.sh/@theme-kit/core/vanilla";
+const brand = defineTheme({
+  name: "brand-light",
+  meta: { family: "brand", mode: "light", label: "Brand Light" },
+  tokens: { colors: { primary: "#6d28d9", primaryForeground: "#ffffff" } },
+});
 
-    const kit = ThemeKit.init({ defaultTheme: "light" });
-
-    const status = document.getElementById("status");
-    const render = () => {
-      status.textContent =
-        "Mode: " + kit.mode + " — Family: " + kit.family +
-        " — Theme: " + kit.theme.name;
-      document.querySelectorAll("[data-mode]").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.mode === kit.mode);
-      });
-      document.querySelectorAll("[data-family]").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.family === kit.family);
-      });
-    };
-
-    document.getElementById("controls").addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      if (btn.dataset.mode) kit.setMode(btn.dataset.mode);
-      if (btn.dataset.family) kit.setFamily(btn.dataset.family);
-    });
-
-    kit.on("themeChange", render);
-    render();
-  </script>
-</body>
-</html>`,
+// Passing themes replaces the built-in set, so list everything you want.
+const kit = new Themvora({ themes: [brand], defaultTheme: "brand-light" });`,
 };
+
+const apiSnippets = [
+  readSnippet,
+  switchSnippet,
+  subscribeSnippet,
+  domSnippet,
+  persistSnippet,
+  customThemesSnippet,
+];
 
 export default function VanillaPage() {
   return (
@@ -199,10 +285,10 @@ export default function VanillaPage() {
           description={
             <>
               No React, no Vue, no Svelte — just a{" "}
-              <code className="mono text-[0.9em]">ThemeKit</code> class.
-              Drop it into any HTML page or plain-JS project and get mode
-              switching, family selection, CSS variable binding, and
-              localStorage persistence out of the box.
+              <code className="mono text-[0.9em]">Themvora</code> class. Drop it
+              into any Vite or plain-JS page and get mode switching, family
+              selection, CSS variable binding, and localStorage persistence out
+              of the box.
             </>
           }
         />
@@ -210,163 +296,128 @@ export default function VanillaPage() {
         <Prerequisites
           items={[
             {
-              label: "@theme-kit/core installed",
-              value: "Install the core package with npm, pnpm, or yarn",
-              href: "/get-started",
+              label: "Runtime",
+              value:
+                "Node.js 18+ and a package manager (npm, pnpm, yarn, or bun)",
             },
             {
-              label: "Basic JavaScript knowledge",
-              value: "Familiarity with ES modules and DOM APIs",
+              label: "Project",
+              value:
+                "A Vite project — the vanilla TypeScript template works as-is — or any page that can load a module script",
             },
           ]}
         />
 
-        <section id="why" className="scroll-mt-24 mb-10">
+        <section id="install" className="scroll-mt-24 mt-10">
           <SectionHeading
             num={1}
-            desc="When your page is a plain HTML file, a server-rendered template, or a framework that Theme Kit doesn't ship an adapter for."
+            desc="One package. The vanilla entry has no framework peer dependencies."
           >
-            Why Vanilla?
+            Install
+          </SectionHeading>
+          <InstallCommand commands={installCommands} />
+        </section>
+
+        <section id="setup" className="scroll-mt-24 mt-10">
+          <SectionHeading
+            num={2}
+            desc="Create the instance in the entry module. Themvora resolves the starting theme, writes its tokens onto the page, and restores any saved selection."
+          >
+            Set up
+          </SectionHeading>
+          <CodeBlock
+            html={highlightCode(setupHtmlSnippet.code, setupHtmlSnippet.lang)}
+            code={setupHtmlSnippet.code}
+            language={setupHtmlSnippet.lang}
+            filename={setupHtmlSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <CodeBlock
+            html={highlightCode(setupTsSnippet.code, setupTsSnippet.lang)}
+            code={setupTsSnippet.code}
+            language={setupTsSnippet.lang}
+            filename={setupTsSnippet.title}
+            className="rounded-lg m-0 mt-3"
+          />
+          <Callout className="mt-3" title="Choosing the starting theme">
+            <InlineCode>
+              {`defaultTheme chooses the starting theme and initialMode: "system" follows the visitor's OS. Omitting themes uses the built-in set, so there is nothing to define to get started.`}
+            </InlineCode>
+          </Callout>
+        </section>
+
+        <section id="ui" className="scroll-mt-24 mt-10">
+          <SectionHeading
+            num={3}
+            desc="A heading, a card and a button. The controls read the current theme and change it — nothing is styled yet."
+          >
+            Add a small UI
+          </SectionHeading>
+          <CodeBlock
+            html={highlightCode(uiHtmlSnippet.code, uiHtmlSnippet.lang)}
+            code={uiHtmlSnippet.code}
+            language={uiHtmlSnippet.lang}
+            filename={uiHtmlSnippet.title}
+            className="rounded-lg m-0"
+          />
+        </section>
+
+        <section id="styling" className="scroll-mt-24 mt-10">
+          <SectionHeading num={4} desc={CANONICAL_STYLES_STEP.desc}>
+            {CANONICAL_STYLES_STEP.label}
+          </SectionHeading>
+          <CodeBlock
+            html={highlightCode(stylesSnippet.code, stylesSnippet.lang)}
+            code={stylesSnippet.code}
+            language={stylesSnippet.lang}
+            filename={stylesSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <Callout className="mt-3" title="Why this never needs a second stylesheet">
+            <InlineCode>{CANONICAL_STYLES_NOTE}</InlineCode>
+          </Callout>
+        </section>
+
+        <section id="api" className="scroll-mt-24 mt-10">
+          <SectionHeading
+            desc="The whole runtime surface is a few getters, setters, methods and events on the instance."
+          >
+            The Themvora class
+          </SectionHeading>
+          <div className="flex flex-col gap-8">
+            {apiSnippets.map((snippet) => (
+              <div key={snippet.title}>
+                <h3 className="text-sm font-semibold mb-2">{snippet.title}</h3>
+                <CodeBlock
+                  html={highlightCode(snippet.code, snippet.lang)}
+                  code={snippet.code}
+                  language={snippet.lang}
+                  className="rounded-lg m-0"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="when-to-use" className="scroll-mt-24 mt-10">
+          <SectionHeading desc="When a framework adapter is overkill.">
+            When to use it
           </SectionHeading>
           <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5">
             <li>
-              You have a static HTML page, WordPress theme, or PHP template
-              that doesn't use a JavaScript framework.
+              A static HTML page, CMS template or server-rendered view that does
+              not use a JavaScript framework.
             </li>
             <li>
-              You want the lightest possible integration — one import, one
-              class, no build step required.
+              The lightest possible integration — one import, one class, no build
+              step required.
             </li>
+            <li>Theme controls embedded in an admin panel, docs site or widget.</li>
             <li>
-              You're embedding theme controls inside an admin panel, docs site,
-              or embedded widget.
-            </li>
-            <li>
-              The runtime is identical to what the React/Vue/Svelte adapters
-              use internally — same persistence, same token resolution, same
-              family logic.
+              The runtime is identical to the one the framework adapters use
+              internally: same token resolution, same persistence, same events.
             </li>
           </ul>
-        </section>
-
-        <section id="init" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={2}
-            desc="Import the class, pass your options, and the instance handles everything — DOM binding, persistence, and event emission."
-          >
-            The ThemeKit class
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(initSnippet.code, "ts")}
-            code={initSnippet.code}
-            language="ts"
-            filename={initSnippet.title}
-            className="m-0"
-          />
-          <Callout className="mt-3">
-            <strong>Static shorthand</strong>{" "}
-            <span className="mx-1 opacity-40">|</span>
-            <code className="mono text-[0.9em]">ThemeKit.init(options)</code>{" "}
-            is identical to{" "}
-            <code className="mono text-[0.9em]">new ThemeKit(options)</code>{" "}
-            — pick whichever reads better.
-          </Callout>
-        </section>
-
-        <section id="read" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={3}
-            desc="Synchronous getters expose the active theme, its mode, and its family — plus a reactive event system."
-          >
-            Reading the active theme
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(readSnippet.code, "ts")}
-            code={readSnippet.code}
-            language="ts"
-            filename={readSnippet.title}
-            className="m-0"
-          />
-          <CodeBlock
-            html={highlightCode(subscribeSnippet.code, "ts")}
-            code={subscribeSnippet.code}
-            language="ts"
-            filename={subscribeSnippet.title}
-            className="m-0 mt-3"
-          />
-        </section>
-
-        <section id="switch" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={4}
-            desc="Switch mode, switch family, or toggle — every change is persisted and emits the appropriate event."
-          >
-            Switching themes
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(switchSnippet.code, "ts")}
-            code={switchSnippet.code}
-            language="ts"
-            filename={switchSnippet.title}
-            className="m-0"
-          />
-        </section>
-
-        <section id="dom" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={5}
-            desc="ThemeKit automatically writes CSS custom properties and a data-theme attribute to the target element. You can also read or apply them manually."
-          >
-            DOM binding
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(domSnippet.code, "ts")}
-            code={domSnippet.code}
-            language="ts"
-            filename={domSnippet.title}
-            className="m-0"
-          />
-          <Callout className="mt-3">
-            <strong>What happens automatically</strong>{" "}
-            <span className="mx-1 opacity-40">|</span>
-            On every theme change, the target element gets{" "}
-            <code className="mono text-[0.9em]">data-theme="…"</code>,{" "}
-            <code className="mono text-[0.9em]">color-scheme</code>, and
-            every <code className="mono text-[0.9em]">--theme-*</code> CSS
-            custom property updated — no manual wiring needed.
-          </Callout>
-        </section>
-
-        <section id="persist" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={6}
-            desc="Mode and family are persisted to localStorage on every change and automatically restored when a new instance is created."
-          >
-            Persistence
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(persistSnippet.code, "ts")}
-            code={persistSnippet.code}
-            language="ts"
-            filename={persistSnippet.title}
-            className="m-0"
-          />
-        </section>
-
-        <section id="full-example" className="scroll-mt-24">
-          <SectionHeading
-            num={7}
-            desc="A complete HTML page with a working theme switcher — save it as index.html and open it in a browser."
-          >
-            Full HTML example
-          </SectionHeading>
-          <CodeBlock
-            html={highlightCode(fullHtmlSnippet.code, "html")}
-            code={fullHtmlSnippet.code}
-            language="html"
-            filename={fullHtmlSnippet.title}
-            className="m-0"
-          />
         </section>
 
         <NextSteps
@@ -387,6 +438,11 @@ export default function VanillaPage() {
         <RelatedLinks
           links={[
             {
+              title: "Web Components Guide",
+              description: "The same runtime through <themvora-*> custom elements",
+              href: "/framework-guides/web",
+            },
+            {
               title: "DOM Adapters",
               description: "How CSS variables and attributes are applied",
               href: "/dom-adapters",
@@ -395,11 +451,6 @@ export default function VanillaPage() {
               title: "Architecture",
               description: "Core concepts and runtime design",
               href: "/architecture",
-            },
-            {
-              title: "Web Framework Guide",
-              description: "Framework-agnostic integration patterns",
-              href: "/framework-guides/web",
             },
           ]}
         />

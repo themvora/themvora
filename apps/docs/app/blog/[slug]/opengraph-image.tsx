@@ -5,7 +5,7 @@ import {
 } from "../../../components/og/card";
 import { getPost } from "../../../lib/blog";
 
-export const alt = "Theme Kit blog post";
+export const alt = "Themvora blog post";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
@@ -18,8 +18,8 @@ export default async function OpengraphImage({
   const post = getPost(slug);
 
   return renderOgCard({
-    eyebrow: post ? "Blog" : "Theme Kit",
-    title: post?.title ?? "Theme Kit blog",
+    eyebrow: post ? "Blog" : "Themvora",
+    title: post?.title ?? "Themvora blog",
     description: post?.description,
   });
 }

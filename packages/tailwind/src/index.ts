@@ -1,5 +1,5 @@
 /**
- * Theme Kit Tailwind CSS integration.
+ * Themvora Tailwind CSS integration.
  *
  * Provides `createTailwindPlugin` (emits the theme as CSS variables usable
  * by Tailwind utilities), `synchronizeDarkClass` (keeps Tailwind's
@@ -7,7 +7,7 @@
  *
  * @packageDocumentation
  */
-import type { ThemeDefinition } from "@theme-kit/core";
+import type { ThemeDefinition } from "@themvora/core";
 
 /**
  * Options for {@link createTailwindPlugin}.
@@ -22,9 +22,9 @@ export interface TailwindPluginOptions {
 }
 
 /**
- * Creates a Tailwind plugin for Theme Kit.
+ * Creates a Tailwind plugin for Themvora.
  *
- * The plugin registers Theme Kit with Tailwind so that theme tokens can be
+ * The plugin registers Themvora with Tailwind so that theme tokens can be
  * consumed as Tailwind utilities. It is configured with the theme definitions
  * and an optional default theme.
  *
@@ -33,8 +33,8 @@ export interface TailwindPluginOptions {
  *
  * @example
  * ```ts
- * import { createTailwindPlugin } from "@theme-kit/tailwind";
- * import { getBuiltInThemes } from "@theme-kit/core";
+ * import { createTailwindPlugin } from "@themvora/tailwind";
+ * import { getBuiltInThemes } from "@themvora/core";
  *
  * export default {
  *   plugins: [
@@ -51,7 +51,7 @@ export interface TailwindPluginOptions {
  */
 export function createTailwindPlugin(options?: TailwindPluginOptions) {
   return {
-    name: "@theme-kit/tailwind",
+    name: "@themvora/tailwind",
   };
 }
 
@@ -73,7 +73,7 @@ export function synchronizeDarkClass(theme: { meta?: { mode?: string } }): void 
 }
 
 /**
- * A CSS string containing the Theme Kit Tailwind theme CSS.
+ * A CSS string containing the Themvora Tailwind theme CSS.
  *
  * Points to the generated theme CSS file (`./theme.css`) that defines the
  * theme tokens as CSS variables for use with Tailwind.

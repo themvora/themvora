@@ -4,7 +4,7 @@ import {
   renderOgCard,
 } from "../../components/og/card";
 
-export const alt = "Theme Kit — Playground";
+export const alt = "Themvora — Playground";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
@@ -13,6 +13,6 @@ export default function OpengraphImage() {
     eyebrow: "Interactive tool",
     title: "Playground",
     description:
-      "Drive the real Theme Kit runtime: switch families and modes, inspect every token, and time-travel through theme history.",
+      "Drive the real Themvora runtime: switch families and modes, inspect every token, and time-travel through theme history.",
   });
 }

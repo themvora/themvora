@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { ThemeDefinition } from "./model/theme";
-import type { ThemeKitConfig } from "./app-config";
+import type { ThemvoraConfig } from "./app-config";
 
 /**
  * Frameworks whose build tool *is* Vite, and which therefore declare it.
@@ -62,9 +62,9 @@ function resolveVite(
 /**
  * Conventional config filenames, in resolution order.
  *
- * @see {@link loadThemeKitConfig}
+ * @see {@link loadThemvoraConfig}
  */
-export const THEME_KIT_CONFIG_FILES = [
+export const THEMVORA_CONFIG_FILES = [
   "theme.config.ts",
   "theme.config.tsx",
   "theme.config.mts",
@@ -74,7 +74,7 @@ export const THEME_KIT_CONFIG_FILES = [
 ] as const;
 
 /**
- * Finds and loads the application's {@link ThemeKitConfig}.
+ * Finds and loads the application's {@link ThemvoraConfig}.
  *
  * @typeParam T - The theme definition type used by the application.
  * @param root - The project root to search.
@@ -94,12 +94,12 @@ export const THEME_KIT_CONFIG_FILES = [
  * Vite, so a bare `import("vite")` fails wherever the package is only linked
  * where it is declared — which is the normal case under pnpm.
  *
- * @see {@link defineThemeKitConfig}
+ * @see {@link defineThemvoraConfig}
  */
-export async function loadThemeKitConfig<T extends ThemeDefinition>(
+export async function loadThemvoraConfig<T extends ThemeDefinition>(
   root: string,
   configPath?: string,
-): Promise<ThemeKitConfig<T> | null> {
+): Promise<ThemvoraConfig<T> | null> {
   const { existsSync } = await import("node:fs");
   const { isAbsolute, join } = await import("node:path");
 
@@ -107,7 +107,7 @@ export async function loadThemeKitConfig<T extends ThemeDefinition>(
   if (configPath) {
     path = isAbsolute(configPath) ? configPath : join(root, configPath);
   } else {
-    for (const name of THEME_KIT_CONFIG_FILES) {
+    for (const name of THEMVORA_CONFIG_FILES) {
       const candidate = join(root, name);
       if (existsSync(candidate)) {
         path = candidate;
@@ -123,7 +123,7 @@ export async function loadThemeKitConfig<T extends ThemeDefinition>(
     const viteEntry = resolveVite(createRequire, path, root);
     if (!viteEntry) {
       console.warn(
-        "[theme-kit] could not find Vite to load " +
+        "[themvora] could not find Vite to load " +
           path +
           ". Pass `config` explicitly, or declare `vite` as a dependency.",
       );
@@ -141,11 +141,11 @@ export async function loadThemeKitConfig<T extends ThemeDefinition>(
       path,
       root,
     );
-    const exported = loaded?.config as { default?: ThemeKitConfig<T> } | undefined;
-    return (exported?.default ?? (loaded?.config as ThemeKitConfig<T>)) ?? null;
+    const exported = loaded?.config as { default?: ThemvoraConfig<T> } | undefined;
+    return (exported?.default ?? (loaded?.config as ThemvoraConfig<T>)) ?? null;
   } catch (error) {
     console.warn(
-      "[theme-kit] could not load " +
+      "[themvora] could not load " +
         path +
         ": " +
         (error instanceof Error ? error.message : String(error)),

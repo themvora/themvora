@@ -8,7 +8,7 @@ import { THEME_READOUT_ATTRIBUTE, THEME_TOGGLE_ATTRIBUTE } from "./attributes";
  *
  * ```astro
  * ---
- * import ThemeToggle from "@theme-kit/astro/ThemeToggle.astro";
+ * import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
  * ---
  * <ThemeToggle />
  * ```
@@ -24,7 +24,7 @@ import { THEME_READOUT_ATTRIBUTE, THEME_TOGGLE_ATTRIBUTE } from "./attributes";
  * ```astro
  * <button id="theme-toggle">Toggle theme</button>
  * <script>
- *   import { getThemeController } from "@theme-kit/astro/runtime";
+ *   import { getThemeController } from "@themvora/astro/runtime";
  *   const theme = getThemeController();
  *   document
  *     .querySelector("#theme-toggle")
@@ -104,13 +104,13 @@ const attrs: Record<string, string> = {
 </button>
 
 <script>
-  // `@theme-kit/astro/runtime`, not `@theme-kit/astro`: this is a *browser*
+  // `@themvora/astro/runtime`, not `@themvora/astro`: this is a *browser*
   // bundle, and the root entry also exports the build integration, which reads
   // `theme.config.ts` from disk and would drag `node:url` into the bundle.
   import {
     getThemeController,
     THEME_TOGGLE_ATTRIBUTE,
-  } from "@theme-kit/astro/runtime";
+  } from "@themvora/astro/runtime";
 
   // Delegated, not per-element: Astro bundles and de-duplicates a component's
   // `<script>` once per page, so this module cannot know how many toggles the

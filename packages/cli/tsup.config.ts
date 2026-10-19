@@ -1,8 +1,8 @@
 import { defineConfig } from "tsup";
 
 // Builds both executable entries in one pass:
-//   dist/cli{,.cjs}   — the `theme-kit` binary  (bin -> dist/cli.cjs)
-//   dist/index{,.cjs} — the @theme-kit/cli library API (main -> dist/index.js)
+//   dist/cli{,.cjs}   — the `themvora` binary  (bin -> dist/cli.cjs)
+//   dist/index{,.cjs} — the @themvora/cli library API (main -> dist/index.js)
 export default defineConfig({
   entry: {
     cli: "src/cli.ts",

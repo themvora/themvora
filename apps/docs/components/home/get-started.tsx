@@ -2,7 +2,7 @@ import { highlightCode } from "../../lib/highlight";
 import { CodeBlock } from "../code-block";
 import Link from "next/link";
 
-const code = `import { ThemeProvider } from "@theme-kit/next";
+const code = `import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
   return <ThemeProvider defaultTheme="light">{children}</ThemeProvider>
@@ -30,7 +30,7 @@ export function GetStarted() {
             Start in three lines
           </h2>
           <p className="opacity-70 leading-relaxed mb-6">
-            Wrap your app, call a hook, ship. Theme Kit handles persistence,
+            Wrap your app, call a hook, ship. Themvora handles persistence,
             cookies, SSR hydration, and zero-flash bootstrapping for you — in
             any framework.
           </p>

@@ -9,13 +9,14 @@ import {
   readFontSize,
   readRadiusNumber,
   readToken,
-} from "@theme-kit/adapters";
+  rgbTriplet,
+} from "@themvora/adapters";
 
 /**
- * Maps Theme Kit semantic tokens onto a Material UI theme.
+ * Maps Themvora semantic tokens onto a Material UI theme.
  *
  * ```ts
- * import { createMuiTheme } from "@theme-kit/mui";
+ * import { createMuiTheme } from "@themvora/mui";
  * const muiTheme = createMuiTheme(runtime);
  * ```
  */
@@ -27,6 +28,18 @@ export function createMuiTheme(source: AdapterSource): Theme {
 interface ResolvedColor {
   main: string;
   contrastText?: string;
+}
+
+/**
+ * A colour at a given alpha, used for MUI's `action.*` overlay tokens.
+ *
+ * Falls back to the colour unchanged when it is not a parseable hex — MUI
+ * accepts any CSS colour string, and an unparseable one should still be passed
+ * through rather than dropped.
+ */
+function withAlpha(color: string, alpha: number): string {
+  const triplet = rgbTriplet(color);
+  return triplet ? `rgba(${triplet}, ${alpha})` : color;
 }
 
 function color(
@@ -78,9 +91,9 @@ function ensure(value: string | undefined, fallback: string): string {
 }
 
 /**
- * Builds a Material UI `ThemeOptions` from a resolved Theme Kit theme.
+ * Builds a Material UI `ThemeOptions` from a resolved Themvora theme.
  *
- * Maps Theme Kit semantic tokens (colors, radius, typography, shadows,
+ * Maps Themvora semantic tokens (colors, radius, typography, shadows,
  * breakpoints) onto MUI's palette, shape, typography, shadows and breakpoints.
  * The palette mode follows the resolved theme mode.
  *
@@ -124,9 +137,19 @@ export function buildMuiThemeOptions(theme: AdapterResolvedTheme): ThemeOptions 
       },
       divider: ensure(c("border", isDark ? "#424242" : "#e0e0e0"), isDark ? "#424242" : "#e0e0e0"),
       action: {
-        hover: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
-        selected: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.08)",
-        focus: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+        // MUI hardcodes these as black/white alphas (`rgba(0,0,0,.04)` and
+        // friends), which assumes a neutral grey palette. Deriving them from the
+        // theme's *foreground* keeps hover/selected/focus overlays the same hue
+        // as the palette — a tinted theme such as plum otherwise gets a grey
+        // wash on its interactive surfaces.
+        hover: withAlpha(foreground, isDark ? 0.08 : 0.04),
+        selected: withAlpha(foreground, isDark ? 0.16 : 0.08),
+        focus: withAlpha(foreground, 0.12),
+        // MUI ships defaults for these, but they are its own neutral alphas
+        // rather than anything the theme chose.
+        disabled: withAlpha(foreground, 0.38),
+        disabledBackground: withAlpha(foreground, 0.12),
+        disabledOpacity: 0.38,
       },
     },
     shape: {

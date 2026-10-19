@@ -8,7 +8,7 @@ import { GITHUB_SECURITY } from "../../lib/site";
 
 export const metadata = legalMetadata(
   "Security",
-  "How to report a security vulnerability in Theme Kit.",
+  "How to report a security vulnerability in Themvora.",
   "/security",
 );
 
@@ -21,7 +21,7 @@ export default function SecurityPage() {
       updated={updated}
       lead={
         <>
-          If you discover a security vulnerability in Theme Kit, please report
+          If you discover a security vulnerability in Themvora, please report
           it through the GitHub Security Advisories system so we can address
           it before it is publicly disclosed.
         </>
@@ -33,7 +33,7 @@ export default function SecurityPage() {
             <>
               <strong>Primary channel:</strong>{" "}
               <a href={GITHUB_SECURITY} className="underline">
-                github.com/themekit-dev/theme-kit/security/advisories
+                github.com/themvora/themvora/security/advisories
               </a>{" "}
               — this creates a private advisory visible only to the
               maintainers.
@@ -68,7 +68,7 @@ export default function SecurityPage() {
         <LegalList
           items={[
             <>
-              The <code className="font-mono text-[0.9em]">@theme-kit/*</code>{" "}
+              The <code className="font-mono text-[0.9em]">@themvora/*</code>{" "}
               packages — core, framework integrations, adapters, and CLI.
             </>,
             <>
@@ -84,13 +84,13 @@ export default function SecurityPage() {
         <LegalList
           items={[
             <>
-              Vulnerabilities in the frameworks Theme Kit integrates with
+              Vulnerabilities in the frameworks Themvora integrates with
               (Next.js, Nuxt, Astro, etc.) — report those to the respective
               projects.
             </>,
             <>
               Transitive dependency advisories in framework peer dependencies
-              (for example, a postcss vulnerability in Next.js). Theme Kit
+              (for example, a postcss vulnerability in Next.js). Themvora
               ships zero runtime dependencies of its own; the advisory tree
               of your application is determined by the frameworks you choose.
             </>,

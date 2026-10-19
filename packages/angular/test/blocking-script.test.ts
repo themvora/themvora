@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineTheme } from "@theme-kit/core";
+import { defineTheme } from "@themvora/core";
 import { createBlockingScriptContent, buildThemeCSSMap } from "../src/lib/blocking-script";
 
 const themes = [
@@ -92,8 +92,8 @@ describe("buildThemeCSSMap", () => {
 describe("createBlockingScriptContent", () => {
   it("generates a style and script tag", () => {
     const html = createBlockingScriptContent(themes);
-    expect(html).toContain("<style id=\"theme-kit-critical\">");
-    expect(html).toContain("<script id=\"theme-kit-blocking\">");
+    expect(html).toContain("<style id=\"themvora-critical\">");
+    expect(html).toContain("<script id=\"themvora-blocking\">");
   });
 
   it("expresses a system selection as media queries, a concrete mode as a plain :root rule", () => {

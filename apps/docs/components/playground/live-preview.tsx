@@ -1,6 +1,6 @@
 "use client";
 
-import { useTheme } from "@theme-kit/next/client";
+import { useTheme } from "@themvora/next/client";
 
 const swatchKeys = [
   "background",
@@ -50,7 +50,7 @@ export function LivePreview() {
             T
           </div>
           <div>
-            <div className="font-semibold leading-tight">Theme Kit</div>
+            <div className="font-semibold leading-tight">Themvora</div>
             <div className="text-[11px] opacity-50 mono">{theme.name}</div>
           </div>
           <div

@@ -6,8 +6,8 @@ import {
   useTheme,
   useThemeRuntime,
   useSetThemeFamily,
-} from "@theme-kit/next/client";
-import { themeToCSSVariables, type ThemeDefinition } from "@theme-kit/core";
+} from "@themvora/next/client";
+import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { CopyButton } from "./ui/copy-button";
 import { PageHeader } from "./ui/page-header";
 import { highlightCode } from "../lib/highlight";
@@ -20,19 +20,19 @@ export const PRESET_KIND_META: Record<
 > = {
   default: {
     label: "Default Presets",
-    hint: "Curated palettes from @theme-kit/core — the nine signature families.",
+    hint: "Themvora's curated palette collection — nine generated families.",
     intro:
-      "The nine signature light/dark families that ship with the library: oat, berry, mint, citrus, cocoa, plum, iris, sky and graphite. Click any card to apply that preset to this entire site — live, no reload.",
+      "Themvora's curated palette collection: nine families, each one a recipe that the semantic generator resolves into a complete light/dark theme. Click any card to apply that preset to this entire site — live, no reload.",
   },
   brand: {
     label: "Brand Presets",
-    hint: "Real-world brand palettes (Apple, GitHub, Vercel, Slack, Discord).",
+    hint: "Brand-inspired starting points built on Themvora's semantic system.",
     intro:
-      "Real-world brand palettes that ship with the library. Click any card to apply that preset to this entire site — live, no reload.",
+      "Brand-inspired starting points built on Themvora's semantic system. Each one starts from a brand's signature colour and resolves a complete, contrast-checked light/dark family. These are examples, not official brand themes.",
   },
 };
 
-export const DEFAULT_PRESET_SNIPPET = `import { getPresetThemes } from "@theme-kit/core";
+export const DEFAULT_PRESET_SNIPPET = `import { getPresetThemes } from "@themvora/core";
 
 // Default presets — nine families, light + dark
 const themes = getPresetThemes();
@@ -44,7 +44,7 @@ const custom = getPresetThemes({
   },
 });`;
 
-export const BRAND_PRESET_SNIPPET = `import { getBrandPresets } from "@theme-kit/core";
+export const BRAND_PRESET_SNIPPET = `import { getBrandPresets } from "@themvora/core";
 
 // Apple, GitHub, Vercel, Slack, Discord — light + dark each
 const themes = getBrandPresets();
@@ -68,7 +68,7 @@ function buildGroups(themes: readonly ThemeDefinition[]): PresetFamilyGroup[] {
   for (const themeItem of themes) {
     const tags = themeItem.meta?.tags ?? [];
     if (tags.includes("accessibility")) continue;
-    // Skip themes the docs site ships for its own demos (theme-kit, lab,
+    // Skip themes the docs site ships for its own demos (themvora, lab,
     // scope) — the presets pages should show only library presets.
     if (tags.includes("docs-site")) continue;
 
@@ -326,12 +326,12 @@ export function PresetsHeader({ kind }: { kind: PresetKind }) {
         </svg>
       }
       title={meta.label}
-      subtitle="@theme-kit/core"
+      subtitle="@themvora/core"
       description={meta.intro}
       actions={
         <Link
           href={`/presets/${otherKind}`}
-          className="inline-flex items-center gap-1.5 text-sm text-primary no-underline font-medium hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm text-foreground no-underline font-medium underline hover:decoration-foreground"
         >
           {kind === "default"
             ? "Compare with Brand →"
@@ -470,9 +470,9 @@ export function FrameworkSelector({
  * Per-framework setup snippet for one preset family.
  *
  * Every snippet uses the framework package's own shipped API —
- * `ThemeProvider` / `provideThemeKit` / `defineCustomElements` — rather than
+ * `ThemeProvider` / `provideTheme` / `defineCustomElements` — rather than
  * dropping down to `createThemeRuntime`. The preset itself always comes from
- * `@theme-kit/core` (`getPresetThemes` / `getBrandPresets`), and the whole
+ * `@themvora/core` (`getPresetThemes` / `getBrandPresets`), and the whole
  * family is handed over so light and dark both resolve.
  */
 export function getPresetFrameworkSnippet(
@@ -488,8 +488,8 @@ export function getPresetFrameworkSnippet(
     react: {
       title: "src/App.tsx",
       lang: "tsx",
-      code: `import { ThemeProvider, useTheme } from "@theme-kit/react";
-import { ${getter} } from "@theme-kit/core";
+      code: `import { ThemeProvider, useTheme } from "@themvora/react";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -511,8 +511,8 @@ export function App() {
       title: "app/layout.tsx",
       lang: "tsx",
       code: `import type { ReactNode } from "react";
-import { ThemeProvider } from "@theme-kit/next";
-import { ${getter} } from "@theme-kit/core";
+import { ThemeProvider } from "@themvora/next";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -531,8 +531,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang: "vue",
       code: `<!-- src/App.vue -->
 <script setup lang="ts">
-import { ThemeProvider, useTheme } from "@theme-kit/vue";
-import { ${getter} } from "@theme-kit/core";
+import { ThemeProvider, useTheme } from "@themvora/vue";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -550,8 +550,8 @@ const { theme, toggleTheme } = useTheme();
       lang: "svelte",
       code: `<!-- src/App.svelte -->
 <script lang="ts">
-  import { ThemeProvider, useTheme } from "@theme-kit/svelte";
-  import { ${getter} } from "@theme-kit/core";
+  import { ThemeProvider, useTheme } from "@themvora/svelte";
+  import { ${getter} } from "@themvora/core";
 
   // ${family} — light + dark in one family
   const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -565,8 +565,8 @@ const { theme, toggleTheme } = useTheme();
     solid: {
       title: "src/App.tsx",
       lang: "tsx",
-      code: `import { ThemeProvider, useTheme } from "@theme-kit/solid";
-import { ${getter} } from "@theme-kit/core";
+      code: `import { ThemeProvider, useTheme } from "@themvora/solid";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -588,15 +588,15 @@ export function App() {
       title: "src/main.ts",
       lang: "ts",
       code: `import { bootstrapApplication } from "@angular/platform-browser";
-import { provideThemeKit } from "@theme-kit/angular";
-import { ${getter} } from "@theme-kit/core";
+import { provideTheme } from "@themvora/angular";
+import { ${getter} } from "@themvora/core";
 import { AppComponent } from "./app/app.component";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 
 bootstrapApplication(AppComponent, {
-  providers: [provideThemeKit({ themes, defaultTheme: "${themeName}" })],
+  providers: [provideTheme({ themes, defaultTheme: "${themeName}" })],
 });`,
     },
     web: {
@@ -606,24 +606,24 @@ bootstrapApplication(AppComponent, {
 <html lang="en">
   <body>
     <script type="module">
-      import { defineCustomElements } from "@theme-kit/web";
-      import { ${getter} } from "@theme-kit/core";
+      // Registers every <themvora-*> element and their stylesheet.
+      import "@themvora/web";
+      import { ${getter} } from "@themvora/core";
 
       // ${family} — light + dark in one family
       const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 
-      defineCustomElements();
-
-      // The provider reads its themes from the \`themes\` attribute (JSON).
+      // The provider reads its themes from the \`themes\` attribute. Setting it
+      // after upgrade is live: the runtime reconciles the catalog in place.
       document
-        .querySelector("theme-kit-provider")
+        .querySelector("themvora-provider")
         ?.setAttribute("themes", JSON.stringify(themes));
     </script>
 
-    <theme-kit-provider default-theme="${themeName}">
-      <theme-kit-toggle></theme-kit-toggle>
+    <themvora-provider default-theme="${themeName}">
+      <themvora-toggle></themvora-toggle>
       <my-app></my-app>
-    </theme-kit-provider>
+    </themvora-provider>
   </body>
 </html>`,
     },
@@ -631,13 +631,13 @@ bootstrapApplication(AppComponent, {
       title: "theme.config.ts + astro.config.ts",
       lang: "ts",
       code: `// theme.config.ts — the single declaration
-import { defineThemeKitConfig } from "@theme-kit/core";
-import { ${getter} } from "@theme-kit/core";
+import { defineThemvoraConfig } from "@themvora/core";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 
-export default defineThemeKitConfig({
+export default defineThemvoraConfig({
   themes,
   defaultTheme: "${themeName}",
   initialMode: "system",
@@ -647,23 +647,23 @@ export default defineThemeKitConfig({
 // config above, injects the pre-paint bootstrap from it, and transports it to
 // the runtime. No theme data here.
 import { defineConfig } from "astro/config";
-import themeKit from "@theme-kit/astro";
+import themvora from "@themvora/astro";
 
 export default defineConfig({
-  integrations: [themeKit()],
+  integrations: [themvora()],
 });`,
     },
     nuxt: {
       title: "nuxt.config.ts",
       lang: "ts",
-      code: `import { ${getter} } from "@theme-kit/core";
+      code: `import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 
 export default defineNuxtConfig({
-  modules: ["@theme-kit/nuxt"],
-  themeKit: {
+  modules: ["@themvora/nuxt"],
+  themvora: {
     themes,
     defaultTheme: "${themeName}",
     initialMode: "system",
@@ -675,9 +675,9 @@ export default defineNuxtConfig({
       lang: "tsx",
       code: `import type { ReactNode } from "react";
 import { useLoaderData } from "@remix-run/react";
-import { ThemeHead, ThemeProvider } from "@theme-kit/remix";
-import { getInitialThemeState } from "@theme-kit/remix/server";
-import { ${getter} } from "@theme-kit/core";
+import { ThemeHead, ThemeProvider } from "@themvora/remix";
+import { getInitialThemeState } from "@themvora/remix/server";
+import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
@@ -707,9 +707,9 @@ export function Layout({ children }: { children: ReactNode }) {
       title: "src/globals.css",
       lang: "css",
       code: `@import "tailwindcss";
-@import "@theme-kit/tailwind";
+@import "@themvora/tailwind";
 
-/* The ${family} preset is resolved by the Theme Kit runtime into the
+/* The ${family} preset is resolved by the Themvora runtime into the
    --color-* variables below; pick the family with your framework's
    ThemeProvider (see the React / Next.js snippets). */
 
@@ -723,14 +723,14 @@ body {
     snippets[framework] ?? {
       title: `${family}-${mode}.ts`,
       lang: "ts",
-      code: `import { ${getter} } from "@theme-kit/core";
+      code: `import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 const theme = themes.find((t) => t.meta?.mode === "${mode}") ?? themes[0];
 
 console.log(theme.name); // "${themeName}"`,
-      html: highlightCode(`import { ${getter} } from "@theme-kit/core";
+      html: highlightCode(`import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");

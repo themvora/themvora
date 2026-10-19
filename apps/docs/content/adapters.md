@@ -1,9 +1,9 @@
 # Adapters
 
-> An **adapter** translates a Theme Kit `ThemeDefinition` into whatever a
+> An **adapter** translates a Themvora `ThemeDefinition` into whatever a
 > specific UI library needs. Core knows nothing about Bootstrap, MUI, daisyUI,
 > shadcn/ui, Chakra, Ant Design, Mantine or UnoCSS — it only knows themes,
-> tokens and runtimes. Adapters are the translation layer between Theme Kit and
+> tokens and runtimes. Adapters are the translation layer between Themvora and
 > your component library.
 
 Adapters are **framework-agnostic**: the `createXxxAdapter` factories run in
@@ -14,8 +14,8 @@ Svelte, Solid, Angular, Next, Nuxt, Remix and Astro — without installing any
 framework you don't use.
 
 ```tsx
-import { ThemeProvider, useTheme, useThemeRuntime } from "@theme-kit/react";
-import { useShadcnTheme } from "@theme-kit/shadcn/react";
+import { ThemeProvider, useTheme, useThemeRuntime } from "@themvora/react";
+import { useShadcnTheme } from "@themvora/shadcn/react";
 
 function App() {
   const runtime = useThemeRuntime();
@@ -173,7 +173,7 @@ type AdapterStrategy = "exact" | "native" | "aggressive";
 
 | Strategy | Behavior |
 | --- | --- |
-| `exact` | Only map what Theme Kit defines. Change nothing else. |
+| `exact` | Only map what Themvora defines. Change nothing else. |
 | `native` | Behave like the library: derive missing semantic concepts (e.g. success/warning/info) and make small feel adjustments. **Default.** |
 | `aggressive` | Fully emulate the library: also adjust spacing, typography, elevation, saturation and contrast. |
 
@@ -230,10 +230,10 @@ Each package exposes the same shape:
 
 | Package | Factory (framework-neutral) | Generator | Framework wrappers (subpaths) | CSS injector |
 | --- | --- | --- | --- | --- |
-| `@theme-kit/bootstrap` | `createBootstrapAdapter` | `createBootstrapVariables` / `generateBootstrapVariables` | `useBootstrapTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectBootstrapTheme` (`/angular`) | `injectBootstrapCSS` |
-| `@theme-kit/shadcn` | `createShadcnAdapter` | `createShadcnVariables` / `generateShadcnVariables` | `useShadcnTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectShadcnTheme` (`/angular`) | `injectShadcnCSS` |
-| `@theme-kit/daisyui` | `createDaisyAdapter` | `createDaisyVariables` / `generateDaisyVariables` | `useDaisyTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectDaisyTheme` (`/angular`) | `injectDaisyCSS` |
-| `@theme-kit/open-props` | `createOpenPropsAdapter` | `createOpenPropsVariables` / `generateOpenPropsVariables` | `useOpenPropsTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectOpenPropsTheme` (`/angular`) | `injectOpenPropsCSS` |
+| `@themvora/bootstrap` | `createBootstrapAdapter` | `createBootstrapVariables` / `generateBootstrapVariables` | `useBootstrapTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectBootstrapTheme` (`/angular`) | `injectBootstrapCSS` |
+| `@themvora/shadcn` | `createShadcnAdapter` | `createShadcnVariables` / `generateShadcnVariables` | `useShadcnTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectShadcnTheme` (`/angular`) | `injectShadcnCSS` |
+| `@themvora/daisyui` | `createDaisyAdapter` | `createDaisyVariables` / `generateDaisyVariables` | `useDaisyTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectDaisyTheme` (`/angular`) | `injectDaisyCSS` |
+| `@themvora/open-props` | `createOpenPropsAdapter` | `createOpenPropsVariables` / `generateOpenPropsVariables` | `useOpenPropsTheme` (`/react`, `/vue`, `/svelte`, `/solid`) · `injectOpenPropsTheme` (`/angular`) | `injectOpenPropsCSS` |
 
 ### Options
 
@@ -247,8 +247,8 @@ interface XxxAdapterOptions {
 ### How it works
 
 1. `install()` injects the library's **compatibility stylesheet** (a tagged,
-   idempotent `<style id="@theme-kit/<name>">` element) so class names like
-   `btn`, `card`, `alert` render with Theme Kit variables.
+   idempotent `<style id="@themvora/<name>">` element) so class names like
+   `btn`, `card`, `alert` render with Themvora variables.
 2. It maintains a second tagged `<style>` element containing the concrete
    `--*` custom properties for the current theme.
 3. It subscribes to the runtime store; whenever the active theme changes, the
@@ -262,10 +262,10 @@ adapter's subpath consume the adapters — no React dependency leaks into those
 packages:
 
 ```ts
-import { createShadcnAdapter } from "@theme-kit/shadcn/factory";
-import { createBootstrapAdapter } from "@theme-kit/bootstrap/factory";
-import { createDaisyAdapter } from "@theme-kit/daisyui/factory";
-import { createOpenPropsAdapter } from "@theme-kit/open-props/factory";
+import { createShadcnAdapter } from "@themvora/shadcn/factory";
+import { createBootstrapAdapter } from "@themvora/bootstrap/factory";
+import { createDaisyAdapter } from "@themvora/daisyui/factory";
+import { createOpenPropsAdapter } from "@themvora/open-props/factory";
 
 const handle = runtime.adapters.use(createShadcnAdapter());
 ```
@@ -274,21 +274,21 @@ const handle = runtime.adapters.use(createShadcnAdapter());
 
 ## Generated-theme adapters
 
-For **Material UI**, **Chakra UI**, **Ant Design** and **Mantine**, Theme Kit
+For **Material UI**, **Chakra UI**, **Ant Design** and **Mantine**, Themvora
 builds a native theme object from your semantic tokens. These are React
 component libraries, so the convenience is exposed in **React-based**
 frameworks — React, Next, Remix and Astro (client islands):
 
 | Package | Hook | Provider | Theme builder |
 | --- | --- | --- | --- |
-| `@theme-kit/mui` | `useMuiTheme(runtime)` | `MuiThemeProvider` | `createMuiTheme` |
-| `@theme-kit/chakra` | `useChakraTheme(runtime)` | `ChakraThemeProvider` | `createChakraTheme` |
-| `@theme-kit/antd` | `useAntdTheme(runtime)` | `AntdThemeProvider` | `createAntdTheme` |
-| `@theme-kit/mantine` | `useMantineTheme(runtime)` | `MantineThemeProvider` | `createMantineTheme` |
+| `@themvora/mui` | `useMuiTheme(runtime)` | `MuiThemeProvider` | `createMuiTheme` |
+| `@themvora/chakra` | `useChakraTheme(runtime)` | `ChakraThemeProvider` | `createChakraTheme` |
+| `@themvora/antd` | `useAntdTheme(runtime)` | `AntdThemeProvider` | `createAntdTheme` |
+| `@themvora/mantine` | `useMantineTheme(runtime)` | `MantineThemeProvider` | `createMantineTheme` |
 
 ```tsx
-import { MuiThemeProvider } from "@theme-kit/mui";
-import { ThemeProvider, useThemeRuntime } from "@theme-kit/react";
+import { MuiThemeProvider } from "@themvora/mui";
+import { ThemeProvider, useThemeRuntime } from "@themvora/react";
 
 function MuiZone() {
   const runtime = useThemeRuntime();
@@ -309,8 +309,8 @@ export function App() {
 ```
 
 `MuiThemeProvider` wraps MUI's own `ThemeProvider` with a theme derived from
-Theme Kit tokens and rebuilt automatically on theme change. Mantine's provider
-also forces its color scheme to match the active Theme Kit mode so Mantine's
+Themvora tokens and rebuilt automatically on theme change. Mantine's provider
+also forces its color scheme to match the active Themvora mode so Mantine's
 built-in dark styles stay in sync. Under the hood the providers use
 `useRuntimeThemeFactory(runtime, factory)` — a React hook that re-runs a
 factory whenever the active theme changes.
@@ -319,17 +319,17 @@ factory whenever the active theme changes.
 
 ## Build-time adapters (UnoCSS)
 
-`@theme-kit/unocss` ships a UnoCSS preset that exposes Theme Kit semantic
+`@themvora/unocss` ships a UnoCSS preset that exposes Themvora semantic
 tokens as utilities — `bg-primary`, `text-foreground`, `border-border`,
 `rounded-lg`, `shadow-md`, `font-sans`, and more:
 
 ```ts
 // uno.config.ts
 import { defineConfig, presetWind3 } from "unocss";
-import { presetThemeKit } from "@theme-kit/unocss";
+import { presetThemvora } from "@themvora/unocss";
 
 export default defineConfig({
-  presets: [presetWind3(), presetThemeKit()],
+  presets: [presetWind3(), presetThemvora()],
 });
 ```
 
@@ -344,8 +344,8 @@ runtime. For **build-time static output** instead of runtime variables, use
 `createUnoTheme(source)`:
 
 ```ts
-import { createUnoTheme } from "@theme-kit/unocss";
-import { getBuiltInThemes, resolveInitialTheme } from "@theme-kit/core";
+import { createUnoTheme } from "@themvora/unocss";
+import { getBuiltInThemes, resolveInitialTheme } from "@themvora/core";
 
 // resolveInitialTheme takes the registry explicitly; the built-in set is a
 // valid registry, so no theme file is needed.
@@ -373,26 +373,26 @@ in unrelated framework packages or component-library adapters.
 
 | Framework | Package | CSS-variable adapters | Generated-theme adapters |
 | --- | --- | --- | --- |
-| React | `@theme-kit/react` | `useShadcnTheme(runtime)` / `useBootstrapTheme(runtime)` / `useDaisyTheme(runtime)` / `useOpenPropsTheme(runtime)` from each adapter's `/react` | `useMuiTheme(runtime)` / `useChakraTheme(runtime)` / `useAntdTheme(runtime)` / `useMantineTheme(runtime)` + providers from each adapter pkg |
-| Vue 3 | `@theme-kit/vue` | same composables from each adapter's `/vue` | — (React-only libs) |
-| Svelte | `@theme-kit/svelte` | same composables from each adapter's `/svelte` | — |
-| Solid | `@theme-kit/solid` | same hooks from each adapter's `/solid` | — |
-| Angular | `@theme-kit/angular` | `injectShadcnTheme(runtime)` / `injectBootstrapTheme(runtime)` / `injectDaisyTheme(runtime)` / `injectOpenPropsTheme(runtime)` from each adapter's `/angular` | — |
-| Next.js | `@theme-kit/next` (`./client`) | hooks from each adapter's `/react` | providers from each adapter pkg + `useThemeRuntime` from `@theme-kit/next/client` |
-| Nuxt | `@theme-kit/nuxt` | composables from each adapter's `/vue` | — |
-| Remix | `@theme-kit/remix` | hooks from each adapter's `/react` | providers from each adapter pkg + `useThemeRuntime` from `@theme-kit/remix` |
-| Astro | `@theme-kit/astro` (`./client`) | hooks from each adapter's `/react` (client islands) | providers from each adapter pkg + `useThemeRuntime` from `@theme-kit/astro/client` |
+| React | `@themvora/react` | `useShadcnTheme(runtime)` / `useBootstrapTheme(runtime)` / `useDaisyTheme(runtime)` / `useOpenPropsTheme(runtime)` from each adapter's `/react` | `useMuiTheme(runtime)` / `useChakraTheme(runtime)` / `useAntdTheme(runtime)` / `useMantineTheme(runtime)` + providers from each adapter pkg |
+| Vue 3 | `@themvora/vue` | same composables from each adapter's `/vue` | — (React-only libs) |
+| Svelte | `@themvora/svelte` | same composables from each adapter's `/svelte` | — |
+| Solid | `@themvora/solid` | same hooks from each adapter's `/solid` | — |
+| Angular | `@themvora/angular` | `injectShadcnTheme(runtime)` / `injectBootstrapTheme(runtime)` / `injectDaisyTheme(runtime)` / `injectOpenPropsTheme(runtime)` from each adapter's `/angular` | — |
+| Next.js | `@themvora/next` (`./client`) | hooks from each adapter's `/react` | providers from each adapter pkg + `useThemeRuntime` from `@themvora/next/client` |
+| Nuxt | `@themvora/nuxt` | composables from each adapter's `/vue` | — |
+| Remix | `@themvora/remix` | hooks from each adapter's `/react` | providers from each adapter pkg + `useThemeRuntime` from `@themvora/remix` |
+| Astro | `@themvora/astro` (`./client`) | hooks from each adapter's `/react` (client islands) | providers from each adapter pkg + `useThemeRuntime` from `@themvora/astro/client` |
 
 > The generated-theme adapters (MUI, Chakra, AntD, Mantine) are React component
 > libraries, so their providers/hooks are used in React-based apps and
 > meta-frameworks — React, Next, Remix, and Astro (client islands). Import them
-> from the adapter package directly (e.g. `@theme-kit/mui`).
+> from the adapter package directly (e.g. `@themvora/mui`).
 
 ### React
 
 ```tsx
-import { ThemeProvider, useThemeRuntime } from "@theme-kit/react";
-import { useDaisyTheme } from "@theme-kit/daisyui/react";
+import { ThemeProvider, useThemeRuntime } from "@themvora/react";
+import { useDaisyTheme } from "@themvora/daisyui/react";
 
 function Inside() {
   const runtime = useThemeRuntime();
@@ -414,9 +414,9 @@ export function App() {
 
 ```vue
 <script setup>
-import { createThemeRuntime } from "@theme-kit/core";
-import { provideThemeRuntime, useThemeRuntime } from "@theme-kit/vue";
-import { useShadcnTheme } from "@theme-kit/shadcn/vue";
+import { createThemeRuntime } from "@themvora/core";
+import { provideThemeRuntime, useThemeRuntime } from "@themvora/vue";
+import { useShadcnTheme } from "@themvora/shadcn/vue";
 
 provideThemeRuntime(createThemeRuntime({ defaultTheme: "light" }));
 useShadcnTheme(useThemeRuntime());
@@ -431,9 +431,9 @@ useShadcnTheme(useThemeRuntime());
 
 ```svelte
 <script>
-  import { createThemeRuntime } from "@theme-kit/core";
-  import { setThemeRuntime, getThemeRuntime } from "@theme-kit/svelte";
-  import { useBootstrapTheme } from "@theme-kit/bootstrap/svelte";
+  import { createThemeRuntime } from "@themvora/core";
+  import { setThemeRuntime, getThemeRuntime } from "@themvora/svelte";
+  import { useBootstrapTheme } from "@themvora/bootstrap/svelte";
 
   setThemeRuntime(createThemeRuntime({ defaultTheme: "light" }));
   useBootstrapTheme(getThemeRuntime());
@@ -445,8 +445,8 @@ useShadcnTheme(useThemeRuntime());
 ### Solid
 
 ```tsx
-import { ThemeProvider, useThemeRuntime } from "@theme-kit/solid";
-import { useOpenPropsTheme } from "@theme-kit/open-props/solid";
+import { ThemeProvider, useThemeRuntime } from "@themvora/solid";
+import { useOpenPropsTheme } from "@themvora/open-props/solid";
 
 export function App() {
   const runtime = useThemeRuntime();
@@ -458,12 +458,12 @@ export function App() {
 ### Angular
 
 ```ts
-import { provideThemeKit, injectThemeRuntime } from "@theme-kit/angular";
-import { injectShadcnTheme } from "@theme-kit/shadcn/angular";
+import { provideTheme, injectThemeRuntime } from "@themvora/angular";
+import { injectShadcnTheme } from "@themvora/shadcn/angular";
 
 // app.config.ts
 export const appConfig: ApplicationConfig = {
-  providers: [provideThemeKit({ themes: getBuiltInThemes() })],
+  providers: [provideTheme({ themes: getBuiltInThemes() })],
 };
 
 // app.component.ts
@@ -479,8 +479,8 @@ export class AppComponent {
 
 ```tsx
 "use client";
-import { useThemeRuntime } from "@theme-kit/next/client";
-import { useShadcnTheme } from "@theme-kit/shadcn/react";
+import { useThemeRuntime } from "@themvora/next/client";
+import { useShadcnTheme } from "@themvora/shadcn/react";
 
 export function RootClient() {
   const runtime = useThemeRuntime();
@@ -493,8 +493,8 @@ export function RootClient() {
 
 ```vue
 <script setup>
-import { useThemeRuntime } from "@theme-kit/nuxt";
-import { useDaisyTheme } from "@theme-kit/daisyui/vue";
+import { useThemeRuntime } from "@themvora/nuxt";
+import { useDaisyTheme } from "@themvora/daisyui/vue";
 
 useDaisyTheme(useThemeRuntime());
 </script>
@@ -503,8 +503,8 @@ useDaisyTheme(useThemeRuntime());
 ### Remix
 
 ```tsx
-import { useThemeRuntime } from "@theme-kit/remix";
-import { useOpenPropsTheme } from "@theme-kit/open-props/react";
+import { useThemeRuntime } from "@themvora/remix";
+import { useOpenPropsTheme } from "@themvora/open-props/react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const runtime = useThemeRuntime();
@@ -517,8 +517,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 ```tsx
 // src/components/theme-adapter.tsx
-import { useThemeRuntime } from "@theme-kit/astro/client";
-import { useShadcnTheme } from "@theme-kit/shadcn/react";
+import { useThemeRuntime } from "@themvora/astro/client";
+import { useShadcnTheme } from "@themvora/shadcn/react";
 
 export default function ThemeAdapter() {
   const runtime = useThemeRuntime();
@@ -547,14 +547,14 @@ stylesheet yourself (e.g. you already import the library's official CSS).
 
 | Library | Auto-injected stylesheet | Manual alternative |
 | --- | --- | --- |
-| Bootstrap | `@theme-kit/bootstrap` (tagged `#@theme-kit/bootstrap`) | `import "@theme-kit/bootstrap"` + `injectCSS: false` |
-| shadcn/ui | `@theme-kit/shadcn` (tagged `#@theme-kit/shadcn`) | `import "@theme-kit/shadcn"` + `injectCSS: false` |
-| daisyUI | `@theme-kit/daisyui` (tagged `#@theme-kit/daisyui`) | `import "@theme-kit/daisyui"` + `injectCSS: false` |
-| Open Props | `@theme-kit/open-props` (tagged `#@theme-kit/open-props`) | `import "@theme-kit/open-props"` + `injectCSS: false` |
+| Bootstrap | `@themvora/bootstrap` (tagged `#@themvora/bootstrap`) | `import "@themvora/bootstrap"` + `injectCSS: false` |
+| shadcn/ui | `@themvora/shadcn` (tagged `#@themvora/shadcn`) | `import "@themvora/shadcn"` + `injectCSS: false` |
+| daisyUI | `@themvora/daisyui` (tagged `#@themvora/daisyui`) | `import "@themvora/daisyui"` + `injectCSS: false` |
+| Open Props | `@themvora/open-props` (tagged `#@themvora/open-props`) | `import "@themvora/open-props"` + `injectCSS: false` |
 
 ```ts
 // In a client entry (e.g. main.tsx / +layout.ts / layout.tsx)
-import "@theme-kit/bootstrap";
+import "@themvora/bootstrap";
 ```
 
 Then disable auto-injection so the stylesheet isn't injected twice:
@@ -577,7 +577,7 @@ Notes:
   always managed by the adapter; `injectCSS` only toggles the static
   compatibility stylesheet.
 - For **generated-theme adapters** there is no CSS to import — the library's
-  own provider + components handle styling, and Theme Kit supplies the theme.
+  own provider + components handle styling, and Themvora supplies the theme.
 
 ---
 
@@ -586,8 +586,8 @@ Notes:
 ### Manual registration (no framework)
 
 ```ts
-import { createThemeRuntime } from "@theme-kit/core";
-import { createShadcnAdapter } from "@theme-kit/shadcn/factory";
+import { createThemeRuntime } from "@themvora/core";
+import { createShadcnAdapter } from "@themvora/shadcn/factory";
 
 const runtime = createThemeRuntime({ defaultTheme: "light" });
 const handle = runtime.adapters.use(createShadcnAdapter());
@@ -656,7 +656,7 @@ hb.dispose(); // uninstalls b
    created (styles, listeners, DOM).
 
 ```ts
-import type { ThemeAdapter, ThemeDefinition } from "@theme-kit/core";
+import type { ThemeAdapter, ThemeDefinition } from "@themvora/core";
 
 const myAdapter: ThemeAdapter<ThemeDefinition> = {
   id: "my-lib",

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { getBuiltInThemes } from "@themvora/core";
 import {
   useTheme,
   useThemeRuntime,
   useSetThemeFamily,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 import { useFocusTrap } from "./ui/use-focus-trap";
 import { useClickOutside } from "./ui/use-click-outside";
 
@@ -41,18 +41,18 @@ function sortFamily(list: FamilyOption[]): FamilyOption[] {
 }
 
 // Families that only exist on the docs site but ARE part of the persisted
-// selection (theme-kit-default-light/dark). Lab and scope are demo-only scoped
+// selection (themvora-default-light/dark). Lab and scope are demo-only scoped
 // themes that don't survive a refresh, so offering them here would be a
 // dead-end — they're deliberately excluded.
-const PERSISTED_SITE_FAMILIES = new Set(["theme-kit"]);
+const PERSISTED_SITE_FAMILIES = new Set(["themvora"]);
 
 /**
  * Quick theme-family switcher.
  *
- * Lists the built-in families Theme Kit ships out of the box (Neutral, the
- * preset families, the brand families) plus, in a separate "Theme Kit Site
+ * Lists the built-in families Themvora ships out of the box (Neutral, the
+ * preset families, the brand families) plus, in a separate "Themvora Site
  * Family" section, the families that only exist on the docs site itself
- * (theme-kit, lab, scope) — so a visitor can always switch back to the docs'
+ * (themvora, lab, scope) — so a visitor can always switch back to the docs'
  * own default theme.
  *
  * `variant="popover"` renders the compact header pill (desktop). `variant="list"`
@@ -88,9 +88,9 @@ export function ThemeQuickSwitcher({
     builtIn: FamilyOption[];
     site: FamilyOption[];
   }>(() => {
-    // Which families ship in @theme-kit/core? Those go under "Theme family";
-    // anything extra registered by the docs site (theme-kit, lab, scope) goes
-    // under "Theme Kit Site Family".
+    // Which families ship in @themvora/core? Those go under "Theme family";
+    // anything extra registered by the docs site (themvora, lab, scope) goes
+    // under "Themvora Site Family".
     const builtInSet = new Set<string>();
     for (const t of getBuiltInThemes()) {
       builtInSet.add((t.meta as { family?: string } | undefined)?.family ?? "default");
@@ -246,7 +246,7 @@ export function ThemeQuickSwitcher({
             {families.site.length > 0 && (
               <>
                 <div className="border-b border-border bg-card px-3 py-2 text-[10px] font-semibold uppercase tracking-widest opacity-40">
-                  Theme Kit Site Family
+                  Themvora Site Family
                 </div>
                 <div className="grid grid-cols-2 gap-1 p-1.5">
                   {families.site.map((f, i) => renderOption(f, i, false))}
@@ -329,7 +329,7 @@ export function ThemeQuickSwitcher({
             {families.site.length > 0 && (
               <>
                 <div className="px-1 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest opacity-40">
-                  Theme Kit Site Family
+                  Themvora Site Family
                 </div>
                 <div className="grid grid-cols-2 gap-1">
                   {families.site.map((f, i) =>

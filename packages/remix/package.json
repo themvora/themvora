@@ -1,5 +1,5 @@
 {
-  "name": "@theme-kit/remix",
+  "name": "@themvora/remix",
   "license": "MIT",
   "version": "2.0.0",
   "type": "module",
@@ -30,21 +30,21 @@
     "react-dom": "^19.0.0"
   },
   "dependencies": {
-    "@theme-kit/core": "workspace:^",
-    "@theme-kit/react": "workspace:^"
+    "@themvora/core": "workspace:^",
+    "@themvora/react": "workspace:^"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3"
   },
-  "description": "Remix integration for Theme Kit.",
+  "description": "Remix integration for Themvora.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/themekit-dev/theme-kit.git"
+    "url": "git+https://github.com/themvora/themvora.git"
   },
-  "homepage": "https://theme-kit-dev.vercel.app",
+  "homepage": "https://themvora-dev.vercel.app",
   "bugs": {
-    "url": "https://github.com/themekit-dev/theme-kit/issues"
+    "url": "https://github.com/themvora/themvora/issues"
   },
   "keywords": [
     "theme",

@@ -5,7 +5,7 @@ import {
   useThemeHistory,
   useThemeTimeTravel,
   useThemeValue,
-} from "@theme-kit/next/client";
+} from "@themvora/next/client";
 
 function formatTime(timestamp: number): string {
   const d = new Date(timestamp);

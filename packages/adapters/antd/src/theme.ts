@@ -7,7 +7,7 @@ import {
   readFontFamily,
   readFontSize,
   readRadiusNumber,
-} from "@theme-kit/adapters";
+} from "@themvora/adapters";
 
 function fontSizeToNumber(value: string): number {
   const trimmed = value.trim();
@@ -20,10 +20,10 @@ function fontSizeToNumber(value: string): number {
 }
 
 /**
- * Maps Theme Kit semantic tokens onto an Ant Design theme config.
+ * Maps Themvora semantic tokens onto an Ant Design theme config.
  *
  * ```ts
- * import { createAntdTheme } from "@theme-kit/antd";
+ * import { createAntdTheme } from "@themvora/antd";
  * const antdTheme = createAntdTheme(runtime);
  * ```
  */
@@ -33,9 +33,9 @@ export function createAntdTheme(source: AdapterSource): ThemeConfig {
 }
 
 /**
- * Builds an Ant Design `ThemeConfig` from a resolved Theme Kit theme.
+ * Builds an Ant Design `ThemeConfig` from a resolved Themvora theme.
  *
- * Maps Theme Kit semantic tokens (colors, radius, typography) onto Ant Design's
+ * Maps Themvora semantic tokens (colors, radius, typography) onto Ant Design's
  * design tokens and component overrides. The algorithm is Ant's default
  * algorithm; the palette follows the resolved theme mode.
  *

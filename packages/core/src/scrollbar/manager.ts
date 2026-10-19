@@ -1,4 +1,5 @@
 import type { ThemeStore } from "../types";
+import { createDiagnostic, emitDiagnostic } from "../diagnostics";
 import {
   clamp,
   computeMaxScroll,
@@ -9,6 +10,13 @@ import {
 import { easeAlpha, isSettled, lerp, prefersReducedMotion, FRAME_MS } from "./physics";
 import { observeScrollbarSizing } from "./observers";
 import { PRE_PAINT_SCROLLBAR_CSS } from "./pre-paint";
+import {
+  contrast,
+  hexToRgb,
+  pickThumbColor,
+  pickThumbFromCandidates,
+  THUMB_CONTRAST_FLOOR,
+} from "./thumb-color";
 import type {
   ArrowIcon,
   AxisState,
@@ -17,6 +25,9 @@ import type {
   OverlayScrollbarOptions,
   ScrollbarArrowDir,
   ScrollbarAxis,
+  ScrollbarInsets,
+  ScrollbarOffset,
+  ScrollbarOffsetSides,
   ScrollbarOptionsResolved,
 } from "./types";
 
@@ -43,7 +54,12 @@ function resolveOptions(options: OverlayScrollbarOptions): ScrollbarOptionsResol
     hoverThickness: options.hoverThickness ?? thickness + 4,
     radius: options.radius ?? 999,
     minThumbSize: options.minThumbSize ?? 32,
-    offset: options.offset ?? 2,
+    iconSize: validIconSize(options.iconSize),
+    // Edge clearance (per side) and the content-side separation. `offset` is
+    // the public knob for the former; the latter is an internal constant
+    // exposed as `--tv-scrollbar-gap` on every strip.
+    insets: resolveInsets(options.offset),
+    gap: DEFAULT_CONTENT_GAP,
     trackOpacity: options.trackOpacity ?? 0.32,
     thumbOpacity: options.thumbOpacity ?? 0.92,
     thumbColor: options.thumbColor,
@@ -110,45 +126,170 @@ function documentCanScroll(): boolean {
   }
 }
 
-/** Z-index used for inner scrollables that don't declare their own — below
- *  typical fixed headers (50) and overlay backdrops (60), above page content.
- *  This keeps an inner strip from floating over a sticky navbar. */
-const DEFAULT_OVERLAY_Z = 30;
+/** Z-index used when neither the scrollable nor any positioned ancestor
+ *  declares one.
+ *
+ *  `0` — not a "high enough" number. The overlay is `position: fixed`, so it
+ *  still paints above static content, but a sticky navbar, a fixed header or
+ *  any other positioned layer with a positive `z-index` paints over it, exactly
+ *  as that layer paints over the container the strip belongs to. A scrollable
+ *  *inside* a header must never draw its rail across that header.
+ *
+ *  A container that *does* declare a stacking order keeps it (see
+ *  `resolveOverlayZIndex`), so a scrollable inside a `z-index: 100` dialog still
+ *  gets its strip above that dialog's own content. */
+const DEFAULT_OVERLAY_Z = 0;
 
-/** Z-index used for the document (page) scrollbar. It must stay above sticky
- *  headers/navbars so the page's own scroll indicator is always visible over
- *  them, yet below full-screen overlay backdrops (60) so it blurs/hides like
- *  the rest of the page when a modal/search opens. */
-const DEFAULT_DOCUMENT_OVERLAY_Z = 55;
+/** Z-index for the document (page) scrollbar.
+ *
+ *  The window scrollbar is browser chrome, not page content: a native one is
+ *  painted above the document, so a fixed header scrolling underneath it never
+ *  hides it. The overlay reproduces that by sitting above the layers a page
+ *  uses for chrome — `z-index: 50` fixed headers are the common case (Tailwind's
+ *  `z-50`, this repo's docs header, the web example's `20`) — while staying
+ *  below the full-screen backdrops that are meant to cover the page (the docs
+ *  search backdrop is `60`). A modal that locks body scroll hides this strip
+ *  through `documentCanScroll()`, so it does not linger over a dialog either.
+ *
+ *  This applies to the root host only. Container strips keep their container's
+ *  stacking order (`DEFAULT_OVERLAY_Z` / the container's own `z-index`), which
+ *  is what keeps a horizontal rail inside a sticky navbar from floating above
+ *  the navbar's own content. `zIndex` still overrides both. */
+const ROOT_OVERLAY_Z = 55;
+
+/** Default clearance between the custom overlay rail and each container edge,
+ *  in px (the inline-end edge for a vertical rail; the inline-start,
+ *  inline-end and bottom edges for a horizontal one — plus the near/far ends
+ *  of a vertical rail). Overridable per side through the `offset` option. */
+const DEFAULT_EDGE_INSET = 4;
+
+/** Default rail insets, all four sides. The left edge defaults to `0`: the
+ *  user's content already clears the rail thanks to the native scrollbar gutter
+ *  the pre-paint CSS reserves, so no left inset is needed by default. */
+const DEFAULT_INSETS: ScrollbarInsets = {
+  top: DEFAULT_EDGE_INSET,
+  right: DEFAULT_EDGE_INSET,
+  bottom: DEFAULT_EDGE_INSET,
+  left: 0,
+};
+
+/** Default transparent separation reserved on the content-facing side of the
+ *  strip, in px, so the visible track never sits flush against the content.
+ *  The strip's hit area grows by this much toward the content, but the band
+ *  itself is unpainted and pointer-transparent (content stays interactive
+ *  beneath it). Exposed on the strip as `--tv-scrollbar-gap`. */
+const DEFAULT_CONTENT_GAP = 8;
+
+/** Arrow-button CONTENT scrolling. A tap glides one step; press-and-hold keeps
+ *  the historical "one step per ~60ms" repeat rate, after the same delay before
+ *  it starts repeating. `opts.smooth` (the rail's own visual smoothness) is
+ *  unrelated and untouched. */
+const ARROW_MIN_STEP = 16;
+const ARROW_HOLD_STEP_MS = 60;
+const ARROW_HOLD_DELAY_MS = 350;
+/** Exponential-smoothing time constant (ms) for a discrete arrow step. */
+const ARROW_EASE_MS = 55;
+/** A move is finished once it is within this many px of its target. */
+const ARROW_SETTLE_PX = 0.5;
+
+/** Arrow glyph sizing. A requested `iconSize` is floored at this (while the
+ *  button's usable area allows it) and always capped at that usable area, so a
+ *  larger request can never overflow an unusually thin rail. */
+const ICON_MIN_SIZE = 8;
+
+/** The strip's cross-axis footprint: the visible thickness plus the
+ *  transparent content-side gap. Keeping this in one place is what stops the
+ *  geometry from drifting between the vertical and horizontal axes. */
+function stripCrossSize(opts: ScrollbarOptionsResolved, thickness = opts.thickness): number {
+  return thickness + opts.gap;
+}
+
+/** The effective glyph size for a `cross × long` arrow button, in px.
+ *
+ *  Bounded by all three of the user's request, the internal minimum and the
+ *  button's usable area — and the available-space bound always wins: when the
+ *  button is thinner than the minimum, the button size is used rather than
+ *  letting the glyph overflow it. */
+function glyphSizeFor(requested: number | undefined, cross: number, long: number): number {
+  const usable = Math.max(0, Math.min(cross, long));
+  if (requested === undefined) return usable;
+  return clamp(requested, Math.min(ICON_MIN_SIZE, usable), usable);
+}
+
+/** A usable icon size: a positive, finite number, else `undefined`. */
+function validIconSize(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  warnInvalidOption("iconSize", value, "a positive, finite number of px");
+  return undefined;
+}
+
+/** Report an unusable scrollbar option and keep the default. Deduped by code +
+ *  property so a reactive caller cannot flood the console. */
+function warnInvalidOption(property: string, received: unknown, expected: string): void {
+  emitDiagnostic(
+    createDiagnostic({
+      code: "TV_SCROLLBAR_OPTION_INVALID",
+      level: "warning",
+      message: `ThemeScrollbar received an unusable \`${property}\`; the default was used instead.`,
+      context: { api: "createThemeScrollbar", property, received, expected },
+      hint: "Pass a non-negative, finite number of px — e.g. offset: 4 or offset: { top: 4, right: 4, bottom: 4 }.",
+    }),
+  );
+}
+
+/** A usable inset: a non-negative finite number, else `null`. */
+function validInset(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/**
+ * Resolve the `offset` option into four concrete rail insets.
+ *
+ * Accepts a single number (every side) or a per-side object; a side that is
+ * omitted keeps the component default. Values that are negative, non-finite or
+ * not numbers are reported (see {@link warnInvalidOption}) and fall back to the
+ * default, so a typo degrades gracefully rather than hiding the rail.
+ */
+function resolveInsets(offset: ScrollbarOffset | undefined): ScrollbarInsets {
+  if (offset === undefined) return { ...DEFAULT_INSETS };
+  if (typeof offset === "number") {
+    const v = validInset(offset);
+    if (v === null) {
+      warnInvalidOption("offset", offset, "a non-negative, finite number or a per-side object");
+      return { ...DEFAULT_INSETS };
+    }
+    return { top: v, right: v, bottom: v, left: v };
+  }
+  if (typeof offset !== "object" || offset === null) {
+    warnInvalidOption("offset", offset, "a non-negative, finite number or a per-side object");
+    return { ...DEFAULT_INSETS };
+  }
+  const sides = offset as ScrollbarOffsetSides;
+  const out: ScrollbarInsets = { ...DEFAULT_INSETS };
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    const raw = sides[side];
+    if (raw === undefined) continue;
+    const v = validInset(raw);
+    if (v === null) {
+      warnInvalidOption(`offset.${side}`, raw, "a non-negative, finite number");
+      continue;
+    }
+    out[side] = v;
+  }
+  return out;
+}
 
 export type { ScrollbarOptionsResolved };
 
 /** Parse `#rgb` / `#rrggbb` into an `[r,g,b]` tuple, or null. */
-function hexToRgb(hex: string): [number, number, number] | null {
-  const m = hex.trim().replace(/^#/, "");
-  if (/^[0-9a-f]{6}$/i.test(m)) {
-    const n = parseInt(m, 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
-  if (/^[0-9a-f]{3}$/i.test(m)) {
-    const n = parseInt(
-      m
-        .split("")
-        .map((c) => c + c)
-        .join(""),
-      16,
-    );
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
-  return null;
-}
 
 /**
  * Framework-agnostic, theme-aware scrollbar overlay engine.
  *
  * The browser performs all scrolling — this only renders + animates a visual
  * overlay that tracks it, so inertia, touch, wheel, keyboard and accessibility
- * remain native. Colors come from Theme Kit tokens, so the overlay re-themes
+ * remain native. Colors come from Themvora tokens, so the overlay re-themes
  * with the rest of the app (no flashes). It tracks the *document* plus every
  * scrollable element on the page by default (anywhere a native scrollbar would
  * appear); the native track is hidden automatically — no manual CSS required.
@@ -167,12 +308,12 @@ export function createOverlayScrollbar(
   // provider scrollbar prop, no pre-paint script), we apply it here idempotently
   // so the native scrollbar is hidden and the overlay renders thumb + arrows.
   const docEl = document.documentElement;
-  if (!docEl.classList.contains("tk-scrollbar")) {
+  if (!docEl.classList.contains("tv-scrollbar")) {
     try {
-      docEl.classList.add("tk-scrollbar");
-      if (!document.getElementById("tk-scrollbar-style")) {
+      docEl.classList.add("tv-scrollbar");
+      if (!document.getElementById("tv-scrollbar-style")) {
         const s = document.createElement("style");
-        s.id = "tk-scrollbar-style";
+        s.id = "tv-scrollbar-style";
         s.textContent = PRE_PAINT_SCROLLBAR_CSS;
         document.head.appendChild(s);
       }
@@ -182,11 +323,11 @@ export function createOverlayScrollbar(
   // Touch devices already have excellent native scrollbars. Desktop first.
   if (isCoarsePointer() && !options.touch) {
     // Restore the platform's native scrollbars: undo the bootstrap's
-    // `tk-scrollbar` hiding (SSR'd or injected) so coarse-pointer devices keep
+    // `tv-scrollbar` hiding (SSR'd or injected) so coarse-pointer devices keep
     // their native bars when the overlay is intentionally skipped.
     try {
-      docEl.classList.remove("tk-scrollbar");
-      document.getElementById("tk-scrollbar-style")?.remove();
+      docEl.classList.remove("tv-scrollbar");
+      document.getElementById("tv-scrollbar-style")?.remove();
     } catch { /* ignore */ }
     return null;
   }
@@ -196,15 +337,39 @@ export function createOverlayScrollbar(
 
   const reduced = () => prefersReducedMotion();
 
+  /** Rail insets for a host. The document scroller keeps the defaults and the
+   *  physical-right rail, so a per-side `offset` never moves the page scrollbar
+   *  (that edge is the browser's to own). */
+  function insetsFor(host: Host): ScrollbarInsets {
+    return host.isRoot ? DEFAULT_INSETS : opts.insets;
+  }
+
+  /** Which edge a vertical rail sits on — the inline-end edge, so it follows
+   *  the writing direction for inner hosts. The document rail keeps its
+   *  existing physical-right side. */
+  function railSideFor(host: Host): "left" | "right" {
+    if (host.isRoot) return "right";
+    return opts.dir === "rtl" ? "left" : "right";
+  }
+
+  /** Rail insets at the two ends of an axis (the "0" end is the start). */
+  function axisInsets(host: Host, vertical: boolean): { start: number; end: number } {
+    const ins = insetsFor(host);
+    return vertical ? { start: ins.top, end: ins.bottom } : { start: ins.left, end: ins.right };
+  }
+
   /** The overlay should live inside its container's stacking order: use the
-   *  container's own `z-index` when it declares one (so a horizontal strip over
-   *  a sticky header, or a bar poking above a search overlay's blurred backdrop,
-   *  both respect the page's layering), otherwise a modest default. The document
-   *  scrollbar is special-cased above headers so the page's own scroll indicator
-   *  stays visible. */
+   *  container's own `z-index` when it declares one, otherwise the document's
+   *  (no stacking context of its own → `0`). A horizontal strip over a sticky
+   *  header, or a bar poking above a search overlay's blurred backdrop, then
+   *  respects the page's layering instead of floating over it.
+   *
+   *  The root host is the exception: it *is* the page scrollbar, so it gets the
+   *  page-chrome layer instead of the document's `0` — otherwise a fixed header
+   *  covers the top of the track and the bar looks cut in half. */
   function resolveOverlayZIndex(host: Host): number {
     if (opts.zIndex !== undefined) return opts.zIndex;
-    if (host.isRoot) return DEFAULT_DOCUMENT_OVERLAY_Z;
+    if (host.isRoot) return ROOT_OVERLAY_Z;
     // The strip is appended to <body> as `position: fixed`, so it lives in the
     // body's stacking context. A scrollable buried inside a high z-index overlay
     // (modal, mobile menu, command palette) often declares no z-index of its
@@ -241,10 +406,12 @@ export function createOverlayScrollbar(
     el === docEl || el === document.body || el === scrollingEl;
 
   // ---- theme colors -----------------------------------------------------
-  // The overlay uses the ACTIVE theme's colors out of the box: the thumb and
-  // arrows take the theme accent (primary → accent → foreground), the track a
-  // faint foreground wash — so no manual token configuration is ever needed
-  // and the scrollbar stays clearly visible in both light and dark themes.
+  // The overlay uses the ACTIVE theme's colors out of the box. The thumb takes
+  // the first of `primary → accent → foreground` that clears the non-text floor
+  // against the canvas (see `pickThumbColor`), the track a faint foreground wash
+  // — so no manual token configuration is ever needed, and the thumb is
+  // *guaranteed* visible rather than merely themed. That guarantee is the
+  // `scrollbar-thumb-on-canvas` context in `generation/contexts.ts`.
   //
   // The theme's CSS variables are already applied on <html> by SSR or the
   // client provider *before* the overlay mounts, so we read from them first
@@ -254,19 +421,21 @@ export function createOverlayScrollbar(
   function readCSSVariableColor(): [number, number, number] | null {
     try {
       const cs = getComputedStyle(docEl);
+      // `--theme-color-text` used to be in this list. Themvora has never
+      // defined it — the reading role is `foreground` — so it was a dead lookup
+      // that made the fallback chain look longer than it was.
       const vars = [
         "--theme-color-primary",
         "--theme-color-accent",
         "--theme-color-foreground",
-        "--theme-color-text",
       ];
-      for (const v of vars) {
-        const val = cs.getPropertyValue(v).trim();
-        if (val) {
-          const rgb = hexToRgb(val);
-          if (rgb) return rgb;
-        }
-      }
+      const parsed = vars
+        .map((v) => cs.getPropertyValue(v).trim())
+        .filter((val) => val.length > 0)
+        .map((val) => hexToRgb(val));
+
+      const canvas = hexToRgb(cs.getPropertyValue("--theme-color-background").trim());
+      return pickThumbFromCandidates(parsed, canvas);
     } catch { /* ignore */ }
     return null;
   }
@@ -274,16 +443,11 @@ export function createOverlayScrollbar(
   function resolveBaseColor(s: ThemeStore): [number, number, number] {
     try {
       const theme = s.get() as any;
-      const colors =
+      const colors: Record<string, unknown> =
         theme?.tokens?.colors ??
         theme?.colors ??
         {};
-      const candidate =
-        colors?.primary ??
-        colors?.accent ??
-        colors?.foreground ??
-        colors?.text;
-      const rgb = typeof candidate === "string" ? hexToRgb(candidate) : null;
+      const rgb = pickThumbColor(colors);
       if (rgb) return rgb;
     } catch { /* ignore */ }
     // Fall back to CSS variables already applied on <html> — the theme is
@@ -293,17 +457,17 @@ export function createOverlayScrollbar(
     return [115, 115, 115];
   }
   const rgba = (a: number) => `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${a})`;
-  const trackColor = () => `var(--tk-scrollbar-track, ${rgba(0.22)})`;
+  const trackColor = () => `var(--tv-scrollbar-track, ${rgba(0.22)})`;
 
   // Resting / hover / active thumb colour. Every step ends at the engine's own
   // `rgba()` rather than `currentColor`: the hover and drag handlers used to
   // fall back to `currentColor`, which was only invisible while the stylesheet
-  // defined `--tk-scrollbar-thumb`. It no longer does (deliberately — see
+  // defined `--tv-scrollbar-thumb`. It no longer does (deliberately — see
   // scrollbar.css), so a hover that ended left the thumb on the inherited text
   // colour and it never returned to the theme's primary.
-  const thumbRest = () => `var(--tk-scrollbar-thumb, ${rgba(0.9)})`;
-  const thumbHover = () => `var(--tk-scrollbar-thumb-hover, ${thumbRest()})`;
-  const thumbActive = () => `var(--tk-scrollbar-thumb-active, ${thumbHover()})`;
+  const thumbRest = () => `var(--tv-scrollbar-thumb, ${rgba(0.9)})`;
+  const thumbHover = () => `var(--tv-scrollbar-thumb-hover, ${thumbRest()})`;
+  const thumbActive = () => `var(--tv-scrollbar-thumb-active, ${thumbHover()})`;
 
   const storeUnsubscribe = store.subscribe(() => {
     base = resolveBaseColor(store);
@@ -343,17 +507,20 @@ export function createOverlayScrollbar(
     vertical ? scrollTopOf(host) : scrollLeftOf(host);
 
   /** When the perpendicular axis is also active, the strip's END (bottom for
-   *  vertical, right for horizontal) is shaved by the other strip's thickness
-   *  so the two meet at a clean native corner instead of overlapping — the
-   *  horizontal bar never runs underneath the vertical one (nor pokes past
-   *  the container's right edge), and the vertical bar stops above the
-   *  horizontal one. This keeps both bars fitting *inside* their container. */
+   *  vertical, right for horizontal) is shaved by the other strip's full
+   *  cross-axis footprint (thickness + content gap) so the two meet at a clean
+   *  native corner instead of overlapping — the horizontal bar never runs
+   *  underneath the vertical one (nor pokes past the container's right edge),
+   *  and the vertical bar stops above the horizontal one. Shaving by the whole
+   *  footprint (not just the visible thickness) also keeps the two strips'
+   *  pointer-active hit areas from stacking in the corner. This keeps both
+   *  bars fitting *inside* their container. */
   function axisEndInset(host: Host, state: AxisState): number {
     const vertical = state.axis === "vertical";
     const otherActive = vertical
       ? host.horizontal !== null && contentWidthOf(host) > clientLenOf(host, false) + 1
       : host.vertical !== null && contentLenOf(host) > clientLenOf(host, true) + 1;
-    return otherActive ? opts.thickness : 0;
+    return otherActive ? stripCrossSize(opts) : 0;
   }
 
   function hostRect(host: Host) {
@@ -366,7 +533,7 @@ export function createOverlayScrollbar(
 
   /** True when the element's native scrollbar is hidden. The overlay's own
    *  pre-paint CSS sets `scrollbar-width: none` on every element under
-   *  `html.tk-scrollbar`; consumers can also hide it themselves. */
+   *  `html.tv-scrollbar`; consumers can also hide it themselves. */
   function nativeScrollbarHidden(el: HTMLElement): boolean {
     try {
       return getComputedStyle(el).scrollbarWidth === "none";
@@ -488,10 +655,14 @@ export function createOverlayScrollbar(
     const meaningful = items.filter((i): i is string | Node => i != null && i !== "");
     if (meaningful.length === 0) return undefined;
     const wrap = document.createElement("span");
-    wrap.className = "tk-arrow-glyph-rot";
+    wrap.className = "tv-arrow-glyph-rot";
+    // The rotated box is the SAME square the engine sizes (`--tv-arrow-size`),
+    // so a rotated glyph stays inside the button instead of turning its
+    // non-square button box through 90°.
     wrap.style.cssText =
       "display:flex;align-items:center;justify-content:center;" +
-      "width:100%;height:100%;transform:rotate(" + deg + "deg)";
+      "box-sizing:border-box;width:var(--tv-arrow-size,100%);height:var(--tv-arrow-size,100%);" +
+      "max-width:100%;max-height:100%;transform:rotate(" + deg + "deg)";
     for (const item of meaningful) {
       if (typeof item === "string") wrap.insertAdjacentHTML("beforeend", item);
       else wrap.appendChild(item.cloneNode(true) as Node);
@@ -506,17 +677,17 @@ export function createOverlayScrollbar(
     icon: ArrowIcon,
   ): HTMLDivElement {
     const el = document.createElement("div");
-    el.className = `tk-arrow ${className}`;
+    el.className = `tv-arrow ${className}`;
     el.setAttribute("role", "button");
     el.setAttribute("aria-label", label);
     // A custom renderer is the source of truth (framework-owned icons like
-    // React/JSX that can't be plain HTML); it stamps `tk-arrow-custom` itself
+    // React/JSX that can't be plain HTML); it stamps `tv-arrow-custom` itself
     // only for directions that actually have an icon. Otherwise render the
     // string/Node icon, or fall back to the built-in CSS triangle.
     if (opts.arrowIconRenderer) {
       opts.arrowIconRenderer(el, dir);
     } else if (icon) {
-      el.classList.add("tk-arrow-custom");
+      el.classList.add("tv-arrow-custom");
       setArrowContent(el, icon);
     }
     return el;
@@ -526,9 +697,9 @@ export function createOverlayScrollbar(
     const vertical = axis === "vertical";
 
     const root = document.createElement("div");
-    root.className = `tk-scrollbar ${vertical ? "tk-v" : "tk-h"}`;
+    root.className = `tv-scrollbar ${vertical ? "tv-v" : "tv-h"}`;
     root.setAttribute("aria-hidden", "true");
-    root.setAttribute("data-theme-kit-host", "");
+    root.setAttribute("data-themvora-host", "");
     // Fresh strips are off-screen until the layout pass fades them in.
     root.style.display = "none";
 
@@ -543,14 +714,14 @@ export function createOverlayScrollbar(
       return el;
     };
 
-    const track = ensureChild(".tk-track", () => {
+    const track = ensureChild(".tv-track", () => {
       const el = document.createElement("div");
-      el.className = "tk-track";
+      el.className = "tv-track";
       return el;
     });
-    const thumb = ensureChild(".tk-thumb", () => {
+    const thumb = ensureChild(".tv-thumb", () => {
       const el = document.createElement("div");
-      el.className = "tk-thumb";
+      el.className = "tv-thumb";
       return el;
     });
     const allRotated = (main: ArrowIcon | undefined, ...alts: Array<[ArrowIcon | undefined, number]>) =>
@@ -562,14 +733,14 @@ export function createOverlayScrollbar(
       ? allRotated(opts.arrowDownIcon || opts.arrowIcon, [opts.arrowRightIcon, 90], [opts.arrowLeftIcon, -90])
       : allRotated(opts.arrowRightIcon || opts.arrowIcon, [opts.arrowUpIcon, 90], [opts.arrowLeftIcon, 180]);
     const btnTop = ensureChild(
-      `.tk-arrow.${vertical ? "tk-arrow-up" : "tk-arrow-left"}`,
+      `.tv-arrow.${vertical ? "tv-arrow-up" : "tv-arrow-left"}`,
       () =>
-        makeArrow(vertical ? "tk-arrow-up" : "tk-arrow-left", vertical ? "up" : "left", vertical ? "Scroll up" : "Scroll left", topIcon),
+        makeArrow(vertical ? "tv-arrow-up" : "tv-arrow-left", vertical ? "up" : "left", vertical ? "Scroll up" : "Scroll left", topIcon),
     );
     const btnBottom = ensureChild(
-      `.tk-arrow.${vertical ? "tk-arrow-down" : "tk-arrow-right"}`,
+      `.tv-arrow.${vertical ? "tv-arrow-down" : "tv-arrow-right"}`,
       () =>
-        makeArrow(vertical ? "tk-arrow-down" : "tk-arrow-right", vertical ? "down" : "right", vertical ? "Scroll down" : "Scroll right", bottomIcon),
+        makeArrow(vertical ? "tv-arrow-down" : "tv-arrow-right", vertical ? "down" : "right", vertical ? "Scroll down" : "Scroll right", bottomIcon),
     );
     if (host.isRoot) {
       document.body.appendChild(root);
@@ -584,11 +755,25 @@ export function createOverlayScrollbar(
     // sticky navbar or an un-blurred bar over a search overlay are both avoided.
     root.style.zIndex = String(resolveOverlayZIndex(host));
 
-    root.style.setProperty("--tk-arrow", `${Math.max(3, Math.floor((opts.thickness - 2) / 2))}px`);
-    if (opts.thumbColor != null) root.style.setProperty("--tk-scrollbar-thumb", opts.thumbColor);
-    if (opts.trackColor != null) root.style.setProperty("--tk-scrollbar-track", opts.trackColor);
-    if (opts.thumbHoverColor != null) root.style.setProperty("--tk-scrollbar-thumb-hover", opts.thumbHoverColor);
-    if (opts.activeThumbColor != null) root.style.setProperty("--tk-scrollbar-thumb-active", opts.activeThumbColor);
+    // Geometry custom properties — the shared stylesheet positions the track,
+    // thumb and arrow buttons against the rail's edge and leaves the content-side
+    // `--tv-scrollbar-gap` band transparent. `--tv-scrollbar-inset` records the
+    // rail's own edge inset (the rail side follows the writing direction), so a
+    // host can tune spacing through the same custom-property convention the
+    // colors already use. (`--tv-arrow` / `--tv-arrow-size` are set by
+    // `applyGlyphSizing` once the axis state exists.)
+    const insets = insetsFor(host);
+    const railSide = railSideFor(host);
+    root.setAttribute("data-rail", vertical ? railSide : "bottom");
+    root.style.setProperty(
+      "--tv-scrollbar-inset",
+      `${railSide === "left" ? insets.left : insets.right}px`,
+    );
+    root.style.setProperty("--tv-scrollbar-gap", `${opts.gap}px`);
+    if (opts.thumbColor != null) root.style.setProperty("--tv-scrollbar-thumb", opts.thumbColor);
+    if (opts.trackColor != null) root.style.setProperty("--tv-scrollbar-track", opts.trackColor);
+    if (opts.thumbHoverColor != null) root.style.setProperty("--tv-scrollbar-thumb-hover", opts.thumbHoverColor);
+    if (opts.activeThumbColor != null) root.style.setProperty("--tv-scrollbar-thumb-active", opts.activeThumbColor);
     if (!opts.arrows) {
       btnTop.remove();
       btnBottom.remove();
@@ -615,6 +800,7 @@ export function createOverlayScrollbar(
     };
 
     paintAxis(state);
+    applyGlyphSizing(state, opts.thickness);
     thumb.style.borderRadius = `${opts.radius}px`;
     track.style.borderRadius = `${opts.radius}px`;
     thumb.style.opacity = "0";
@@ -628,25 +814,20 @@ export function createOverlayScrollbar(
     btnBottom.style.transition = `background-color ${opts.duration}ms ease, opacity ${opts.duration}ms ease`;
 
     if (vertical) {
-      root.style.width = `${opts.thickness}px`;
-      thumb.style.left = "0";
-      thumb.style.right = "0";
+      // The strip spans the visible thickness plus the transparent content-side
+      // gap; the stylesheet keeps the track/thumb/arrows pinned to the
+      // container-edge (right) side, leaving the gap band unpainted.
+      root.style.width = `${stripCrossSize(opts)}px`;
       thumb.style.top = "0";
       thumb.style.height = "0px";
       btnTop.style.top = "0";
       btnBottom.style.bottom = "0";
-      btnTop.style.left = "0";
-      btnBottom.style.left = "0";
     } else {
-      root.style.height = `${opts.thickness}px`;
-      thumb.style.top = "0";
-      thumb.style.bottom = "0";
+      root.style.height = `${stripCrossSize(opts)}px`;
       thumb.style.left = "0";
       thumb.style.width = "0px";
       btnTop.style.left = "0";
       btnBottom.style.right = "0";
-      btnTop.style.top = "0";
-      btnBottom.style.top = "0";
     }
 
     wireAxis(host, state);
@@ -659,6 +840,28 @@ export function createOverlayScrollbar(
     // Compact, native-feeling arrow buttons: roughly the strip thickness plus
     // a small buffer, never dominating a thin mobile scrollbar.
     return Math.max(10, Math.round(opts.thickness * 1.4));
+  }
+
+  /**
+   * Size the arrow glyphs for a strip whose rail is `thickness` px across.
+   *
+   * Both the built-in CSS triangle and custom icons are driven from one
+   * contract: `--tv-arrow-size` is the glyph's square box, `--tv-arrow` is the
+   * triangle's half-width. The size is bounded by the button's usable area, so
+   * a glyph can never overflow the button — however thin the rail or however
+   * large `iconSize` is. Called when the strip is built and whenever hover
+   * expand changes the thickness, so the glyph tracks the button.
+   */
+  function applyGlyphSizing(state: AxisState, thickness: number): void {
+    const size = glyphSizeFor(opts.iconSize, thickness, buttonSize(state));
+    state.root.style.setProperty("--tv-arrow-size", `${size}px`);
+    // Without an explicit `iconSize` the triangle keeps its historical
+    // thickness-derived size, so the default look is unchanged.
+    const half =
+      opts.iconSize === undefined
+        ? Math.max(3, Math.floor((thickness - 2) / 2))
+        : Math.max(1, Math.round(size / 2));
+    state.root.style.setProperty("--tv-arrow", `${half}px`);
   }
 
   function wireAxis(host: Host, state: AxisState) {
@@ -700,7 +903,8 @@ export function createOverlayScrollbar(
       const client = clientLenOf(host, vertical);
       const btn = buttonSize(state);
       const corner = axisEndInset(host, state);
-      const effClient = Math.max(client - btn * 2 - opts.offset * 2 - corner, 1);
+      const { start, end } = axisInsets(host, vertical);
+      const effClient = Math.max(client - btn * 2 - start - end - corner, 1);
       const thumbTravel = vertical ? thumb.offsetHeight : thumb.offsetWidth;
       const usable = Math.max(effClient - thumbTravel, 1);
       const max = maxScroll(host, vertical);
@@ -725,12 +929,13 @@ export function createOverlayScrollbar(
       const client = clientLenOf(host, vertical);
       const btn = buttonSize(state);
       const corner = axisEndInset(host, state);
-      const effClient = Math.max(client - btn * 2 - opts.offset * 2 - corner, 1);
+      const { start, end } = axisInsets(host, vertical);
+      const effClient = Math.max(client - btn * 2 - start - end - corner, 1);
       const thumbTravel = vertical ? thumb.offsetHeight : thumb.offsetWidth;
       const usable = Math.max(effClient - thumbTravel, 1);
       const max = maxScroll(host, vertical);
       const rect = hostRect(host);
-      const pos = (vertical ? e.clientY - rect.top : e.clientX - rect.left) - btn - opts.offset;
+      const pos = (vertical ? e.clientY - rect.top : e.clientX - rect.left) - btn - start;
       if (pos < thumbTravel / 2) {
         scrollTo(host, 0, vertical, true);
       } else {
@@ -740,42 +945,154 @@ export function createOverlayScrollbar(
       showAxis(state);
     };
 
-    // ---- arrow buttons (hold to repeat, like native) --------------------
-    let repeatTimer: ReturnType<typeof setTimeout> | null = null;
-    let repeatDelay: ReturnType<typeof setTimeout> | null = null;
-    function stepScroll(dir: 1 | -1) {
-      const client = clientLenOf(host, vertical);
-      const step = Math.max(16, client * 0.05);
-      scrollTo(host, scrollOf(host, vertical) + dir * step, vertical, true);
+    // ---- arrow buttons: one rAF-driven content-scroll controller --------
+    // A tap glides one step; press-and-hold glides continuously. Both share a
+    // SINGLE frame loop per axis, so extra clicks retarget the same movement
+    // (no queue, no lost increments) and a direction change reverses without a
+    // jump. This moves the CONTENT only — it never touches the rail's own
+    // visuals (`opts.smooth` still governs the thumb's eased travel). Native
+    // `scrollTo({ behavior: "smooth" })` is deliberately not called per step:
+    // repeated calls interrupt one another and make the content stutter.
+    let arrowRaf = 0;
+    let arrowLastTs = 0;
+    let arrowDir: 0 | 1 | -1 = 0; // held direction; 0 = a discrete move
+    let arrowTarget = 0; // eased destination for a discrete move
+    let arrowSpeed = 0; // px per ms while held
+    let arrowHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const arrowStep = () => Math.max(ARROW_MIN_STEP, clientLenOf(host, vertical) * 0.05);
+    const arrowPosition = () => scrollOf(host, vertical);
+
+    function arrowClearHoldTimer() {
+      if (arrowHoldTimer) {
+        clearTimeout(arrowHoldTimer);
+        arrowHoldTimer = null;
+      }
+    }
+
+    function arrowStopLoop() {
+      if (arrowRaf) {
+        cancelAnimationFrame(arrowRaf);
+        arrowRaf = 0;
+      }
+      arrowLastTs = 0;
+    }
+
+    function arrowTick(ts: number) {
+      arrowRaf = 0;
+      if (destroyed) return;
+      const dt = arrowLastTs ? Math.min(ts - arrowLastTs, 50) : FRAME_MS;
+      arrowLastTs = ts;
+      const cur = arrowPosition();
+      let next: number;
+      if (arrowDir !== 0) {
+        // Held: constant velocity from wherever the content actually is.
+        next = clamp(cur + arrowDir * arrowSpeed * dt, 0, maxScroll(host, vertical));
+      } else if (Math.abs(arrowTarget - cur) < ARROW_SETTLE_PX) {
+        // Discrete move: land exactly on the target rather than creeping up on
+        // it (an eased approach never quite arrives on its own).
+        next = arrowTarget;
+      } else {
+        // Discrete move: eased toward the pending target, so extra taps add up
+        // instead of restarting the animation.
+        const k = reduced() ? 1 : 1 - Math.exp(-dt / ARROW_EASE_MS);
+        next = cur + (arrowTarget - cur) * k;
+      }
+      if (Math.abs(next - cur) > 1e-6) {
+        scrollTo(host, next, vertical);
+        showAxis(state);
+        arrowRaf = requestAnimationFrame(arrowTick);
+        return;
+      }
+      // Nothing left to do — settled, or pinned at a boundary where the content
+      // cannot move. Stop the loop; never spin against the edge.
+      arrowDir = 0;
+      arrowSpeed = 0;
+      arrowTarget = cur;
+      arrowLastTs = 0;
+      scheduleAutoHide(host);
+    }
+
+    function arrowStartLoop() {
+      if (arrowRaf || destroyed) return;
+      arrowLastTs = 0;
+      arrowRaf = requestAnimationFrame(arrowTick);
+    }
+
+    /** Move one step, retargeting an in-flight move so rapid taps accumulate. */
+    function arrowStepOnce(dir: 1 | -1) {
+      const base = arrowRaf && arrowDir === 0 ? arrowTarget : arrowPosition();
+      arrowDir = 0;
+      arrowSpeed = 0;
+      arrowTarget = clamp(base + dir * arrowStep(), 0, maxScroll(host, vertical));
       showAxis(state);
+      arrowStartLoop();
     }
-    function beginRepeat(dir: 1 | -1) {
-      stopRepeat();
-      stepScroll(dir);
-      repeatDelay = setTimeout(() => {
-        repeatTimer = setInterval(() => stepScroll(dir), 60);
-      }, 350);
+
+    /** Glide continuously while held, starting from the current position. */
+    function arrowBeginHold(dir: 1 | -1) {
+      arrowDir = dir;
+      arrowSpeed = arrowStep() / ARROW_HOLD_STEP_MS;
+      arrowTarget = arrowPosition();
+      showAxis(state);
+      arrowStartLoop();
     }
-    function stopRepeat() {
-      if (repeatDelay) clearTimeout(repeatDelay);
-      if (repeatTimer) clearInterval(repeatTimer);
-      repeatDelay = null;
-      repeatTimer = null;
+
+    /** Press: one intentional step now, then keep scrolling while held. */
+    function arrowPress(dir: 1 | -1) {
+      arrowStepOnce(dir);
+      arrowClearHoldTimer();
+      arrowHoldTimer = setTimeout(() => {
+        arrowHoldTimer = null;
+        arrowBeginHold(dir);
+      }, ARROW_HOLD_DELAY_MS);
     }
-    btnTop.addEventListener("pointerdown", (e) => {
+
+    /** Release: stop a held glide promptly; let a tap's short step finish. */
+    function arrowRelease() {
+      arrowClearHoldTimer();
+      if (arrowDir !== 0) {
+        arrowDir = 0;
+        arrowSpeed = 0;
+        arrowTarget = arrowPosition();
+        arrowStopLoop();
+        scheduleAutoHide(host);
+      }
+    }
+
+    /** Hard stop (other input, teardown): drop any pending move too. */
+    function arrowCancel() {
+      arrowClearHoldTimer();
+      arrowDir = 0;
+      arrowSpeed = 0;
+      arrowStopLoop();
+      arrowTarget = arrowPosition();
+      scheduleAutoHide(host);
+    }
+
+    const onArrowDown = (btn: HTMLDivElement, dir: 1 | -1) => (e: PointerEvent) => {
       e.preventDefault();
-      beginRepeat(vertical ? -1 : -1);
-    });
-    btnBottom.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      beginRepeat(vertical ? 1 : 1);
-    });
+      // Capture so the hold continues while the pointer is down, even if it
+      // moves off the button — and a release anywhere still stops it.
+      try { btn.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      arrowPress(dir);
+    };
+    const onBtnTopDown = onArrowDown(btnTop, -1);
+    const onBtnBottomDown = onArrowDown(btnBottom, 1);
+    btnTop.addEventListener("pointerdown", onBtnTopDown);
+    btnBottom.addEventListener("pointerdown", onBtnBottomDown);
     for (const btn of [btnTop, btnBottom]) {
-      btn.addEventListener("pointerup", stopRepeat);
-      btn.addEventListener("pointercancel", stopRepeat);
-      btn.addEventListener("pointerleave", stopRepeat);
-      btn.addEventListener("lostpointercapture", stopRepeat);
+      btn.addEventListener("pointerup", arrowRelease);
+      btn.addEventListener("pointercancel", arrowCancel);
+      btn.addEventListener("lostpointercapture", arrowCancel);
     }
+
+    // The user's own scrolling wins: a wheel or touch gesture cancels an
+    // in-flight arrow move so the two never fight.
+    const arrowInterrupt = () => arrowCancel();
+    const interruptTarget: EventTarget = host.isRoot ? window : host.target;
+    interruptTarget.addEventListener("wheel", arrowInterrupt, { passive: true });
+    interruptTarget.addEventListener("touchstart", arrowInterrupt, { passive: true });
 
     thumb.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove);
@@ -789,7 +1106,20 @@ export function createOverlayScrollbar(
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       track.removeEventListener("pointerdown", onTrackPointerDown);
-      stopRepeat();
+      btnTop.removeEventListener("pointerdown", onBtnTopDown);
+      btnBottom.removeEventListener("pointerdown", onBtnBottomDown);
+      for (const btn of [btnTop, btnBottom]) {
+        btn.removeEventListener("pointerup", arrowRelease);
+        btn.removeEventListener("pointercancel", arrowCancel);
+        btn.removeEventListener("lostpointercapture", arrowCancel);
+      }
+      interruptTarget.removeEventListener("wheel", arrowInterrupt);
+      interruptTarget.removeEventListener("touchstart", arrowInterrupt);
+      // Cancel without scheduling an auto-hide on a host that is going away.
+      arrowClearHoldTimer();
+      arrowDir = 0;
+      arrowSpeed = 0;
+      arrowStopLoop();
       if (state.__hideTimer) clearTimeout(state.__hideTimer);
     };
   }
@@ -798,8 +1128,12 @@ export function createOverlayScrollbar(
   function applyGrow(state: AxisState) {
     const vertical = state.axis === "vertical";
     const size = state.hovered && opts.hoverExpand ? opts.hoverThickness : opts.thickness;
-    if (vertical) state.root.style.width = `${size}px`;
-    else state.root.style.height = `${size}px`;
+    const cross = stripCrossSize(opts, size);
+    if (vertical) state.root.style.width = `${cross}px`;
+    else state.root.style.height = `${cross}px`;
+    // The glyph tracks the button it sits in, so a grown rail gets a grown
+    // (still clamped) glyph.
+    applyGlyphSizing(state, size);
   }
 
   function showAxis(state: AxisState) {
@@ -944,7 +1278,7 @@ function concealStripImmediate(state: AxisState) {
     const push = (el: HTMLElement) => {
       if (isRootCandidate(el)) return;
       if (isExcluded(el)) return;
-      if (el.closest("[data-theme-kit-host]")) return;
+      if (el.closest("[data-themvora-host]")) return;
       if (scrollableVia(el).v || scrollableVia(el).h) result.push(el);
     };
     if (opts.include.length > 0) {
@@ -968,7 +1302,10 @@ function concealStripImmediate(state: AxisState) {
       ro.observe(el);
       host.ro = ro;
     }
-    if (!isRoot) el.setAttribute("data-theme-kit-scrollbar", "overlay");
+    // The native scrollbar's gutter is kept (painted invisible) by the
+    // pre-paint CSS, so the content already clears the rail without any layout
+    // change — no padding is written and nothing reflows on load.
+    if (!isRoot) el.setAttribute("data-themvora-scrollbar", "overlay");
     // Hovering the container itself reveals its scrollbar (e.g. a code block) —
     // you don't have to find the strip first. Only for inner containers: the
     // document scrollbar is revealed on scroll activity / on boot.
@@ -995,7 +1332,7 @@ function concealStripImmediate(state: AxisState) {
     host.ro?.disconnect();
     if (host.hideTimer) clearTimeout(host.hideTimer);
     host.targetCleanup?.();
-    if (!host.isRoot) el.removeAttribute("data-theme-kit-scrollbar");
+    if (!host.isRoot) el.removeAttribute("data-themvora-scrollbar");
     hosts.delete(el);
   }
 
@@ -1167,9 +1504,21 @@ function concealStripImmediate(state: AxisState) {
 
     if (vertical) {
       const corner = axisEndInset(host, state);
-      const stripLeft = rect.left + rect.width - opts.offset - thickness;
-      const stripTop = rect.top + opts.offset;
-      const stripHeight = Math.max(rect.height - opts.offset * 2 - corner, 0);
+      const cross = stripCrossSize(opts, thickness);
+      const ins = insetsFor(host);
+      const side = railSideFor(host);
+      // The strip's footprint is the visible thickness PLUS the transparent
+      // content-side gap, held `offset` from the rail's edge (inline-end: right
+      // in LTR, left in RTL). The painted track lands inside the container and a
+      // transparent band separates it from the content; the top/bottom ends keep
+      // their own insets.
+      const railInset = side === "left" ? ins.left : ins.right;
+      const stripLeft =
+        side === "left"
+          ? rect.left + railInset
+          : rect.left + rect.width - railInset - cross;
+      const stripTop = rect.top + ins.top;
+      const stripHeight = Math.max(rect.height - ins.top - ins.bottom - corner, 0);
       state.root.style.top = `${stripTop}px`;
       state.root.style.left = `${stripLeft}px`;
       state.root.style.height = `${stripHeight}px`;
@@ -1177,13 +1526,15 @@ function concealStripImmediate(state: AxisState) {
       state.btnTop.style.height = `${btn}px`;
       state.btnBottom.style.width = `${thickness}px`;
       state.btnBottom.style.height = `${btn}px`;
-      applyHostClip(host, state, rect, stripLeft, stripTop, thickness, stripHeight);
+      applyHostClip(host, state, rect, stripLeft, stripTop, cross, stripHeight);
       nextGeometry.left = stripLeft;
       nextGeometry.top = stripTop;
-      nextGeometry.width = thickness;
+      nextGeometry.width = cross;
       nextGeometry.height = stripHeight;
     } else {
       const corner = axisEndInset(host, state);
+      const cross = stripCrossSize(opts, thickness);
+      const ins = insetsFor(host);
       const rootWidth =
         host.isRoot && typeof document !== "undefined"
           ? document.documentElement.clientWidth
@@ -1200,15 +1551,15 @@ function concealStripImmediate(state: AxisState) {
         : nativeScrollbarHidden(host.target)
           ? 0
           : host.target.offsetWidth - host.target.clientWidth;
-      // The strip spans the full container width (minus offsets) like the
-      // vertical strip spans the full height; the arrow buttons are inset at
-      // the edges (left/right) and the thumb travels between them. When the
-      // vertical strip is active it owns the right edge, so the strip stops
-      // `corner` short of it — the horizontal bar + its right arrow fit
-      // inside the container exactly like a native scrollbar.
-      const stripLeft = rect.left + opts.offset;
-      const stripTop = rect.top + rect.height - opts.offset - thickness;
-      const stripWidth = Math.max(rootWidth - scrollbarV - opts.offset * 2 - corner, 0);
+      // The strip spans the container width (minus the left/right insets) like
+      // the vertical strip spans the height; the arrow buttons are inset at the
+      // ends and the thumb travels between them. When the vertical strip is
+      // active it owns its edge, so the strip stops `corner` short of that end.
+      // Its height is the visible thickness plus the transparent content-side
+      // gap, held `bottom` inset above the bottom edge.
+      const stripLeft = rect.left + ins.left;
+      const stripTop = rect.top + rect.height - ins.bottom - cross;
+      const stripWidth = Math.max(rootWidth - scrollbarV - ins.left - ins.right - corner, 0);
       state.root.style.left = `${stripLeft}px`;
       state.root.style.top = `${stripTop}px`;
       state.root.style.width = `${stripWidth}px`;
@@ -1216,11 +1567,11 @@ function concealStripImmediate(state: AxisState) {
       state.btnTop.style.width = `${btn}px`;
       state.btnBottom.style.height = `${thickness}px`;
       state.btnBottom.style.width = `${btn}px`;
-      applyHostClip(host, state, rect, stripLeft, stripTop, stripWidth, thickness);
+      applyHostClip(host, state, rect, stripLeft, stripTop, stripWidth, cross);
       nextGeometry.left = stripLeft;
       nextGeometry.top = stripTop;
       nextGeometry.width = stripWidth;
-      nextGeometry.height = thickness;
+      nextGeometry.height = cross;
     }
 
     const max = maxScroll(host, vertical);
@@ -1230,14 +1581,17 @@ function concealStripImmediate(state: AxisState) {
     // short of the perpendicular strip's corner so the thumb never bleeds
     // past the visual strip).
     const corner = axisEndInset(host, state);
-    const effClient = Math.max(client - btn * 2 - opts.offset * 2 - corner, 1);
+    const { start, end } = axisInsets(host, vertical);
+    const effClient = Math.max(client - btn * 2 - start - end - corner, 1);
     // The thumb must never exceed the travel area between the arrows. When
     // content overflows by only a few pixels, `client²/content` already
     // approaches the full client width — wider than `effClient` — and the
     // un-clamped thumb poked out past the right arrow (and the container's
     // right edge), looking like the scrollbar leaks out of its box.
     const baseSize = Math.min(
-      computeThumbSize(client, content, opts.minThumbSize, opts.offset),
+      // The public helper clamps to `clientLen - offset·2`; passing the mean of
+      // the two end insets keeps that clamp equal to `clientLen - (start + end)`.
+      computeThumbSize(client, content, opts.minThumbSize, (start + end) / 2),
       effClient,
     );
     const factor = overscrollFactor(scrollPos, max, client, opts.overscroll);
@@ -1429,10 +1783,10 @@ if (host) {
    setTimeout(() => {
      if (destroyed) return;
      // Phase 3 — ready: the overlay has been painted once. This always happens
-     // (it enables the CSS fade-in that turns .tk-scrollbar from opacity:0 to 1),
+     // (it enables the CSS fade-in that turns .tv-scrollbar from opacity:0 to 1),
      // regardless of `autoHide` — otherwise an `autoHide: false` config leaves
      // the strips stuck at opacity:0 and nothing ever paints.
-     docEl.classList.add("tk-scrollbar-ready");
+     docEl.classList.add("tv-scrollbar-ready");
      if (opts.autoHide) {
        // Reveal only the document scrollbar on first paint — inner scrollables
        // fade in independently the moment the user scrolls/hovers them, so a

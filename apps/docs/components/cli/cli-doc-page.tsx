@@ -13,7 +13,7 @@ export function CliDocPage({ slug }: { slug: string }) {
   return (
     <DocsLayout>
       <div className="max-w-3xl">
-        <MarkdownDoc content={getCliContent(slug)} eyebrow="@theme-kit/cli" />
+        <MarkdownDoc content={getCliContent(slug)} eyebrow="@themvora/cli" />
       </div>
     </DocsLayout>
   );

@@ -49,6 +49,17 @@ function humanize(segment: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Segments that name a *section* rather than a page.
+ *
+ * The trail is derived from the pathname, so it assumes every ancestor is a
+ * route — which is not true for `/reference`: it is a sidebar heading with no
+ * index page, so the crumb linked to a 404 and `next/link` prefetched it on
+ * every `/reference/*` page (a console error, and the one thing audit H
+ * reported). Such a crumb is rendered as text instead of a link.
+ */
+const SECTION_ONLY_SEGMENTS = new Set(["reference"]);
+
 /** Breadcrumb trail for nested routes; hidden on top-level pages. */
 export function Breadcrumbs() {
   const pathname = usePathname();
@@ -61,6 +72,7 @@ export function Breadcrumbs() {
       href,
       label: SEGMENT_LABELS[segment] ?? humanize(segment),
       isLast: i === segments.length - 1,
+      isSection: SECTION_ONLY_SEGMENTS.has(segment),
     };
   });
 
@@ -70,7 +82,7 @@ export function Breadcrumbs() {
         <li>
           <Link
             href="/"
-            className="no-underline transition-colors hover:text-primary"
+            className="no-underline transition-colors hover:text-foreground"
           >
             Home
           </Link>
@@ -87,10 +99,14 @@ export function Breadcrumbs() {
               >
                 {crumb.label}
               </span>
+            ) : crumb.isSection ? (
+              <span className="font-medium text-foreground/80">
+                {crumb.label}
+              </span>
             ) : (
               <Link
                 href={crumb.href}
-                className="no-underline transition-colors hover:text-primary"
+                className="no-underline transition-colors hover:text-foreground"
               >
                 {crumb.label}
               </Link>

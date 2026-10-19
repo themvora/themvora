@@ -19,7 +19,7 @@ export function PageHeader({
   description?: ReactNode;
   badges?: { label: string; tone?: React.ComponentProps<typeof Badge>["tone"] }[];
   actions?: ReactNode;
-  /** Version evidence strip: "Verified with Theme Kit vX.Y.Z · Updated YYYY-MM-DD". */
+  /** Version evidence strip: "Verified with Themvora vX.Y.Z · Updated YYYY-MM-DD". */
   verified?: { version: string; date: string };
 }) {
   return (

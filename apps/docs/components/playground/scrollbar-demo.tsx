@@ -17,7 +17,7 @@ export function ScrollbarDemo() {
             <code className="mono text-[0.9em]">{"include"}</code> to scope the
             overlay. On this site the real{" "}
             <code className="mono text-[0.9em]">ThemeScrollbar</code> from{" "}
-            <code className="mono text-[0.9em]">@theme-kit/next</code> is
+            <code className="mono text-[0.9em]">@themvora/next</code> is
             mounted in the root layout — so every scrollable area on this
             page, including this one, is an integrated custom scrollbar. Run
             your cursor over the edge to reveal the theme-colored strip, then

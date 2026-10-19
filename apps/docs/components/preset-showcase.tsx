@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CodeBlock } from "./code-block";
 import { highlightCode } from "../lib/highlight";
 import { DocsLayout } from "./docs-layout";
+import { PresetVisualHarness } from "./preset-visual-fixture";
 import { PageHeader } from "./ui/page-header";
 import { SectionHeading } from "./ui/section-heading";
 import { Callout } from "./ui/callout";
@@ -46,10 +47,10 @@ export function PresetShowcase() {
             </svg>
           }
           title="Built-in Presets"
-          subtitle="@theme-kit/core"
+          subtitle="@themvora/core"
           description={
             <>
-              Theme Kit ships with{" "}
+              Themvora ships with{" "}
               <strong>
                 {defaultCount} curated families + {brandCount} brand
                 presets
@@ -218,6 +219,11 @@ export function PresetShowcase() {
             </Link>
           </div>
         </section>
+
+        {/* The half of the quality story that cannot be asserted. Every numeric
+            gate checks contrast, separation and anchor preservation; none of
+            them can see a disabled button that reads as enabled. */}
+        <PresetVisualHarness />
       </div>
     </DocsLayout>
   );

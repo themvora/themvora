@@ -1,4 +1,4 @@
-# Theme Kit — docs system reference
+# Themvora — docs system reference
 
 Canonical, machine-checkable artifacts for the documentation pipeline.
 
@@ -82,30 +82,30 @@ deliberately; never widen the registry to silence a failure.
 ## Findings recorded by these gates (2026-09-15)
 
 1. **Fixed — docs bug.** `apps/docs/lib/use-cases.ts` imported
-   `ThemeTransitionOptions` from `@theme-kit/next/client`, which does not export
-   it (it ships from `@theme-kit/core`). The existing snippet audit could not
+   `ThemeTransitionOptions` from `@themvora/next/client`, which does not export
+   it (it ships from `@themvora/core`). The existing snippet audit could not
    catch this: for subpath imports it verifies that the *subpath* exists, but
    never that the *symbol* exists inside it. Audit E now covers that gap.
 2. **Resolved — Nuxt parity gap.** `packages/nuxt/src/runtime/composables/index.ts`
    defined `useThemeMode`, `useThemeFamily`, `useThemeValue`, `useThemeTokens`
-   and the module auto-imported them, but the `@theme-kit/nuxt` root re-exported
+   and the module auto-imported them, but the `@themvora/nuxt` root re-exported
    only 9 of Vue's 13 composables, so `import { useThemeMode } from
-   "@theme-kit/nuxt"` failed while `useThemeMode()` worked under Nuxt
+   "@themvora/nuxt"` failed while `useThemeMode()` worked under Nuxt
    auto-imports. Decision (additive, non-breaking): **promote the four
    re-exports** — the root already re-exported the rarer siblings
    (`useThemeBatch`/`useThemeSnapshot`/`useThemeRestore`/`useThemeLifecycle`/
    `useThemePacks`/`useThemeSchedule`), so the omission was inconsistent rather
    than deliberate, and all four are already part of the module's own public
-   surface. Vue-internal plumbing with no Nuxt meaning (`ThemeKitSymbol`,
+   surface. Vue-internal plumbing with no Nuxt meaning (`ThemeSymbol`,
    `ThemeScheduleController`, `createVueThemeBootstrapScript`,
    `provideThemeRuntime`) stays intentionally unre-exported. Shipped as a minor
    changeset; `public-api.json` went 913 → 917 symbols.
 3. **Brief vs repo.** Audit A's stated baseline ("158 imports / 66 pages") is
    stale: the actual floor is 134 pages / 438 references. §2's IA omits
-   `@theme-kit/tailwind` and `@theme-kit/unocss` (both shipped and documented)
+   `@themvora/tailwind` and `@themvora/unocss` (both shipped and documented)
    and lists Mantine under Adapters, which `update.md` records as deliberately
    wrong (Mantine ships a provider-based bridge, not a `ThemeAdapter`). The
-   brief says "Theme Kit 1.0"; packages are at 1.3.0.
+   brief says "Themvora 1.0"; packages are at 1.3.0.
 
 ## §12 / §13 status
 
@@ -169,7 +169,7 @@ example, or the gate fails — which is the point.
   1. `execSync` was called but never imported — the harness crashed outright.
   2. The fixture wrote **relative** `file:../tarballs/x.tgz` specifiers. When a
      packed package itself depends on another packed package
-     (`@theme-kit/react` → `@theme-kit/core`), npm re-resolves that relative
+     (`@themvora/react` → `@themvora/core`), npm re-resolves that relative
      path from a different base and **hangs forever** in `idealTree buildDeps`
      instead of failing. Now absolute, which installs in ~6s.
   It also resolved npm via a `shell: true` PATH lookup, which on Windows can
@@ -199,17 +199,17 @@ example, or the gate fails — which is the point.
   ~3.5s each with a per-run cache directory.** npm locks its cache, and a cache
   left in a bad state by an interrupted install makes later installs block
   instead of fail. The harness now passes `--cache=<per-run dir>`
-  (`THEME_KIT_AUDIT_C_CACHE` overrides). Result: `--dynamic` passes for all 21
+  (`THEMVORA_AUDIT_C_CACHE` overrides). Result: `--dynamic` passes for all 21
   examples in ~4 min, and is now a gate tier (`--full --dynamic`, i.e.
   `docs:release-gate:all`) rather than an unreachable pre-release step.
 - **Canonical examples: 2 → 21, covering 20/20 capabilities.** Every capability in
   the registry now has an example, and `audit-c-examples.mjs` fails if one is
   missing. React examples (`theme-scope`, `families-modes`, `transitions`,
   `scheduling`, `custom-scrollbar`, `history`, `snapshots`, `persistence`,
-  `devtools`) use `@theme-kit/react`; framework-free ones (`themes`, `tokens`,
+  `devtools`) use `@themvora/react`; framework-free ones (`themes`, `tokens`,
   `runtime`, `scopes`, `multi-window-sync`, `sunrise-sunset`, `accessibility`,
-  `theme-generation`, `plugins`, `zero-flash`, `cli`) use `@theme-kit/core` or
-  `@theme-kit/cli` and are single-file, so they are **executed** by the dynamic
+  `theme-generation`, `plugins`, `zero-flash`, `cli`) use `@themvora/core` or
+  `@themvora/cli` and are single-file, so they are **executed** by the dynamic
   tier's smoke step.
 - **A real defect found in the pre-existing `basic-theme` example.** It called
   `defineTheme({ name, light, dark })`. That is **not** the theme shape —

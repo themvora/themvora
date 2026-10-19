@@ -64,7 +64,7 @@ let pageTargets = 0;
 
 for (const [pkg, entrypoints] of Object.entries(classification)) {
   if (pkg.startsWith("$")) continue;
-  const slug = pkg.replace(/^@theme-kit\//, "");
+  const slug = pkg.replace(/^@themvora\//, "");
 
   for (const [entry, row] of Object.entries(entrypoints)) {
     const file = pageFile(slug, entry);

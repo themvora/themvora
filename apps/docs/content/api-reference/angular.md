@@ -1,13 +1,13 @@
-## @theme-kit/angular
-Theme Kit Angular integration.
+## @themvora/angular
+Themvora Angular integration.
 
-Provides the DI tokens (`THEME_KIT_RUNTIME`, `THEME_KIT_SCOPED_RUNTIME`),
-the `provideThemeKit` / `provideThemeKitRuntime` providers, the
+Provides the DI tokens (`THEME_RUNTIME`, `THEME_SCOPED_RUNTIME`),
+the `provideTheme` / `provideThemeRuntime` providers, the
 `injectTheme*` injection functions, the `ThemeScopeDirective`,
 `ThemeScrollbarDirective`, and `ThemeInspectorComponent`, plus the
 persistence and blocking-script (zero-flash) helpers.
 
-> Generated from `packages/angular/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @theme-kit/docs api:generate`.
+> Generated from `packages/angular/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
 
 ## Functions
 
@@ -39,7 +39,7 @@ browser and to `TransferState` on the server, so the selection survives
 server-side rendering and is hydrated on the client. It also subscribes to
 cross-tab `storage` events.
 
-**See also:** `provideThemeKit`
+**See also:** `provideTheme`
 
 **Returns** `ThemeSelectionPersistenceAdapter` — A `ThemeSelectionPersistenceAdapter` bound to the current platform.
 
@@ -66,6 +66,38 @@ when provided.
 | `options` | `BlockingScriptOptions` | Fallback mode/family inputs. Must match the client runtime's `initialMode`/`defaultTheme` so the two resolve the same theme. |
 
 **Returns** `string` — An HTML string containing the critical style and blocking script.
+
+---
+
+
+### `injectGeneratedTheme<T extends ThemeDefinition<string>>(): Signal<T>`
+Injects the theme produced by `generateTheme()` and registered with the
+provider, as a read-only signal.
+
+Resolves the registered theme that carries the generator's origin marker
+(`meta.generation.kind === "generated"`); shipped presets never qualify. When
+both halves of one `generateTheme()` call are registered, the signal tracks
+the theme the active selection resolves to, and unsubscribes automatically
+when the injector is destroyed.
+
+May be called from an Angular injection context.
+
+Throws `ThemeError` with code `TV_GENERATION_THEME_NOT_FOUND` when the provider
+holds no generated theme, and `TV_GENERATION_THEME_AMBIGUOUS` when several are
+registered and the active selection does not identify one.
+
+Re-resolves on every settled change to the registry, store, or selection; if
+the generated theme is later removed, the same error is raised at the next
+reactive read rather than a stale theme being returned.
+
+**See also:** `injectTheme`
+
+**Returns** `Signal<T>` — A read-only `Signal<T>` holding the registered generated theme.
+
+```ts
+const generated = injectGeneratedTheme();
+effect(() => console.log(generated().name));
+```
 
 ---
 
@@ -154,13 +186,13 @@ May be called from an Angular injection context.
 
 
 ### `injectThemeRuntime<T extends ThemeDefinition<string>>(): ThemeRuntime<T>`
-Injects the active Theme Kit runtime.
+Injects the active Themvora runtime.
 
 May be called from an Angular injection context. Resolves the scoped runtime
 when inside a ThemeScopeDirective, otherwise the environment runtime
-provided by provideThemeKit. Throws if no runtime is provided.
+provided by provideTheme. Throws if no runtime is provided.
 
-**See also:** `provideThemeKit`, `injectTheme`
+**See also:** `provideTheme`, `injectTheme`
 
 **Returns** `ThemeRuntime<T>` — The active ThemeRuntime.
 
@@ -212,8 +244,8 @@ automatically when the injector is destroyed.
 ---
 
 
-### `provideThemeKit(options): EnvironmentProviders`
-Provides a Theme Kit runtime for the current Angular environment injector.
+### `provideTheme(options): EnvironmentProviders`
+Provides a Themvora runtime for the current Angular environment injector.
 
 Call this once at the application root (or a feature environment) to create
 the runtime, wire up Angular persistence, and register environment
@@ -224,21 +256,21 @@ May be called from an Angular injection context. Returns an
 `EnvironmentProviders` value intended for the `providers` array of a
 standalone component, route, or `bootstrapApplication`.
 
-**See also:** `provideThemeKitRuntime`, `injectThemeRuntime`, `ThemeKitProviderOptions`
+**See also:** `provideThemeRuntime`, `injectThemeRuntime`, `ThemeProviderOptions`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `options` | `ThemeKitProviderOptions` | Runtime configuration and the optional DOM binding target. |
+| `options` | `ThemeProviderOptions` | Runtime configuration and the optional DOM binding target. |
 
 **Returns** `EnvironmentProviders` — An `EnvironmentProviders` value that provides the runtime.
 
 ```ts
-import { provideThemeKit } from "@theme-kit/angular";
-import { getBuiltInThemes } from "@theme-kit/core";
+import { provideTheme } from "@themvora/angular";
+import { getBuiltInThemes } from "@themvora/core";
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideThemeKit({ themes: getBuiltInThemes(), defaultTheme: "light" }),
+    provideTheme({ themes: getBuiltInThemes(), defaultTheme: "light" }),
   ],
 });
 ```
@@ -246,19 +278,19 @@ bootstrapApplication(AppComponent, {
 ---
 
 
-### `provideThemeKitRuntime(runtime): EnvironmentProviders`
-Provides an existing Theme Kit runtime for the current Angular environment
+### `provideThemeRuntime(runtime): EnvironmentProviders`
+Provides an existing Themvora runtime for the current Angular environment
 injector.
 
 Use this when you already have a runtime instance (for example, created
 outside Angular or shared across environments) and want to expose it through
-the THEME_KIT_RUNTIME token. Unlike provideThemeKit, it does
+the THEME_RUNTIME token. Unlike provideTheme, it does
 not create bindings or persistence.
 
 May be called from an Angular injection context. Returns an
 `EnvironmentProviders` value intended for the `providers` array.
 
-**See also:** `provideThemeKit`, `injectThemeRuntime`
+**See also:** `provideTheme`, `injectThemeRuntime`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -271,9 +303,9 @@ May be called from an Angular injection context. Returns an
 ## Classes
 
 ### `class ThemeInspectorComponent`
-Angular wrapper component around the Theme Kit web inspector.
+Angular wrapper component around the Themvora web inspector.
 
-Renders a `<theme-kit-inspector>` custom element and forwards the `bottom`,
+Renders a `<themvora-inspector>` custom element and forwards the `bottom`,
 `right`, `size`, `zIndex`, `class`, and `style` inputs to it. The inspector
 element is defined on initialization.
 
@@ -283,10 +315,10 @@ element is defined on initialization.
 | ------ | ---- | ----------- |
 | `constructor` | `ThemeInspectorComponent` | — |
 | `bottom` (optional) | `number` | Distance from the bottom of the viewport, in px. |
-| `class` (optional) | `string` | CSS classes forwarded to the <theme-kit-inspector> element. |
+| `class` (optional) | `string` | CSS classes forwarded to the <themvora-inspector> element. |
 | `right` (optional) | `number` | Distance from the right edge of the viewport, in px. |
 | `size` (optional) | `number` | Toggle button size (width and height), in px. |
-| `style` (optional) | `string` | Inline styles forwarded to the <theme-kit-inspector> element. |
+| `style` (optional) | `string` | Inline styles forwarded to the <themvora-inspector> element. |
 | `zIndex` (optional) | `number` | Z-index for the floating toggle and panel. |
 | `ngOnInit` | `void` | — |
 
@@ -297,24 +329,28 @@ element is defined on initialization.
 Applies a named theme to a single element, overriding the environment
 runtime for that element's subtree.
 
-Use the `themeKitScope` attribute with a theme name to scope the theme to
-the host element. The optional `themeKitScopeTransition` input configures
+Use the `themvoraScope` attribute with a theme name to scope the theme to
+the host element. The optional `themvoraScopeTransition` input configures
 the transition used when the scoped theme is applied. The binding is
 destroyed automatically when the directive is destroyed.
 
-**See also:** `THEME_KIT_SCOPED_RUNTIME`, `ThemeScrollbarDirective`, `injectThemeRuntime`
+**See also:** `THEME_SCOPED_RUNTIME`, `ThemeScrollbarDirective`, `injectThemeRuntime`
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `constructor` | `ThemeScopeDirective` | — |
-| `themeName` | `string` | Theme name to scope to (`[themeKitScope]="'plum-dark'"`). Empty string disables the scope. |
+| `themeName` | `string` | Theme name to scope to (`[themvoraScope]="'plum-dark'"`). Empty string disables the scope. |
 | `transition` (optional) | `ThemeTransitionOptions` | Transition override for scoped theme changes. Inherits the runtime's transition when omitted. |
+| `ngOnChanges` | `void` | — |
 | `ngOnDestroy` | `void` | — |
-| `ngOnInit` | `void` | — |
 
 The scoped theme overrides the environment theme for the element and its
 descendants. When the named theme is not found, no binding is created and
 the environment theme remains in effect.
+
+Reactive to its inputs: a changed `themvoraScope` re-resolves the bound
+element, and a changed `themvoraScopeTransition` updates the transition —
+both without recreating the binding.
 
 ---
 
@@ -323,10 +359,10 @@ the environment theme remains in effect.
 Phase 2 — ThemeScrollbarDirective: overlay only.
 
 Creates the custom scrollbar overlay. Does NOT hide the native
-scrollbar — that's the bootstrap script's job (Phase 1, tk-scrollbar).
+scrollbar — that's the bootstrap script's job (Phase 1, tv-scrollbar).
 
 ```html
-<div themeKitScrollbar [themeKitScrollbarOptions]="{ thickness: 8 }"></div>
+<div themvoraScrollbar [themvoraScrollbarOptions]="{ thickness: 8 }"></div>
 ```
 
 **See also:** `ThemeScopeDirective`, `ThemeInspectorComponent`, `injectThemeRuntime`
@@ -334,7 +370,7 @@ scrollbar — that's the bootstrap script's job (Phase 1, tk-scrollbar).
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `constructor` | `ThemeScrollbarDirective` | — |
-| readonly `options` | `InputSignal<OverlayScrollbarOptions>` | Overlay scrollbar options passed to the engine (`[themeKitScrollbarOptions]="{ thickness: 8 }"`). |
+| readonly `options` | `InputSignal<ScrollbarGroupedOptions & { icons?: ScrollbarIconOptions<string> }>` | Overlay scrollbar options passed to the engine (`[themvoraScrollbarOptions]="{ thickness: 8 }"`). |
 | `ngOnDestroy` | `void` | — |
 
 ---
@@ -351,7 +387,7 @@ correct it — a visible flash of the wrong theme.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `string` | Theme name the fallback family and mode are derived from. Should match the `defaultTheme` given to `provideThemeKit`. |
+| `defaultTheme` (optional) | `string` | Theme name the fallback family and mode are derived from. Should match the `defaultTheme` given to `provideTheme`. |
 | `mode` (optional) | `ThemeMode` | Fallback mode used when no selection is persisted. |
 
 ---
@@ -426,13 +462,13 @@ light/dark mode, and callbacks to change the selection.
 
 ## Type Aliases
 
-### `ThemeKitProviderOptions`
-Options for provideThemeKit.
+### `ThemeProviderOptions`
+Options for provideTheme.
 
 Extends the core runtime options with an optional DOM target element. When
 omitted, the runtime is bound to `document.documentElement`.
 
-**See also:** `provideThemeKit`
+**See also:** `provideTheme`
 
 `ThemeRuntimeOptions<ThemeDefinition> & { target?: HTMLElement }`
 
@@ -440,32 +476,32 @@ omitted, the runtime is bound to `document.documentElement`.
 
 ## Variables
 
-### `THEME_KIT_RUNTIME`
-Angular dependency-injection token that provides the active Theme Kit
+### `THEME_RUNTIME`
+Angular dependency-injection token that provides the active Themvora
 runtime.
 
-The runtime is created by provideThemeKit (or supplied directly via
-provideThemeKitRuntime) and is scoped to the environment injector
+The runtime is created by provideTheme (or supplied directly via
+provideThemeRuntime) and is scoped to the environment injector
 where it is provided. Inject it to access the runtime's store, selection,
 history, lifecycle, and scheduling APIs.
 
-**See also:** `THEME_KIT_SCOPED_RUNTIME`, `provideThemeKit`
+**See also:** `THEME_SCOPED_RUNTIME`, `provideTheme`
 
 `InjectionToken<ThemeRuntime<ThemeDefinition<string>>>`
 
 ---
 
 
-### `THEME_KIT_SCOPED_RUNTIME`
+### `THEME_SCOPED_RUNTIME`
 Angular dependency-injection token that provides a runtime scoped to a
 nested theme scope.
 
 When a ThemeScopeDirective is active, this token resolves to the
 scoped runtime for that element; otherwise it is absent and consumers fall
-back to THEME_KIT_RUNTIME. Inject it to read the runtime that
+back to THEME_RUNTIME. Inject it to read the runtime that
 applies to the current element's scope.
 
-**See also:** `THEME_KIT_RUNTIME`, `ThemeScopeDirective`
+**See also:** `THEME_RUNTIME`, `ThemeScopeDirective`
 
 `InjectionToken<ThemeRuntime<ThemeDefinition<string>>>`
 

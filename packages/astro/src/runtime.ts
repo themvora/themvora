@@ -1,6 +1,6 @@
 /**
- * Browser entry for the Theme Kit Astro integration
- * (`@theme-kit/astro/runtime`).
+ * Browser entry for the Themvora Astro integration
+ * (`@themvora/astro/runtime`).
  *
  * This is the **framework-neutral client API**, and it is the entry a `<script>`
  * in a `.astro` file should import. It ships the global runtime controller —
@@ -8,9 +8,9 @@
  * shared-runtime accessors, and it imports no client framework.
  *
  * @remarks
- * **Why not `@theme-kit/astro`?** The root entry also exports `themeKit()`, the
+ * **Why not `@themvora/astro`?** The root entry also exports `themvora()`, the
  * build integration, which reads `theme.config.ts` from disk. That drags `node:url`
- * (and `@theme-kit/core/config`, hence `fs` / `path` / `module`) into whatever
+ * (and `@themvora/core/config`, hence `fs` / `path` / `module`) into whatever
  * imports it. A browser bundle cannot resolve those: Astro externalises them for
  * browser compatibility and the build fails with
  * `"fileURLToPath" is not exported by "__vite-browser-external"`.
@@ -19,13 +19,13 @@
  *
  * | Entry | Environment | Contents |
  * | ----- | ----------- | -------- |
- * | `@theme-kit/astro` | Node / build | `themeKit()`, server helpers, type-only re-exports |
- * | `@theme-kit/astro/runtime` | Browser | `getThemeController()`, `getGlobalRuntime()` |
- * | `@theme-kit/astro/client` | Browser | React island + hooks (optional peer) |
- * | `@theme-kit/astro/provider.astro` | Server + browser | the SSR document |
- * | `@theme-kit/astro/ThemeToggle.astro` | Server + browser | the native toggle |
+ * | `@themvora/astro` | Node / build | `themvora()`, server helpers, type-only re-exports |
+ * | `@themvora/astro/runtime` | Browser | `getThemeController()`, `getGlobalRuntime()` |
+ * | `@themvora/astro/client` | Browser | React island + hooks (optional peer) |
+ * | `@themvora/astro/provider.astro` | Server + browser | the SSR document |
+ * | `@themvora/astro/ThemeToggle.astro` | Server + browser | the native toggle |
  *
- * `@theme-kit/astro` re-exports this entry's symbols for Node-side callers
+ * `@themvora/astro` re-exports this entry's symbols for Node-side callers
  * (tests, scripts, a server-side integration), so importing from the root in a
  * server context keeps working. Import from `/runtime` in anything a browser
  * bundles.
@@ -35,7 +35,7 @@
  * <button id="theme-toggle">Toggle theme</button>
  *
  * <script>
- *   import { getThemeController } from "@theme-kit/astro/runtime";
+ *   import { getThemeController } from "@themvora/astro/runtime";
  *
  *   const theme = getThemeController();
  *

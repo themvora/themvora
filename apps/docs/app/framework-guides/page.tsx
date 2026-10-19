@@ -24,7 +24,7 @@ export default function FrameworkGuidesPage() {
           description={
             <>
               Each integration re-exports the full{" "}
-              <code className="mono text-[0.9em]">@theme-kit/core</code> surface
+              <code className="mono text-[0.9em]">@themvora/core</code> surface
               and adds framework-native providers, hooks, stores, signals, or
               directives. Pick a framework to see its complete feature set, API
               reference, and copy-paste examples.
@@ -35,7 +35,7 @@ export default function FrameworkGuidesPage() {
         <Callout className="mb-10">
           <strong>Every example is real</strong> — the snippets below are
           executed against the actual{" "}
-          <code className="mono text-[0.9em]">@theme-kit/*</code> packages, and
+          <code className="mono text-[0.9em]">@themvora/*</code> packages, and
           reference copies ship alongside each package in{" "}
           <code className="mono text-[0.9em]">packages/</code>.
         </Callout>

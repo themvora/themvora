@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { themeToCSSVariables } from "@theme-kit/core";
+import { themeToCSSVariables } from "@themvora/core";
 import { useThemeRuntime } from "./provider";
 import { useThemeValue } from "./hooks";
 

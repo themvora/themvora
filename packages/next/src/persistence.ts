@@ -4,7 +4,7 @@ import type {
   ThemeDefinition,
   ThemeSelectionPersistenceAdapter,
   ThemeSelectionState,
-} from "@theme-kit/core";
+} from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 
 export interface NextThemePersistenceOptions {

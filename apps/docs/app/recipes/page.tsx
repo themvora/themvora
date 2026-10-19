@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/recipes") },
   title: "Recipes",
   description:
-    "Task-oriented patterns for Theme Kit: persistent dark mode, SSR bootstrap, custom scrollbars, scoped themes, and more.",
+    "Task-oriented patterns for Themvora: persistent dark mode, SSR bootstrap, custom scrollbars, scoped themes, and more.",
 };
 
 

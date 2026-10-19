@@ -1,17 +1,22 @@
 {
-  "capturedAt": "2026-09-16T16:32:18.665Z",
+  "capturedAt": "2026-10-16T20:40:39.957Z",
   "tool": "scripts/docs/check-examples.mjs",
   "contract": "docs-hardening — every copy-paste example must be complete",
   "counts": {
-    "bundles": 118,
-    "entries": 655,
-    "skipped": 108,
-    "A": 0,
+    "bundles": 145,
+    "entries": 867,
+    "skipped": 286,
+    "A": 1,
     "B": 0,
     "C": 0,
     "D": 0,
-    "total": 0
+    "E": 0,
+    "total": 1
   },
-  "violations": {},
-  "details": {}
+  "violations": {
+    "A|apps/docs/app/vanilla/page.tsx|src/main.ts → \"./style.css\"": 1
+  },
+  "details": {
+    "A|apps/docs/app/vanilla/page.tsx|src/main.ts → \"./style.css\"": "imports a local file no snippet in this bundle declares (declared: src/main.ts)"
+  }
 }

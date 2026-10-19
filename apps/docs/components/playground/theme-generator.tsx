@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import {
-  generateTheme,
-  themeToCSSVariables,
-  type ThemeDefinition,
-} from "@theme-kit/core";
+import { generateTheme, type ThemeDefinition } from "@themvora/core";
 import { CopyButton } from "../ui/copy-button";
 import { highlightCode } from "../../lib/highlight";
 
@@ -37,16 +33,22 @@ function JsonPreview({ data }: { data: string }) {
   );
 }
 
-function CSSVarsPreview({ vars }: { vars: Record<string, string> }) {
-  const entries = Object.entries(vars);
+function TsPreview({ data }: { data: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3 font-mono text-[11px] leading-relaxed max-h-48 overflow-auto">
-      {entries.map(([key, value]) => (
-        <div key={key} className="flex gap-2">
-          <span className="opacity-50 shrink-0">{key}</span>
-          <span className="truncate">{value}</span>
+    <div className="code-block overflow-hidden">
+      <div className="code-block-toolbar">
+        <span className="code-block-filename" title="Theme definition">
+          Theme Definition (TS)
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="code-block-lang">ts</span>
+          <CopyButton text={data} label="Copy" className="code-block-copy" />
         </div>
-      ))}
+      </div>
+      <div
+        className="max-h-64 overflow-auto sm:max-h-96"
+        dangerouslySetInnerHTML={{ __html: highlightCode(data, "typescript") }}
+      />
     </div>
   );
 }
@@ -59,19 +61,12 @@ export function ThemeGenerator() {
     light: ThemeDefinition;
     dark: ThemeDefinition;
   } | null>(null);
-  const [activeTab, setActiveTab] = useState<"json" | "css">("json");
+  const [activeTab, setActiveTab] = useState<"json" | "ts">("json");
 
   const handleGenerate = useCallback(() => {
     const generated = generateTheme({ seed, family, withCode });
     setResult(generated);
   }, [seed, family, withCode]);
-
-  const lightCSS = result
-    ? themeToCSSVariables(result.light)
-    : {};
-  const darkCSS = result
-    ? themeToCSSVariables(result.dark)
-    : {};
 
   const jsonOutput = useMemo(() => {
     if (!result) return "";
@@ -93,21 +88,6 @@ export function ThemeGenerator() {
     );
   }, [result]);
 
-  const cssOutput = useMemo(() => {
-    if (!result) return "";
-    const lightVars = themeToCSSVariables(result.light);
-    const darkVars = themeToCSSVariables(result.dark);
-    const lightCSS = Object.entries(lightVars)
-      .map(([k, v]) => `  ${k}: ${v};`)
-      .join("\n");
-    const darkCSS = Object.entries(darkVars)
-      .map(([k, v]) => `  ${k}: ${v};`)
-      .join("\n");
-    return `/* Light theme */\n:root {\n${lightCSS}\n}\n\n/* Dark theme */\n.dark {\n${darkCSS}\n}`;
-  }, [result]);
-
-  const copyText = activeTab === "json" ? jsonOutput : cssOutput;
-
   const downloadFile = useCallback(
     (content: string, filename: string, type: string) => {
       const blob = new Blob([content], { type });
@@ -121,31 +101,47 @@ export function ThemeGenerator() {
     [],
   );
 
-  const tsOutput = useMemo(() => {
+  /*
+    The code export calls `generateTheme`, not `defineTheme`.
+
+    Both of these used to serialise the entire generated pair back into
+    `defineTheme(...)`, which inverts what the playground is demonstrating.
+    `generateTheme` exists so that nobody authors those tokens; the JSON export
+    below already ships the exact values for anyone who wants them. A `.ts` file
+    that pastes two hundred lines of derived output back in as authored input
+    teaches the wrong API and is not something a reader would ever write.
+
+    The options are the ones this playground actually exposes, so the file
+    reproduces the preview exactly.
+  */
+  const codeExport = useMemo(() => {
     if (!result) return "";
     const sanitized = (family.trim() || "custom").replace(/[^a-zA-Z0-9_]/g, "_");
-    return `import { defineTheme } from "@theme-kit/core";
+    const options = [
+      `  seed: ${JSON.stringify(seed)},`,
+      `  family: ${JSON.stringify(family.trim() || "custom")},`,
+      ...(withCode ? ["  // Opt in to the syntax-highlighting palette.", "  withCode: true,"] : []),
+    ].join("\n");
 
-export const ${sanitized}Light = defineTheme(${JSON.stringify(result.light, null, 2)});
+    return `import { generateTheme } from "@themvora/core";
 
-export const ${sanitized}Dark = defineTheme(${JSON.stringify(result.dark, null, 2)});
+/**
+ * One seed, two themes — every colour derived, including the surfaces, borders,
+ * input edges and status roles. The exact values are in the JSON export; this
+ * file is the reproducible form.
+ */
+export const { light: ${sanitized}Light, dark: ${sanitized}Dark } = generateTheme({
+${options}
+});
 
 export const themes = [${sanitized}Light, ${sanitized}Dark];
 `;
-  }, [result, family]);
+  }, [result, family, seed, withCode]);
 
-  const jsOutput = useMemo(() => {
-    if (!result) return "";
-    const sanitized = (family.trim() || "custom").replace(/[^a-zA-Z0-9_]/g, "_");
-    return `import { defineTheme } from "@theme-kit/core";
+  const tsOutput = codeExport;
 
-export const ${sanitized}Light = defineTheme(${JSON.stringify(result.light, null, 2)});
-
-export const ${sanitized}Dark = defineTheme(${JSON.stringify(result.dark, null, 2)});
-
-export const themes = [${sanitized}Light, ${sanitized}Dark];
-`;
-  }, [result, family]);
+  /** Whichever tab is showing, so the toolbar's copy button matches it. */
+  const copyText = activeTab === "json" ? jsonOutput : tsOutput;
 
   return (
     <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-label="Theme generator">
@@ -253,14 +249,14 @@ export const themes = [${sanitized}Light, ${sanitized}Dark];
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("css")}
+              onClick={() => setActiveTab("ts")}
               className={`px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors ${
-                activeTab === "css"
+                activeTab === "ts"
                   ? "bg-primary text-primary-foreground"
                   : "bg-card border border-border hover:bg-muted"
               }`}
             >
-              CSS Variables
+              TypeScript
             </button>
             <div className="flex-1" />
             <span className="flex items-center gap-1.5">
@@ -294,43 +290,12 @@ export const themes = [${sanitized}Light, ${sanitized}Dark];
             >
               .ts
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                downloadFile(cssOutput, `${family.trim() || "custom"}.css`, "text/css")
-              }
-              className="px-2.5 py-1 rounded-md border border-border bg-card text-xs font-medium cursor-pointer transition-colors hover:bg-muted"
-            >
-              .css
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                downloadFile(jsOutput, `${family.trim() || "custom"}.js`, "text/javascript")
-              }
-              className="px-2.5 py-1 rounded-md border border-border bg-card text-xs font-medium cursor-pointer transition-colors hover:bg-muted"
-            >
-              .js
-            </button>
           </div>
 
-           {activeTab === "json" ? (
+          {activeTab === "json" ? (
             <JsonPreview data={jsonOutput} />
           ) : (
-            <div className="flex flex-col gap-3">
-              <div>
-                <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40 mb-2 block">
-                  Light
-                </span>
-                <CSSVarsPreview vars={lightCSS} />
-              </div>
-              <div>
-                <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40 mb-2 block">
-                  Dark
-                </span>
-                <CSSVarsPreview vars={darkCSS} />
-              </div>
-            </div>
+            <TsPreview data={tsOutput} />
           )}
         </div>
       )}

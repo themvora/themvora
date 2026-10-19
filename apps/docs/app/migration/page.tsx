@@ -56,7 +56,7 @@ const breakingChanges = [
 const whenToMigrateSnippet = {
   lang: "ts",
   title: "core — checking version and migrating",
-  code: `import { migrateTheme } from "@theme-kit/core";
+  code: `import { migrateTheme } from "@themvora/core";
 
 // A theme authored for an older version
 const legacyTheme = {
@@ -77,7 +77,7 @@ const migrated = migrateTheme(legacyTheme);
 const registerMigrationSnippet = {
   lang: "ts",
   title: "core — registerMigration",
-  code: `import { registerMigration } from "@theme-kit/core";
+  code: `import { registerMigration } from "@themvora/core";
 
 // Simple token rename: "bg" was renamed to "background" in v2
 registerMigration({
@@ -112,7 +112,7 @@ registerMigration({
 const multiStepSnippet = {
   lang: "ts",
   title: "core — chaining migrations",
-  code: `import { registerMigration, migrateTheme } from "@theme-kit/core";
+  code: `import { registerMigration, migrateTheme } from "@themvora/core";
 
 // Register a chain of migrations
 registerMigration({
@@ -213,7 +213,7 @@ jobs:
       - name: Check themes for outdated versions
         run: |
           node -e "
-            const { migrateTheme } = require('@theme-kit/core');
+            const { migrateTheme } = require('@themvora/core');
             const themes = require('./themes.json');
             let failed = false;
             for (const theme of themes) {
@@ -241,7 +241,7 @@ export default function MigrationPage() {
           title="Keep themes current across versions"
           description={
             <>
-              Theme Kit ships a built-in migration engine that walks registered
+              Themvora ships a built-in migration engine that walks registered
               steps to bring any theme definition up to date — from simple token
               renames to full structural rewrites.
             </>
@@ -251,7 +251,7 @@ export default function MigrationPage() {
         <Prerequisites
           items={[
             {
-              label: "@theme-kit/core installed",
+              label: "@themvora/core installed",
               value: "Migration utilities are exported from core",
               href: "/packages/core",
             },
@@ -284,7 +284,7 @@ export default function MigrationPage() {
               step to keep existing themes working.
             </li>
             <li>
-              <strong>API evolution</strong> — as Theme Kit grows, new token
+              <strong>API evolution</strong> — as Themvora grows, new token
               conventions emerge. A migration step lets you adopt them without
               manually editing every theme file.
             </li>
@@ -366,11 +366,11 @@ export default function MigrationPage() {
             </div>
           </div>
           <Callout variant="info" className="mt-3">
-            <strong>Theme Kit 1.x is backward compatible</strong>{" "}
+            <strong>Themvora 1.x is backward compatible</strong>{" "}
             <span className="mx-1 opacity-40">|</span>
             Every release since 1.0.0 ships without breaking theme schemas. The
             versions above cover the pre-1.0 schema line. See the{" "}
-            <Link href="/changelog" className="text-primary hover:underline">
+            <Link href="/changelog" className="text-foreground underline hover:decoration-foreground">
               changelog
             </Link>{" "}
             for per-release detail.

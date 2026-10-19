@@ -1,8 +1,8 @@
 ---
-import { ThemeKitInspector } from "@theme-kit/web";
+import { ThemvoraInspector } from "@themvora/web";
 
 // SSR-safe (no-op on the server); the <script> below defines it in the browser.
-ThemeKitInspector.define();
+ThemvoraInspector.define();
 
 interface Props {
   /** Distance from the bottom of the viewport, in px. Default 104. */
@@ -21,9 +21,9 @@ if (right != null) attrs["right"] = String(right);
 if (size != null) attrs["size"] = String(size);
 ---
 
-<theme-kit-inspector {...attrs} />
+<themvora-inspector {...attrs} />
 
 <script>
-  import { ThemeKitInspector } from "@theme-kit/web";
-  ThemeKitInspector.define();
+  import { ThemvoraInspector } from "@themvora/web";
+  ThemvoraInspector.define();
 </script>

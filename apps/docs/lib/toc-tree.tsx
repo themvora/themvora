@@ -62,7 +62,7 @@ function collect(node: ReactNode, ctx: Ctx): ReactNode {
       // the exact same reconciliation behavior.
       if (isValidElement(next) && next.key === null) {
         changed = true;
-        return cloneElement(next as ReactElement, { key: `.tk-${i}` });
+        return cloneElement(next as ReactElement, { key: `.tv-${i}` });
       }
       return next;
     });

@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "description": "Themvora CLI: generate, validate, inspect, and migrate themes.",
   "repository": {

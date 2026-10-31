@@ -14,6 +14,6 @@
     "@themvora/astro": "workspace:*",
     "@themvora/core": "workspace:*",
     "astro": "^7.4.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }

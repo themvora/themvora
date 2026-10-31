@@ -14,7 +14,7 @@
     "@themvora/core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vite": "^6.3.5"
   }
 }

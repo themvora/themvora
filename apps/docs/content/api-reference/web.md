@@ -109,14 +109,47 @@ all leave exactly one copy in the document. A no-op on the server.
 ### `injectPrePaintScrollbarCSS(): void`
 Injects the pre-paint scrollbar-hiding CSS and class into the document.
 
-Framework-free (vanilla JS). Adds a `<style id="tv-scrollbar-style">` with
-the pre-paint scrollbar CSS and the `tv-scrollbar` class to the document
-root so the native scrollbar is hidden before first paint. Idempotent and a
-no-op on the server.
+Framework-free (vanilla JS). Adds a `<style>` carrying the pre-paint
+scrollbar CSS and the `tv-scrollbar` class to the document root so the
+native scrollbar is hidden before first paint. Idempotent and a no-op on the
+server.
+
+This is a manual bootstrap helper for a page that wants the native bar hidden
+before its own script runs. It is *not* how ThemvoraScrollbar hides
+the bar — that happens through `createOverlayScrollbar`, which claims the
+hiding and gives it back on `destroy()`. Calling this directly therefore
+hides the bar without registering a claim, so pair it with
+`restoreNativeScrollbar()` if you later want the native bar back.
 
 **See also:** `ThemvoraScrollbar`
 
 **Returns** `void`
+
+---
+
+
+### `observeEffectiveThemeMode(listener): __type(): void`
+Calls `listener` whenever the applied mode changes, and returns an
+unsubscribe function.
+
+Framework-free (vanilla JS). Requires an initialized `<themvora-provider>`.
+The listener is **not** called once up front — read
+useEffectiveThemeMode for the current value and call it again from the
+listener.
+
+```ts
+const stop = observeEffectiveThemeMode(() => {
+  label.textContent = useEffectiveThemeMode();
+});
+```
+
+**See also:** `useEffectiveThemeMode`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `listener` | `__type(selection: ThemeEffectiveSelection): void` | Called after the applied mode changes. |
+
+**Returns** `__type(): void` — An unsubscribe function.
 
 ---
 
@@ -137,6 +170,26 @@ failure to the caller.
 | `active` | `T` (optional) | The currently active theme, used to disambiguate multiple generated themes. |
 
 **Returns** `T` — The resolved generated theme.
+
+---
+
+
+### `useEffectiveThemeMode(): "light" | "dark"`
+Returns the mode actually **applied** — `"light"` or `"dark"`, never
+`"system"`.
+
+Framework-free (vanilla JS). Requires an initialized `<themvora-provider>`.
+
+Use this when a control states the current appearance. useThemeMode
+reports what the visitor asked for: it stays `"system"` while that choice
+stands and it does not move at a sunrise/sunset transition, so a label bound
+to it kept announcing the old mode while the page changed colour.
+
+Pair it with observeEffectiveThemeMode to re-render on change.
+
+**See also:** `useThemeMode`, `observeEffectiveThemeMode`
+
+**Returns** `"light" | "dark"` — The applied mode.
 
 ---
 
@@ -162,6 +215,29 @@ immediately rather than a stale value being returned.
 **See also:** `useThemeValue`
 
 **Returns** `ThemeDefinition<string>` — The registered generated theme.
+
+---
+
+
+### `useProvidedThemes(): readonly ProvidedThemeFamily<ThemeDefinition<string>>[]`
+Returns the themes the active `<themvora-provider>` was given, grouped by
+family.
+
+Framework-free (vanilla JS). Reads live on every call, so a theme registered
+after the provider initialized appears immediately — the vanilla surface has
+no reactive wrapper by design, matching useThemeValue. For a push
+notification, listen for the provider's `themes-change` event.
+
+```js
+const families = useProvidedThemes();
+families.forEach((family) => {
+  console.log(family.family, family.variants.map((v) => v.mode));
+});
+```
+
+**See also:** `useThemeRuntime`, `normalizeProvidedThemes`
+
+**Returns** `readonly ProvidedThemeFamily<ThemeDefinition<string>>[]` — The provider's theme families, in supplied order.
 
 ---
 
@@ -1801,17 +1877,24 @@ Phase 2 — ThemvoraScrollbar (Web Component): overlay only.
 Creates the custom scrollbar overlay.
 
 Lifecycle:
-  connectedCallback  → inject pre-paint hiding CSS + class
-                       ↓ (Phase 1)
-  connectedCallback  → create overlay → measure → attach listeners
+  connectedCallback  → resolve the runtime
+                       ↓
+  onRuntime          → hide native bar (Phase 1) → create overlay → attach
                        ↓ (Phase 2)
   later              → add tv-scrollbar-ready
                        ↓ (Phase 3)
+  onDetach / destroy → remove overlay → restore native bar
 
-Phase 1 is injected synchronously in `connectedCallback`. For static HTML
-served via the Vite plugin (scrollbar: true), the pre-paint script in <head>
-runs before first paint. This component's injection is a fallback for
-dynamically-inserted scrollbar elements (which may have already painted).
+Phase 1 happens synchronously inside the overlay's construction. For static
+HTML served via the Vite plugin (scrollbar: true), the pre-paint script in
+<head> runs before first paint; for an SSR'd provider the class and CSS are
+in the markup. This component's own hiding is the fallback for
+dynamically-inserted elements (which may have already painted).
+
+The teardown is a real teardown. The hiding is claimed, not switched on, so
+removing the element gives the native scrollbar back instead of leaving the
+page with no scrollbar at all — and an attribute change swaps the overlay
+without ever passing through the "hidden, but nothing drawn" state.
 
 **See also:** `ThemvoraProvider`
 
@@ -2965,14 +3048,14 @@ Requires an ancestor `<themvora-provider>`.
 
 ## Interfaces
 
-### `ThemvoraProviderProps`
+### `ThemvoraProviderProps<T extends ThemeDefinition>`
 Configuration for the `<themvora-provider>` custom element, parsed from its
 attributes.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `string` | The default theme name. Parsed from the `default-theme` attribute. |
-| `initialFamily` (optional) | `string` | Family used when no selection is persisted. Parsed from the `initial-family` attribute. Pair it with `initialMode` for the same reason. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | The default theme. Parsed from the `default-theme` attribute. Accepts a supplied theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`); a family resolves to the variant for the mode in effect. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Family used when no selection is persisted. Parsed from the `initial-family` attribute. Pair it with `initialMode` for the same reason. A variant name is accepted and normalised to its family. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when no selection is persisted. Parsed from the `initial-mode` attribute (`"light" \| "dark" \| "system"`). Optional: both the runtime and the pre-paint script derive the same fallback mode from `default-theme` by default. Set it only to pin a mode the script would not derive — e.g. `"system"` to follow `prefers-color-scheme` — and give `themvoraVitePlugin` the same `initialMode`. |
 | `scheduled` (optional) | `ThemeScheduleOptions<ThemeDefinition<string>>` | Sunrise/sunset scheduling options. Parsed from the `scheduled` attribute (JSON). |
 | `themes` (optional) | `readonly ThemeDefinition<string>[]` | Theme definitions, parsed from the `themes` attribute. The attribute accepts either syntax: - a space- or comma-separated list of **theme names** already registered in the canonical catalog — `themes="light dark plum-dark"`; - a JSON array of full theme definitions — `themes='[{"name":"brand",…}]'`. Names are resolved against the built-in catalog plus any theme already registered on the live runtime; an unknown name is reported and skipped. A list that resolves nothing is reported and the built-in set is used. |
@@ -3075,9 +3158,10 @@ that.
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.
 - [DevTools](/devtools) — Inspect and drive the live runtime from a panel: adapters, history, snapshots and performance entries.

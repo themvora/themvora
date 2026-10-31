@@ -25,7 +25,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { chromium, CHROME, NODE, probePort } from "./lib/probe-env.mjs";
+import { chromium, CHROME, NODE, probePort, nextBin } from "./lib/probe-env.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const docsDir = path.dirname(here);
@@ -41,7 +41,7 @@ const check = (ok, label, detail = "") => {
 
 // -- server ------------------------------------------------------------------
 console.log(`Starting next dev on ${PORT} …`);
-const server = spawn(NODE, ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT)], {
+const server = spawn(NODE, [nextBin, "dev", "-p", String(PORT)], {
   cwd: docsDir,
   stdio: ["ignore", "pipe", "pipe"],
 });

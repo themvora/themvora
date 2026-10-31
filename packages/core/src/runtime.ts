@@ -1,4 +1,4 @@
-import type { ThemeDefinition } from "./model/theme";
+import type { ThemeDefinition, ThemeIdentifier } from "./model/theme";
 import type { ThemeTokens } from "./model/tokens";
 import {
   emitInvalidOptionDiagnostic,
@@ -13,9 +13,16 @@ import {
 } from "./configuration";
 import { getThemeFamilies } from "./model/selection";
 import { createThemeStore } from "./createThemeStore";
-import { mergeTokens } from "./model";
+import { mergeTokens, resolveSelectedTheme } from "./model";
 import { resolveTokens } from "./resolve";
 import { getBuiltInThemes } from "./built-in-themes";
+import {
+  resolveThemeOverride,
+  resolveThemeOverrideReporting,
+  themeOverrideKey,
+  type ThemeOverride,
+} from "./theme-override";
+import { resolveThemeReference } from "./theme-reference";
 
 import {
   createThemeRegistry,
@@ -33,6 +40,7 @@ import {
 } from "./adapters/theme-selection";
 
 import { createThemeSelectionBroadcast } from "./adapters/broadcast";
+import { runSyncAdapter } from "./adapters/sync-diagnostic";
 import { createDOMBinding, type DOMBindingOptions } from "./adapters/dom";
 
 import {
@@ -50,7 +58,10 @@ import {
   createThemeSchedule,
   type ThemeSchedule,
   type ThemeScheduleSetOptions,
+  type ThemeScheduleStore,
 } from "./adapters/schedule";
+
+import type { SunTimes } from "./adapters/scheduled";
 
 import type { ThemeMode } from "./model/theme";
 import type { ThemeSelectionState } from "./model/selection";
@@ -107,6 +118,17 @@ export interface ScheduledThemeOptions<T extends ThemeDefinition> {
   skipApplyMs?: number;
   /** Start enabled. Default `true`. */
   enabled?: boolean;
+  /**
+   * Override the sunrise/sunset computation.
+   *
+   * Defaults to the NOAA calculation in {@link calculateSunTimes}. Supply one
+   * to drive the schedule from a known clock — a test that must not depend on
+   * the real sun, or a product that defines "daytime" its own way. Read once
+   * when the schedule is created; a later `configure({ scheduled })` keeps the
+   * original function, because changing it mid-flight would re-interpret the
+   * transition that is already pending.
+   */
+  getTimes?: (date: Date, latitude: number, longitude: number) => SunTimes;
 }
 
 /**
@@ -126,9 +148,26 @@ export interface ThemeRuntimeOptions<
   initial?: InitialThemeResolution<T>;
 
   /**
-   * Theme name to activate when no persisted or explicit selection exists.
+   * Theme to activate when no persisted or explicit selection exists.
+   *
+   * Accepts a **variant** name (`"cocoa-dark"`) or a **family** name
+   * (`"cocoa"`); a family resolves to the variant the mode contract picks (see
+   * {@link resolveThemeReference}). A variant also supplies its own mode unless
+   * `initialMode` is given.
    */
-  defaultTheme?: T["name"];
+  defaultTheme?: ThemeIdentifier<T>;
+
+  /**
+   * An explicit theme to apply, outranking a saved selection.
+   *
+   * Unlike {@link defaultTheme}, which is only a fallback, an override is
+   * applied even when `localStorage` or a cookie already names another theme —
+   * which is what makes "preview this theme" expressible as a prop. It is a
+   * one-shot signal, not a controlled selection: it is applied when its value
+   * changes, it is never re-asserted on later renders, and it does not write to
+   * persistence. See {@link ThemeOverride}.
+   */
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>> | undefined;
 
   /**
    * Initial mode used when nothing else is given.
@@ -137,8 +176,12 @@ export interface ThemeRuntimeOptions<
 
   /**
    * Initial family used when nothing else is given.
+   *
+   * A **variant** name is also accepted and normalised to its family; the
+   * variant's own mode is used only when {@link initialMode} is absent, so an
+   * explicit mode always wins and the two props cannot silently disagree.
    */
-  initialFamily?: string;
+  initialFamily?: ThemeIdentifier<T>;
 
   /**
    * Whether a persisted selection is read at runtime creation.
@@ -292,8 +335,15 @@ export interface ThemeConfigurationUpdate<T extends ThemeDefinition> {
    * An empty or all-invalid array resolves to the canonical neutral fallback.
    */
   themes?: readonly T[] | undefined;
-  /** Fallback theme name when nothing else is given. */
-  defaultTheme?: T["name"] | undefined;
+  /** Fallback theme: a variant or family identifier. */
+  defaultTheme?: ThemeIdentifier<T> | undefined;
+  /**
+   * Explicit theme override. Supplied-and-semantically-different applies once;
+   * an unchanged override is never re-asserted, so it cannot fight a manual
+   * selection. Omit to leave the last applied override in place; `undefined`
+   * explicitly does the same (an override is not a value to revert to).
+   */
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>> | undefined;
   /** Initial family, used when the effective selection is re-resolved. */
   initialFamily?: string | undefined;
   /** Initial mode, used when the effective selection is re-resolved. */
@@ -604,10 +654,9 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   }
 
   // An explicitly requested family that the catalog does not have is reported
-  // by the resolver below (`resolveInitialTheme` → `resolveEffectiveConfiguration`),
-  // which knows the family it actually chose. Reporting it here as well would
-  // win the diagnostic dedupe with a *less* accurate message — the resolved
-  // family is not known yet at this point.
+  // *after* resolution below, because only then is the family the resolver
+  // actually chose known — and the diagnostic names it. Reporting it here would
+  // win the dedupe with a less accurate message.
   const registry = createThemeRegistry<T>({ themes: initialThemes });
   // Aliased to the registry's internal array, so `runtime.themes`,
   // `runtime.registry.themes` and a reference a consumer captured earlier are
@@ -638,8 +687,21 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   let initialFamily = options.initialFamily;
   let initialMode = options.initialMode as ThemeMode | undefined;
 
+  /** Read the persisted selection, degrading instead of throwing. */
+  function readSavedSelection(): ThemeSelectionState | null {
+    let value: ThemeSelectionState | null = null;
+    runSyncAdapter("createRuntime", "persistence", () => {
+      value = persistence?.get() ?? null;
+    });
+    return value;
+  }
+
   if (readPersistenceOnInit && !options.initial) {
-    const saved = persistence?.get();
+    // A caller-supplied adapter can throw where the built-in ones degrade (a
+    // hostile sandbox, a custom adapter with a bug). A failed *read* must not
+    // stop the runtime from coming up: the theme falls back to the configured
+    // selection and the failure is reported through the usual channel.
+    const saved = readSavedSelection();
     if (saved) {
       initialFamily = saved.family;
       initialMode = saved.mode;
@@ -659,7 +721,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     typeof document !== "undefined" ? readBootstrapState(themes) : null;
   const adoptBootstrap = bootstrapState?.ready === true ? bootstrapState : null;
 
-  const resolution =
+  const baseResolution =
     // Client only: adopt the pre-paint bootstrap's state when it is present.
     // By the time a client renders, `<html>` already carries the resolved theme
     // — the blocking script wrote it before first paint — so the DOM is the
@@ -696,12 +758,74 @@ export function createThemeRuntime<T extends ThemeDefinition>(
           prefersDark,
         }));
 
+  // An explicit override outranks everything above: that is its entire purpose.
+  // It is resolved through the same registry and the same selection model as
+  // every other input — there is no second theme-name resolver — and an
+  // unresolvable one is reported and ignored rather than silently replaced by
+  // `themes[0]`.
+  const overrideSelection = resolveThemeOverrideReporting(
+    themes,
+    options.themeOverride,
+    baseResolution.selection,
+  );
+
+  const resolution: InitialThemeResolution<T> = overrideSelection
+    ? {
+        selection: overrideSelection,
+        theme: resolveSelectedTheme(themes, {
+          ...overrideSelection,
+          mode:
+            overrideSelection.mode === "system"
+              ? prefersDark
+                ? "dark"
+                : "light"
+              : overrideSelection.mode,
+        }),
+      }
+    : baseResolution;
+
+  // Report an explicitly requested family that the catalog does not contain.
+  //
+  // This has to happen here rather than inside `resolveInitialTheme`: that
+  // function is also how the SSR integrations resolve a *persisted* family from
+  // a cookie, and a stale cookie must not raise a configuration error on every
+  // request — the fingerprint already covers that case by discarding the cookie.
+  // `initialFamily` is therefore only treated as a request when it is still the
+  // value the caller passed: not overridden by persistence, not adopted from the
+  // pre-paint bootstrap, and not superseded by a caller-supplied `initial`.
+  //
+  // Without this, the diagnostic existed only on the `configure()` path, so a
+  // runtime created with an unregistered `initialFamily` resolved silently to
+  // the fallback family while `configure()` with the same value reported it.
+  const requestedFamily = options.initialFamily;
+  if (
+    !options.initial &&
+    !adoptBootstrap &&
+    // An applied override is a *different* request that deliberately replaced
+    // the family; reporting the one it replaced would be noise, not a mistake.
+    !overrideSelection &&
+    requestedFamily !== undefined &&
+    requestedFamily.length > 0 &&
+    initialFamily === requestedFamily &&
+    // `initialFamily` accepts a variant name too, and that is not a mistake: the
+    // resolved family simply differs from the text. Only a reference that names
+    // nothing at all is reported.
+    resolveThemeReference(themes, requestedFamily) === null &&
+    resolution.selection.family !== requestedFamily
+  ) {
+    emitUnknownFamilyDiagnostic(
+      requestedFamily,
+      resolution.selection.family,
+      themes,
+    );
+  }
+
   // The resolution a **server render** produces. Same inputs as above, minus
   // the two things a server does not have: a persisted selection (no storage)
   // and an OS preference (no `matchMedia`). Exposed as `runtime.initial` so
   // `useSyncExternalStore` can be given the value the server actually
   // rendered — see `ThemeRuntimeInitial`.
-  const serverResolution =
+  const serverBase =
     options.initial ??
     resolveInitialTheme({
       themes,
@@ -720,6 +844,27 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
       prefersDark: false,
     });
+
+  // The override is part of the server's resolution too, so the markup a server
+  // sends, the snapshot React hydrates against and the client's first render all
+  // agree. Resolved without a second diagnostic: the client path above already
+  // reported an unresolvable override once.
+  const serverOverride = resolveThemeOverride(
+    themes,
+    options.themeOverride,
+    serverBase.selection,
+  );
+
+  const serverResolution: InitialThemeResolution<T> = serverOverride
+    ? {
+        selection: serverOverride,
+        theme: resolveSelectedTheme(themes, {
+          ...serverOverride,
+          mode:
+            serverOverride.mode === "system" ? "light" : serverOverride.mode,
+        }),
+      }
+    : serverBase;
 
   const initial: ThemeRuntimeInitial<T> = Object.freeze({
     theme: serverResolution.theme,
@@ -770,11 +915,19 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     options.cssVariables?.transition !== undefined;
 
   // Live: reconciled by `configure({ scheduled })`.
-  let scheduleHandle = createScheduleController(
-    store,
-    themes,
-    options.scheduled,
-  );
+  let scheduleHandle: ThemeSchedule | null = null;
+
+  /**
+   * Whether an explicit `themeOverride` is in force.
+   *
+   * Tracked separately from `appliedOverrideKey` because the schedule is built
+   * before that variable is initialised, and because it answers a different
+   * question: not *which* override, but *whether* one outranks the automatic
+   * drivers. An override is an explicit request — a preview the developer asked
+   * for — so it must survive a sunset, exactly as it already survives a
+   * `localStorage` entry.
+   */
+  let overrideActive = overrideSelection !== null;
 
   const selectionController = createThemeSelectionController({
     store,
@@ -795,6 +948,81 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     onSyncApply: () => {
       scheduleHandle?.setLastSyncTime(Date.now());
     },
+  });
+
+  // The schedule is created *after* the selection controller and writes through
+  // it rather than straight to the store.
+  //
+  // Two things follow from that, and both were broken when the schedule held the
+  // raw store. First, a transition is now an *automatic* apply: the visitor's
+  // configured mode survives it, nothing is persisted or broadcast on its
+  // behalf, and the effective mode is published so a control showing "the
+  // current mode" follows it. Second, the schedule can claim the appearance
+  // exclusively — `setAutomaticDriverActive` releases the OS binding, so
+  // `prefers-color-scheme` cannot overwrite the scheduled theme. Previously the
+  // schedule applied the night theme during construction and the `"system"`
+  // binding replaced it with the daytime theme a moment later, so the schedule
+  // only took effect at its first tick, a whole `checkInterval` later.
+  const scheduleStore: ThemeScheduleStore<T> = {
+    get: () => store.get(),
+    set: (theme, setOptions) =>
+      selectionController.applyAutomaticTheme(theme, setOptions),
+    subscribe: (listener) => store.subscribe(listener),
+  };
+
+  scheduleHandle = createScheduleController(
+    scheduleStore,
+    themes,
+    options.scheduled,
+    // An explicit `themeOverride` outranks the schedule, so a scheduled apply is
+    // refused while one is in force. Read live, because the override can arrive
+    // or be removed long after the schedule was built.
+    () => !overrideActive,
+  );
+
+  /**
+   * Who owns the appearance right now.
+   *
+   * One owner at a time, in this order: an explicit `themeOverride`, then the
+   * schedule, then `prefers-color-scheme`. Each lower layer is released when a
+   * higher one is active, which is what stops two drivers from writing the same
+   * store and taking turns.
+   */
+  function syncAutomaticDriver(): void {
+    selectionController.setAutomaticDriverActive(
+      !overrideActive && scheduleHandle?.enabled === true,
+    );
+  }
+
+  syncAutomaticDriver();
+
+  // `schedule.enable()` / `schedule.disable()` are reachable from any framework
+  // binding (`useThemeSchedule()` returns the controller), so ownership of the
+  // appearance has to follow the schedule's own state, not only `configure()`.
+  let unsubscribeScheduleState: (() => void) | null = null;
+
+  function watchScheduleOwnership(): void {
+    unsubscribeScheduleState?.();
+    unsubscribeScheduleState =
+      scheduleHandle?.subscribe(() => {
+        syncAutomaticDriver();
+      }) ?? null;
+  }
+
+  watchScheduleOwnership();
+
+  // Watch for a *user* selection made while an override is active. Removing the
+  // override must restore the layer it covered, but not over the top of a choice
+  // the visitor made afterwards — that is newer intent than the snapshot.
+  //
+  // `applyState` from `configure()` (and `restore()`) notifies through the same
+  // channel, hence the guard: only a change the runtime did not make counts.
+  // An automatic change notifies on `subscribeEffective` instead, precisely so
+  // it is not mistaken for the visitor choosing something.
+  const unsubscribeManualSelection = selectionController.subscribe(() => {
+    if (applyingConfiguration) return;
+    if (appliedOverrideKey === null) return;
+    manualSelectionSinceOverride = true;
   });
 
   // Created *after* the selection controller, because both bindings apply the
@@ -963,9 +1191,14 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
         store.set(cloneThemeValue(snap.theme) as T, { force: true });
         previousTheme = store.get();
-        selectionController.setMode(snap.selection.mode);
-        if (snap.selection.family) {
-          selectionController.setFamily(snap.selection.family);
+        applyingConfiguration = true;
+        try {
+          selectionController.setMode(snap.selection.mode);
+          if (snap.selection.family) {
+            selectionController.setFamily(snap.selection.family);
+          }
+        } finally {
+          applyingConfiguration = false;
         }
       });
     });
@@ -980,10 +1213,45 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   let appliedConfig: ThemeConfigurationUpdate<T> & { themes: readonly T[] } = {
     themes: initialThemes,
     defaultTheme: options.defaultTheme,
+    themeOverride: options.themeOverride,
     initialFamily: options.initialFamily,
     initialMode: options.initialMode,
     initial: options.initial,
   };
+
+  // The override the runtime has already honoured, in two forms:
+  //
+  // - `appliedOverrideKey` — canonical (a name resolved against the catalog), so
+  //   `"mint-dark"` and `{ family: "mint", mode: "dark" }` compare equal;
+  // - `appliedOverrideRequestKey` — catalog-free, so a catalog change that
+  //   removes the named theme does not make an unchanged prop look like a new
+  //   request and re-report it.
+  //
+  // Both are `null` until an override actually resolves: an unresolvable one must
+  // be retried when the catalog later gains the theme it names.
+  let appliedOverrideKey = overrideSelection
+    ? themeOverrideKey(options.themeOverride, themes)
+    : null;
+  let appliedOverrideRequestKey = overrideSelection
+    ? themeOverrideKey(options.themeOverride)
+    : null;
+
+  // The selection the override is layered over: what becomes effective again when
+  // the override is removed. Captured when an override *starts*, and left alone
+  // while it changes, so removing a second override still returns to the state
+  // the visitor had before any override existed.
+  let overrideBaseSelection: ThemeSelectionState | null = overrideSelection
+    ? { ...baseResolution.selection }
+    : null;
+
+  // Whether the visitor picked a theme themselves while an override was active.
+  // Removing the override must not throw that choice away — the snapshot above is
+  // only the right answer when nothing else happened in between.
+  let manualSelectionSinceOverride = false;
+
+  // Set while `configure()` applies a selection, so its own `applyState` is not
+  // mistaken for a user action by the subscription below.
+  let applyingConfiguration = false;
 
   // The transition/scheduling inputs as last applied. Held separately from the
   // catalog/selection state above because they are independent subsystems:
@@ -1129,13 +1397,25 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     if (next === false) {
       scheduleHandle?.destroy();
       scheduleHandle = null;
+      watchScheduleOwnership();
+      selectionController.setAutomaticDriverActive(false);
       return;
     }
     if (!scheduleHandle) {
-      scheduleHandle = createScheduleController(store, themes, next);
-      return;
+      scheduleHandle = createScheduleController(
+        scheduleStore,
+        themes,
+        next,
+      );
+      watchScheduleOwnership();
+    } else {
+      scheduleHandle.set(scheduledSetOptions(next));
     }
-    scheduleHandle.set(scheduledSetOptions(next));
+    // Enabling, disabling or reconfiguring the schedule changes who owns the
+    // appearance, so the OS binding is handed over or taken back here. Routed
+    // through `syncAutomaticDriver` rather than read from `enabled` directly:
+    // an active `themeOverride` still outranks a freshly installed schedule.
+    syncAutomaticDriver();
   }
 
   /**
@@ -1303,6 +1583,39 @@ export function createThemeRuntime<T extends ThemeDefinition>(
       nextInitialFamily !== appliedConfig.initialFamily ||
       nextInitialMode !== appliedConfig.initialMode;
 
+    // The override is diffed by *semantic* key, not by identity and not against
+    // `appliedConfig` alone: it is a one-shot signal, so "already applied" has to
+    // survive both re-renders with a rebuilt object and a manual selection that
+    // moved the theme away from it.
+    const nextOverride = has("themeOverride")
+      ? update.themeOverride
+      : appliedConfig.themeOverride;
+    const nextOverrideKey = themeOverrideKey(nextOverride, nextThemes);
+    const nextOverrideRequestKey = themeOverrideKey(nextOverride);
+    const overrideChanged =
+      nextOverrideKey !== null &&
+      nextOverrideKey !== appliedOverrideKey &&
+      nextOverrideRequestKey !== appliedOverrideRequestKey;
+
+    // Removal is a transition, not the absence of one. Before this, `undefined`
+    // produced `nextOverrideKey === null` and every comparison short-circuited to
+    // "unchanged", so the runtime kept the override for the life of the page and
+    // only a reload revealed the underlying selection again.
+    const overrideRemoved = nextOverrideKey === null && appliedOverrideKey !== null;
+
+    // Resolved here, against the selection that is *currently in effect* — not
+    // against a re-resolution of the props. The override is a layer over what the
+    // visitor is looking at; a partial request (`{ family }`) completes from it,
+    // and the snapshot taken below has to be that same layer.
+    const currentSelection = selectionController.getSelection();
+    const overrideResolution = overrideChanged
+      ? resolveThemeOverrideReporting(nextThemes, nextOverride, currentSelection)
+      : null;
+    // An override that resolved to nothing is not a state transition: the
+    // diagnostic has already been emitted, and applying the re-resolved default
+    // would fire a spurious theme change on every render. `overrideResolution`
+    // being null is what the early return below checks.
+
     // Transition/scheduling inputs are diffed independently of the catalog so
     // that, e.g., a transition-only update never looks like a selection change.
     const transitionConfig = has("transition")
@@ -1323,6 +1636,8 @@ export function createThemeRuntime<T extends ThemeDefinition>(
       !catalogChanged &&
       !initialChanged &&
       !selectionPropsChanged &&
+      !overrideChanged &&
+      !overrideRemoved &&
       !transitionChanged &&
       !scheduledChanged
     ) {
@@ -1362,9 +1677,17 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
     // No catalog/selection work to do → done (e.g. a transition-only update
     // must leave the active theme and history untouched).
-    if (!catalogChanged && !initialChanged && !selectionPropsChanged) return;
+    if (
+      !catalogChanged &&
+      !initialChanged &&
+      !selectionPropsChanged &&
+      !overrideRemoved &&
+      !overrideResolution
+    ) {
+      return;
+    }
 
-    const previous = selectionController.getSelection();
+    const previous = currentSelection;
     let nextSelection: ThemeSelectionState;
 
     if (
@@ -1395,6 +1718,35 @@ export function createThemeRuntime<T extends ThemeDefinition>(
       }).selection;
     }
 
+    // The override wins over whatever the resolution above produced — including a
+    // changed `initial` — because it is the more explicit request. It is resolved
+    // against the *new* catalog, so an override that names a theme the catalog
+    // has just gained starts working on this update.
+    let overrideApplied = false;
+    let overrideWasRemoved = false;
+    if (overrideResolution) {
+      // Capture the layer the override is about to cover — but only when an
+      // override was not already active, so changing A→B keeps the state that
+      // predates *both*.
+      if (appliedOverrideKey === null) {
+        overrideBaseSelection = { ...previous };
+        manualSelectionSinceOverride = false;
+      }
+      nextSelection = overrideResolution;
+      overrideApplied = true;
+    } else if (overrideRemoved) {
+      // Removing the override reveals the layer underneath. If the visitor chose
+      // something themselves while the override was active, that newer intent
+      // wins over the snapshot — and "the current selection" is exactly it,
+      // because the runtime kept applying their choices over the override.
+      nextSelection = manualSelectionSinceOverride
+        ? { ...previous }
+        : { ...(overrideBaseSelection ?? previous) };
+      overrideBaseSelection = null;
+      manualSelectionSinceOverride = false;
+      overrideWasRemoved = true;
+    }
+
     // 2. Apply atomically: one registry notification, one store notification,
     //    so a consumer never sees the new catalog with the old colors.
     //
@@ -1413,7 +1765,24 @@ export function createThemeRuntime<T extends ThemeDefinition>(
           registry.clear();
           registry.registerMany(nextThemes);
         }
-        selectionController.applyState(nextSelection);
+        applyingConfiguration = true;
+        try {
+          selectionController.applyState(
+            nextSelection,
+            // The override must not write to storage or the cross-tab channel: it
+            // is a transient preview, and overwriting the visitor's saved choice
+            // would make a prop look like a user action. It *should* animate, since
+            // it is a visible theme change the consumer asked for. Restoring the
+            // underlying selection is not a user action either, so it does not
+            // persist — that state is already what storage says, or it is a
+            // fallback that was never a choice.
+            overrideApplied || overrideWasRemoved
+              ? { persist: false, suppressTransition: false }
+              : {},
+          );
+        } finally {
+          applyingConfiguration = false;
+        }
         previousTheme = store.get();
       });
     });
@@ -1422,6 +1791,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
     appliedConfig = {
       themes: nextThemes,
       defaultTheme: nextDefaultTheme,
+      themeOverride: nextOverride,
       initialFamily: nextInitialFamily,
       initialMode: nextInitialMode,
       // Only a resolution the catalog accepted is remembered. Storing an
@@ -1430,6 +1800,28 @@ export function createThemeRuntime<T extends ThemeDefinition>(
       // when it had become valid.
       initial: initialUsable ? initial : appliedConfig.initial,
     };
+
+    // Recorded only when it actually resolved, for the same reason `initial` is:
+    // an unresolvable override has to be retried once the catalog can satisfy it.
+    if (overrideApplied) {
+      appliedOverrideKey = nextOverrideKey;
+      appliedOverrideRequestKey = nextOverrideRequestKey;
+      overrideActive = true;
+    } else if (overrideWasRemoved) {
+      // Cleared, so the same override applied again later is a new transition
+      // rather than "already honoured".
+      appliedOverrideKey = null;
+      appliedOverrideRequestKey = null;
+      overrideActive = false;
+    }
+
+    // The override layer just moved, so the appearance has a different owner:
+    // an override suspends the schedule, and removing it hands the appearance
+    // back. Without this the schedule either kept writing over a preview or
+    // stayed suspended after the preview ended.
+    if (overrideApplied || overrideWasRemoved) {
+      syncAutomaticDriver();
+    }
   }
 
   const unsubscribeStoreSelection = store.subscribe((theme) => {
@@ -1513,6 +1905,9 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
     destroy() {
       unsubscribeStoreSelection();
+      unsubscribeManualSelection();
+      unsubscribeScheduleState?.();
+      unsubscribeScheduleState = null;
       pluginManager.destroy();
       selectionController.destroy();
       historyController.destroy();
@@ -1540,9 +1935,10 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 }
 
 function createScheduleController<T extends ThemeDefinition>(
-  store: ThemeStore<T>,
+  store: ThemeScheduleStore<T>,
   themes: readonly T[],
   scheduled: false | ScheduledThemeOptions<T> | undefined,
+  allowApply?: () => boolean,
 ) {
   if (!scheduled) return null;
 
@@ -1572,5 +1968,7 @@ function createScheduleController<T extends ThemeDefinition>(
       ? { skipApplyMs: scheduled.skipApplyMs }
       : {}),
     ...(scheduled.enabled !== undefined ? { enabled: scheduled.enabled } : {}),
+    ...(scheduled.getTimes !== undefined ? { getTimes: scheduled.getTimes } : {}),
+    ...(allowApply ? { onBeforeApply: () => allowApply() } : {}),
   });
 }

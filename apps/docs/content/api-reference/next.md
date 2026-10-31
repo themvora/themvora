@@ -34,7 +34,6 @@ pre-paint by the blocking bootstrap, so the shell is never blocking under
 Next's Cache Components.
 
 ```ts
-// app/layout.tsx
 import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
@@ -777,7 +776,7 @@ elements, applies the theme, and mounts the client runtime inside the body.
 | `dangerouslySetInnerHTML` (optional) | `{ }` | — |
 | `datatype` (optional) | `string` | — |
 | `defaultChecked` (optional) | `boolean` | — |
-| `defaultTheme` (optional) | `T["name"]` | Theme to be applied as default. Pass defaultTheme="light" for the themvora's default neutral light theme. And defaultTheme="dark" for default neutral dark theme. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to be applied as default. Accepts a supplied theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`). A family resolves to the variant for the mode in effect, so it stays light/dark-aware instead of pinning one definition. |
 | `defaultValue` (optional) | `string \| number \| readonly string[]` | — |
 | `dir` (optional) | `string` | — |
 | `draggable` (optional) | `Booleanish` | — |
@@ -986,6 +985,7 @@ elements, applies the theme, and mounts the client runtime inside the body.
 | `suppressContentEditableWarning` (optional) | `boolean` | — |
 | `suppressHydrationWarning` (optional) | `boolean` | — |
 | `tabIndex` (optional) | `number` | — |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted cookie selection. Resolved on the server as well as in the browser, so the SSR shell, the blocking bootstrap and the hydrated runtime all paint the overridden theme — no correction frame. It is applied once per value and never written to the theme cookies. |
 | `themes` (optional) | `readonly T[]` | Collection of themes to be specified for the application. |
 | `title` (optional) | `string` | — |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | CSS transition options for theme changes. |
@@ -1014,7 +1014,6 @@ script rewrites them, so React's hydration diff is suppressed on the document
 element — the narrowest scope that covers attributes the script owns.
 
 ```ts
-// app/layout.tsx
 import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {
@@ -1068,6 +1067,7 @@ grouped ones).
 
 ## Related docs
 
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.

@@ -84,10 +84,18 @@ export default function Page() {
 
 ## Style it with Themvora tokens
 
-Themvora emits one CSS variable per token, so your own classes read the active
-theme without any per-theme CSS:
+Themvora emits the active theme's tokens as CSS custom properties, so the
+document itself is themed and your own classes read the same variables without
+any per-theme CSS. The rules use only required semantic colours — spacing,
+typography and layout stay ordinary CSS:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .page {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
@@ -97,8 +105,8 @@ theme without any per-theme CSS:
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-md);
-  padding: var(--theme-spacing-4);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1rem;
 }
 ```
 

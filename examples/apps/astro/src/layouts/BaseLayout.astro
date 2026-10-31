@@ -1,0 +1,11 @@
+---
+import Provider from "@themvora/astro/provider.astro";
+import themeConfig from "../../theme.config";
+import "../styles/global.css";
+import "@themvora/core/scrollbar.css";
+---
+
+<Provider config={themeConfig} lang="en" scrollbar bootstrap={false}>
+  <title slot="head">Themvora + Astro</title>
+  <slot />
+</Provider>

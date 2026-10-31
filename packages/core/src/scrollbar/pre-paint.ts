@@ -89,6 +89,120 @@ export function createPrePaintScrollbarCSS(): string {
 }
 
 /**
+ * `id` of the stylesheet the client-side bootstrap injects.
+ *
+ * Kept for compatibility — a teardown must find the stylesheet whoever wrote
+ * it, so {@link restoreNativeScrollbar} looks for the marker attribute below as
+ * well, and that is the one every producer sets.
+ */
+export const SCROLLBAR_HIDING_STYLE_ID = "tv-scrollbar-style";
+
+/**
+ * Marker on every stylesheet that hides the native scrollbar.
+ *
+ * Three different places can emit that CSS — this module's blocking script,
+ * `createOverlayScrollbar`, and an SSR adapter (the Astro provider renders it
+ * inline in `<head>`). A stylesheet is only removable if a teardown can find
+ * it, and an id alone cannot: the SSR output has no id, and an id is a single
+ * slot. So the marker is the contract, and the id is just a fast path.
+ */
+export const SCROLLBAR_HIDING_STYLE_ATTR = "data-themvora-scrollbar-hiding";
+
+/** Every stylesheet currently hiding the native scrollbar. */
+function hidingStylesheets(): HTMLStyleElement[] {
+  const found: HTMLStyleElement[] = [];
+  const byId = document.getElementById(SCROLLBAR_HIDING_STYLE_ID);
+  if (byId instanceof HTMLStyleElement) found.push(byId);
+  const marked = document.querySelectorAll<HTMLStyleElement>(
+    `style[${SCROLLBAR_HIDING_STYLE_ATTR}]`,
+  );
+  for (let i = 0; i < marked.length; i += 1) {
+    const el = marked[i];
+    if (el && !found.includes(el)) found.push(el);
+  }
+  return found;
+}
+
+/**
+ * How many live overlays are currently relying on the native scrollbar being
+ * hidden. The hiding is a document-wide fact but overlays are per-instance, so
+ * the last one out turns the lights off — a rebuild or a second overlay must
+ * never hand the native bar back while another overlay is still drawing.
+ */
+let hidingClaims = 0;
+
+/**
+ * Restore the platform's native scrollbars, discarding any outstanding claims.
+ *
+ * Undoes the hiding completely: the `tv-scrollbar` class (and the
+ * `tv-scrollbar-ready` phase marker) come off `<html>`, and every hiding
+ * stylesheet is removed. Safe to call at any time and idempotent — a page that
+ * never hid anything is left untouched.
+ *
+ * This is what makes the overlay's lifecycle symmetric. Without it, unmounting
+ * the overlay left the page with the native bar still hidden and nothing to
+ * replace it: an invisible scrollbar, not a native one.
+ *
+ * It is also a hard reset: the claim count drops to zero, so an overlay that
+ * outlives the call no longer keeps the native bar hidden on its own. That is
+ * the point — it is the escape hatch for a page that has decided the overlay is
+ * gone (a teardown, a framework's `beforeunload`, a test), and it is why the
+ * count cannot drift upwards forever.
+ */
+export function restoreNativeScrollbar(): void {
+  hidingClaims = 0;
+  if (typeof document === "undefined") return;
+  try {
+    const docEl = document.documentElement;
+    docEl.classList.remove("tv-scrollbar");
+    docEl.classList.remove("tv-scrollbar-ready");
+    for (const sheet of hidingStylesheets()) sheet.remove();
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Hide the native scrollbar and register a claim that keeps it hidden.
+ *
+ * Returns the release function for that claim. The hiding is applied
+ * idempotently (the class may already be server-rendered, the stylesheet may
+ * already exist), and it is released when the last claim goes away — so
+ * `createOverlayScrollbar` and its `destroy()` are a matched pair rather than
+ * a one-way switch.
+ */
+export function hideNativeScrollbar(): () => void {
+  if (typeof document === "undefined") return () => {};
+
+  try {
+    const docEl = document.documentElement;
+    if (!docEl.classList.contains("tv-scrollbar")) {
+      docEl.classList.add("tv-scrollbar");
+    }
+    // Respect an SSR stylesheet that is already there instead of stacking a
+    // duplicate: the rules are identical and order between them is irrelevant.
+    if (hidingStylesheets().length === 0) {
+      const style = document.createElement("style");
+      style.id = SCROLLBAR_HIDING_STYLE_ID;
+      style.setAttribute(SCROLLBAR_HIDING_STYLE_ATTR, "");
+      style.textContent = PRE_PAINT_SCROLLBAR_CSS;
+      document.head.appendChild(style);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  hidingClaims += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    hidingClaims = Math.max(0, hidingClaims - 1);
+    if (hidingClaims === 0) restoreNativeScrollbar();
+  };
+}
+
+/**
  * Generate a blocking `<script>` that hides the native scrollbar before
  * first paint. The script is idempotent — calling it multiple times is safe.
  * On coarse-pointer devices it returns early (unless `touch` is forced), so
@@ -107,7 +221,8 @@ var coarse=window.matchMedia&&window.matchMedia("(pointer: coarse)").matches;
 if(coarse&&!${JSON.stringify(touch)})return;
 el.classList.add("tv-scrollbar");
 var s=doc.createElement("style");
-s.id="tv-scrollbar-style";
+s.id=${JSON.stringify(SCROLLBAR_HIDING_STYLE_ID)};
+s.setAttribute(${JSON.stringify(SCROLLBAR_HIDING_STYLE_ATTR)},"");
 s.textContent=${JSON.stringify(PRE_PAINT_SCROLLBAR_CSS)};
 doc.head.appendChild(s);
 }catch(e){}})();`;

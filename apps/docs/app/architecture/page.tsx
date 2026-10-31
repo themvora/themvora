@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { InlineCode } from "../../components/ui/inline-code";
@@ -20,10 +20,9 @@ export const metadata: Metadata = {
 
 function snippet(code: string, lang = "ts") {
   return (
-    <CodeBlock
-      html={highlightCode(code, lang)}
+    <CodeExample
       code={code}
-      language={lang}
+      lang={lang}
       className="rounded-lg m-0"
     />
   );
@@ -246,11 +245,15 @@ export default defineThemvoraConfig({
 });`;
 
 const configProviderCode = `// main.tsx — the runtime, through your framework provider
+import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@themvora/react";
+import { App } from "./App";
 
-<ThemeProvider>
-  <App />
-</ThemeProvider>`;
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider>
+    <App />
+  </ThemeProvider>,
+);`;
 
 const configPluginCode = `// vite.config.ts — the pre-paint bootstrap, through a build integration
 import { themvoraVitePlugin } from "@themvora/core/vite";
@@ -284,23 +287,29 @@ themvoraVitePlugin();
  *
  * Derived from the shipped type rather than invented: `ThemeBootstrapConfig` is
  * `Pick<ThemvoraConfig, "themes" | "defaultTheme" | "initialMode" |
- * "initialFamily" | "storageKey" | "prefix">`, and both integrations transport
- * exactly that projection (`toBootstrapConfig`) to the runtime. Everything
- * outside the pick is runtime-only, and `plugins` / `adapters` additionally
- * cannot be serialized at all.
+ * "initialFamily" | "storageKey" | "prefix" | "transition" | "scrollbar">`, and
+ * both integrations transport exactly that projection (`toBootstrapConfig`) to
+ * the runtime.
+ *
+ * "Bootstrap" and "transported" are two different questions, and the table keeps
+ * them apart on purpose. `transition` crosses to the browser — the client
+ * runtime is built from the transported config, so a key left out of it is
+ * replaced by a default rather than ignored — but the pre-paint script has
+ * nothing to do with it. Only `plugins`, `adapters` and `persistence` are
+ * genuinely left behind, because none of them can be serialized.
  */
 const configSplit = [
-  { key: "themes", runtime: true, bootstrap: true, note: "The registry both sides resolve from." },
-  { key: "defaultTheme", runtime: true, bootstrap: true, note: "Fallback when nothing is persisted." },
-  { key: "initialMode", runtime: true, bootstrap: true, note: "`system` → `prefers-color-scheme`." },
-  { key: "initialFamily", runtime: true, bootstrap: true, note: "Family resolved before first paint." },
-  { key: "storageKey", runtime: true, bootstrap: true, note: "The key both sides read." },
-  { key: "prefix", runtime: true, bootstrap: true, note: "CSS variable prefix." },
-  { key: "persistence", runtime: true, bootstrap: false, note: "A runtime decision made after the fact." },
-  { key: "transition", runtime: true, bootstrap: false, note: "Nothing to animate before paint." },
-  { key: "scrollbar", runtime: true, bootstrap: false, note: "Runtime overlay options." },
-  { key: "plugins", runtime: true, bootstrap: false, note: "Not serializable — pass to the provider." },
-  { key: "adapters", runtime: true, bootstrap: false, note: "Not serializable — pass to the provider." },
+  { key: "themes", runtime: true, bootstrap: true, transported: true, note: "The registry both sides resolve from." },
+  { key: "defaultTheme", runtime: true, bootstrap: true, transported: true, note: "Fallback when nothing is persisted." },
+  { key: "initialMode", runtime: true, bootstrap: true, transported: true, note: "`system` → `prefers-color-scheme`." },
+  { key: "initialFamily", runtime: true, bootstrap: true, transported: true, note: "Family resolved before first paint." },
+  { key: "storageKey", runtime: true, bootstrap: true, transported: true, note: "The key both sides read." },
+  { key: "prefix", runtime: true, bootstrap: true, transported: true, note: "CSS variable prefix." },
+  { key: "transition", runtime: true, bootstrap: false, transported: true, note: "Nothing to animate before paint, but the client runtime honours it." },
+  { key: "scrollbar", runtime: true, bootstrap: false, transported: true, note: "Runtime overlay options." },
+  { key: "persistence", runtime: true, bootstrap: false, transported: false, note: "A live adapter — not serializable. Pass to the provider." },
+  { key: "plugins", runtime: true, bootstrap: false, transported: false, note: "Not serializable — pass to the provider." },
+  { key: "adapters", runtime: true, bootstrap: false, transported: false, note: "Not serializable — pass to the provider." },
 ];
 
 const layers = [
@@ -482,6 +491,9 @@ export default function ArchitecturePage() {
                     <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider whitespace-nowrap">
                       Bootstrap
                     </th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider whitespace-nowrap">
+                      Transported
+                    </th>
                     <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
                       Notes
                     </th>
@@ -506,6 +518,11 @@ export default function ArchitecturePage() {
                           {row.bootstrap ? "✓" : "—"}
                         </span>
                       </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span aria-label={row.transported ? "transported" : "not transported"}>
+                          {row.transported ? "✓" : "—"}
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5 opacity-70">{row.note}</td>
                     </tr>
                   ))}
@@ -514,12 +531,17 @@ export default function ArchitecturePage() {
             </div>
           </div>
           <p className="text-sm opacity-70 leading-relaxed">
-            Because the transported configuration is the bootstrap projection, the
-            runtime-only keys never reach the provider through it — pass those to
-            the provider directly. A build integration is an{" "}
-            <strong>optimization</strong>, not a requirement: with no integration
-            at all, a provider alone still themes the app, using the built-in
-            neutral themes when no registry is supplied. What it gives up is the
+            Every serializable key reaches the provider through the transported
+            configuration, so a runtime option declared once in{" "}
+            <code className="mono text-[0.9em]">theme.config.ts</code> — including{" "}
+            <code className="mono text-[0.9em]">transition</code> — is honoured in
+            the browser as well. A key that does not cross is not ignored, it is
+            replaced by a default, so the only ones left behind are the three that
+            cannot be serialized; pass those to the provider directly. A build
+            integration is an <strong>optimization</strong>, not a requirement:
+            with no integration at all, a provider alone still themes the app,
+            using the built-in neutral themes when no registry is supplied. What
+            it gives up is the
             pre-paint guarantee.
           </p>
         </section>

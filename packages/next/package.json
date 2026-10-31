@@ -1,7 +1,7 @@
 {
   "name": "@themvora/next",
   "license": "MIT",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -18,10 +18,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest"
   },
   "peerDependencies": {

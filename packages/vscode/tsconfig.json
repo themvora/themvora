@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // The extension host is Node with no DOM. The base config includes DOM in
+    // `lib`, which would let a `document`/`window` reference typecheck and then
+    // fail at runtime — so the DOM lib is dropped here on purpose.
+    "lib": ["ES2022"],
+    "types": ["node", "vscode"],
+    // Type-check only. `tsconfig.build.json` is the emitting config, so the
+    // tests can be type-checked without landing in `dist`.
+    "noEmit": true
+  },
+  "include": ["src", "test"],
+  // The one test that renders a React component imports a `.tsx` module, so it
+  // needs JSX and the DOM lib — neither of which the host may have. It is
+  // typechecked by `tsconfig.webview.json` instead, which is where the webview
+  // it exercises already lives.
+  "exclude": ["test/studioLibraryRender.test.ts"]
+}

@@ -46,7 +46,7 @@ cross-tab `storage` events.
 ---
 
 
-### `createBlockingScriptContent(themes, savedSelection?, options): string`
+### `createBlockingScriptContent<T extends ThemeDefinition<string>>(themes, savedSelection?, options): string`
 Generates the blocking bootstrap HTML (a critical CSS `<style>` and a
 blocking `<script>`) that applies the theme before first paint.
 
@@ -61,11 +61,33 @@ when provided.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `themes` | `readonly ThemeDefinition<string>[]` | The theme definitions to emit CSS variables for. |
+| `themes` | `readonly T[]` | The theme definitions to emit CSS variables for. |
 | `savedSelection` | `{ family: string; mode: ThemeMode } \| null` (optional) | The persisted mode and theme family, if any. |
-| `options` | `BlockingScriptOptions` | Fallback mode/family inputs. Must match the client runtime's `initialMode`/`defaultTheme` so the two resolve the same theme. |
+| `options` | `BlockingScriptOptions<T>` | Fallback mode/family inputs. Must match the client runtime's `initialMode`/`defaultTheme` so the two resolve the same theme. |
 
 **Returns** `string` — An HTML string containing the critical style and blocking script.
+
+---
+
+
+### `injectEffectiveThemeMode(): Signal<"light" | "dark">`
+Injects the mode actually **applied** — `"light"` or `"dark"`, never
+`"system"` — as a read-only signal.
+
+The narrow form of injectTheme: use it in a component that only
+displays the current appearance, so it re-renders for an OS change or a
+sunrise/sunset transition and not for anything else.
+
+May be called from an Angular injection context.
+
+**See also:** `injectTheme`, `ThemeState.resolvedMode`
+
+**Returns** `Signal<"light" | "dark">` — A read-only `Signal<"light" | "dark">`.
+
+```ts
+const mode = injectEffectiveThemeMode();
+// template: <span>{{ mode() }}</span>
+```
 
 ---
 
@@ -98,6 +120,25 @@ reactive read rather than a stale theme being returned.
 const generated = injectGeneratedTheme();
 effect(() => console.log(generated().name));
 ```
+
+---
+
+
+### `injectProvidedThemes<T extends ThemeDefinition<string>>(): Signal<readonly ProvidedThemeFamily<T>[]>`
+Injects the themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to `provideTheme` — not the built-in
+catalog. The signal updates when a theme pack is installed or the registry is
+mutated, and unsubscribes automatically when the injector is destroyed.
+
+```ts
+const families = injectProvidedThemes();
+effect(() => console.log(families().map((f) => f.family)));
+```
+
+**See also:** `injectTheme`
+
+**Returns** `Signal<readonly ProvidedThemeFamily<T>[]>` — A read-only `Signal` holding the provider's theme families.
 
 ---
 
@@ -244,7 +285,7 @@ automatically when the injector is destroyed.
 ---
 
 
-### `provideTheme(options): EnvironmentProviders`
+### `provideTheme<T extends ThemeDefinition<string>>(options): EnvironmentProviders`
 Provides a Themvora runtime for the current Angular environment injector.
 
 Call this once at the application root (or a feature environment) to create
@@ -260,7 +301,7 @@ standalone component, route, or `bootstrapApplication`.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `options` | `ThemeProviderOptions` | Runtime configuration and the optional DOM binding target. |
+| `options` | `ThemeProviderOptions<T>` | Runtime configuration and the optional DOM binding target. |
 
 **Returns** `EnvironmentProviders` — An `EnvironmentProviders` value that provides the runtime.
 
@@ -377,7 +418,7 @@ scrollbar — that's the bootstrap script's job (Phase 1, tv-scrollbar).
 
 ## Interfaces
 
-### `BlockingScriptOptions`
+### `BlockingScriptOptions<T extends ThemeDefinition>`
 Fallback inputs for createBlockingScriptContent.
 
 These must match the options the client runtime is created with. The script
@@ -387,8 +428,9 @@ correct it — a visible flash of the wrong theme.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `string` | Theme name the fallback family and mode are derived from. Should match the `defaultTheme` given to `provideTheme`. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme name the fallback family and mode are derived from. Should match the `defaultTheme` given to `provideTheme`. Accepts a theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`). |
 | `mode` (optional) | `ThemeMode` | Fallback mode used when no selection is persisted. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override, resolved against `themes` and applied over any persisted selection. Should match the `themeOverride` given to `provideTheme`. Without it the script paints the saved theme and the runtime corrects it on boot — the flash the override exists to avoid. |
 
 ---
 
@@ -452,7 +494,7 @@ light/dark mode, and callbacks to change the selection.
 | ------ | ---- | ----------- |
 | `family` | `string` | The current theme family name. |
 | `mode` | `ThemeMode` | The current theme mode: `"light"`, `"dark"`, or `"system"`. |
-| `resolvedMode` | `"light" \| "dark"` | The resolved mode (`"light"` or `"dark"`) after applying `"system"`. |
+| `resolvedMode` | `"light" \| "dark"` | The mode actually applied — `"light"` or `"dark"`, never `"system"`. Differs from mode while an automatic driver decides the appearance: `mode` is the visitor's request and stays `"system"` (or on the mode they picked) through a sunrise/sunset transition, while this moves with the page. Render this in a label that states the current appearance. |
 | `setFamily` | `__type(family: string): void` | Sets the theme family. |
 | `setMode` | `__type(mode: ThemeMode): void` | Sets the theme mode. |
 | `theme` | `T` | The currently active theme definition. |
@@ -462,7 +504,7 @@ light/dark mode, and callbacks to change the selection.
 
 ## Type Aliases
 
-### `ThemeProviderOptions`
+### `ThemeProviderOptions<T extends ThemeDefinition>`
 Options for provideTheme.
 
 Extends the core runtime options with an optional DOM target element. When
@@ -470,7 +512,7 @@ omitted, the runtime is bound to `document.documentElement`.
 
 **See also:** `provideTheme`
 
-`ThemeRuntimeOptions<ThemeDefinition> & { target?: HTMLElement }`
+`ThemeRuntimeOptions<T> & { target?: HTMLElement }`
 
 ---
 
@@ -511,10 +553,11 @@ applies to the current element's scope.
 
 - [Tokens](/tokens) — Semantic token groups are the contract between a theme and the DOM: they flatten to CSS variables, never to hardcoded colors.
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Plugins](/plugins) — Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.

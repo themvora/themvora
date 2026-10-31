@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DocsLayout } from "../../../components/docs-layout";
-import { CodeBlock } from "../../../components/code-block";
+import { CodeExample } from "../../../components/code-example";
 import { Callout } from "../../../components/ui/callout";
 import { DocHeader } from "../../../components/ui/doc-header";
 import { Prerequisites } from "../../../components/ui/prerequisites";
@@ -17,14 +17,15 @@ import {
 import {
   frameworks,
   CANONICAL_STYLES_NOTE,
-  CANONICAL_STYLES_STEP,
 } from "../../../lib/frameworks";
+import type { FrameworkSnippet } from "../../../lib/frameworks";
 import { frameworkCompatibilityData } from "../../../lib/compatibility-data";
 import type { SupportLevel } from "../../../components/ui/support-badge";
 import { frameworkUseCases } from "../../../lib/use-cases";
+import { anchorForCategory, anchorForFeature } from "../../../lib/framework-examples";
 import { highlightCode } from "../../../lib/highlight";
+import { ThemedExample } from "../../../components/example-ui/themed-example";
 import { PKG_VERSION } from "../../../lib/version";
-import { caveatForSlug } from "../../../lib/framework-caveats";
 import { docsUrl } from "../../../lib/site";
 import {
   WhichReactSetupPanel,
@@ -37,6 +38,55 @@ type PageProps = {
 };
 
 const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
+
+/**
+ * Section anchors for the onboarding steps, by position.
+ *
+ * Positional rather than keyed by label: the labels differ per framework ("Create
+ * the root and wrap it", "Register the providers at bootstrap"), but the step a
+ * reader links to is always the second or third one. The first step is the
+ * install command and has no anchor, because nothing links to it.
+ */
+const STEP_ANCHORS = ["", "setup", "ui", "styling"];
+
+/**
+ * One block in the guide's second examples section.
+ *
+ * The caption is part of the snippet's definition rather than the page's prose,
+ * so the sentence that explains a block travels with the code it explains. A
+ * filename alone is not an explanation — `index.html` and `App.tsx` each appear
+ * more than once across the guides.
+ *
+ * `slug` is the guide's own framework. It decides whether the block may carry a
+ * language selector at all: Angular's documentation is TypeScript-only by
+ * decision, so its snippets never pair.
+ */
+function ExampleBlock({
+  snippet,
+  slug,
+}: {
+  snippet: FrameworkSnippet;
+  slug: string;
+}) {
+  return (
+    <div>
+      <CodeExample
+        code={snippet.code}
+        lang={snippet.lang}
+        framework={slug}
+        filename={snippet.title}
+        {...(snippet.js ? { js: snippet.js } : {})}
+        {...(snippet.jsFilename ? { jsFilename: snippet.jsFilename } : {})}
+        className="rounded-lg m-0"
+      />
+      {snippet.caption ? (
+        <p className="text-sm opacity-70 mt-2">
+          <InlineCode>{snippet.caption}</InlineCode>
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function installCommand(pkgs: string, manager: PackageManager): string {
   return manager === "npm" ? `npm install ${pkgs}` : `${manager} add ${pkgs}`;
@@ -103,58 +153,32 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
     renderer: installCommandsFor(`${pkgs} @astrojs/react react react-dom`),
   };
 
-  const snippet2Html = highlightCode(
-    framework.snippet2.code,
-    framework.snippet2.lang,
-  );
-
-  const quickStartHtml = highlightCode(
-    framework.quickStart.code,
-    framework.quickStart.lang,
-  );
-
-  const quickStartExtraHtml = framework.quickStartExtra
-    ? highlightCode(
-        framework.quickStartExtra.code,
-        framework.quickStartExtra.lang,
-      )
-    : null;
-
-  // Step 2 is the same minimal setup Quick Start shows, so the two pages cannot
-  // drift apart.
-  const noThemeHtml = highlightCode(
-    framework.noTheme.code,
-    framework.noTheme.lang,
-  );
-
-  // Step 3 is "Add a small UI", so it shows the framework's markup example.
-  //
-  // A `cssOnly` framework has no provider and no hook — Tailwind's markup lives
-  // in plain HTML — so its `snippet` is the UI and its `switchSnippet` is runtime
-  // wiring. Showing the wiring here meant the step titled "a heading, a card and
-  // a button" rendered a file containing none of those.
-  //
-  // Every other framework toggles from its markup, so `switchSnippet` is the UI.
-  const switcher = framework.cssOnly
-    ? framework.snippet
-    : (framework.switchSnippet ?? framework.snippet);
-  const switcherHtml = highlightCode(switcher.code, switcher.lang);
-
-  // Step 4 is the canonical stylesheet. Every framework entry points its
-  // `styles` slot at the same source — only the file name differs — so this is
-  // one definition rendered eleven times, which is the point: the framework
-  // snippets teach integration, the stylesheet teaches Themvora itself.
-  const stylesHtml = highlightCode(framework.styles.code, framework.styles.lang);
-
-  const setupExtraHtmlForGuide = framework.setupExtra
-    ? highlightCode(framework.setupExtra.code, framework.setupExtra.lang)
-    : null;
-
   const useCases = frameworkUseCases[framework.slug] ?? [];
-  const useCaseHtml = useCases.map((useCase) => ({
-    html: highlightCode(useCase.code, useCase.lang),
-    useCase,
-  }));
+
+  // Feature name → the anchor that documents it on this framework's examples
+  // page. Computed here, on the server, so the client-side index ships a small
+  // lookup instead of the whole examples corpus. A feature with no entry maps to
+  // `null` and simply renders without a link — the coverage gate is what keeps
+  // that from happening, not the UI.
+  const exampleAnchors = Object.fromEntries(
+    framework.groups.flatMap((group) =>
+      group.features.map((feature) => [
+        feature.name,
+        anchorForFeature(framework.slug, feature.name)?.anchor ?? null,
+      ]),
+    ),
+  );
+
+  const examplesHref = `/framework-guides/${framework.slug}/examples`;
+
+  // Group label → examples-page category anchor, so each group header in the
+  // index is a real link rather than a label the reader has to hunt past.
+  const categoryAnchors = Object.fromEntries(
+    framework.groups.map((group) => [
+      group.label,
+      anchorForCategory(framework.slug, group.label),
+    ]),
+  );
 
   // Read SSR and zero-flash from the compatibility table rather than from the
   // tag list, so the header can never disagree with /reference/compatibility.
@@ -245,139 +269,191 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
           />
         ) : null}
 
-        {!isAstro ? (
+        {/* The onboarding steps come from the framework entry, not from this
+            template. "Wrap the app in the provider" is the right instruction for
+            React and the wrong one for Angular (providers at bootstrap),
+            Tailwind (no provider at all) and Web Components (an element in the
+            markup), so a single sequence here can only be accurate for the
+            frameworks it was written for. The anchors are positional because
+            the order is the same even though the wording is not. */}
+        {!isAstro && framework.guideSteps ? (
           <>
-        <section id="install" className="scroll-mt-24 mt-10">
-          <SectionHeading
-            num={1}
-            desc={
-              framework.extraPackages?.length
-                ? `The shared core, the ${framework.name} integration, and the runtime adapter the snippets below use.`
-                : `The shared core and the adapter for ${framework.name}.`
-            }
-          >
-            Install
-          </SectionHeading>
-          <InstallCommand commands={commands} />
-        </section>
+            {framework.guideSteps.map((step, index) => {
+              const snippet = step.ref ? framework[step.ref] : undefined;
+              const extra = step.refExtra ? framework[step.refExtra] : undefined;
+              const sectionId = STEP_ANCHORS[index];
+              return (
+                <section
+                  key={step.label}
+                  {...(sectionId ? { id: sectionId } : {})}
+                  className="mt-10 scroll-mt-24"
+                >
+                  <SectionHeading num={index + 1} desc={step.desc}>
+                    {step.label}
+                  </SectionHeading>
+                  {step.install ? <InstallCommand commands={commands} /> : null}
+                  {step.ref === "uiExample" ? (
+                    <div
+                      className="mb-4 rounded-xl border border-border p-5"
+                      style={{ background: "var(--theme-color-background)" }}
+                    >
+                      <ThemedExample />
+                    </div>
+                  ) : null}
+                  {snippet ? (
+                    <CodeExample
+                      code={snippet.code}
+                      lang={snippet.lang}
+                      framework={framework.slug}
+                      filename={snippet.title}
+                      {...(snippet.js ? { js: snippet.js } : {})}
+                      {...(snippet.jsFilename ? { jsFilename: snippet.jsFilename } : {})}
+                      className="rounded-lg m-0"
+                    />
+                  ) : null}
+                  {extra ? (
+                    <CodeExample
+                      code={extra.code}
+                      lang={extra.lang}
+                      framework={framework.slug}
+                      filename={extra.title}
+                      {...(extra.js ? { js: extra.js } : {})}
+                      {...(extra.jsFilename ? { jsFilename: extra.jsFilename } : {})}
+                      className="rounded-lg m-0 mt-3"
+                    />
+                  ) : null}
+                  {step.ref === "uiExample" && framework.uiExample?.caption ? (
+                    <p className="text-sm opacity-70 mt-2">
+                      <InlineCode>{framework.uiExample.caption}</InlineCode>
+                    </p>
+                  ) : null}
+                  {step.note === "mode" ? (
+                    <Callout className="mt-3" title="Choosing the starting theme">
+                      <InlineCode>{framework.modeNote}</InlineCode>
+                    </Callout>
+                  ) : null}
+                  {step.note === "styles" ? (
+                    <Callout
+                      className="mt-3"
+                      title="Why this never needs a second stylesheet"
+                    >
+                      <InlineCode>{CANONICAL_STYLES_NOTE}</InlineCode>
+                    </Callout>
+                  ) : null}
+                  {step.ref === "styles" && !framework.cssOnly ? (
+                    <p className="text-sm opacity-80 mt-4">
+                      The `body` rule uses exactly the two foundational colours
+                      — `background` and `foreground`. Every component rule
+                      reads one of the 21 colours `validateTheme()` requires, so
+                      any valid theme emits it. Radius and shadow are optional
+                      and carry fallbacks; no typography token is read, so a
+                      theme without a typography group still renders correctly.
+                    </p>
+                  ) : null}
+                  {step.ref === "styles" && framework.cssOnly ? (
+                    <p className="text-sm opacity-80 mt-4">
+                      The utilities in the previous step read the same required
+                      colour roles —{" "}
+                      <code className="mono text-[0.9em]">background</code>,{" "}
+                      <code className="mono text-[0.9em]">foreground</code>,{" "}
+                      <code className="mono text-[0.9em]">card</code>,{" "}
+                      <code className="mono text-[0.9em]">cardForeground</code>,{" "}
+                      <code className="mono text-[0.9em]">border</code>,{" "}
+                      <code className="mono text-[0.9em]">mutedForeground</code>,{" "}
+                      <code className="mono text-[0.9em]">success</code>,{" "}
+                      <code className="mono text-[0.9em]">primary</code>,{" "}
+                      <code className="mono text-[0.9em]">primaryForeground</code>{" "}
+                      and <code className="mono text-[0.9em]">ring</code> — through
+                      the <code className="mono text-[0.9em]">@theme</code> block
+                      in <code className="mono text-[0.9em]">@themvora/tailwind</code>.
+                      This step only paints the document; the component styles
+                      are utilities, not a second stylesheet, and no typography
+                      token is involved.
+                    </p>
+                  ) : null}
+                </section>
+              );
+            })}
 
-        <section id="setup" className="mt-10 scroll-mt-24">
-          <SectionHeading
-            num={2}
-            desc="Wrap the app in the provider. Themvora ships the built-in themes, so there is nothing to define yet."
-          >
-            Set up
-          </SectionHeading>
-          <CodeBlock
-            html={noThemeHtml}
-            code={framework.noTheme.code}
-            language={framework.noTheme.lang}
-            filename={framework.noTheme.title}
-            className="rounded-lg m-0"
-          />
-          {framework.setupExtra && setupExtraHtmlForGuide ? (
-            <CodeBlock
-              html={setupExtraHtmlForGuide}
-              code={framework.setupExtra.code}
-              language={framework.setupExtra.lang}
-              filename={framework.setupExtra.title}
-              className="rounded-lg m-0 mt-3"
-            />
-          ) : null}
-          <Callout className="mt-3" title="Choosing the starting theme">
-            <InlineCode>{framework.modeNote}</InlineCode>
-          </Callout>
-        </section>
-
-        <section id="ui" className="mt-10 scroll-mt-24">
-          <SectionHeading
-            num={3}
-            desc="A heading, a card and a button. The button reads the current theme and changes it — nothing is styled yet."
-          >
-            Add a small UI
-          </SectionHeading>
-          <CodeBlock
-            html={switcherHtml}
-            code={switcher.code}
-            language={switcher.lang}
-            filename={switcher.title}
-            className="rounded-lg m-0"
-          />
-        </section>
-
-        <section id="styling" className="mt-10 scroll-mt-24">
-          <SectionHeading num={4} desc={CANONICAL_STYLES_STEP.desc}>
-            {CANONICAL_STYLES_STEP.label}
-          </SectionHeading>
-          <CodeBlock
-            html={stylesHtml}
-            code={framework.styles.code}
-            language={framework.styles.lang}
-            filename={framework.styles.title}
-            className="rounded-lg m-0"
-          />
-          <Callout className="mt-3" title="Why this never needs a second stylesheet">
-            <InlineCode>{CANONICAL_STYLES_NOTE}</InlineCode>
-          </Callout>
-        </section>
-
-        <section id="configuration" className="mt-10 scroll-mt-24">
-          <SectionHeading
-            desc="The same setup with your own themes and options turned on. Everything here is optional — the first result above already works."
-          >
-            Theme configuration
-          </SectionHeading>
-          <CodeBlock
-            html={quickStartHtml}
-            code={framework.quickStart.code}
-            language={framework.quickStart.lang}
-            filename={framework.quickStart.title}
-            className="rounded-lg m-0"
-          />
-          {framework.quickStartExtra && quickStartExtraHtml ? (
-            <CodeBlock
-              html={quickStartExtraHtml}
-              code={framework.quickStartExtra.code}
-              language={framework.quickStartExtra.lang}
-              filename={framework.quickStartExtra.title}
-              className="rounded-lg m-0 mt-3"
-            />
-          ) : null}
-          <Callout className="mt-3" title="Where the theme data lives">
-            <InlineCode>{framework.configNote}</InlineCode>
-          </Callout>
-        </section>
+            <section id="configuration" className="mt-10 scroll-mt-24">
+              <SectionHeading desc="The same setup with your own themes and options turned on. Everything here is optional — the first result above already works.">
+                Theme configuration
+              </SectionHeading>
+              <CodeExample
+                code={framework.quickStart.code}
+                lang={framework.quickStart.lang}
+                framework={framework.slug}
+                filename={framework.quickStart.title}
+                {...(framework.quickStart.js ? { js: framework.quickStart.js } : {})}
+                {...(framework.quickStart.jsFilename ? { jsFilename: framework.quickStart.jsFilename } : {})}
+                className="rounded-lg m-0"
+              />
+              {framework.quickStartExtra ? (
+                <CodeExample
+                  code={framework.quickStartExtra.code}
+                  lang={framework.quickStartExtra.lang}
+                  framework={framework.slug}
+                  filename={framework.quickStartExtra.title}
+                  {...(framework.quickStartExtra.js ? { js: framework.quickStartExtra.js } : {})}
+                  {...(framework.quickStartExtra.jsFilename ? { jsFilename: framework.quickStartExtra.jsFilename } : {})}
+                  className="rounded-lg m-0 mt-3"
+                />
+              ) : null}
+              <Callout className="mt-3" title="Where the theme data lives">
+                <InlineCode>{framework.configNote}</InlineCode>
+              </Callout>
+            </section>
           </>
         ) : null}
 
-        <section id="whats-available" className="mt-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold tracking-tight">
+        <section className="mt-10">
+          <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
             What's Available
           </h2>
-          <p className="text-sm opacity-70 mt-1 mb-4">
+          <p className="text-sm opacity-70 mt-1 mb-2">
             <code className="mono text-[0.9em]">{framework.pkg}</code> ships{" "}
             {framework.featureCount} exports in {framework.groups.length}{" "}
-            categories. This is the map — click an export to see what it does.
-            Signatures and examples live in the{" "}
+            categories. Click an export to see what it does and jump to the code
+            that uses it.
+          </p>
+          <p className="text-sm opacity-70 mb-4">
+            Three pages cover this package, and they do different jobs: this
+            index says what exists, the{" "}
+            <a href={examplesHref} className="text-foreground underline hover:decoration-foreground">
+              examples page
+            </a>{" "}
+            shows each export in code with the problem it solves, and the{" "}
             <a
               href={`/api-reference/${framework.slug}`}
-              className="text-primary no-underline"
+              className="text-foreground underline hover:decoration-foreground"
             >
               API reference
+            </a>{" "}
+            gives exact signatures and return types.
+          </p>
+          <ApiExplorer
+            groups={framework.groups}
+            slug={framework.slug}
+            exampleAnchors={exampleAnchors}
+            categoryAnchors={categoryAnchors}
+          />
+        </section>
+
+        <section className="mt-10">
+          <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
+            Use Cases
+          </h2>
+          <p className="text-sm opacity-70 mt-1 mb-4">
+            Short snippets you can drop into an existing app. For the same
+            problems worked through end to end — problem, APIs, expectations,
+            limitations — see the{" "}
+            <a href={examplesHref} className="text-foreground underline hover:decoration-foreground">
+              {framework.name} examples
             </a>
             .
           </p>
-          <ApiExplorer groups={framework.groups} slug={framework.slug} />
-        </section>
-
-        <section id="use-cases" className="mt-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold tracking-tight">Use Cases</h2>
-          <p className="text-sm opacity-70 mt-1 mb-4">
-            The important features in practice — copy any of these straight into
-            your app.
-          </p>
           <div className="flex flex-col gap-8">
-            {useCaseHtml.map(({ html, useCase }) => (
+            {useCases.map((useCase) => (
               <div key={useCase.title}>
                 <h3 className="text-sm font-semibold mb-0.5">
                   {useCase.title}
@@ -385,11 +461,13 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                 <p className="text-xs opacity-60 mb-2">
                   <InlineCode>{useCase.desc}</InlineCode>
                 </p>
-                <CodeBlock
-                  html={html}
+                <CodeExample
                   code={useCase.code}
-                  language={useCase.lang}
+                  lang={useCase.lang}
+                  framework={framework.slug}
                   {...(useCase.filename ? { filename: useCase.filename } : {})}
+                  {...(useCase.js ? { js: useCase.js } : {})}
+                  {...(useCase.jsFilename ? { jsFilename: useCase.jsFilename } : {})}
                   className="rounded-lg m-0"
                 />
               </div>
@@ -400,127 +478,56 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
         {/* Astro's snippets all render inside its setup paths, so this section
             would show each of them a second time. */}
         {!isAstro ? (
-          <>
-        <section id="more-examples" className="mt-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold tracking-tight">
-            More Examples
-          </h2>
-          <p className="text-sm opacity-70 mt-1 mb-3">
-            Scoped theming, history controls, and framework-specific patterns.
-          </p>
-          {/* Step 3 shows `snippet` for a cssOnly framework, so its
-              `switchSnippet` is surfaced here instead of going unused — and the
-              reverse for the others. Neither snippet is ever dropped. */}
-          {framework.cssOnly && framework.switchSnippet ? (
-            <CodeBlock
-              html={highlightCode(framework.switchSnippet.code, framework.switchSnippet.lang)}
-              code={framework.switchSnippet.code}
-              language={framework.switchSnippet.lang}
-              filename={framework.switchSnippet.title}
-              className="rounded-lg m-0"
-            />
-          ) : null}
-          {!framework.cssOnly && framework.switchSnippet ? (
-            <CodeBlock
-              html={highlightCode(framework.snippet.code, framework.snippet.lang)}
-              code={framework.snippet.code}
-              language={framework.snippet.lang}
-              filename={framework.snippet.title}
-              className="rounded-lg m-0"
-            />
-          ) : null}
-          <CodeBlock
-            html={snippet2Html}
-            code={framework.snippet2.code}
-            language={framework.snippet2.lang}
-            filename={framework.snippet2.title}
-            className={`rounded-lg m-0 ${framework.switchSnippet ? "mt-4" : ""}`}
-          />
-          {/* React renders its snippet3 through OptimizedCsrBootstrap below,
-                with extra prose. Every other framework shows it here. */}
-          {framework.snippet3 && framework.slug !== "react" ? (
-            <CodeBlock
-              html={highlightCode(
-                framework.snippet3.code,
-                framework.snippet3.lang,
-              )}
-              code={framework.snippet3.code}
-              language={framework.snippet3.lang}
-              filename={framework.snippet3.title}
-              className="rounded-lg m-0 mt-4"
-            />
-          ) : null}
-          {framework.snippet4 ? (
-            <CodeBlock
-              html={highlightCode(
-                framework.snippet4.code,
-                framework.snippet4.lang,
-              )}
-              code={framework.snippet4.code}
-              language={framework.snippet4.lang}
-              filename={framework.snippet4.title}
-              className="rounded-lg m-0 mt-4"
-            />
-          ) : null}
-          <p className="text-sm opacity-70 mt-4">
-            The complete runnable app behind this guide is{" "}
-            <a
-              href="/examples"
-              className="text-foreground no-underline underline hover:decoration-foreground"
-            >
-              examples/apps/{framework.slug}
-            </a>
-            .
-          </p>
-        </section>
-          </>
+          <section className="mt-10">
+            <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
+              {framework.moreExamples?.title ?? "Further examples"}
+            </h2>
+            {framework.moreExamples ? (
+              <p className="text-sm opacity-70 mt-1 mb-4">
+                <InlineCode>{framework.moreExamples.intro}</InlineCode>
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-4">
+              {/* A CSS-only integration has no runtime step in the onboarding
+                  flow, so its runtime snippet is surfaced here rather than
+                  being dropped. Every other entry shows its toggle in step 5. */}
+              {framework.cssOnly && framework.switchSnippet ? (
+                <ExampleBlock snippet={framework.switchSnippet} slug={framework.slug} />
+              ) : null}
+              <ExampleBlock snippet={framework.snippet2} slug={framework.slug} />
+              {/* React renders its snippet3 through OptimizedCsrBootstrap below,
+                  with its own prose. Every other framework shows it here. */}
+              {framework.snippet3 && framework.slug !== "react" ? (
+                <ExampleBlock snippet={framework.snippet3} slug={framework.slug} />
+              ) : null}
+              {framework.snippet4 ? (
+                <ExampleBlock snippet={framework.snippet4} slug={framework.slug} />
+              ) : null}
+            </div>
+            <p className="text-sm opacity-70 mt-4">
+              The complete runnable app behind this guide is{" "}
+              <InlineCode>{`examples/apps/${framework.slug}`}</InlineCode> —{" "}
+              <a
+                href="/examples"
+                className="text-foreground no-underline hover:decoration-foreground"
+              >
+                listed with the other example apps
+              </a>
+              .
+            </p>
+          </section>
         ) : null}
 
         {framework.slug === "react" ? OptimizedCsrBootstrap(framework) : null}
 
-        {caveatForSlug(framework.slug) ? (
-          <section id="caveats" className="mt-10 scroll-mt-24">
-            <h2 className="text-lg font-semibold tracking-tight">
-              Caveats for {framework.name}
-            </h2>
-            <p className="text-sm opacity-70 mt-1 mb-3">
-              {framework.setupGuide?.caveatsIntro ??
-                `Every integration re-exports the same core surface, but the adapter behavior below is specific to ${framework.name}.`}
-            </p>
-            <Callout
-              variant="limitation"
-              title={caveatForSlug(framework.slug)!.title}
-            >
-              <p className="leading-relaxed">
-                <InlineCode>
-                  {caveatForSlug(framework.slug)!.specific}
-                </InlineCode>
-              </p>
-              {caveatForSlug(framework.slug)!.universal ? (
-                <p className="mt-2 opacity-80">
-                  <strong>Universal:</strong>{" "}
-                  <InlineCode>
-                    {caveatForSlug(framework.slug)!.universal}
-                  </InlineCode>
-                </p>
-              ) : null}
-              {caveatForSlug(framework.slug)!.href ? (
-                <p className="mt-2">
-                  <a
-                    href={caveatForSlug(framework.slug)!.href}
-                    className="text-foreground underline hover:decoration-foreground no-underline"
-                  >
-                    Read more →
-                  </a>
-                </p>
-              ) : null}
-            </Callout>
-          </section>
-        ) : null}
-
         <RelatedLinks
           className="mt-12"
           links={[
+            {
+              title: `${framework.name} examples`,
+              description: `Every export in ${framework.pkg}, with code and use cases`,
+              href: examplesHref,
+            },
             {
               title: "Custom Themes",
               description: "Build your own color palettes and semantic tokens",

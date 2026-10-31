@@ -18,6 +18,7 @@ import {
   themeToCSSVariables,
   createScopedThemeBinding,
   createThemeBootstrapScript,
+  providedThemesSourceFor,
   EMPTY_THEME_SCHEDULE_STATE,
   findGeneratedTheme,
   resolveGeneratedTheme,
@@ -38,6 +39,7 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
+  type ProvidedThemeFamily,
 } from "@themvora/core";
 import {
   resolveIconOptions,
@@ -167,6 +169,44 @@ export function useThemeTokens<T extends ThemeDefinition>() {
 }
 
 /**
+ * Reactive access to the themes this provider was given, grouped by family.
+ *
+ * Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+ * the built-in catalog. The accessor tracks the provider's registry, so a
+ * `themes` prop change, a theme-pack install or a registry mutation re-runs
+ * every consumer of it, and the array instance is stable while nothing changes.
+ *
+ * ```tsx
+ * const families = useProvidedThemes();
+ *
+ * <For each={families()}>{(family) => <h3>{family.name}</h3>}</For>
+ * ```
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns An accessor holding the provider's theme families.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useProvidedThemes<T extends ThemeDefinition>() {
+  const runtime = useThemeRuntime<T>();
+  const source = providedThemesSourceFor(runtime);
+
+  const [families, setFamilies] = createSignal<readonly ProvidedThemeFamily<T>[]>(
+    source.get() as readonly ProvidedThemeFamily<T>[],
+  );
+
+  onMount(() => {
+    setFamilies(() => source.get() as readonly ProvidedThemeFamily<T>[]);
+    const unsub = source.subscribe(() => {
+      setFamilies(() => source.get() as readonly ProvidedThemeFamily<T>[]);
+    });
+    onCleanup(unsub);
+  });
+
+  return families;
+}
+
+/**
  * Reactive access to the theme produced by `generateTheme()` and registered
  * with the provider, as a Solid signal.
  *
@@ -258,6 +298,42 @@ export function useThemeMode() {
 }
 
 /**
+ * Reactive access to the mode actually **applied** — `"light"` or `"dark"`,
+ * never `"system"` — as a Solid signal.
+ *
+ * Render this when a control states the current appearance. {@link useThemeMode}
+ * reports what the visitor asked for: it stays `"system"` while that choice
+ * stands and it does not move at a sunrise/sunset transition, so a label bound
+ * to it kept announcing the old mode while the page changed colour.
+ *
+ * @returns A Solid signal holding the applied mode.
+ *
+ * @see {@link useThemeMode}
+ * @see {@link useThemeSchedule}
+ */
+export function useEffectiveThemeMode() {
+  const runtime = useThemeRuntime();
+
+  const [mode, setModeState] = createSignal<"light" | "dark">(
+    runtime.selection.getEffectiveMode(),
+  );
+
+  onMount(() => {
+    const sync = () => {
+      setModeState(() => runtime.selection.getEffectiveMode());
+    };
+    const unsubStore = runtime.store.subscribe(sync);
+    const unsubEffective = runtime.selection.subscribeEffective(sync);
+    onCleanup(() => {
+      unsubStore();
+      unsubEffective();
+    });
+  });
+
+  return mode;
+}
+
+/**
  * Reactive access to the current theme family as a Solid signal.
  *
  * Returns a signal tracking the runtime selection's theme family name. The
@@ -288,22 +364,27 @@ export function useThemeFamily() {
 /**
  * Reactive access to the current theme selection plus actions to change it.
  *
- * Combines the reactive signals from `useThemeValue`, `useThemeMode`, and
- * `useThemeFamily` with imperative setters that drive the runtime selection.
- * Must be called inside a component rendered within a `ThemeProvider`.
+ * Combines the reactive signals from `useThemeValue`, `useThemeMode`,
+ * `useEffectiveThemeMode` and `useThemeFamily` with imperative setters that drive
+ * the runtime selection. Must be called inside a component rendered within a
+ * `ThemeProvider`.
  *
- * @returns An object with reactive `theme`, `mode`, and `family` signals and
- *   the `setMode`, `setFamily`, and `toggleTheme` actions.
+ * `mode` is the visitor's request; `effectiveMode` is what is on screen — they
+ * differ while a sunrise/sunset schedule runs, or while the selection is
+ * `"system"`.
+ *
+ * @returns An object with reactive `theme`, `mode`, `effectiveMode` and `family`
+ *   signals and the `setMode`, `setFamily`, and `toggleTheme` actions.
  *
  * @example
  * ```tsx
  * import { useTheme } from "@themvora/solid";
  *
  * function ThemeToggle() {
- *   const { mode, setMode, toggleTheme } = useTheme();
+ *   const { effectiveMode, toggleTheme } = useTheme();
  *   return (
  *     <button onClick={toggleTheme}>
- *       Current mode: {mode()}
+ *       Current mode: {effectiveMode()}
  *     </button>
  *   );
  * }
@@ -311,6 +392,7 @@ export function useThemeFamily() {
  *
  * @see {@link useThemeValue}
  * @see {@link useThemeMode}
+ * @see {@link useEffectiveThemeMode}
  * @see {@link useThemeFamily}
  */
 export function useTheme<T extends ThemeDefinition>() {
@@ -318,6 +400,7 @@ export function useTheme<T extends ThemeDefinition>() {
 
   const theme = useThemeValue<T>();
   const mode = useThemeMode();
+  const effectiveMode = useEffectiveThemeMode();
   const family = useThemeFamily();
 
   function setMode(nextMode: ThemeMode) {
@@ -335,6 +418,7 @@ export function useTheme<T extends ThemeDefinition>() {
   return {
     theme,
     mode,
+    effectiveMode,
     family,
     setMode,
     setFamily,
@@ -631,6 +715,11 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
 
   const resolvedRuntime = runtimeInstance()!;
 
+  // Once this provider has supplied `themeOverride` it owns the input and must
+  // report its removal (see the React provider). A plain variable is enough: the
+  // effect below is the only reader and it runs inside the same owner.
+  let overrideSupplied = props.themeOverride !== undefined;
+
   // Live configuration: forward changed props to the runtime, which
   // re-resolves centrally. The props are read *inside* the effect so Solid
   // tracks them — the eager copy above is deliberately non-reactive — and only
@@ -641,6 +730,8 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
     const update: Record<string, unknown> = {};
     if (props.themes !== undefined) update.themes = props.themes;
     if (props.defaultTheme !== undefined) update.defaultTheme = props.defaultTheme;
+    if (props.themeOverride !== undefined) overrideSupplied = true;
+    if (overrideSupplied) update.themeOverride = props.themeOverride;
     if (props.initialFamily !== undefined) update.initialFamily = props.initialFamily;
     if (props.initialMode !== undefined) update.initialMode = props.initialMode;
     if (props.initial !== undefined) update.initial = props.initial;
@@ -680,6 +771,7 @@ export function ThemeProvider<T extends ThemeDefinition = ThemeDefinition>(
           ...(runtimeOptions.defaultTheme !== undefined ? { defaultTheme: runtimeOptions.defaultTheme as string } : {}),
           ...(runtimeOptions.initialMode !== undefined ? { initialMode: runtimeOptions.initialMode } : {}),
           ...(runtimeOptions.initialFamily !== undefined ? { initialFamily: runtimeOptions.initialFamily } : {}),
+          ...(runtimeOptions.themeOverride !== undefined ? { themeOverride: runtimeOptions.themeOverride } : {}),
         });
         if (bootstrap) {
           const script = document.createElement("script");

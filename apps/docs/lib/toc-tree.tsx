@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { allocateId, stripNumberPrefix, type TocItem } from "./toc";
+import { resolveHeadingId, stripNumberPrefix, type TocItem } from "./toc";
 
 type Ctx = {
   seen: Map<string, number>;
@@ -76,7 +76,7 @@ function collect(node: ReactNode, ctx: Ctx): ReactNode {
     const raw = textOf(el.props.children).replace(/\s+/g, " ").trim();
     if (!raw) return el;
     const text = stripNumberPrefix(raw);
-    const id = allocateId(ctx.seen, text);
+    const id = resolveHeadingId(ctx.seen, text, el.props.id);
     ctx.items.push({ id, text, level: el.type === "h2" ? 2 : 3 });
     return cloneElement(el as ReactElement<{ id?: string }>, { id });
   }

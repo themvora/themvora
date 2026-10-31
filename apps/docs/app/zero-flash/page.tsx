@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { FrameworkTabs } from "../../components/framework-tabs";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
@@ -10,6 +10,7 @@ import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { highlightCode } from "../../lib/highlight";
+import { compatibilityBadge } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -21,10 +22,9 @@ export const metadata: Metadata = {
 
 function snippetBlock(snippet: { lang: string; title: string; code: string }) {
   return (
-    <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
+    <CodeExample
       code={snippet.code}
-      language={snippet.lang}
+      lang={snippet.lang}
       className="rounded-lg m-0"
     />
   );
@@ -121,7 +121,15 @@ const frameworkExamples = [
     code: `// Flash-proof out of the box. The provider reads the persisted selection,
 // applies it before first paint, and injects a blocking bootstrap <script>
 // into <head> — no vite plugin or manual index.html script required.
+import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@themvora/react";
+
+// Your application root. The provider owns the runtime; App only renders UI.
+function App() {
+  return <main>Your app</main>;
+}
+
+const root = createRoot(document.getElementById("root")!);
 
 root.render(
   <ThemeProvider defaultTheme="light" initialMode="system">
@@ -167,7 +175,7 @@ export default defineNuxtConfig({
   {
     label: "SvelteKit",
     lang: "svelte",
-    code: `<script>
+    code: `<script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
 </script>
 
@@ -258,38 +266,45 @@ import { createBlockingScript, buildThemeCssMap } from "@themvora/astro";
 import { ThemeProviderClient } from "@themvora/astro/client";
 import { getBuiltInThemes } from "@themvora/core";
 
-// buildThemeCssMap takes the registry positionally.
+// buildThemeCssMap takes the registry positionally and keys each theme by
+// name and by "family:mode". createBlockingScript reads the theme-mode /
+// theme-family cookies, validates the fingerprint, and applies the persisted
+// theme before paint.
 const themes = getBuiltInThemes();
 const cssMap = buildThemeCssMap(themes);
+
+// The script and the runtime resolve the mode independently, so both are told
+// the same thing: the constant below, and the island's initialMode.
+const MODE = "system";
 ---
 <html lang="en">
   <head>
-    {/* "system" is passed explicitly, and must match the island's initialMode
-        below — the script and the runtime resolve the mode independently. */}
-    <Fragment set:html={createBlockingScript("my-app", cssMap, { mode: "system" })} />
+    <Fragment set:html={createBlockingScript("my-app", cssMap, { mode: MODE })} />
   </head>
   <body>
-    <ThemeProviderClient defaultTheme="light" initialMode="system" />
+    <ThemeProviderClient defaultTheme="light" initialMode={MODE} />
   </body>
-</html>
-
-// createBlockingScript reads the theme-mode / theme-family cookies,
-// validates the fingerprint, and applies the persisted theme before paint.
-// buildThemeCssMap keys each theme by name and by "family:mode".
-// The island's initialMode must match the integration's "mode" option in
-// astro.config.ts — the integration owns the script, the island owns the
-// runtime, and neither can see the other's configuration.`,
+</html>`,
   },
   {
     label: "Remix",
     lang: "tsx",
     code: `// app/root.tsx
+import type { ReactNode } from "react";
 import {
+  Links,
+  Meta,
   Outlet,
+  Scripts,
+  ScrollRestoration,
   useLoaderData,
   type LoaderFunctionArgs,
 } from "@remix-run/react";
-import { ThemeProvider, ThemeHead } from "@themvora/remix";
+import {
+  ThemeProvider,
+  ThemeHead,
+  getThemeShellProps,
+} from "@themvora/remix";
 import { getInitialThemeState } from "@themvora/remix/server";
 import { getBuiltInThemes } from "@themvora/core";
 
@@ -297,30 +312,46 @@ import { getBuiltInThemes } from "@themvora/core";
 // built-in set is a valid registry, so no theme file is needed.
 const themes = getBuiltInThemes();
 
+// The SAME mode for the loader and for ThemeHead below. Leaving it out of the
+// loader resolves the fallback theme's own mode (light) while the script
+// follows the OS — so on an OS-dark first visit the script paints dark and the
+// runtime corrects it.
+const MODE = "system";
+
 export async function loader({ request }: LoaderFunctionArgs) {
-  // The SAME mode as ThemeHead below. Leaving it out resolves the fallback
-  // theme's own mode (light) while the script follows the OS — so on an
-  // OS-dark first visit the script paints dark and the runtime corrects it.
   return {
-    initial: await getInitialThemeState(request, { themes, mode: "system" }),
+    initial: await getInitialThemeState(request, { themes, mode: MODE }),
   };
 }
 
-export default function App() {
+export function Layout({ children }: { children: ReactNode }) {
   const { initial } = useLoaderData<typeof loader>();
+
   return (
-    <html lang="en">
+    // Remix owns the document, and ThemeHead's blocking script rewrites this
+    // element before React hydrates. Rendering the same attributes and CSS
+    // variables is what keeps hydration from reporting a mismatch — and
+    // suppressHydrationWarning covers the resolved mode, which the server
+    // cannot know for a "system" selection.
+    <html lang="en" {...getThemeShellProps(initial)}>
       <head>
-        {/* blocking script — its mode must match the loader's */}
-        <ThemeHead themes={themes} mode="system" />
+        <Meta />
+        <Links />
+        <ThemeHead themes={themes} mode={MODE} />
       </head>
       <body>
-        <ThemeProvider initial={initial}>
-          <Outlet />
+        <ThemeProvider initial={initial} themes={themes}>
+          {children}
         </ThemeProvider>
+        <ScrollRestoration />
+        <Scripts />
       </body>
     </html>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }`,
   },
   {
@@ -355,9 +386,12 @@ export default function App() {
 
 // Framework examples highlight server-side (Shiki lives in the Node bundle,
 // not the browser) — the client tab switcher just renders precomputed HTML.
+// The compatibility badge is derived here too, for the same reason: it needs
+// the TypeScript compiler, which must never reach the browser.
 const frameworkExamplesWithHtml = frameworkExamples.map((example) => ({
   ...example,
   html: highlightCode(example.code, example.lang),
+  ...compatibilityBadge(example.code, example.lang, example.label),
 }));
 
 const consequences = [
@@ -648,47 +682,6 @@ export default function ZeroFlashPage() {
             ))}
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
-              <div className="text-sm font-semibold mb-1">
-                What about the native scrollbar?
-              </div>
-              <p className="text-xs opacity-70 leading-relaxed">
-                A dark-mode user opening a page while the default theme is light
-                sees the <em>native</em> light scrollbar flash before hydration
-                — even when colors are already correct. Themvora&apos;s
-                scrollbar story uses the same trick: the bootstrap hides the
-                native scrollbar before first paint, then the theme-aware
-                overlay engine takes over.
-              </p>
-              <Link
-                href="/custom-scrollbar"
-                className="text-xs font-semibold no-underline"
-                style={{ color: "var(--theme-color-primary)" }}
-              >
-                Custom Scrollbar →
-              </Link>
-            </div>
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
-              <div className="text-sm font-semibold mb-1">
-                Transitions wait for the initial state
-              </div>
-              <p className="text-xs opacity-70 leading-relaxed">
-                The transition engine only starts after the initial theme is
-                established — the first paint is never animated. A user who
-                arrives with the dark theme selected gets dark immediately, then
-                any later switch (families, modes, scopes) animates through the
-                configured plan.
-              </p>
-              <Link
-                href="/animation"
-                className="text-xs font-semibold no-underline"
-                style={{ color: "var(--theme-color-primary)" }}
-              >
-                Animation &amp; Transition →
-              </Link>
-            </div>
-          </div>
         </section>
 
         <section id="client-bootstrap" className="scroll-mt-24 mb-10">
@@ -710,26 +703,10 @@ export default function ZeroFlashPage() {
           </Callout>
 
           <p className="mt-4 text-sm opacity-80 leading-relaxed">
-            The script and the runtime resolve the mode independently — the
-            script cannot read the runtime&apos;s configuration, and the runtime
-            never inspects the script. So both derive their default from the
-            same place: the fallback theme&apos;s own mode. Leave the mode alone
-            and they agree by construction, which is why{" "}
-            <code className="mono text-[0.9em]">
-              &lt;ThemeProvider defaultTheme=&quot;light&quot;&gt;
-            </code>{" "}
-            paints light on the first frame with no configuration at all — and
-            why a dark-mode visitor stays light until you ask for{" "}
-            <code className="mono text-[0.9em]">&quot;system&quot;</code>.
-          </p>
-
-          <p className="mt-3 text-sm opacity-80 leading-relaxed">
-            Tell only one of the two and they disagree: the script paints the
-            mode it derived, then the runtime corrects it a frame or two later —
-            exactly the flash this page exists to prevent. Measured on a
-            CPU-throttled production build of the Angular example, a
-            script/runtime mode disagreement showed the wrong theme for{" "}
-            <strong>1.5 s</strong> before the runtime corrected it.
+            The script and runtime resolve the mode independently. Tell only one
+            and they disagree — measured at{" "}
+            <strong>1.5&nbsp;s</strong> of wrong theme on a CPU-throttled
+            Angular build before the runtime corrected it.
           </p>
 
           <div className="mt-4 rounded-xl border border-border overflow-hidden">
@@ -755,16 +732,6 @@ export default function ZeroFlashPage() {
               ))}
             </div>
           </div>
-
-          <Callout className="mt-4" title="Next and Nuxt are the exception">
-            <p className="text-sm leading-relaxed">
-              Their module defaults the mode to{" "}
-              <code className="mono text-[0.9em]">&quot;system&quot;</code> on
-              both sides, so a first-time visitor follows the OS without being
-              asked. Every other surface defaults to the fallback theme&apos;s
-              own mode instead.
-            </p>
-          </Callout>
 
           <h3 className="mt-8 text-sm font-semibold tracking-tight mb-2">
             Astro: the two halves, kept apart
@@ -803,55 +770,18 @@ export default function ZeroFlashPage() {
           </h4>
           <p className="text-sm opacity-80 leading-relaxed">
             A server cannot know the visitor&apos;s OS preference, so it must
-            not commit to one. It is tempting to render the light variables into
-            an inline <code className="mono text-[0.9em]">style</code> on{" "}
-            <code className="mono text-[0.9em]">&lt;html&gt;</code> and add a{" "}
+            not commit to one. An inline{" "}
+            <code className="mono text-[0.9em]">style</code> on{" "}
+            <code className="mono text-[0.9em]">&lt;html&gt;</code> outranks
+            every stylesheet rule regardless of specificity, so a dark{" "}
             <code className="mono text-[0.9em]">
               @media (prefers-color-scheme: dark)
             </code>{" "}
-            block to correct it — but that does not work. An inline declaration
-            outranks every stylesheet rule regardless of specificity, so the
-            dark block is inert and the visitor stays light.
-          </p>
-          <p className="mt-3 text-sm opacity-80 leading-relaxed">
-            Measured on a production build of the Astro example with page
-            scripts blocked and the OS set to dark: inline light variables plus
-            a dark media block painted{" "}
-            <code className="mono text-[0.9em]">rgb(248, 250, 252)</code>.
-            Moving both schemes into media blocks and leaving no inline
-            variables painted{" "}
-            <code className="mono text-[0.9em]">rgb(2, 6, 23)</code>. That is
-            why <code className="mono text-[0.9em]">provider.astro</code> emits{" "}
-            <code className="mono text-[0.9em]">systemModeCSSTemplate</code> and
-            keeps only{" "}
+            block would be inert. The fix is to emit both schemes as media
+            blocks and keep only{" "}
             <code className="mono text-[0.9em]">color-scheme: light dark</code>{" "}
-            inline when the resolved mode is{" "}
-            <code className="mono text-[0.9em]">&quot;system&quot;</code>.
+            inline.
           </p>
-          <p className="mt-3 text-sm opacity-80 leading-relaxed">
-            The distinction is the <em>inline attribute</em>, not the media
-            block. Emit the same light variables as a{" "}
-            <code className="mono text-[0.9em]">&lt;style&gt;</code> element and
-            a later{" "}
-            <code className="mono text-[0.9em]">
-              @media (prefers-color-scheme: dark)
-            </code>{" "}
-            block <em>does</em> win — both are{" "}
-            <code className="mono text-[0.9em]">:root</code> rules at equal
-            specificity, so source order decides. That is the mechanism Nuxt
-            uses, and it is why the two integrations reach the same result by
-            different routes.
-          </p>
-          <Callout className="mt-4" title="What that costs">
-            <p className="text-sm leading-relaxed">
-              With scripts blocked the{" "}
-              <code className="mono text-[0.9em]">data-theme</code> attribute
-              stays at the build-time value even though the canvas is correct —
-              the attribute is only a marker, and the script is what updates it.
-              Colors, which are what the visitor actually sees, are right either
-              way.
-            </p>
-          </Callout>
           <p className="mt-3 text-sm opacity-80 leading-relaxed">
             The builder lives in{" "}
             <code className="mono text-[0.9em]">@themvora/core</code>, and{" "}
@@ -909,14 +839,6 @@ export default function ZeroFlashPage() {
           </Callout>
 
           <FrameworkTabs examples={frameworkExamplesWithHtml} />
-
-          <p className="mt-4 text-sm opacity-70 leading-relaxed">
-            SSR frameworks with dedicated server integration (Next, Nuxt, Astro,
-            Angular, Remix) resolve the theme on the server. Client providers
-            (React, Vue, Svelte, Solid) read the persisted selection and apply
-            it before first paint automatically. Either way the bootstrap runs
-            before the first paint.
-          </p>
         </section>
 
         <section id="next" className="scroll-mt-24">
@@ -978,6 +900,7 @@ export default function ZeroFlashPage() {
             </Link>
           </div>
         </section>
+
         <section id="api-reference" className="scroll-mt-24 my-10">
           <SectionHeading
             num={7}

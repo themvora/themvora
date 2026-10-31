@@ -2,7 +2,8 @@
 Themvora Remix integration.
 
 Provides the SSR-safe `ThemeProvider`, the `ThemeHead` blocking script
-for zero-flash bootstrapping, and the cookie-backed
+for zero-flash bootstrapping, `getThemeShellProps` for the `<html>` element
+Remix owns, and the cookie-backed
 `createRemixThemePersistence`, plus the React `ThemeScope`,
 `ThemeScrollbar`, and `ThemeInspector` re-exports.
 
@@ -30,12 +31,76 @@ Returns `null` during SSR (no `window`), so the runtime falls back to its
 default persistence behavior on the server. The cookie contract matches
 `@themvora/next` and `@themvora/nuxt`.
 
+**Blocked storage degrades, it does not throw.** `window.localStorage` can
+throw on access and `setItem` throws when the quota is full; both are treated
+as "this browser cannot remember the selection". The cookie mirror is written
+either way, so the server still resolves the same theme on the next request.
+
 ```ts
 import { createRemixThemePersistence } from "@themvora/remix";
 
 const persistence = createRemixThemePersistence(myThemes, "light", {
   key: "my-theme-selection",
 });
+```
+
+---
+
+
+### `getThemeShellProps<T extends ThemeDefinition<string>>(initial, options): ThemeShellProps`
+The `<html>` attributes the pre-paint bootstrap script writes, as React
+props. Spread them onto the document element rendered by `app/root.tsx`.
+
+**See also:** `ThemeHead`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `initial` | `InitialThemeResolution<T>` | The SSR-resolved initial state from `getInitialThemeState`. |
+| `options` | `ThemeShellOptions` | Extra classes, the scrollbar opt-in, and extra inline styles. |
+
+**Returns** `ThemeShellProps` — The `<html>` props: the theme attributes, the CSS variables, and the
+  hydration suppression.
+
+Every value here is a *snapshot* of the server's resolution, and it exists
+for one reason: **hydration parity**. The blocking script in `<ThemeHead>`
+rewrites all of it before first paint, so React's virtual DOM has to start
+out agreeing with the DOM, or React reports a hydration mismatch on `<html>`
+and — because it never patches attributes up — keeps a virtual DOM that
+disagrees with the document for the rest of the session.
+
+That is not hypothetical. A Remix app that renders a bare `<html lang="en">`
+hydrates against seven attributes it never rendered (`data-theme`,
+`data-theme-mode`, `data-theme-family`, `data-theme-selection-mode`,
+`data-theme-selection-family`, `data-theme-ready` and `style`), and React
+logs "some attributes of the server rendered HTML didn't match the client
+properties" on every load. Rendering the snapshot removes six of the seven;
+`suppressHydrationWarning` covers the last one, which cannot be removed by
+construction: `data-theme-mode` is the *resolved* mode, so a `"system"`
+selection resolved against a dark `prefers-color-scheme` legitimately differs
+from the server's `"light"`. The same goes for the `dark` class the script
+toggles, which is deliberately not rendered here — the script owns it.
+
+The suppression is scoped to the `<html>` element and its own attributes. It
+does not hide mismatches in the application tree, so a genuine hydration bug
+in a route still reports.
+
+```ts
+import { getBuiltInThemes } from "@themvora/core";
+import { ThemeHead, getThemeShellProps } from "@themvora/remix";
+
+const themes = getBuiltInThemes();
+
+export function Layout({ children }: { children: ReactNode }) {
+  const { initial } = useLoaderData<typeof loader>();
+  return (
+    <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
+      <head>
+        <ThemeHead themes={themes} defaultTheme="light" scrollbar />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
 ```
 
 ---
@@ -60,7 +125,6 @@ stylesheets and the browser paints already themed. Pair with
 `ThemeProvider` and `getInitialThemeState` for the full SSR-first setup.
 
 ```ts
-// app/root.tsx
 import { ThemeHead } from "@themvora/remix";
 
 export function Layout({ children }) {
@@ -233,6 +297,40 @@ render rather than a stale theme being returned.
 ---
 
 
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): readonly ProvidedThemeFamily<T>[]`
+The themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+the built-in catalog, and not every theme that exists in the project. Build a
+theme picker from it instead of enumerating a separate preset source:
+
+```tsx
+const themes = useProvidedThemes();
+
+return themes.map((family) => (
+  <section key={family.id}>
+    <h3>{family.name}</h3>
+    {family.variants.map((variant) => (
+      <button key={variant.name} onClick={() => setFamily(family.family)}>
+        {variant.mode}
+      </button>
+    ))}
+  </section>
+));
+```
+
+The collection is reactive: a `themes` prop change, a `runtime.use(pack)`
+install or a registry mutation re-renders the consumer. Entries keep their
+identity while their content is unchanged, so `React.memo` and dependency
+arrays behave.
+
+**See also:** `useTheme`, `normalizeProvidedThemes`
+
+**Returns** `readonly ProvidedThemeFamily<T>[]` — The provider's theme families, in supplied order.
+
+---
+
+
 ### `useSetThemeFamily<T extends ThemeDefinition<string>>(): __type(family: ThemeFamilies<readonly T[]>): void`
 Get a stable `setFamily` function (does not re-render on change).
 
@@ -253,7 +351,7 @@ Get a stable `setMode` function (does not re-render on change).
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
 The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
@@ -270,9 +368,9 @@ The primary Themvora hook. Returns the current theme, mode, family and
    setMode("dark");
    ```
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
 
-**Returns** `{ family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
+**Returns** `{ effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
 
 ---
 
@@ -325,7 +423,12 @@ gives you the theme definitions rather than `unknown` — the same precision
 ### `useThemeMode(): ThemeMode`
 Subscribe to the current selection mode ("light" | "dark" | "system").
 
-**See also:** `useSetThemeMode`
+This is the mode the visitor **asked for**. While a sunrise/sunset schedule
+is running, or while the selection is `"system"`, the appearance on screen can
+differ from it — use useEffectiveThemeMode to display what is actually
+applied.
+
+**See also:** `useEffectiveThemeMode`, `useSetThemeMode`
 
 **Returns** `ThemeMode`
 
@@ -463,7 +566,7 @@ the selection to cookies.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `cookieOptions` (optional) | `string` | Cookie attribute string appended to the mirrored theme cookies (e.g. `"path=/; max-age=31536000; samesite=lax"`). Defaults to `"path=/; max-age=31536000; samesite=lax"`. |
+| `cookieOptions` (optional) | `string` | Cookie attribute string appended to the mirrored theme cookies (e.g. `"path=/; max-age=31536000; samesite=lax"`). Defaults to `"path=/; max-age=31536000; samesite=lax"`, plus `secure` on an HTTPS origin. |
 | `key` (optional) | `string` | The `localStorage` key holding the persisted selection. Default `"theme-selection"`. |
 | `storage` (optional) | `Storage` | The backing storage. Defaults to `window.localStorage`. |
 
@@ -479,9 +582,10 @@ dark-mode CSS fallback.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Fallback theme name when no selection is persisted. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme name when no selection is persisted. |
 | `mode` (optional) | `ThemeMode` | Fallback mode when no selection is persisted. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to. Pass `"system"` to follow `prefers-color-scheme` instead, and give `ThemeProvider` the matching `initialMode` so the script and the runtime resolve the same theme on a first visit. Leaving the two out of step produces a wrong-theme flash: the script paints one theme and the runtime corrects it. |
 | `scrollbar` (optional) | `boolean` | Hide the native scrollbar from the very first paint, so the Themvora overlay (`ThemeScrollbar`) is the only scrollbar from frame one — no native-bar-then-overlay swap while the bundle hydrates. Defaults to `false`. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override, applied by the pre-paint script over any persisted selection. Pass the same value given to ThemeProvider. |
 | `themes` | `readonly T[]` | The theme registry the blocking script resolves against. |
 
 ---
@@ -509,10 +613,11 @@ fallback selection, and the optional SSR-resolved initial state.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `children` | `ReactNode` | The application content rendered inside the provider. |
-| `defaultTheme` (optional) | `T["name"]` | Fallback theme name when no selection is persisted. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme when no selection is persisted. Accepts a supplied theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`); a family resolves to the variant for the mode in effect. |
 | `initial` (optional) | `InitialThemeResolution<T>` | The SSR-resolved initial theme state (from `getInitialThemeState`). When provided, it wins on first paint so hydration matches exactly and the selection is mirrored back to cookies. |
-| `initialFamily` (optional) | `string` | Family used when neither `initial` nor a persisted selection is available. Pair it with `initialMode` for the same reason. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Family used when neither `initial` nor a persisted selection is available. Pair it with `initialMode` for the same reason. Constrained to the identifiers in `themes` when they are statically known. A variant name is accepted and normalised to its family; its mode applies only when `initialMode` is absent. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when neither `initial` nor a persisted selection is available. Optional: the runtime and `ThemeHead`'s script both derive the fallback mode from `defaultTheme` by default, so they already agree. Set this to pin a mode the script would not derive — e.g. `"system"` to follow `prefers-color-scheme` — and pass the same value to `ThemeHead`. Ignored when `initial` is provided, since the SSR resolution wins. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted selection. Applied once per value, never written to the theme cookies, and it does not fight a later manual selection. For a flash-free override, pass the same value to ThemeHead so the pre-paint script resolves it too. |
 | `themes` (optional) | `readonly T[]` | The theme registry the selection is resolved against. |
 
 ---
@@ -535,13 +640,50 @@ grouped ones).
 
 ---
 
+
+### `ThemeShellOptions`
+Extra props merged onto the shell attributes computed by
+getThemeShellProps.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `className` (optional) | `string` | Classes rendered on `<html>` alongside the theme's own. Kept stable across renders: the overlay scrollbar engine adds `tv-scrollbar-ready` to the same attribute, and React rewrites `class` wholesale whenever the prop it was given changes — which would take the engine's marker with it and leave the overlay permanently faded out. |
+| `scrollbar` (optional) | `boolean` | Render the `tv-scrollbar` class, so the pre-paint stylesheet hides the native bar from the first frame. Pair it with `scrollbar` on ThemeHead: the class scopes the CSS and the CSS does the hiding, so either half alone does nothing. This is the Remix-side equivalent of `@themvora/next`'s `scrollbar` prop — Remix owns the document, so the class has to come from the layout. |
+| `style` (optional) | `CSSProperties` | Inline styles merged after the theme's CSS variables. |
+
+---
+
+
+### `ThemeShellProps`
+The `<html>` props produced by getThemeShellProps: the theme
+attributes and CSS variables the pre-paint script writes, plus the
+hydration suppression that covers the parts of them the server cannot know.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `className` (optional) | `string` | Extra classes, plus `tv-scrollbar` when `scrollbar` was requested. |
+| `data-theme` | `string` | The resolved theme's name, as `data-theme`. |
+| `data-theme-family` (optional) | `string` | The resolved theme's family, when it declares one. |
+| `data-theme-mode` | `"light" \| "dark"` | The resolved mode (`light` / `dark`) the theme was painted with. |
+| `data-theme-ready` | `"true"` | Completion marker: the bootstrap ran, so the document is themed. |
+| `data-theme-selection-family` (optional) | `string` | The visitor's chosen family, when one was resolved. |
+| `data-theme-selection-mode` | `ThemeMode` | The visitor's chosen mode, which `"system"` is not reduced from. |
+| `style` | `CSSProperties` | `color-scheme` plus the resolved theme's `--theme-*` variables. |
+| `suppressHydrationWarning` | `true` | Suppresses React's attribute diff for this element only. Always `true`. |
+
+Assignable to a React `<html>` element by construction — spread it and add
+the app's own props (`lang`, a `className`) around it.
+
+---
+
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Plugins](/plugins) — Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.

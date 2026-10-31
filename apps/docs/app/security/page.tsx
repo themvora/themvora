@@ -41,10 +41,10 @@ export default function SecurityPage() {
             <>
               <strong>Email:</strong>{" "}
               <a
-                href="mailto:themekitproductions@gmail.com"
+                href="mailto:themvoraproductions@gmail.com"
                 className="underline"
               >
-                themekitproductions@gmail.com
+                themvoraproductions@gmail.com
               </a>{" "}
               — for reports that can&apos;t use the advisory system, you can
               email the maintainers directly. Please use a descriptive subject
@@ -90,9 +90,13 @@ export default function SecurityPage() {
             </>,
             <>
               Transitive dependency advisories in framework peer dependencies
-              (for example, a postcss vulnerability in Next.js). Themvora
-              ships zero runtime dependencies of its own; the advisory tree
-              of your application is determined by the frameworks you choose.
+              (for example, a postcss vulnerability in Next.js). The
+              <code className="font-mono text-[0.9em]"> @themvora/* </code>
+              packages have no third-party runtime dependencies apart from
+              <code className="font-mono text-[0.9em]"> tslib </code> in
+              <code className="font-mono text-[0.9em]"> @themvora/angular </code>
+              ; the advisory tree of your application is determined by the
+              frameworks you choose.
             </>,
           ]}
         />

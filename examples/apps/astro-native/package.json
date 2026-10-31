@@ -1,0 +1,19 @@
+{
+  "name": "@themvora/app-astro-native",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 5201",
+    "build": "astro build",
+    "preview": "astro preview --port 5201",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@themvora/astro": "workspace:*",
+    "@themvora/core": "workspace:*",
+    "astro": "^7.4.2",
+    "typescript": "^5.9.3"
+  }
+}

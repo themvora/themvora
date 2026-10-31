@@ -1,7 +1,7 @@
 {
   "name": "@themvora/angular",
   "license": "MIT",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Angular integration for Themvora",
   "type": "module",
   "scripts": {
@@ -40,7 +40,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "repository": {

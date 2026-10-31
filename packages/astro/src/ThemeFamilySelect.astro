@@ -1,0 +1,106 @@
+---
+import type { ThemeDefinition } from "@themvora/core";
+import { getThemeFamilies } from "@themvora/core";
+import { THEME_SELECTION_ATTRIBUTE } from "./attributes";
+
+/**
+ * Theme-family select, as an Astro component — no client framework, no island.
+ *
+ * ```astro
+ * ---
+ * import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+ * import themeConfig from "../../theme.config";
+ * ---
+ *
+ * <ThemeFamilySelect themes={themeConfig.themes} />
+ * ```
+ *
+ * @remarks
+ * The component is a `<select>` with the registry's families as options, plus
+ * one call to `installThemeBindings()`. It carries no per-element wiring, and
+ * that is deliberate rather than incidental:
+ *
+ * - **Every instance works.** Astro bundles and de-duplicates a component's
+ *   `<script>` once per page, so the script cannot know how many selects the
+ *   page rendered. A `document.getElementById(...)` binding wires the first one
+ *   and leaves the rest inert — which reads as "changing the family does
+ *   nothing".
+ * - **It survives client-side navigation.** Astro's module scripts never
+ *   re-execute across `<ClientRouter />` navigations, so a page you navigate
+ *   back to keeps whatever the *first* visit bound. The delegated listener is
+ *   registered once on `document` and matches whatever is in the DOM when the
+ *   event fires.
+ * - **It reflects the live selection.** The runtime writes the current family
+ *   back into every `[data-tv-select="family"]`, so a control restored from a
+ *   cookie shows that family instead of the first option, and two selects on one
+ *   page never disagree.
+ *
+ * Pass `themes` (the registry, as declared in `theme.config.ts`) or `families`
+ * (an explicit list, for a control that offers a subset). `class` is forwarded
+ * to the `<select>` itself, so a token-driven class of your own is the whole
+ * styling story — the same contract as `<ThemeToggle />`.
+ *
+ * @see {@link THEME_SELECTION_ATTRIBUTE}
+ */
+interface Props {
+  /** The registry to derive the options from. */
+  themes?: readonly ThemeDefinition[];
+  /** An explicit option list, when it is not the whole registry. */
+  families?: readonly string[];
+  /** Visible label. Defaults to `"Theme family"`. */
+  label?: string;
+  /** Accessible name. Defaults to {@link Props.label}. */
+  ariaLabel?: string;
+  /** Class applied to the `<select>`. */
+  class?: string;
+  /** `id` applied to the `<select>`, for a `<label for>` elsewhere. */
+  id?: string;
+}
+
+const {
+  themes,
+  families,
+  label = "Theme family",
+  ariaLabel = label,
+  class: className,
+  id,
+} = Astro.props as Props;
+
+// `families` wins when both are given: an explicit list is a deliberate
+// narrowing, and silently widening it back to the registry would ignore the
+// caller's intent.
+const options = families?.length
+  ? [...families]
+  : themes?.length
+    ? getThemeFamilies(themes)
+    : [];
+
+if (options.length === 0) {
+  throw new Error(
+    "ThemeFamilySelect: pass `themes` (the registry) or `families` (an explicit list). " +
+      "With neither there is nothing to select, and rendering an empty <select> would look " +
+      "like a broken control rather than a missing prop.",
+  );
+}
+
+const attrs: Record<string, string> = {
+  [THEME_SELECTION_ATTRIBUTE]: "family",
+  "aria-label": ariaLabel,
+};
+---
+
+<label>
+  {label}
+  <select {...attrs} class={className} id={id}>
+    {options.map((family) => <option value={family}>{family}</option>)}
+  </select>
+</label>
+
+<script>
+  // `@themvora/astro/runtime`, not `@themvora/astro`: this is a *browser*
+  // bundle, and the root entry also exports the build integration, which reads
+  // `theme.config.ts` from disk and would drag `node:url` into the bundle.
+  import { installThemeBindings } from "@themvora/astro/runtime";
+
+  installThemeBindings();
+</script>

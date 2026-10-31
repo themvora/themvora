@@ -184,6 +184,20 @@ export function buildSearchIndex(): SearchEntry[] {
     if (index.has(route)) {
       add({ ...index.get(route)!, text: `${fw.tagline} Install ${fw.pkg}.` });
     }
+    // The examples page is seeded from DOCS_ROUTES like everything else, but a
+    // bare "React Examples" label is a poor search result: someone typing
+    // "useThemeBatch example" should find the page by its categories and by the
+    // fact that it documents *every* export, so the text says so.
+    const examplesRoute = `/framework-guides/${fw.slug}/examples`;
+    if (index.has(examplesRoute)) {
+      add({
+        ...index.get(examplesRoute)!,
+        text:
+          `Runnable ${fw.name} examples and use cases for every export in ${fw.pkg}: ` +
+          `${fw.groups.map((group) => group.label).join(", ")}. ` +
+          `Each API shows what it does, when to use it, what changes on screen, and copy-ready code.`,
+      });
+    }
   }
   for (const lib of libraries) {
     const route = `/libraries/${lib.slug}`;

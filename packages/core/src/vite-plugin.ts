@@ -13,6 +13,7 @@ import { createThemeBootstrapScript, createThemeReadoutScript } from "./bootstra
 import { toBootstrapConfig, type ThemvoraConfig } from "./app-config";
 import { loadThemvoraConfig } from "./config-loader";
 import { createPrePaintScrollbarScript } from "./scrollbar/pre-paint";
+import { serializeScriptJson } from "./script-safety";
 
 /**
  * The deprecated inline form of the theme configuration: the registry, the
@@ -298,7 +299,7 @@ function isDependencyPath(id: string | undefined): boolean {
  *
  * @example
  * ```ts
- * // vite.config.ts — nothing to configure beyond registering the plugin.
+ * // Nothing to configure beyond registering the plugin.
  * import { themvoraVitePlugin } from "@themvora/core/vite";
  *
  * export default defineConfig({
@@ -607,27 +608,19 @@ export function themvoraVitePlugin<T extends ThemeDefinition>(
         // Only the serializable projection travels: themes are data, but a config
         // may also carry plugins and adapters, which are functions and cannot be
         // expressed in a global. Those stay provider props.
+        //
+        // `serializeScriptJson` (not `JSON.stringify`) because this string is the
+        // body of a `<script>` element: a `</script` sequence inside a theme name
+        // or token value would end the element. Escaping `<` alone, which this
+        // block used to do, left `&`, `>` and the U+2028/U+2029 line terminators
+        // uncovered — and the copy below it used `.replace(/</g, "<")`, a no-op,
+        // because `"<"` is just `<` in a JS string literal.
         tags.push({
           tag: "script",
           attrs: { id: "themvora-config" },
           children:
             "window.__THEMVORA_CONFIG__=" +
-            JSON.stringify(toBootstrapConfig(resolved)).replace(/</g, "\\u003c") +
-            ";",
-          injectTo: "head-prepend",
-        });
-      }
-
-      if (resolved) {
-        // Only the serializable projection travels: themes are data, but a config
-        // may also carry plugins and adapters, which are functions and cannot be
-        // expressed in a global. Those stay provider props.
-        tags.push({
-          tag: "script",
-          attrs: { id: "themvora-config" },
-          children:
-            "window.__THEMVORA_CONFIG__=" +
-            JSON.stringify(toBootstrapConfig(resolved)).replace(/</g, "\u003c") +
+            serializeScriptJson(toBootstrapConfig(resolved)) +
             ";",
           injectTo: "head-prepend",
         });

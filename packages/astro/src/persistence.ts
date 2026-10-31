@@ -29,14 +29,29 @@ function parseState(value: string | null): ThemeSelectionState | null {
   return null;
 }
 
+/**
+ * `Secure` is added only on an HTTPS origin: an unconditional `Secure` makes
+ * the cookie unwritable on `http://localhost`, which would silently disable
+ * server-side persistence in local development.
+ */
+function secureSuffix(): string {
+  try {
+    return typeof location !== "undefined" && location.protocol === "https:"
+      ? "; secure"
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 function writeCookie(name: string, value: string) {
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(
     value,
-  )}; path=/; max-age=31536000; samesite=lax`;
+  )}; path=/; max-age=31536000; samesite=lax${secureSuffix()}`;
 }
 
 function removeCookie(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+  document.cookie = `${name}=; path=/; max-age=0; samesite=lax${secureSuffix()}`;
 }
 
 /** Cookie names of the contract shared with the pre-paint bootstrap script. */
@@ -46,9 +61,70 @@ const COOKIE_NAMES = {
   fingerprint: "theme-fingerprint",
 } as const;
 
+/**
+ * Decode a percent-encoded cookie value, treating malformed input as absent.
+ *
+ * @remarks
+ * A theme cookie is not trustworthy: a sibling subdomain can plant
+ * `theme-mode=%E0%A4%A` on the parent domain, and `decodeURIComponent` throws
+ * `URIError` on it. Unguarded, that throw escaped from `get()`.
+ */
+function safeDecode(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]!) : null;
+  const raw = match?.[2];
+  return raw === undefined ? null : safeDecode(raw);
+}
+
+/**
+ * Obtain the backing `Storage`, or `null` when the browser will not give one up.
+ *
+ * @remarks
+ * The **getter itself** throws `SecurityError` when storage is denied — cookies
+ * blocked, a sandboxed iframe, some embedded webviews — so guarding the method
+ * calls alone would still throw before any of them ran.
+ */
+function resolveStorage(): Storage | null {
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readKey(storage: Storage | null, key: string): string | null {
+  if (!storage) return null;
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeKey(storage: Storage | null, key: string, value: string): void {
+  if (!storage) return;
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Quota exceeded, or a store revoked after it was obtained. The cookie
+    // mirror below still runs.
+  }
+}
+
+function removeKey(storage: Storage | null, key: string): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Same as `writeKey`: the cookies are cleared regardless.
+  }
 }
 
 /**
@@ -96,6 +172,11 @@ function readCookieSelection(fingerprint: string | null): ThemeSelectionState | 
  * Returns `null` during SSR (no `window`). The cookie contract matches the
  * other SSR integrations (`@themvora/next`, `@themvora/nuxt`, `@themvora/remix`).
  *
+ * **Blocked storage degrades, it does not throw.** `window.localStorage` can
+ * throw on access and `setItem` throws when the quota is full; both are treated
+ * as "this browser cannot remember the selection". The cookie mirror is written
+ * either way, so the server still resolves the same theme on the next request.
+ *
  * @see {@link ThemeProviderClient}
  * @see `createThemePersistence`
  */
@@ -106,7 +187,7 @@ export function createAstroThemePersistence(
   if (typeof window === "undefined") return null;
 
   const key = "theme-selection";
-  const storage = window.localStorage;
+  const storage = resolveStorage();
   const fingerprint = themes?.length
     ? computeFingerprint(themes, defaultTheme)
     : null;
@@ -116,11 +197,13 @@ export function createAstroThemePersistence(
       // localStorage first (cross-tab, offline), then the cookies the
       // pre-paint script reads — so the runtime adopts the already-painted
       // theme instead of overwriting it.
-      return parseState(storage.getItem(key)) ?? readCookieSelection(fingerprint);
+      return parseState(readKey(storage, key)) ?? readCookieSelection(fingerprint);
     },
 
     set(value) {
-      storage.setItem(key, JSON.stringify(value));
+      // Storage and cookies are independent: a full quota must not cost the
+      // visitor server-side persistence on their next request.
+      writeKey(storage, key, JSON.stringify(value));
 
       writeCookie(COOKIE_NAMES.family, value.family);
       writeCookie(COOKIE_NAMES.mode, value.mode);
@@ -131,7 +214,7 @@ export function createAstroThemePersistence(
     },
 
     remove() {
-      storage.removeItem(key);
+      removeKey(storage, key);
       removeCookie(COOKIE_NAMES.family);
       removeCookie(COOKIE_NAMES.mode);
       removeCookie(COOKIE_NAMES.fingerprint);

@@ -10,6 +10,8 @@
  * @packageDocumentation
  */
 export * from "./model";
+export * from "./parse-theme-json";
+export * from "./registry-loader";
 export * from "./adapters";
 export * from "./createThemeStore";
 export * from "./bootstrap";
@@ -22,6 +24,13 @@ export * from "./app-config";
 export type { ThemvoraThemeConfig } from "./vite-plugin";
 export * from "./sync-first-root";
 export * from "./runtime";
+// Provider-aware discovery of the themes a runtime was given, plus the explicit
+// `themeOverride` resolution both the runtime and the pre-paint bootstrap use.
+export * from "./provided-themes";
+export * from "./theme-override";
+// One resolver for every naming form a selection prop accepts (variant, family),
+// shared by `defaultTheme`, `themeOverride`, `initialFamily` and the bootstrap.
+export * from "./theme-reference";
 // The diagnostics model comes before `./errors`: `ThemeError` carries a
 // diagnostic's code and context, so the two are documented together.
 export * from "./diagnostics";

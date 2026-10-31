@@ -85,9 +85,9 @@ Each theme is registered twice:
 ---
 
 
-### `calculateSunTimes(date, args...): { sunrise: Date; sunset: Date }`
+### `calculateSunTimes(date, args...): SunTimes`
 Compute today's sunrise and sunset using the standard NOAA solar algorithm
-(zenith-based, corrected for the equation of time).
+(zenith-based, corrected for the equation of time and for longitude).
 
 `latitude` and `longitude` are optional: when omitted (or when an options
 object is passed instead), the location is resolved from `timeZone` or the
@@ -108,10 +108,38 @@ calculateSunTimes(date, { timeZone: "Asia/Kathmandu" });
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `date` | `Date` | — |
-| ...args | `[latitude: number, longitude: number, options: SolarLocationInput] \| [options: SolarLocationInput]` | — |
+| `date` | `Date` | The day to compute for. Its **local** calendar date is used. |
+| ...args | `[latitude: number, longitude: number, options: SolarLocationInput] \| [options: SolarLocationInput]` | `latitude, longitude[, options]`, or an options bag. |
 
-**Returns** `{ sunrise: Date; sunset: Date }`
+**Returns** `SunTimes` — The sunrise/sunset pair as absolute instants (see SunTimes).
+
+**The local-clock contract.** Both returned `Date`s are absolute instants
+computed from the location's longitude and the day's solar declination. Their
+local representation is therefore the correct wall-clock time for that day,
+and it follows daylight-saving transitions because it is derived from the
+real UTC instant rather than from a fixed offset.
+
+**Longitude matters.** Solar noon at a location occurs at
+`720 - 4·longitude - eqTime` minutes UTC (east-positive longitude), and
+sunrise/sunset sit `±4·hourAngle` minutes either side of it. Treating that
+result as local clock time — which the previous implementation did, because
+it never applied the longitude term — put the switch at the wrong hour
+wherever the local time-zone meridian differs from the location's longitude.
+
+**`timeZone` resolves coordinates, not the clock.** It is used only to pick
+the latitude/longitude pair; the returned instants are read on the host's own
+clock. This API therefore does not support computing "sunrise in Tokyo" on a
+server in London: the coordinates would be Tokyo's but the day boundary and
+the displayed wall-clock time would be the server's. Pass explicit
+coordinates for the visitor's location, or run the calculation in the
+visitor's browser.
+
+**Polar day and polar night** are reported through SunTimes.polar.
+The hour-angle formula has no solution when the sun stays above or below the
+horizon, and the previous implementation clamped `cosH` into `[-1, 1]`,
+which produced a zero-length day: sunrise equal to sunset, so the
+daytime test was never true and a polar-day visitor got the dark theme at
+noon.
 
 ---
 
@@ -687,6 +715,33 @@ native scrollbars are kept.
 ---
 
 
+### `createProvidedThemesSource<T extends ThemeDefinition<string>>(runtime): ProvidedThemesSource<T>`
+Create a reactive source over one provider's theme collection.
+
+The derivation runs once per settled change to the provider's registry and is
+cached in between, so:
+
+- the returned array is referentially stable while nothing changes,
+- a `register` / `unregister` / `use` / `configure` is reflected on the next
+  read,
+- two providers never share a collection.
+
+**See also:** `normalizeProvidedThemes`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `runtime` | `ProvidedThemesRuntime<T>` | The provider's runtime. |
+
+**Returns** `ProvidedThemesSource<T>` — A source with `get()` and `subscribe()`.
+
+```ts
+const source = createProvidedThemesSource(runtime);
+source.subscribe(() => console.log(source.get().length));
+```
+
+---
+
+
 ### `createScheduledPlugin<T extends ThemeDefinition<string>>(options): ThemePlugin<T>`
 Creates a plugin that switches the theme selection by time of day.
 
@@ -1005,6 +1060,11 @@ and broadcast when the corresponding adapters are provided. The returned
 controller is safe to destroy: after `destroy()` its methods become no-ops
 and all subscriptions are released.
 
+A persistence or broadcast adapter that throws does not abort the change: the
+resolved theme is still applied and the failure is reported as a
+`TV_SYNC_FAILED` diagnostic, so `getMode()` never reports a mode the screen
+is not showing.
+
 **See also:** `ThemeSelectionState`, `createThemePersistence`
 
 | Parameter | Type | Description |
@@ -1051,29 +1111,42 @@ persistence?.set("dark");
 
 
 ### `createThemeReadoutScript(): string`
-Builds the inline script that fills in **bootstrap readouts**: elements that
-display a theme-derived value the server cannot know.
+Builds the inline script that fills in **bootstrap readouts** and reconciles
+**selection controls**: the parts of the page that display or reflect a
+theme-derived value the server cannot know.
 
 **See also:** `createThemeBootstrapScript`, `readBootstrapState`
 
 **Returns** `string` — The script body to emit at the **end of `<body>`**, after the
   elements it patches exist.
 
-A readout opts in with `data-tv-readout="theme" | "mode" | "family"`, or
-`data-tv-readout="var:--theme-color-primary"` to display a resolved CSS
-variable. The script reads the payload the blocking bootstrap published (see
-readBootstrapState) — or, for `var:`, the variable the bootstrap
-already applied to `<html>` — and writes the value into each element's
-`textContent`.
+Three kinds of element opt in, and all three are reconciled from the same
+three values — the resolved theme, the mode selection and the family
+selection — because a control that lags the canvas by one value is the same
+bug in a smaller window:
 
-Why this exists: a server-rendered readout can only show the *server's*
-resolution, and for `"system"` mode that is a fallback the browser overrides
-before the first paint. The canvas is corrected by the bootstrap, but the text
-is not — so it settles once after hydration, which is the last visible
-difference on an otherwise static page.
+| Attribute | Written | Meaning |
+| --------- | ------- | ------- |
+| `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"family"`, or `"var:<custom-property>"` |
+| `data-tv-pressed` + `data-tv-value` | `aria-pressed` | this element represents that option of `"mode"` / `"family"` |
+| `data-tv-select` | `value` | this `<select>` edits `"mode"` / `"family"` |
 
-Patching the text before the first paint closes that, but only if the
-framework then leaves the element alone. In React that means pairing it with
+Why this exists: a server-rendered readout or control can only show the
+*server's* resolution, and for `"system"` mode — or for any prerendered page,
+which has no request to read a cookie from — that is a fallback the browser
+overrides before the first paint. The canvas is corrected by the bootstrap,
+but the text and the pressed state are not, so they settle once after
+hydration, which is the last visible difference on an otherwise static page.
+On a page that reloads repeatedly it reads as the label "fluctuating" between
+the two themes.
+
+`data-tv-pressed` writes `aria-pressed` and nothing else. That is the whole
+point: the accessible state *is* the visual state, so a token class keyed off
+`aria-pressed` needs no second attribute to keep in step, and a screen reader
+can never announce a pressed option the page does not show as pressed.
+
+Patching before the first paint closes that, but only if the framework then
+leaves the element alone. In React that means pairing a readout with
 `suppressHydrationWarning` on the same element: React renders its own value
 during hydration, sees the DOM already differs, and — with the attribute —
 neither warns nor rewrites. The framework's own post-hydration render then
@@ -1083,6 +1156,20 @@ server's fallback and re-introduce the settle.
 
 It is deliberately placed at the end of the body: the blocking script runs in
 `<head>`, before these elements have been parsed, so it cannot patch them.
+
+**It reads the live document, not the page's build-time state.** The values
+come from `<html>`'s own `data-theme` / `data-theme-selection-*` attributes,
+which by this point describe what the visitor is actually looking at, and
+only fall back to the published bootstrap payload when those attributes are
+absent. That is what makes the script idempotent, and idempotence is
+load-bearing rather than tidy: `<ClientRouter />` re-executes inline body
+scripts on a client-side navigation, so this runs again on every navigation —
+after the incoming page's readouts have already been brought up to date. A
+script that wrote the *initial* selection would undo that, and every readout
+would revert to the page-build default until the next theme change. Measured
+on the example app: with the payload as the source, navigating from `/` with
+`cocoa-dark` selected left the readouts at `mint-light` / `system` / `mint`
+while the document was painted `cocoa-dark`.
 
 ---
 
@@ -1155,7 +1242,7 @@ this single contract.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `store` | `ThemeStore<T>` | — |
+| `store` | `ThemeScheduleStore<T>` | — |
 | `themes` | `readonly T[]` | — |
 | `options` | `ThemeScheduleOptions<T>` | — |
 
@@ -1238,6 +1325,26 @@ groups (layout/z-index/breakpoints) changed.
 ---
 
 
+### `createVueThemeBootstrapScript<T extends ThemeDefinition<string>>(options): string`
+Build the blocking zero-flash `<head>` script for a Vue app (SSR or SPA).
+
+Inlines core's `createThemeBootstrapScript` with the Vue defaults
+(`storageKey: "theme-selection"`, `prefix: "theme-"` — the same values the
+Vue `ThemeProvider` persistence and CSS variables use), so the persisted
+theme is applied before first paint. Emit the returned string as a
+blocking `<script>` inside `<head>`.
+
+**See also:** ``buildThemeCssMap``
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `options` | `ThemeBootstrapScriptOptions<T>` | — |
+
+**Returns** `string`
+
+---
+
+
 ### `darkModeCSSTemplate(variables): string`
 Generate a `@media (prefers-color-scheme: dark)` CSS block carrying the given
 variables.
@@ -1248,7 +1355,9 @@ variables.
 | --------- | ---- | ----------- |
 | `variables` | `Record<string, string>` | The CSS variables to emit under the dark media query. |
 
-**Returns** `string` — A `@media (prefers-color-scheme: dark)` block targeting `:root`.
+**Returns** `string` — A `@media (prefers-color-scheme: dark)` block targeting `:root`,
+  escaped so it cannot terminate a `<style>` element (`</` becomes `</`,
+  which CSS parses identically).
 
 This is a **pre-script** fallback only, and it cannot beat an inline `style`
 on the same element: inline declarations outrank every stylesheet rule
@@ -1292,7 +1401,7 @@ a validation point, so the Vite plugin can discover it by convention and the
 provider can consume the same object rather than a copy of it.
 
 ```ts
-// theme.config.ts — at the project root
+// At the project root
 import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
@@ -1615,11 +1724,11 @@ const { light, dark } = generateTheme({ seed: "#d97706", family: "brand" });
 ---
 
 
-### `getAccessibilityProfiles(): { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]`
+### `getAccessibilityProfiles(): { meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } } | { meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }[]`
 Build the accessibility profile theme set: high-contrast and large-text
 themes for both light and dark modes.
 
-**Returns** `{ meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]` — An array of four accessibility theme definitions.
+**Returns** `{ meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } } | { meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }[]` — An array of four accessibility theme definitions.
 
 ---
 
@@ -1643,7 +1752,7 @@ Detect the visitor's IANA timezone, e.g. `"Asia/Kathmandu"`. Returns `null`
 ---
 
 
-### `getBuiltInThemes(): ThemeDefinition<string> | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]`
+### `getBuiltInThemes(): ThemeDefinition<string> | { meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } } | { meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }[]`
 Build the complete set of built-in themes shipped with Themvora.
 
 Combines the neutral themes, preset themes, brand presets, and accessibility
@@ -1652,7 +1761,7 @@ profiles into a single array ready to be registered with a theme runtime.
 Every theme passes through ensureReadableContrast on the way out, so a
 semantic foreground that would fail AA is corrected before any consumer sees it.
 
-**Returns** `ThemeDefinition<string> | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } } | { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }[]` — An array of all built-in theme definitions.
+**Returns** `ThemeDefinition<string> | { meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } } | { meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }[]` — An array of all built-in theme definitions.
 
 ---
 
@@ -1697,7 +1806,7 @@ their own fallback palette.
 ---
 
 
-### `getHighContrastTheme(mode): { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }`
+### `getHighContrastTheme(mode): { meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } }`
 Build a high-contrast theme for the given mode.
 
 Uses maximum-contrast colors (pure black/white surfaces, saturated primary)
@@ -1707,13 +1816,13 @@ to maximize legibility for users with low vision.
 | --------- | ---- | ----------- |
 | `mode` | `"light" \| "dark"` | The color mode of the theme. |
 
-**Returns** `{ meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string } } }` — A high-contrast theme definition tagged `"accessibility"` and
+**Returns** `{ meta: { label: "High Contrast Light" | "High Contrast Dark"; mode: "light" | "dark"; order: 30 | 40; tags: ["accessibility", "high-contrast"] }; name: "high-contrast-light" | "high-contrast-dark"; tokens: { colors: { accent: "#0000ee" | "#4488ff"; accentForeground: "#000000" | "#ffffff"; background: "#000000" | "#ffffff"; border: "#000000"; card: "#000000" | "#ffffff"; cardForeground: "#000000" | "#ffffff"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#ffffff"; input: "#000000"; muted: "#e0e0e0" | "#333333"; mutedForeground: "#111111" | "#eeeeee"; popover: "#000000" | "#ffffff"; popoverForeground: "#000000" | "#ffffff"; primary: "#0000ee" | "#4488ff"; primaryForeground: "#000000" | "#ffffff"; ring: "#0000ee" | "#4488ff"; secondary: "#e0e0e0" | "#333333"; secondaryForeground: "#000000" | "#ffffff"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "4px" } } }` — A high-contrast theme definition tagged `"accessibility"` and
   `"high-contrast"`.
 
 ---
 
 
-### `getLargeTextTheme(mode): { meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }`
+### `getLargeTextTheme(mode): { meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }`
 Build a large-text theme for the given mode.
 
 Enlarges the typography scale and uses high-contrast colors so text remains
@@ -1723,7 +1832,7 @@ readable for users who need larger type.
 | --------- | ---- | ----------- |
 | `mode` | `"light" \| "dark"` | The color mode of the theme. |
 
-**Returns** `{ meta: { label: string; mode: "light" | "dark"; order: number; tags: string[] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: string; accentForeground: string; background: string; border: string; card: string; cardForeground: string; destructive: string; destructiveForeground: string; foreground: string; input: string; muted: string; mutedForeground: string; popover: string; popoverForeground: string; primary: string; primaryForeground: string; ring: string; secondary: string; secondaryForeground: string; success: string; successForeground: string }; radius: { lg: string }; typography: { fontFamilies: { mono: string; sans: string }; fontSizes: { 2xl: string; 3xl: string; 4xl: string; 5xl: string; 6xl: string; base: string; lg: string; sm: string; xl: string; xs: string }; lineHeights: { normal: string; relaxed: string; tight: string } } } }` — A large-text theme definition tagged `"accessibility"` and
+**Returns** `{ meta: { label: "Large Text Light" | "Large Text Dark"; mode: "light" | "dark"; order: 35 | 45; tags: ["accessibility", "large-text"] }; name: "large-text-light" | "large-text-dark"; tokens: { colors: { accent: "#4488ff" | "#0055cc"; accentForeground: "#ffffff"; background: "#fafafa" | "#0a0a0a"; border: "#cccccc" | "#444444"; card: "#ffffff" | "#111111"; cardForeground: "#000000" | "#f0f0f0"; destructive: "#cc0000" | "#dc2626"; destructiveForeground: "#ffffff"; foreground: "#000000" | "#f0f0f0"; input: "#cccccc" | "#444444"; muted: "#e8e8e8" | "#2a2a2a"; mutedForeground: "#333333" | "#cccccc"; popover: "#ffffff" | "#111111"; popoverForeground: "#000000" | "#f0f0f0"; primary: "#4488ff" | "#0055cc"; primaryForeground: "#ffffff"; ring: "#4488ff" | "#0055cc"; secondary: "#e8e8e8" | "#2a2a2a"; secondaryForeground: "#000000" | "#f0f0f0"; success: "#008000" | "#16a34a"; successForeground: "#ffffff" }; radius: { lg: "8px" }; typography: { fontFamilies: { mono: "monospace"; sans: "system-ui, sans-serif" }; fontSizes: { 2xl: "2.25rem"; 3xl: "3rem"; 4xl: "3.75rem"; 5xl: "4.5rem"; 6xl: "6rem"; base: "1.25rem"; lg: "1.5rem"; sm: "1.125rem"; xl: "1.875rem"; xs: "1rem" }; lineHeights: { normal: "1.8"; relaxed: "2.0"; tight: "1.4" } } } }` — A large-text theme definition tagged `"accessibility"` and
   `"large-text"`.
 
 ---
@@ -1843,6 +1952,20 @@ Whether a foreground role's choice is governed by a declared preference.
 | `role` | `CoreColor` | The foreground role. |
 
 **Returns** `boolean` — `true` when the role has a declared preference.
+
+---
+
+
+### `hideNativeScrollbar(): __type(): void`
+Hide the native scrollbar and register a claim that keeps it hidden.
+
+Returns the release function for that claim. The hiding is applied
+idempotently (the class may already be server-rendered, the stylesheet may
+already exist), and it is released when the last claim goes away — so
+`createOverlayScrollbar` and its `destroy()` are a matched pair rather than
+a one-way switch.
+
+**Returns** `__type(): void`
 
 ---
 
@@ -1979,6 +2102,26 @@ simply emits what is present), so schema completeness is not required here.
 ---
 
 
+### `loadThemeRegistry(source): RegistryLoadResult`
+Read a generated theme registry from its source.
+
+Statically: the module is never imported, evaluated or transpiled.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `source` | `string` | The module's text. |
+
+**Returns** `RegistryLoadResult` — The themes it registers, or a structured failure.
+
+The shape recognised is the one `themvora init` writes: a `themvora` array of
+`defineTheme` literals, a `selection` of family names, a `sourceThemes` array,
+and a `themes` export combining them. A module outside that shape — including
+a hand-written one — is reported as `not-a-registry` or
+`unsupported-construct`, never partially guessed.
+
+---
+
+
 ### `measureThemeContrast(theme): MeasuredPair[]`
 Measure every contract pair in a resolved theme.
 
@@ -2064,6 +2207,32 @@ Migrate a legacy theme to the current Themvora format using registered
 ---
 
 
+### `normalizeProvidedThemes<T extends ThemeDefinition<string>>(themes, previous?): readonly ProvidedThemeFamily<T>[]`
+Group a provider's theme collection into discoverable families.
+
+Preserves the supplied order of both families and variants, keeps light/dark
+(and any other mode) as siblings rather than flattening them, and never
+mutates or extends the input — a family appears only if a theme for it was
+supplied.
+
+**See also:** `createProvidedThemesSource`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[]` | The collection the provider was given, in registration order. |
+| `previous` | `readonly ProvidedThemeFamily<T>[]` (optional) | A previous derivation to reuse unchanged entries from. Passing the result of the last call keeps family and variant identities stable across ordinary provider updates. |
+
+**Returns** `readonly ProvidedThemeFamily<T>[]` — The grouped collection, ordered by first appearance.
+
+```ts
+const families = normalizeProvidedThemes(runtime.themes);
+const mint = families.find((family) => family.family === "mint");
+mint?.variants.map((variant) => variant.tokens.colors?.background);
+```
+
+---
+
+
 ### `normalizeThemeCatalog<T extends ThemeDefinition<string>>(themes): readonly T[]`
 Normalize a theme catalog.
 
@@ -2095,6 +2264,18 @@ Minimal RFC 6265 header parser — enough for the four theme cookies.
 ---
 
 
+### `parseThemeJson(text): ParsedThemeJson`
+Parse a theme document, tolerating comments and trailing commas.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `text` | `string` | The document's text. |
+
+**Returns** `ParsedThemeJson` — The parsed value and the masked source.
+
+---
+
+
 ### `preferredInk(role, ctx): Oklch | null`
 The preferred ink for a role, resolved for the mode.
 
@@ -2117,6 +2298,23 @@ a button label consistent across a mode switch.
 Requested motion profile. Reduced motion snaps instantly.
 
 **Returns** `boolean`
+
+---
+
+
+### `provideThemeRuntime<T extends ThemeDefinition<string>>(runtime): void`
+Provides a Themvora runtime to the current Vue component subtree.
+
+Call inside a component's `setup` scope (typically the app root) so
+descendant composables can resolve it via useThemeRuntime.
+
+**See also:** `useThemeRuntime`, `ThemeProvider`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `runtime` | `ThemeRuntime<T>` | The runtime to make available to the subtree. |
+
+**Returns** `void`
 
 ---
 
@@ -2147,6 +2345,37 @@ what the visitor is looking at, and anything that re-resolves can disagree
 with it. The result is validated against the registry rather than trusted as
 an arbitrary string, so a stale or hand-written attribute cannot inject a
 theme that does not exist.
+
+---
+
+
+### `readThemeDefinitions(source, options?): ThemeDefinitionReadResult`
+Read every `defineTheme({ … })` literal in a source file.
+
+`defineTheme()` returns its argument unchanged — it is a type-level helper, not a
+transformation — so reading the literal *is* reading the theme. That is what
+makes a static reader sufficient here, and it is why this function needs no
+knowledge of variants, defaults or provenance: there are none to apply.
+
+Broader than loadThemeRegistry, which requires the canonical registry's
+exports. A project may define themes in any file it likes; this finds the
+definitions wherever they are, and reports the ones it cannot read rather than
+skipping them.
+
+It also reads `generateTheme({ … })` calls whose argument is a literal object.
+That is **not** executing project code: `generateTheme` is Themvora's own pure
+generator, and calling it with data read from the file is the same thing the
+application does at runtime. A call with any other argument is refused.
+
+In strict mode every API name must come from `bindings` or `namespaces`; a
+local function with a catalog's spelling is not the catalog.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `source` | `string` | The file's text. |
+| `options` | `ThemeDefinitionReadOptions` (optional) | Verified bindings, namespaces and strictness. |
+
+**Returns** `ThemeDefinitionReadResult` — The definitions found, and the candidates refused.
 
 ---
 
@@ -2440,15 +2669,10 @@ the fallback chain guarantees a result for non-empty theme lists.
 ### `resolveSelection<T extends ThemeDefinition<string>>(options): ThemeSelectionState`
 Resolves a selection state from configuration inputs.
 
-Priority: `persistedSelection` wins; otherwise the resolved family/mode
-default to the fallback theme's own family/mode. The fallback theme is
-`defaultTheme` when provided and registered, else the first theme.
+Priority: `persistedSelection` wins; otherwise `initialFamily` (family or
+variant), then `defaultTheme` (family or variant), then the first theme.
 
-The returned family is always one that exists in `themes`: a requested or
-persisted family that is not registered is replaced by the fallback theme's
-family. See normalizeThemeFamily for why that invariant matters.
-
-**See also:** `resolveInitialTheme`, `resolveSelectionTheme`
+**See also:** `resolveInitialTheme`, `resolveThemeReference`
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -2553,6 +2777,70 @@ theme overall.
 ---
 
 
+### `resolveThemeOverride<T extends ThemeDefinition<string>>(themes, override, base): ThemeSelectionState | null`
+Resolve an override against the provider's themes.
+
+Pure: no side effects, no state. Returns a complete selection (both fields
+filled) or `null` when the override cannot be satisfied — the caller decides
+whether to report and ignore or to treat it as absent.
+
+A string is a **theme name** and must match exactly. An object is a
+family/mode request; a missing field is inherited from `base`.
+
+**See also:** `ThemeOverride`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[]` | The provider's registered themes. |
+| `override` | `ThemeOverride<T["name"]> \| undefined` | The requested override, or `undefined`. |
+| `base` | `ThemeSelectionState` | The selection the provider would use without an override. Used to fill in a partially specified request. |
+
+**Returns** `ThemeSelectionState | null` — The resolved selection, or `null` when absent or unresolvable.
+
+```ts
+// `themes` is whatever registry the provider was given.
+const themes = getBuiltInThemes();
+const selection = { family: "mint", mode: "light" };
+
+resolveThemeOverride(themes, "mint-dark", selection);      // { family: "mint", mode: "dark" }
+resolveThemeOverride(themes, { family: "mint" }, selection); // keeps base.mode
+resolveThemeOverride(themes, "nope", selection);            // null
+```
+
+---
+
+
+### `resolveThemeReference<T extends ThemeDefinition<string>>(themes, reference, options?): ResolvedThemeReference<T> | null`
+Resolve a theme reference against a provider's catalog.
+
+**See also:** `resolveThemeOverride`, `resolveSelection`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `themes` | `readonly T[]` | The themes the provider was given. A reference that is not in this list does not resolve — the global preset catalog is never consulted. |
+| `reference` | `string \| null \| undefined` | A variant name, a family name, or nothing. |
+| `options` | `ResolveThemeReferenceOptions` (optional) | Mode used for a family reference. |
+
+**Returns** `ResolvedThemeReference<T> | null` — The resolution, or `null` when the reference names nothing available.
+
+An exact variant name wins over a family name. A theme whose `name` equals
+another theme's family is therefore addressable as a variant — the explicit,
+more specific reading — and the family form of the *other* family keeps
+working. The two namespaces are otherwise independent: a family is
+`meta.family ?? "default"`, a variant is `name`.
+
+```ts
+// `themes` is whatever registry the provider was given.
+const themes = getBuiltInThemes();
+
+resolveThemeReference(themes, "cocoa-dark"); // { kind: "variant", mode: "dark", … }
+resolveThemeReference(themes, "cocoa", { mode: "dark" }); // { kind: "family", … cocoa-dark }
+resolveThemeReference(themes, "nope"); // null
+```
+
+---
+
+
 ### `resolveThemeRegistry<T extends ThemeDefinition<string>>(options?): readonly T[]`
 Resolves the effective theme list for a registry configuration.
 
@@ -2581,6 +2869,29 @@ Resolve a theme's token groups, evaluating expressions and references
 | `tokens` | `ThemeTokens` | — |
 
 **Returns** `ThemeTokens`
+
+---
+
+
+### `restoreNativeScrollbar(): void`
+Restore the platform's native scrollbars, discarding any outstanding claims.
+
+Undoes the hiding completely: the `tv-scrollbar` class (and the
+`tv-scrollbar-ready` phase marker) come off `<html>`, and every hiding
+stylesheet is removed. Safe to call at any time and idempotent — a page that
+never hid anything is left untouched.
+
+This is what makes the overlay's lifecycle symmetric. Without it, unmounting
+the overlay left the page with the native bar still hidden and nothing to
+replace it: an invisible scrollbar, not a native one.
+
+It is also a hard reset: the claim count drops to zero, so an overlay that
+outlives the call no longer keeps the native bar hidden on its own. That is
+the point — it is the escape hatch for a page that has decided the overlay is
+gone (a teardown, a framework's `beforeunload`, a test), and it is why the
+count cannot drift upwards forever.
+
+**Returns** `void`
 
 ---
 
@@ -2689,7 +3000,8 @@ no script and no inline style.
 | `light` | `Record<string, string>` | The light theme's CSS variables. |
 | `dark` | `Record<string, string>` | The dark theme's CSS variables. |
 
-**Returns** `string` — Two media blocks, one per scheme, both targeting `:root`.
+**Returns** `string` — Two media blocks, one per scheme, both targeting `:root`, escaped
+  for `<style>`-element content exactly as darkModeCSSTemplate is.
 
 Use this **instead of** inlining the resolved variables whenever the mode is
 `"system"`. The two cannot be combined: an inline `style` on `<html>`
@@ -2702,6 +3014,72 @@ and no inline variables painted `rgb(2, 6, 23)`.
 `prefers-color-scheme: light` also matches when the visitor has expressed no
 preference — `light` is the specified default — so the light block doubles as
 the no-preference branch.
+
+---
+
+
+### `themeOverrideKey(override, themes?): string | null`
+The semantic identity of an override, for change detection.
+
+Two overrides with the same key request the same theme, even when they are
+different objects — which is the normal case for an inline
+`themeOverride={{ family: "mint" }}` that is rebuilt on every render. Built
+from resolved primitives only: no object stringification, no identity.
+
+Pass the provider's catalog to canonicalise a **theme name** against the
+family and mode it resolves to, so `"mint-dark"` and
+`{ family: "mint", mode: "dark" }` compare equal — they are the same request
+written two ways, and re-applying one because the other was spelled
+differently is exactly the churn this function exists to prevent. Without a
+catalog the name form keys on the name alone.
+
+A partially specified request (`{ family: "mint" }`) keys on what was asked
+for, never on the base selection it would inherit: otherwise a manual mode
+change would make an unchanged prop look like a new request and re-assert the
+family.
+
+**See also:** `resolveThemeOverride`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `override` | `ThemeOverride<string> \| undefined` | The override to key. |
+| `themes` | `readonly ThemeDefinition<string>[]` (optional) | The provider's themes, used to canonicalise a theme name. |
+
+**Returns** `string | null` — A stable string, or `null` when there is no override.
+
+---
+
+
+### `themeToCssDocument(theme): string`
+Render a theme, or a light/dark pair, as a CSS custom-property document.
+
+This is the canonical formatting for Themvora's `:root` document convention,
+and the only place it exists: the CLI's `export --format css` and the VS Code
+extension's Copy CSS Variables both call it, so the CSS a user copies is the
+CSS the CLI writes.
+
+A single theme is emitted under CSS_ROOT_SELECTOR. A pair is emitted as
+the light theme under `:root` followed by the dark theme under
+CSS_DARK_SELECTOR.
+
+Output is deterministic: the variable order comes from
+themeToCSSVariables, which emits token groups in a fixed order, so the
+same theme always produces byte-identical CSS.
+
+**See also:** `themeToCSSVariables`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `theme` | `ThemeDefinition<string> \| ThemeCssPair` | A theme definition, or a `{ light, dark }` pair. |
+
+**Returns** `string` — The document, ending with a newline.
+
+```ts
+const { light, dark } = generateTheme({ seed: "#4f46e5" });
+const css = themeToCssDocument({ light, dark });
+// :root { --theme-color-background: #fbfbff; … }
+// .dark, [data-theme="dark"] { … }
+```
 
 ---
 
@@ -2729,7 +3107,7 @@ const vars = themeToCSSVariables(theme); // { "--theme-color-background": "#fff"
 
 
 ### `toBootstrapConfig<T extends ThemeDefinition<string>>(config): ThemeBootstrapConfig<T>`
-Projects a ThemvoraConfig down to what the pre-paint bootstrap needs.
+Projects a ThemvoraConfig down to what crosses to the browser.
 
 **See also:** `ThemeBootstrapConfig`
 
@@ -2737,12 +3115,68 @@ Projects a ThemvoraConfig down to what the pre-paint bootstrap needs.
 | --------- | ---- | ----------- |
 | `config` | `ThemvoraConfig<T>` | The full application configuration. |
 
-**Returns** `ThemeBootstrapConfig<T>` — The bootstrap subset.
+**Returns** `ThemeBootstrapConfig<T>` — The transported projection.
+
+Copies the serializable runtime options as well as the bootstrap fields. A
+field omitted here is not merely unused in the browser — it is *replaced by a
+default*, which is how a declared `transition: { enabled: false }` still
+produced a view transition on every theme change. See
+ThemeBootstrapConfig.
 
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }`
+### `useEffectiveThemeMode(): Ref<"light" | "dark">`
+Reactive ref of the mode actually **applied** — `"light"` or `"dark"`, never
+`"system"`.
+
+Render this when a control states the current appearance. useThemeMode
+reports what the visitor asked for, which does not move at a sunrise/sunset
+transition and stays `"system"` for as long as that choice stands — so a label
+bound to it kept announcing the old mode while the page changed colour.
+
+Call inside Vue `setup` scope within a `<ThemeProvider>`. Subscribes to the
+appearance (store and effective-selection channels) and is cleaned up on
+unmount.
+
+**See also:** `useThemeMode`, `useThemeSchedule`
+
+**Returns** `Ref<"light" | "dark">` — A `Ref` holding the applied mode.
+
+---
+
+
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): Ref<readonly ProvidedThemeFamily<T>[], readonly ProvidedThemeFamily<T>[]>`
+Reactive ref of the themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `<ThemeProvider>` —
+not the built-in catalog, and not every theme in the project. The ref updates
+when the provider's `themes` prop changes, when a theme pack is installed, or
+when the registry is mutated, and it is cleaned up on unmount.
+
+```vue
+<script setup>
+const families = useProvidedThemes();
+</script>
+
+<template>
+  <section v-for="family in families" :key="family.id">
+    <h3>{{ family.name }}</h3>
+    <button v-for="variant in family.variants" :key="variant.name">
+      {{ variant.mode }}
+    </button>
+  </section>
+</template>
+```
+
+**See also:** `useTheme`
+
+**Returns** `Ref<readonly ProvidedThemeFamily<T>[], readonly ProvidedThemeFamily<T>[]>` — A ref holding the provider's theme families, in supplied order.
+
+---
+
+
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: Ref<"light" | "dark", "light" | "dark">; family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }`
 Reactive access to the active theme, mode, and family plus selection
 controls.
 
@@ -2750,9 +3184,9 @@ Call inside Vue `setup` scope within a `<ThemeProvider>`. Returns reactive
 refs for `theme`, `mode`, and `family`, along with `setMode`, `setFamily`,
 and `toggleTheme` helpers that operate on the runtime's selection.
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
 
-**Returns** `{ family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }` — An object of reactive state and selection helpers.
+**Returns** `{ effectiveMode: Ref<"light" | "dark", "light" | "dark">; family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }` — An object of reactive state and selection helpers.
 
 ```ts
 const { theme, mode, family, setMode, toggleTheme } = useTheme();
@@ -3344,7 +3778,11 @@ The outcome of validating a theme's color contrast.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `checks` | `ContrastCheck[]` | The per-pair contrast checks performed. |
+| `nonTextChecks` | `NonTextCheck[]` | Non-text UI component contrast checks (WCAG 2.1 §1.4.11, 3:1). |
+| `passCount` | `number` | Number of text pairs passing AA normal. |
+| `totalCount` | `number` | Total number of text pairs checked. |
 | `valid` | `boolean` | `true` when every checked pair passes WCAG AA for normal text. |
+| `worstRatio` | `number` | The worst text-pair ratio found. |
 
 ---
 
@@ -3573,11 +4011,13 @@ One measured contract pair.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `background` | `string` | The background role. |
+| readonly `direction` (optional) | `ContrastFailureDirection` | Which token is too light/dark, when the pair fails. Absent when the pair passes. |
 | `floor` | `number` | The published floor for this requirement. |
 | `foreground` | `string` | The foreground role. |
 | `passes` | `boolean` | Whether the floor is met. |
 | `ratio` | `number` | The measured WCAG ratio. |
 | `requirement` | `"text" \| "ui"` | Which contract threshold applies. |
+| readonly `severity` (optional) | `ContrastSeverity` | How far below the floor, when the pair fails. Absent when the pair passes. |
 
 ---
 
@@ -3623,11 +4063,11 @@ SSR-first cookie contract so the browser paints already themed.
 | `scheduled` (optional) | `false \| ThemeScheduleOptions<ThemeDefinition<string>>` | Sunrise/sunset scheduling. Pass `{ lightTheme, darkTheme, latitude, longitude, ... }` to auto-switch between a light and a dark theme at sunrise/sunset. `false` (default) disables scheduling. Use `useThemeSchedule()` to read `enabled`/`status`/`sunrise`/`sunset` and to enable or disable the schedule reactively. |
 | `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Custom scrollbar bootstrap. `true` (or options) emits the pre-paint CSS and the `tv-scrollbar` class on `<html>` so the native scrollbar is hidden from first paint; mount `<ThemeScrollbar />` to create the overlay engine (shared with every framework). |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Default `"theme-selection"`. |
+| `themeOverride` (optional) | `ThemeOverride<string>` | An explicit theme override applied over any persisted selection. Applied once per value and never written to the theme cookies. Because it is a module option it is fixed for the app rather than per page; use `runtime.configure({ themeOverride })` from a plugin when it has to change at runtime. |
 | `themes` (optional) | `ThemeDefinition<string>[]` | Theme registry. Defaults to the built-in themes when omitted. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme transitions. `false` disables them; `true` (or an options object) enables smooth cross-fades on theme changes through the shared `@themvora/core` transition engine. |
 
 ```ts
-// nuxt.config.ts
 export default defineNuxtConfig({
   themvora: {
     defaultTheme: "light",
@@ -3651,6 +4091,21 @@ fallbacks are reported.
 | `channelName` (optional) | `string` | Name of the `BroadcastChannel` used when the broadcast strategy is selected. |
 | `onFallback` (optional) | `__type(strategy: string): void` | Called with a description whenever a preferred strategy is unavailable and the sync falls back to the next one. |
 | `prefer` (optional) | `"broadcast" \| "sharedworker" \| "auto"` | Preferred strategy. `"auto"` tries broadcast first, then shared worker. |
+
+---
+
+
+### `NonTextCheck`
+The result of a single non-text UI component contrast check (WCAG 2.1 §1.4.11).
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `background` | `string` | — |
+| `backgroundToken` | `string` | — |
+| `foreground` | `string` | — |
+| `foregroundToken` | `string` | — |
+| `passesNonText` | `boolean` | — |
+| `ratio` | `number` | — |
 
 ---
 
@@ -3715,13 +4170,13 @@ scrollbar and synchronizes with native scrolling.
 | ------ | ---- | ----------- |
 | `activeThumbColor` (optional) | `string` | Custom thumb color while the user is dragging it. When set, overrides the theme-derived active color. Default `undefined` (uses `thumbColor` or theme-derived). |
 | `animationDuration` (optional) | `number` | rAF easing time constant (ms) for smooth thumb travel. Default `180`. |
-| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. |
-| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. |
+| `arrowDownIcon` (optional) | `ArrowIcon` | Content for the "scroll down" button. Falls back to `arrowIcon`. Trusted markup only — see arrowIcon. |
+| `arrowIcon` (optional) | `ArrowIcon` | Optional content shown inside every arrow button (overrides the built-in CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline SVG / text) or an array of both. **Trusted markup only.** A string is inserted as HTML, so it must be markup you control — never user-controlled content. See ArrowIcon. |
 | `arrowIconRenderer` (optional) | `__type(button: HTMLDivElement, dir: ScrollbarArrowDir): void` | Framework hook: invoked for every arrow button that has custom content, so framework wrappers (React/Vue/Svelte/...) can render framework-owned elements (JSX/VNodes/...) into the button. When set it replaces the `innerHTML`/node injection for `arrowIcon`-style options. |
-| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. |
-| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. |
+| `arrowLeftIcon` (optional) | `ArrowIcon` | Content for the "scroll left" button. Falls back to `arrowIcon`. Trusted markup only — see arrowIcon. |
+| `arrowRightIcon` (optional) | `ArrowIcon` | Content for the "scroll right" button. Falls back to `arrowIcon`. Trusted markup only — see arrowIcon. |
 | `arrows` (optional) | `boolean` | Show the up/down (or left/right) navigation buttons like native browser scrollbars. Clicking scrolls a step; holding repeats. Default `true`. |
-| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. |
+| `arrowUpIcon` (optional) | `ArrowIcon` | Content for the "scroll up" button. Falls back to `arrowIcon`. Trusted markup only — see arrowIcon. |
 | `autoHide` (optional) | `boolean` | Fade the thumb/track out while idle. Default `true` (macOS-style). |
 | `autoHideDelay` (optional) | `number` | Idle (ms) before a revealed strip fades out after its last activity. Each host has its own timer, so only the strip you're scrolling/hovering is revealed, then it fades after idle; other scrollbars stay hidden. Default `900`. Only takes effect when `autoHide` is `true`. |
 | `axes` (optional) | `ScrollbarAxis[]` | Which axes to render. Defaults to both. |
@@ -3750,6 +4205,17 @@ scrollbar and synchronizes with native scrolling.
 
 Options are resolved once when the scrollbar is created. `include`/`exclude`
 scope which inner scrollables are tracked; the window is always tracked.
+
+---
+
+
+### `ParsedThemeJson`
+A parsed theme document.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `source` | `string` | The input with comments and trailing commas blanked out. Same length as the input, so an offset into this string is an offset into the original. Consumers that need positions scan this rather than re-parsing. |
+| readonly `value` | `unknown` | The parsed value. |
 
 ---
 
@@ -3870,6 +4336,106 @@ Token overrides applied to a single preset theme mode.
 ---
 
 
+### `ProvidedThemeFamily<T extends ThemeDefinition>`
+A discoverable theme family: every variant the provider was given for one
+canonical family, in the order they were supplied.
+
+**See also:** `normalizeProvidedThemes`, `createProvidedThemesSource`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` | `string` | The canonical family identifier used for selection. |
+| `id` | `string` | Stable identifier for this family. Derived from the canonical family identity (`meta.family`, or `"default"`), so it survives a change of display label and is unique within one provider. |
+| `meta` (optional) | `ThemeMeta` | Roll-up of the family's metadata, taken from its first variant that carries any. Per-variant values live on ProvidedThemeVariant.meta. |
+| `name` | `string` | Display name for the family: the first variant's `meta.label`, else the family identifier. |
+| `provenance` (optional) | `ProvidedThemeProvenance` | Provenance declared by the family's first variant that declares one. Absent when nothing in the input declares provenance — the API never guesses a source from a name. |
+| `variants` | `readonly ProvidedThemeVariant<T>[]` | The family's variants, in supplied order. Never empty. |
+
+```ts
+const themes = useProvidedThemes();
+
+return themes.map((family) => (
+  <fieldset key={family.id}>
+    <legend>{family.name}</legend>
+    {family.variants.map((variant) => (
+      <button key={variant.name} onClick={() => setTheme(variant.name)}>
+        {variant.mode}
+      </button>
+    ))}
+  </fieldset>
+));
+```
+
+---
+
+
+### `ProvidedThemesSource<T extends ThemeDefinition>`
+A reactive source of the themes a provider was given.
+
+**See also:** `createProvidedThemesSource`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `get` | `readonly ProvidedThemeFamily<T>[]` | — |
+| `subscribe` | `__type(): void` | — |
+
+---
+
+
+### `ProvidedThemeVariant<T extends ThemeDefinition>`
+One variant of a theme family: a single registered theme definition.
+
+**See also:** `ProvidedThemeFamily`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `meta` (optional) | `ThemeMeta` | The metadata supplied with this variant, exactly as the provider holds it. This is the authoritative per-variant metadata; the family-level `meta` is a documented roll-up of it. |
+| `mode` | `ThemeMode` | The variant's resolved colour mode. |
+| `name` | `string` | The theme's registered name, e.g. `"mint-dark"`. |
+| `theme` | `T` | The definition the provider holds for this variant. Reading a field the grouped view does not model (a custom `extends`, an application-specific extension) is always possible from here. |
+| `tokens` | `ThemeTokens` | The variant's semantic tokens, resolved. Token references, `auto()` / `contrast()` calls and expressions are already evaluated, so a consumer can read a value directly (`tokens.colors?.primary`) without re-running the resolver. |
+
+---
+
+
+### `RegistryLoadFailure`
+A registry that could not be read, and why.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `location` (optional) | `RegistrySourceLocation` | Where in the source, when a position is known. |
+| readonly `message` | `string` | A sentence naming what was wrong and where. |
+| readonly `ok` | `false` | Discriminant. |
+| readonly `reason` | `RegistryFailureReason` | Category, for callers that branch. |
+
+---
+
+
+### `RegistryLoadSuccess`
+A registry that was read.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `defaultTheme` (optional) | `string` | The theme the application opens with, when the module records one. |
+| readonly `ok` | `true` | Discriminant. |
+| readonly `origins` | `readonly ThemeDefinitionOrigin[]` | The provenance of each theme, aligned with `themes`. A generated registry combines its own definitions with the preset families in `selection`, so the combined list alone cannot tell a project's theme from a curated preset. This does. |
+| readonly `selection` | `readonly string[]` | The families the module selects. |
+| readonly `themes` | `readonly ThemeDefinition<string>[]` | Every theme the module registers, in the module's own order. |
+
+---
+
+
+### `RegistrySourceLocation`
+A position in the source, 1-based, for an error message.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `column` | `number` | Column number, 1-based. |
+| readonly `line` | `number` | Line number, 1-based. |
+
+---
+
+
 ### `ResolvedSolarLocation`
 The resolved coordinates a solar calculation should use, plus how they
 were derived.
@@ -3884,12 +4450,27 @@ were derived.
 ---
 
 
+### `ResolvedThemeReference<T extends ThemeDefinition>`
+A theme reference that resolved against a provider's catalog.
+
+**See also:** `resolveThemeReference`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` | `string` | The canonical family the reference belongs to. |
+| `kind` | `"variant" \| "family"` | Which naming form was used. `"variant"` means the reference named one definition exactly; `"family"` means it named a group and the variant was chosen by the mode contract. |
+| `mode` (optional) | `ThemeMode` | The variant's own mode. Present only for a `"variant"` reference: that is the only case where the reference itself states a mode. A family reference deliberately leaves this undefined so the caller's mode contract decides. |
+| `theme` | `T` | The definition the reference resolves to. |
+
+---
+
+
 ### `ResolveInitialThemeOptions<T extends ThemeDefinition>`
 Options for resolving the initial theme of a runtime.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to prefer when no family/mode selection is given. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to prefer when no family/mode selection is given (variant or family). |
 | `family` (optional) | `string` | Initial family. Defaults to the fallback theme's family. |
 | `mode` (optional) | `ThemeMode` | Initial mode. `"system"` is resolved via `prefersDark`. |
 | `prefersDark` (optional) | `boolean` | Whether the visitor prefers dark mode. Used only when `mode` is `"system"`. |
@@ -3903,8 +4484,8 @@ Options for resolving a selection state.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to prefer when nothing else is given. |
-| `initialFamily` (optional) | `string` | Initial family. Defaults to the fallback theme's family. |
+| `defaultTheme` (optional) | `string` | Fallback theme: a **variant** name (`"mint-dark"`) or a **family** name (`"mint"`). See resolveThemeReference. |
+| `initialFamily` (optional) | `string` | Initial family. A variant name is accepted too and normalised to its family — its mode is then used only when `initialMode` is not supplied. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode. Defaults to the fallback theme's mode. |
 | `persistedSelection` (optional) | `ThemeSelectionState \| null` | A persisted selection that wins over the other inputs when present. |
 | `themes` | `readonly T[]` | Registered themes to resolve within. |
@@ -3942,6 +4523,17 @@ initial theme server-side.
 ---
 
 
+### `ResolveThemeReferenceOptions`
+Options for resolveThemeReference.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `mode` (optional) | `ThemeMode` | Mode used to pick a variant when the reference names a family. |
+| `prefersDark` (optional) | `boolean` | Whether the visitor prefers dark. Used only when `mode` is `"system"`. |
+
+---
+
+
 ### `ScheduledPluginOptions<T extends ThemeDefinition>`
 Options for createScheduledPlugin.
 
@@ -3972,7 +4564,7 @@ based on sunrise/sunset at a resolved location, re-checking on an interval.
 | `checkInterval` (optional) | `number` | How often (ms) the binding re-checks solar time. |
 | `darkTheme` | `T` | Theme applied between sunset and sunrise. |
 | `enabled` (optional) | `boolean` | Whether the binding should apply themes and run its timer. Defaults to `true`. Toggle at runtime via the returned `setEnabled`. |
-| `getTimes` (optional) | `__type(date: Date, latitude: number, longitude: number): { sunrise: Date; sunset: Date }` | Override the sunrise/sunset computation. Defaults to calculateSunTimes. |
+| `getTimes` (optional) | `__type(date: Date, latitude: number, longitude: number): SunTimes` | Override the sunrise/sunset computation. Defaults to calculateSunTimes. A custom implementation may omit `polar`; the binding then falls back to the `sunrise <= now < sunset` interval. |
 | `latitude` (optional) | `number` | Explicit latitude. Optional — when omitted the binding resolves the location from `timeZone` or the visitor's browser timezone. |
 | `lightTheme` | `T` | Theme applied between sunrise and sunset. |
 | `longitude` (optional) | `number` | Explicit longitude. Optional — see `latitude`. |
@@ -3995,6 +4587,7 @@ light or dark theme of the selected family based on solar times.
 | `checkInterval` (optional) | `number` | How often the schedule re-checks the solar state, in milliseconds. Passed through to the underlying schedule controller. |
 | `darkTheme` (optional) | `T["name"]` | Theme applied between sunset and sunrise. Optional — same derivation as `lightTheme`, falling back to the built-in neutral `"dark"` theme. |
 | `enabled` (optional) | `boolean` | Start enabled. Default `true`. |
+| `getTimes` (optional) | `__type(date: Date, latitude: number, longitude: number): SunTimes` | Override the sunrise/sunset computation. Defaults to the NOAA calculation in calculateSunTimes. Supply one to drive the schedule from a known clock — a test that must not depend on the real sun, or a product that defines "daytime" its own way. Read once when the schedule is created; a later `configure({ scheduled })` keeps the original function, because changing it mid-flight would re-interpret the transition that is already pending. |
 | `latitude` (optional) | `number` | Explicit latitude. Optional — when omitted the location is resolved from `timeZone` or the visitor's browser timezone, so every user gets sunrise/sunset for their own location automatically. |
 | `lightTheme` (optional) | `T["name"]` | Theme applied between sunrise and sunset. Optional — when omitted the schedule derives it from the currently selected theme's family (or falls back to the built-in neutral `"light"` theme). |
 | `longitude` (optional) | `number` | Explicit longitude. Optional — see `latitude`. |
@@ -4048,7 +4641,7 @@ variables afterwards.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `css` | `string \| null` | `[selector] { light }` + `@media (prefers-color-scheme: dark) { [selector] { dark } }`, or `null` when the scope isn't OS-dependent. Emit this into the rendered markup so the first paint already shows the correct theme. |
+| `css` | `string \| null` | `[selector] { light }` + `@media (prefers-color-scheme: dark) { [selector] { dark } }`, or `null` when the scope isn't OS-dependent. Emit this into the rendered markup so the first paint already shows the correct theme. Escaped for `<style>`-element content: `</` is written as `</` (a CSS escape for `/`), so a token value cannot close the element. Do not pass it to `style.setProperty()` — it belongs in a stylesheet. |
 | `isDark` | `boolean` | Whether the default resolved theme is dark. |
 | `lightVariables` | `Record<string, string>` | The default (light) scoped variables, including the `--color-*` / `--radius-*` aliases. When `systemBased`, these are the SSR/fallback values and the element should NOT carry them inline (the media-query override would lose to inline styles); when not, they become the element's inline style. |
 | `name` | `string` | The default resolved theme name (for `data-theme`-style attributes). |
@@ -4252,6 +4845,31 @@ is not a valid theme name.
 ---
 
 
+### `SunTimes`
+The sunrise/sunset pair for one calendar day at one location.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `polar` (optional) | `"day" \| "night"` | Set when the sun stays up (`"day"`) or stays down (`"night"`) for the whole day. Absent on an ordinary day, and absent from a custom `getTimes` implementation that does not model polar conditions. |
+| `sunrise` | `Date` | Sunrise, as an absolute instant. |
+| `sunset` | `Date` | Sunset, as an absolute instant. |
+
+`sunrise` and `sunset` are absolute instants on the **host's local clock**:
+the calendar day is the local day of the `Date` that was passed in, and the
+returned instants are the correct local wall-clock times for that day,
+daylight-saving transitions included. They are not solar time — see
+calculateSunTimes.
+
+`polar` is present only when the sun does not rise or does not set that day.
+In that case `sunrise`/`sunset` still describe a usable interval — for polar
+day the whole local day, for polar night a zero-length day that starts at its
+end — so `now >= sunrise && now < sunset` is still correct. Consumers that
+want to display "no sunrise today" should read `polar` rather than compare
+the two dates.
+
+---
+
+
 ### `SyncFirstRenderRoot`
 The shape this helper wraps: React's `createRoot` with a `render` method.
 
@@ -4287,6 +4905,7 @@ matching theme to the store. It requires a `Window` with a working
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
+| `applyOnCreate` (optional) | `boolean` | Apply the current OS appearance as soon as the binding is created. |
 | `darkTheme` | `T` | Theme applied when the media query does not match (the OS prefers light). |
 | `lightTheme` | `T` | Theme applied when the media query matches (the OS prefers dark). |
 | `mediaQuery` (optional) | `string` | Media query used to detect the OS preference. |
@@ -4331,11 +4950,12 @@ Options for createThemeBootstrapScript.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no persisted selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to fall back to when no persisted selection exists (variant or family). |
 | `initialFamily` (optional) | `string` | Initial theme family used when no persisted selection exists. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when no persisted selection exists. |
 | `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. |
+| `themeOverride` (optional) | `ThemeOverride<string>` | An explicit theme override to apply before first paint, outranking any persisted selection. The blocking script runs before the runtime exists, so an override applied only by a post-mount effect would paint the saved theme first and then correct it — exactly the flash this script exists to prevent. Passing it here makes the very first frame the overridden theme. |
 | `themes` | `readonly T[]` | The theme definitions to embed in the generated script. |
 
 ---
@@ -4411,13 +5031,28 @@ the adapters share one contract instead of each re-implementing selection.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `defaultTheme` (optional) | `T["name"]` | Fallback theme name when nothing else is given. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme: a variant or family identifier. |
 | `initial` (optional) | `InitialThemeResolution<T>` | An explicit initial resolution (SSR-resolved selection). Wins when changed. |
 | `initialFamily` (optional) | `string` | Initial family, used when the effective selection is re-resolved. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode, used when the effective selection is re-resolved. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Omit to leave the current schedule unchanged; `false` tears it down (`runtime.schedule` becomes `null`); an options object installs one or reconfigures the existing one in place. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | Explicit theme override. Supplied-and-semantically-different applies once; an unchanged override is never re-asserted, so it cannot fight a manual selection. Omit to leave the last applied override in place; `undefined` explicitly does the same (an override is not a value to revert to). |
 | `themes` (optional) | `readonly T[]` | The effective theme catalog. Omit to leave the current catalog unchanged. An empty or all-invalid array resolves to the canonical neutral fallback. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. Omit to leave the current setting unchanged; `false` disables transitions from the next theme change on; `true` or an options object enables/reconfigures them. Applied to the runtime's live DOM/CSS bindings without rebuilding them and without touching the current theme. |
+
+---
+
+
+### `ThemeCssPair`
+A light/dark pair, as generateTheme returns it.
+
+Structural rather than nominal: any `{ light, dark }` object qualifies, which
+is what lets a document parsed from JSON be passed straight in.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `dark` | `ThemeDefinition` | The dark theme. |
+| `light` | `ThemeDefinition` | The light theme. |
 
 ---
 
@@ -4446,6 +5081,55 @@ A theme definition: a name plus optional metadata and token values.
 | `meta` (optional) | `ThemeMeta` | Metadata describing the theme family, mode, and presentation labels. |
 | `name` | `Name` | Stable theme identifier used for selection and lookup. |
 | `tokens` (optional) | `ThemeTokens` | Semantic token values consumed by the runtime. When omitted, the theme inherits tokens entirely from its extended bases. |
+
+---
+
+
+### `ThemeDefinitionProblem`
+A construct that looked like a definition but could not be read.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `location` | `RegistrySourceLocation` | Where the attempt started. |
+| readonly `message` | `string` | Why it could not be read. |
+
+---
+
+
+### `ThemeDefinitionReadOptions`
+Options for readThemeDefinitions.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `bindings` (optional) | `Readonly<Record<string, string>>` | Local name to canonical API name for directly imported bindings. |
+| readonly `namespaces` (optional) | `Readonly<Record<string, readonly string[]>>` | Local namespace to the canonical API names it may expose. |
+| readonly `strict` (optional) | `boolean` | When `true`, only the supplied bindings and namespaces are canonical. The default is `false`, which assumes the names as written. A project analyzer that has verified imports should set this, so a local function called `getPresetThemes` is not mistaken for the catalog API. |
+
+---
+
+
+### `ThemeDefinitionReadResult`
+What `readThemeDefinitions()` found.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `definitions` | `readonly ThemeDefinitionSource[]` | Every definition it could read. |
+| readonly `problems` | `readonly ThemeDefinitionProblem[]` | Every candidate it refused, so nothing is dropped silently. |
+
+---
+
+
+### `ThemeDefinitionSource`
+A theme definition found in source, with where it starts.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `binding` (optional) | `string` | The declaration the value is assigned to, when it is a simple one. `export const ocean = defineTheme(…)` reports `ocean`, and `export const { light, dark } = generateTheme(…)` reports `light` and `dark` respectively. Undefined when the call is not the whole initializer — a literal inside an array, a call argument, a returned value — because then no single exported name stands for it. This exists so a caller can follow the value into another module without re-parsing the declaration itself. |
+| readonly `generateOptions` (optional) | `ThemeGenerationInput` | The static inputs of a `generateTheme()` call that produced this theme. |
+| readonly `location` | `RegistrySourceLocation` | Where the object literal starts. |
+| readonly `origin` (optional) | `ThemeDefinitionOrigin` | Which canonical API produced the definition. `catalog` is the provenance a consumer needs to distinguish a curated preset from an application's own theme: a preset is not project-defined just because the file calls `getPresetThemes()`. |
+| readonly `theme` | `ThemeDefinition` | The definition, as `defineTheme()` would return it. |
+| readonly `variant` (optional) | `"light" \| "dark"` | For a generated pair, which half of the pair this definition is. |
 
 ---
 
@@ -4576,6 +5260,33 @@ One side of a diff: a resolved theme identity.
 ---
 
 
+### `ThemeEffectiveSelection`
+The appearance actually on screen, as distinct from the selection that was
+configured.
+
+A ThemeSelectionState is a **request** — `{ family: "plum", mode:
+"system" }` says "give me the plum family and follow the operating system".
+The effective selection is what that request resolved to once every automatic
+driver had its say: `prefers-color-scheme` for `"system"`, or the
+sunrise/sunset schedule when one is running. Its `mode` is therefore never
+`"system"`, and its `family` is the family of the theme that is actually
+applied — which can differ from the requested family when an automatic driver
+applies a theme from another one.
+
+Keeping the two apart is what lets a control show the real appearance while
+`setMode`/`setFamily` still report and edit the visitor's choice. They agree
+whenever no automatic driver is running, and diverge exactly while one is.
+
+**See also:** `ThemeSelectionState`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` | `string` | Family of the theme that is actually applied. |
+| `mode` | `"light" \| "dark"` | Mode of the theme that is actually applied — never `"system"`. |
+
+---
+
+
 ### `ThemeErrorOptions`
 Options for ThemeError.
 
@@ -4584,6 +5295,21 @@ Options for ThemeError.
 | `cause` (optional) | `unknown` | The underlying error, when this one wraps a failure. |
 | `code` (optional) | `ThemeDiagnosticCode` | Stable diagnostic code, when this error corresponds to one. |
 | `context` (optional) | `ThemeDiagnosticContext` | Structured context, when the error has any. |
+
+---
+
+
+### `ThemeGenerationInput`
+The statically readable inputs of a `generateTheme()` call.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `algorithm` (optional) | `string` | — |
+| readonly `contrast` (optional) | `string` | — |
+| readonly `family` (optional) | `string` | — |
+| readonly `seed` | `string` | — |
+| readonly `style` (optional) | `string` | — |
+| readonly `withCode` (optional) | `boolean` | — |
 
 ---
 
@@ -4770,6 +5496,20 @@ Per-group counts.
 ---
 
 
+### `ThemeOverrideSelection`
+A family/mode request. Either field may be omitted; the omitted one is taken
+from the selection the provider would otherwise have used.
+
+**See also:** `ThemeOverride`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` (optional) | `string` | Theme family to apply. Must be one the provider was given. |
+| `mode` (optional) | `ThemeMode` | Mode to apply within the family. |
+
+---
+
+
 ### `ThemePersistenceAdapter`
 A contract for persisting and observing the selected theme mode.
 
@@ -4872,16 +5612,17 @@ remaining props and destroys it on unmount.
 | `adapters` (optional) | `ThemeAdapter<T>[]` | Library adapters installed when the runtime is created. The runtime owns the registry and notifies every adapter whenever the theme changes; it never knows anything about the libraries themselves. |
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `string` | Initial family used when nothing else is given. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Initial family used when nothing else is given. A **variant** name is also accepted and normalised to its family; the variant's own mode is used only when initialMode is absent, so an explicit mode always wins and the two props cannot silently disagree. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | An existing runtime to provide. When omitted, the provider creates and owns a runtime from the other props. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -4918,7 +5659,7 @@ lifecycle ends.
 | `lifecycle` | `ThemeLifecycle<T>` | Typed lifecycle event emitter. |
 | `registry` | `ThemeRegistry<T>` | The theme registry holding the registered definitions. |
 | readonly `schedule` | `ThemeSchedule \| null` | The sunrise/sunset scheduling controller created from the `scheduled` runtime option. `null` when the runtime was created without one. Live: re-read after ThemeRuntime.configure with a `scheduled` update — the schedule is created, reconfigured in place, or torn down depending on the value. |
-| `selection` | `{ applyState: __type(nextState: ThemeSelectionState, opts?: { persist?: boolean }): void; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; toggleTheme: __type(): void; destroy: void; getFamily: void; getMode: void; getSelection: void; subscribe: void }` | The selection controller (mode/family/system binding, persistence). |
+| `selection` | `{ applyAutomaticTheme: __type(theme: T, opts?: { suppressTransition?: boolean }): void; applyState: __type(nextState: ThemeSelectionState, opts?: { persist?: boolean; suppressTransition?: boolean }): void; setAutomaticDriverActive: __type(active: boolean): void; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; toggleTheme: __type(): void; destroy: void; getEffectiveMode: void; getEffectiveSelection: void; getFamily: void; getMode: void; getSelection: void; subscribe: void; subscribeEffective: void }` | The selection controller (mode/family/system binding, persistence). |
 | `store` | `ThemeStore<T>` | The underlying theme store (current theme + subscription). |
 | readonly `themes` | `readonly T[]` | Live view of the registered themes. One array, kept in place: a consumer that reads it once and holds the reference still sees a later `configure()`, and a consumer that reads it on every change does not miss one. `configure()` replaces its contents rather than swapping the reference. |
 | readonly `transition` (optional) | `ThemeTransitionOptions` | The resolved theme-transition options the runtime was created with (`undefined` when none were supplied). Components like `ThemeScope` read this so scoped theme changes inherit the same transition as the provider. Live: ThemeRuntime.configure with a `transition` update replaces this value and pushes it into the runtime's live DOM/CSS bindings. |
@@ -4982,15 +5723,16 @@ localStorage persistence, and default bindings when an option is omitted.
 | `adapters` (optional) | `ThemeAdapter<T>[]` | Library adapters installed when the runtime is created. The runtime owns the registry and notifies every adapter whenever the theme changes; it never knows anything about the libraries themselves. |
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `string` | Initial family used when nothing else is given. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Initial family used when nothing else is given. A **variant** name is also accepted and normalised to its family; the variant's own mode is used only when initialMode is absent, so an explicit mode always wins and the two props cannot silently disagree. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -5045,6 +5787,23 @@ underlying binding and store subscription.
 | `set` | `void` | — |
 | `setLastSyncTime` | `void` | — |
 | `subscribe` | `__type(): void` | — |
+
+---
+
+
+### `ThemeScheduleController`
+Controller returned by useThemeSchedule for the runtime's
+sunrise/sunset scheduling engine.
+
+**See also:** `useThemeRuntime`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `disable` | `__type(): void` | Disables the schedule engine. |
+| `enable` | `__type(): void` | Enables the schedule engine. |
+| `schedule` | `ThemeSchedule \| null` | The underlying controller (`null` when the provider has no `scheduled` option). Methods below are safe no-ops in that case. |
+| `set` | `__type(options: ThemeScheduleSetOptions): void` | Updates the schedule configuration. |
+| `state` | `Ref<ThemeScheduleState>` | Reactive state snapshot: `enabled`, `active`, `status`, `sunrise`, `sunset`, `nextTransition`, `nextActivation`, `nextDeactivation`. |
 
 ---
 
@@ -5285,7 +6044,7 @@ One token path's outcome.
 ### `ThemeTokens`
 Semantic token values consumed by the runtime.
 
-Top-level groups map to CSS variable namespaces (`--theme-colors-*`,
+Top-level groups map to CSS variable namespaces (`--theme-color-*`,
 `--theme-spacing-*`, …) when bound to the DOM by the runtime.
 
 **See also:** `themeToCSSVariables`, `resolveTokens`
@@ -5341,10 +6100,10 @@ the runtime and the pre-paint bootstrap.
 | `persistence` (optional) | `unknown` | Whether the selection is persisted across visits. `false` or `null` disables it. |
 | `plugins` (optional) | `readonly unknown[]` | Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. |
 | `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
-| `scrollbar` (optional) | `unknown` | Overlay scrollbar options. Runtime-only. |
+| `scrollbar` (optional) | `unknown` | Overlay scrollbar options. Serializable, so it crosses to the browser. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Defaults to `"theme-selection"`. |
 | `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
-| `transition` (optional) | `unknown` | Transition configuration. Runtime-only. |
+| `transition` (optional) | `unknown` | Transition configuration. |
 
 This exists to remove a class of bug rather than to add a feature. When the
 theme registry, the fallback theme and the initial mode are declared twice —
@@ -5357,8 +6116,15 @@ Two projections read this object, and neither is a second declaration:
 
 - the **runtime projection** — everything below, handed to
   `createThemeRuntime`;
-- the **bootstrap projection** — toBootstrapConfig, the subset the
-  pre-paint script can act on.
+- the **transported projection** — toBootstrapConfig, the serializable
+  subset that crosses to the browser, where the pre-paint script and the
+  client runtime both read it.
+
+The second one is what makes the client runtime honour this file. It is not
+only the pre-paint subset: a runtime option left out of it is not ignored, it
+is replaced by a default, which is how a declared `transition: { enabled:
+false }` still produced a view transition on every theme change. See
+ThemeBootstrapConfig.
 
 ---
 
@@ -5752,6 +6518,37 @@ The color mode of a preset theme.
 ---
 
 
+### `ProvidedThemeProvenance`
+Provenance a theme definition declares about itself.
+
+Only markers the library itself writes are read — `meta.generation.kind` for
+generator output and a `pack:<name>` tag for an installed theme pack. Nothing
+is inferred from a theme's name, family or colours: a theme called
+`mint-light` is not thereby a preset.
+
+**See also:** `ProvidedThemeFamily.provenance`
+
+`{ algorithm: string; kind: "generated" } | { kind: "pack"; pack: string }`
+
+---
+
+
+### `RegistryFailureReason`
+Why a registry could not be read.
+
+`"not-a-registry" | "unsupported-construct" | "invalid-theme"`
+
+---
+
+
+### `RegistryLoadResult`
+The outcome of reading a registry.
+
+`RegistryLoadSuccess | RegistryLoadFailure`
+
+---
+
+
 ### `ScopedThemeSelection`
 A scoped theme selection. Either an exact theme name (or family name), or an
 explicit family + mode pair. Provided as a `string` for convenience — every
@@ -5816,17 +6613,30 @@ This is the *intent*: "this surface communicates a warning". How that becomes
 
 
 ### `ThemeBootstrapConfig<T extends ThemeDefinition>`
-The subset of ThemvoraConfig the pre-paint bootstrap can act on.
+The projection of ThemvoraConfig that crosses to the browser.
 
 **See also:** `toBootstrapConfig`
 
-`Pick<ThemvoraConfig<T>, "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix">`
+`Pick<ThemvoraConfig<T>, "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix" | "transition" | "scrollbar">`
 
-Split out deliberately. The bootstrap runs before any application code and
-before the runtime exists, so it can only resolve a selection from a
-registry, a fallback and a persisted key — everything else in the config is a
-runtime concern. Naming that subset is what keeps the two projections honest
-instead of letting them grow into each other.
+Two consumers read this one object, and it has to satisfy both:
+
+- the **pre-paint bootstrap**, which runs before any application code and can
+  only resolve a selection from a registry, a fallback and a persisted key;
+- the **client runtime**, which is built from this global by
+  `resolveRuntimeOptions` and therefore sees *only* what is here.
+
+The second consumer is the reason this is not simply "the bootstrap subset".
+When a runtime option was left out, the browser runtime silently used its
+default instead — `theme.config.ts` could declare `transition: { enabled:
+false }` and the page would still run a `document.startViewTransition` on
+every theme change. That is not a cosmetic difference: a view transition
+applies the document swap in a **later task**, so a consumer that renders from
+the theme store painted the new theme one frame before the document had it.
+
+So every **serializable** runtime option belongs here. What cannot cross is
+excluded explicitly rather than by omission: `plugins` and `adapters` hold
+functions, and `persistence` is a live adapter object.
 
 ---
 
@@ -5835,6 +6645,14 @@ instead of letting them grow into each other.
 The origin of a theme change, used to attribute debug events.
 
 `"user" | "system" | "persistence" | "broadcast" | "update" | "init"`
+
+---
+
+
+### `ThemeDefinitionOrigin`
+Which canonical API produced a theme.
+
+`"definition" | "generated" | "catalog"`
 
 ---
 
@@ -5852,7 +6670,7 @@ speculative entries.
 
 **See also:** `ThemeDiagnostic`
 
-`"TV_MODE_INVALID" | "TV_THEME_TOKEN_MISSING" | "TV_THEME_FAMILY_UNKNOWN" | "TV_THEME_NEUTRAL_FALLBACK" | "TV_THEME_TOKEN_INVALID" | "TV_A11Y_CONTRAST_VIOLATION" | "TV_SCHEDULE_THEME_UNRESOLVED" | "TV_CONFIG_OPTION_INVALID" | "TV_SCROLLBAR_OPTION_INVALID" | "TV_PLUGIN_DESTROY_FAILED" | "TV_GENERATION_INVALID_SEED" | "TV_GENERATION_CONTRAST_REPAIR" | "TV_GENERATION_ROLE_COLLISION" | "TV_GENERATION_CONSTRAINT_UNSATISFIED" | "TV_GENERATION_THEME_NOT_FOUND" | "TV_GENERATION_THEME_AMBIGUOUS" | "TV_DIFF_UNRESOLVED_EXTENDS" | "TV_DIFF_UNRESOLVED_SYSTEM"`
+`"TV_MODE_INVALID" | "TV_THEME_TOKEN_MISSING" | "TV_THEME_FAMILY_UNKNOWN" | "TV_THEME_OVERRIDE_UNRESOLVED" | "TV_THEME_NEUTRAL_FALLBACK" | "TV_THEME_TOKEN_INVALID" | "TV_A11Y_CONTRAST_VIOLATION" | "TV_SCHEDULE_THEME_UNRESOLVED" | "TV_CONFIG_OPTION_INVALID" | "TV_SCROLLBAR_OPTION_INVALID" | "TV_PLUGIN_DESTROY_FAILED" | "TV_SYNC_FAILED" | "TV_GENERATION_INVALID_SEED" | "TV_GENERATION_CONTRAST_REPAIR" | "TV_GENERATION_ROLE_COLLISION" | "TV_GENERATION_CONSTRAINT_UNSATISFIED" | "TV_GENERATION_THEME_NOT_FOUND" | "TV_GENERATION_THEME_AMBIGUOUS" | "TV_DIFF_UNRESOLVED_EXTENDS" | "TV_DIFF_UNRESOLVED_SYSTEM"`
 
 ---
 
@@ -5889,6 +6707,43 @@ const themes = [
 ```
 
 `FamilyOf<T[number]> extends never ? string : FamilyOf<T[number]>`
+
+---
+
+
+### `ThemeFamilyOf<T extends ThemeDefinition>`
+The literal family union of a **single** theme definition type.
+
+`ThemeFamilies` below does this for a tuple; the provider's selection props
+are typed against the element type, so they need the same derivation one level
+down. Resolves to `string` when the definition does not state a literal family
+(a `ThemeDefinition[]` variable, a generated catalog), which keeps the
+dynamic-input path working.
+
+`[T["meta"] extends { family?: infer F } ? F extends string ? F : never : never] extends [never] ? string : T["meta"] extends { family?: infer F } ? F extends string ? F : string : string`
+
+---
+
+
+### `ThemeIdentifier<T extends ThemeDefinition>`
+Every way a caller can name a provided theme.
+
+A **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`) — the two
+forms resolveThemeReference accepts. Derived from the theme definitions
+the caller passes, so a statically known collection autocompletes both; a
+dynamically built one widens to `string` rather than becoming unusable.
+
+`T["name"] | ThemeFamilyOf<T>`
+
+```ts
+const themes = [
+  { name: "oat-light",   meta: { family: "oat",   mode: "light" }, tokens: {} },
+  { name: "cocoa-dark",  meta: { family: "cocoa", mode: "dark"  }, tokens: {} },
+] as const;
+
+// ThemeIdentifier<typeof themes[number]>
+//   = "oat-light" | "cocoa-dark" | "oat" | "cocoa"
+```
 
 ---
 
@@ -5933,6 +6788,36 @@ Any string is accepted; use a readable family-oriented name such as
 ---
 
 
+### `ThemeOverride<Name extends string>`
+An explicit theme override.
+
+Three equivalent ways to name the same thing:
+
+- a **variant** (`"mint-dark"`) applies exactly that definition,
+- a **family** (`"mint"`) applies the variant the provider resolves for the
+  mode already in effect,
+- a **family/mode object** (`{ family: "mint", mode: "dark" }`) states both.
+
+All three are resolved against the provider's own registry through
+resolveThemeReference, so an override cannot name a theme the provider
+does not have, and the family form cannot pick "whichever variant came first".
+
+**See also:** `resolveThemeOverride`, `themeOverrideKey`
+
+`Name | ThemeOverrideSelection`
+
+```ts
+// `themes` is the registry the provider was given.
+const themes = getBuiltInThemes();
+
+<ThemeProvider themes={themes} themeOverride="mint-dark">{children}</ThemeProvider>
+<ThemeProvider themes={themes} themeOverride="mint">{children}</ThemeProvider>
+<ThemeProvider themes={themes} themeOverride={{ family: "mint" }}>{children}</ThemeProvider>
+```
+
+---
+
+
 ### `ThemePack<T extends ThemeDefinition>`
 A named collection of theme definitions installable as a group.
 
@@ -5950,6 +6835,21 @@ Whether the schedule is driving theme selection right now. `"active"`
  `"disabled"` means it has been turned off (e.g. via `schedule.disable()`).
 
 `"active" | "disabled"`
+
+---
+
+
+### `ThemeScheduleStore<T extends ThemeDefinition>`
+The store surface createThemeSchedule needs.
+
+Deliberately narrower than `ThemeStore`: the runtime hands the schedule a
+handle whose `set` routes through the selection controller
+(`applyAutomaticTheme`) instead of writing the store directly, so a
+transition updates the effective mode and cannot be overwritten by the OS
+binding. A plain `ThemeStore` still satisfies this shape, so calling the
+factory directly keeps working unchanged.
+
+`Pick<ThemeStore<T>, "get" | "set" | "subscribe">`
 
 ---
 
@@ -6058,6 +6958,26 @@ work as a paragraph.
 Every CoreColor, as a runtime list.
 
 `readonly CoreColor[]`
+
+---
+
+
+### `CSS_DARK_SELECTOR`
+The selector a pair's dark half is emitted under.
+
+Matches the convention the CLI's `export` command has always written, and the
+one `themvora init` uses in the generated stylesheet: an explicit class and a
+`data-theme` attribute, so a host can opt in with either.
+
+`".dark, [data-theme="dark"]"`
+
+---
+
+
+### `CSS_ROOT_SELECTOR`
+The selector a single theme, or a pair's light half, is emitted under.
+
+`":root"`
 
 ---
 
@@ -6240,6 +7160,32 @@ The CSS that hides native scrollbars while `tv-scrollbar` is present on
 ---
 
 
+### `SCROLLBAR_HIDING_STYLE_ATTR`
+Marker on every stylesheet that hides the native scrollbar.
+
+Three different places can emit that CSS — this module's blocking script,
+`createOverlayScrollbar`, and an SSR adapter (the Astro provider renders it
+inline in `<head>`). A stylesheet is only removable if a teardown can find
+it, and an id alone cannot: the SSR output has no id, and an id is a single
+slot. So the marker is the contract, and the id is just a fast path.
+
+`"data-themvora-scrollbar-hiding"`
+
+---
+
+
+### `SCROLLBAR_HIDING_STYLE_ID`
+`id` of the stylesheet the client-side bootstrap injects.
+
+Kept for compatibility — a teardown must find the stylesheet whoever wrote
+it, so restoreNativeScrollbar looks for the marker attribute below as
+well, and that is the one every producer sets.
+
+`"tv-scrollbar-style"`
+
+---
+
+
 ### `SEMANTIC_CONTEXTS`
 Every context the system declares.
 
@@ -6291,7 +7237,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 
 **See also:** `ThemeProviderProps`, `useThemeRuntime`, `ThemeScope`
 
-`ThemeProvider(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
+`ThemeProvider(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themeOverride?: ThemeOverride<string>; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; themeOverride: string | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions; themeOverride?: ThemeOverride<string>; themes?: ThemeDefinition[]; transition?: boolean | ThemeTransitionOptions; view?: Window } { [x: string]: any }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; themeOverride: string | Record<string, any>; transition: boolean | Record<string, any> }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -6324,6 +7270,16 @@ bar never flashes. Can be registered globally via `app.use(ThemeScrollbar)`.
 **See also:** `ThemeScrollbarProps`, `ThemeProvider`
 
 `ThemeScrollbar(args...: any[]): CreateComponentPublicInstanceWithMixins<Readonly<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }> & Readonly<object>, __type(): null, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, { B: object; C: object; D: object; Defaults: object; M: object; P: object }, Readonly<{ appearance?: ScrollbarAppearanceOptions; behavior?: ScrollbarBehaviorOptions; icons?: ScrollbarIconOptions<string>; scope?: ScrollbarScopeOptions; tag?: string }> & Readonly<object>, __type(): null, object, object, object, { appearance: Record<string, any>; behavior: Record<string, any>; icons: Record<string, any>; scope: Record<string, any> }> {  } & ComponentOptionsBase & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
+
+---
+
+
+### `ThemeSymbol`
+Vue `InjectionKey` used to provide and inject the active Themvora runtime.
+
+**See also:** `provideThemeRuntime`, `useThemeRuntime`
+
+`InjectionKey<ThemeRuntime<any>>`
 
 ---
 
@@ -6370,9 +7326,9 @@ Built-in property lists for the named transition presets.
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Nuxt](/framework-guides/nuxt) — the framework integration

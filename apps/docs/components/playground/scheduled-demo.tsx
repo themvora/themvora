@@ -40,9 +40,16 @@ function dayProgress(
   return Math.min(1, Math.max(0, elapsed / total));
 }
 
-function formatCoord(value: number): string {
+function formatLat(value: number): string {
   const abs = Math.abs(value).toFixed(1);
-  return value >= 0 ? `${abs}° N` : `${abs}° S`;
+  if (Math.abs(value) < 0.05) return `${abs}°`;
+  return value > 0 ? `${abs}° N` : `${abs}° S`;
+}
+
+function formatLon(value: number): string {
+  const abs = Math.abs(value).toFixed(1);
+  if (Math.abs(value) < 0.05) return `${abs}°`;
+  return value > 0 ? `${abs}° E` : `${abs}° W`;
 }
 
 export function ScheduledDemo() {
@@ -213,7 +220,7 @@ export function ScheduledDemo() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="grid gap-1.5 text-sm min-w-[260px] flex-1">
+          <label className="grid gap-1.5 text-sm w-full sm:max-w-md">
             <span className="font-medium">
               Location / timezone
               {state?.autoDetected && selectedZone === AUTO && (
@@ -242,13 +249,16 @@ export function ScheduledDemo() {
               {activeZone && selectedZone !== AUTO && (
                 <>
                   <code className="mono text-[0.9em]">{activeZone}</code> ·{" "}
-                  {formatCoord(lat)}, {formatCoord(lon)}
+                  {formatLat(lat)}, {formatLon(lon)}
                 </>
               )}
             </span>
           </label>
 
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          {/* w-full: the card takes its own full-width line below the
+              timezone select instead of sharing a row and squeezing the
+              cells — with long theme names the cells wrapped mid-name. */}
+          <div className="w-full rounded-lg border border-border bg-muted/30 px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="relative">
               <div className="text-[10px] uppercase tracking-wider opacity-40 font-semibold">
                 Sunrise
@@ -265,7 +275,7 @@ export function ScheduledDemo() {
               <div className="text-[10px] uppercase tracking-wider opacity-40 font-semibold">
                 Next transition
               </div>
-              <div className="mono text-sm font-semibold mt-0.5">
+              <div className="mono text-sm font-semibold mt-0.5 whitespace-nowrap">
                 {next ? (
                   <span className="inline-flex items-center gap-1">
                     <span className={`inline-block h-1.5 w-1.5 rounded-full ${next.theme.includes("dark") ? "bg-indigo-400" : "bg-amber-400"}`} />
@@ -279,12 +289,19 @@ export function ScheduledDemo() {
                 Scheduled themes
               </div>
               <div className="mono text-sm font-semibold mt-0.5">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-amber-400" title="Light" />
-                  {state?.lightTheme?.replace("scheduled-", "")}
+                {/* Each dot+name is one unbreakable unit; the container wraps
+                    BETWEEN units, so the slash can never orphan onto its own
+                    line and a name can never break mid-word. */}
+                <span className="inline-flex flex-wrap items-center justify-center gap-1.5 gap-x-2">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="inline-block h-2 w-2 rounded-full bg-amber-400" title="Light" />
+                    {state?.lightTheme?.replace("scheduled-", "")}
+                  </span>
                   <span className="opacity-30">/</span>
-                  <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" title="Dark" />
-                  {state?.darkTheme?.replace("scheduled-", "")}
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" title="Dark" />
+                    {state?.darkTheme?.replace("scheduled-", "")}
+                  </span>
                 </span>
               </div>
             </div>
@@ -343,7 +360,7 @@ export function ScheduledDemo() {
             <span className="flex items-center justify-between">
               <span className="font-medium">Latitude</span>
               <span className="mono text-xs opacity-60">
-                {formatCoord(lat)}
+                {formatLat(lat)}
               </span>
             </span>
             <input
@@ -363,7 +380,7 @@ export function ScheduledDemo() {
             <span className="flex items-center justify-between">
               <span className="font-medium">Longitude</span>
               <span className="mono text-xs opacity-60">
-                {formatCoord(lon)}
+                {formatLon(lon)}
               </span>
             </span>
             <input

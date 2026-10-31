@@ -153,6 +153,11 @@ writes it to the output file when provided.
 
 **Returns** `Promise<void>`
 
+The CSS document is formatted by core's `themeToCssDocument()`, not here. The
+extension's Copy CSS Variables command calls the same function, so the CSS a
+user copies in the editor is byte-identical to the CSS this command writes.
+What stays in the CLI is the file handling: `--output` and the status line.
+
 ---
 
 
@@ -391,7 +396,7 @@ The @themvora/cli package version, surfaced by `themvora --version`.
 Must stay in sync with the `"version"` field in `packages/cli/package.json`;
 `scripts/release/audit-packages.mjs` fails the release gate if they drift.
 
-`"1.3.0"`
+`"1.3.1"`
 
 ---
 

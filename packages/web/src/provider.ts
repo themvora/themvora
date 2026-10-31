@@ -6,10 +6,12 @@ import {
   type DOMBindingOptions,
   type ThemeConfigurationUpdate,
   type ThemeDefinition,
+  type ThemeIdentifier,
   type ThemeMode,
   type ThemeRuntime,
   type ThemeScheduleOptions,
   type ThemeTransitionOptions,
+  type ThemeOverride,
 } from "@themvora/core";
 import { setProviderRuntime } from "./utils";
 import { CustomElementBase } from "./custom-element-base";
@@ -22,7 +24,9 @@ const TAG = "themvora-provider";
  * Configuration for the `<themvora-provider>` custom element, parsed from its
  * attributes.
  */
-export interface ThemvoraProviderProps {
+export interface ThemvoraProviderProps<
+  T extends ThemeDefinition = ThemeDefinition,
+> {
   /**
    * Theme definitions, parsed from the `themes` attribute.
    *
@@ -37,9 +41,18 @@ export interface ThemvoraProviderProps {
    */
   themes?: readonly ThemeDefinition[];
   /**
-   * The default theme name. Parsed from the `default-theme` attribute.
+   * The default theme. Parsed from the `default-theme` attribute.
+   *
+   * Accepts a supplied theme **name** (`"cocoa-light"`) or a **family**
+   * (`"cocoa"`); a family resolves to the variant for the mode in effect.
+   *
+   * @remarks
+   * The attribute is a string, so a custom element cannot infer a literal union
+   * from `themes` the way a typed framework prop can. Type a JSX/TSX wrapper
+   * against `ThemvoraProviderProps<typeof themes[number]>` when you want the
+   * completion list.
    */
-  defaultTheme?: string;
+  defaultTheme?: ThemeIdentifier<T>;
   /**
    * Mode used when no selection is persisted. Parsed from the `initial-mode`
    * attribute (`"light" | "dark" | "system"`).
@@ -53,9 +66,9 @@ export interface ThemvoraProviderProps {
   /**
    * Family used when no selection is persisted. Parsed from the
    * `initial-family` attribute. Pair it with `initialMode` for the same
-   * reason.
+   * reason. A variant name is accepted and normalised to its family.
    */
-  initialFamily?: string;
+  initialFamily?: ThemeIdentifier<T>;
   /**
    * Sunrise/sunset scheduling options. Parsed from the `scheduled` attribute
    * (JSON).
@@ -148,6 +161,7 @@ export class ThemvoraProvider extends CustomElementBase {
   static observedAttributes = [
     "themes",
     "default-theme",
+    "theme-override",
     "initial-mode",
     "initial-family",
     "scheduled",
@@ -169,6 +183,9 @@ export class ThemvoraProvider extends CustomElementBase {
   // Parsed snapshot of the attributes. `undefined` means "not supplied".
   private parsedThemes: readonly ThemeDefinition[] | undefined;
   private parsedDefaultTheme: string | undefined;
+  private parsedThemeOverride: ThemeOverride<string> | undefined;
+  /** Whether `theme-override` was ever set, so its removal is reported. */
+  private hadThemeOverride = false;
   private parsedInitialMode: ThemeMode | undefined;
   private parsedInitialFamily: string | undefined;
   private parsedScheduled: ThemeScheduleOptions<ThemeDefinition> | undefined;
@@ -219,6 +236,12 @@ export class ThemvoraProvider extends CustomElementBase {
       if (this.parsedDefaultTheme !== undefined) {
         update.defaultTheme = this.parsedDefaultTheme;
       }
+    } else if (name === "theme-override") {
+      // Removing the attribute removes the override: the runtime restores the
+      // selection it was layered over. Reported as an explicit `undefined`, which
+      // `configure()` reads as "this input is gone".
+      if (this.parsedThemeOverride !== undefined) this.hadThemeOverride = true;
+      if (this.hadThemeOverride) update.themeOverride = this.parsedThemeOverride;
     } else if (name === "initial-mode") {
       if (this.parsedInitialMode !== undefined) {
         update.initialMode = this.parsedInitialMode;
@@ -318,6 +341,7 @@ export class ThemvoraProvider extends CustomElementBase {
   private parseAttributes() {
     this.parsedThemes = this.parseThemes();
     this.parsedDefaultTheme = this.parseDefaultTheme(this.parsedThemes);
+    this.parsedThemeOverride = this.parseThemeOverride();
     this.parsedInitialMode = this.parseInitialMode();
     this.parsedInitialFamily = this.parseInitialFamily();
     this.parsedScheduled = this.parseJsonOption<ThemeScheduleOptions<ThemeDefinition>>(
@@ -330,6 +354,60 @@ export class ThemvoraProvider extends CustomElementBase {
       (value) => typeof value === "boolean" || (typeof value === "object" && value !== null && !Array.isArray(value)),
       "a JSON boolean or object, e.g. 'true' or '{\"enabled\":true,\"duration\":250}'",
     );
+  }
+
+  /**
+   * Parses the `theme-override` attribute.
+   *
+   * Two syntaxes, matching the prop's two forms: a bare theme name
+   * (`theme-override="mint-dark"`) or a JSON family/mode request
+   * (`theme-override='{"family":"mint","mode":"dark"}'`). A JSON object that is
+   * not a valid request is reported and ignored, like every other attribute.
+   *
+   * @returns The override, or `undefined` when the attribute is absent or unusable.
+   */
+  private parseThemeOverride(): ThemeOverride<string> | undefined {
+    const raw = this.getAttribute("theme-override");
+    if (raw === null) return undefined;
+
+    const value = raw.trim();
+    if (value.length === 0) {
+      emitInvalidAttributeDiagnostic(
+        this.localName,
+        "theme-override",
+        raw,
+        "a theme name, or a JSON object like '{\"family\":\"mint\",\"mode\":\"dark\"}'",
+        "the attribute was ignored",
+      );
+      return undefined;
+    }
+
+    if (!value.startsWith("{")) return value;
+
+    try {
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      const family = typeof parsed.family === "string" ? parsed.family : undefined;
+      const mode = parsed.mode;
+      const modeValid =
+        mode === undefined || mode === "light" || mode === "dark" || mode === "system";
+      if (modeValid && (family !== undefined || mode !== undefined)) {
+        return {
+          ...(family !== undefined ? { family } : {}),
+          ...(mode !== undefined ? { mode: mode as ThemeMode } : {}),
+        };
+      }
+    } catch {
+      // Falls through to the diagnostic below.
+    }
+
+    emitInvalidAttributeDiagnostic(
+      this.localName,
+      "theme-override",
+      raw,
+      "a theme name, or a JSON object like '{\"family\":\"mint\",\"mode\":\"dark\"}'",
+      "the attribute was ignored",
+    );
+    return undefined;
   }
 
   /**
@@ -556,7 +634,11 @@ export class ThemvoraProvider extends CustomElementBase {
         ? { initialFamily: this.parsedInitialFamily }
         : {}),
       ...(this.parsedScheduled ? { scheduled: this.parsedScheduled } : {}),
+      ...(this.parsedThemeOverride !== undefined
+        ? { themeOverride: this.parsedThemeOverride }
+        : {}),
     };
+    if (this.parsedThemeOverride !== undefined) this.hadThemeOverride = true;
 
     this.runtime = createThemeRuntime({
       ...resolveRuntimeOptions(explicit),

@@ -11,6 +11,7 @@
 import { useEffect, useRef } from "react";
 import type {
   AdapterStrategy,
+  ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
 } from "@themvora/core";
@@ -45,11 +46,13 @@ export function useBootstrapTheme<T extends ThemeDefinition = ThemeDefinition>(
   runtime: ThemeRuntime<T>,
   options?: { strategy?: AdapterStrategy },
 ): void {
-  const adapterRef = useRef<ReturnType<typeof createBootstrapAdapter> | null>(
-    null,
-  );
+  // Typed against the caller's `T`: `createBootstrapAdapter` is generic, but
+  // without the argument it falls back to the `ThemeDefinition` constraint and
+  // the resulting `ThemeAdapter<ThemeDefinition>` is not assignable to
+  // `ThemeAdapter<T>` for a caller that narrowed the definition type.
+  const adapterRef = useRef<ThemeAdapter<T> | null>(null);
   if (!adapterRef.current) {
-    adapterRef.current = createBootstrapAdapter(
+    adapterRef.current = createBootstrapAdapter<T>(
       options?.strategy ? { strategy: options.strategy } : {},
     );
   }

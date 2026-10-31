@@ -1,7 +1,6 @@
 import type { ReactElement } from "react";
-import { CodeBlock } from "../code-block";
+import { CodeExample } from "../code-example";
 import { Callout } from "../ui/callout";
-import { highlightCode } from "../../lib/highlight";
 import type { FrameworkItem, FrameworkSnippet } from "../../lib/frameworks";
 
 function pre({ children }: { children: string }) {
@@ -17,10 +16,9 @@ function pre({ children }: { children: string }) {
 
 function snippetBlock(snippet: FrameworkSnippet) {
   return (
-    <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
+    <CodeExample
       code={snippet.code}
-      language={snippet.lang}
+      lang={snippet.lang}
       filename={snippet.title}
       className="rounded-lg m-0"
     />
@@ -138,8 +136,8 @@ createThemeRoot({
 });`;
 
   return (
-    <section id="optimized-csr-bootstrap" className="mt-10 scroll-mt-24">
-      <h2 className="text-lg font-semibold tracking-tight">
+    <section className="mt-10">
+      <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
         Optimized CSR bootstrap
       </h2>
       <p className="text-sm leading-relaxed opacity-80 mb-3">

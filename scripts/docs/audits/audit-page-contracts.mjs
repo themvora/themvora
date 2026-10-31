@@ -123,7 +123,15 @@ function concreteRoutes() {
             fail("§2 routes", `${prefix}/[slug]`, "dynamic segment with no known data source; extend DYNAMIC_SLUG_SOURCES");
             continue;
           }
-          for (const slug of source()) routes.add(`${prefix}/${slug}`);
+          // Expand the segment *and* keep walking its children with the
+          // concrete value substituted, so a nested route under a dynamic
+          // segment (`/framework-guides/<slug>/examples`) resolves too. Before
+          // this, everything below `[slug]` was skipped and such a route was
+          // reported as "listed in docs-routes.ts but no app route renders it".
+          for (const slug of source()) {
+            routes.add(`${prefix}/${slug}`);
+            walk(join(dir, e.name), `${prefix}/${slug}`);
+          }
           continue;
         }
         walk(join(dir, e.name), `${prefix}/${e.name}`);
@@ -194,9 +202,13 @@ for (const f of [...filesUnder(join(siteRoot, "app")), ...filesUnder(join(siteRo
  *
  * The coverage figures were measured (sections/snippets carried over verbatim
  * into the live source, plus prose-vocabulary overlap), not eyeballed — heading
- * structure alone is misleading: `adapters.md` and `animation.md` both *look*
- * like reasonable summaries of their pages while most of their snippets are not
- * in those pages at all.
+ * structure alone is misleading: a content file can *look* like a reasonable
+ * summary of its page while most of its snippets are not in that page at all.
+ *
+ * `animation.md` and `adapters.md` were on this list for that reason and are now
+ * resolved: their unique snippets and prose were folded into
+ * `app/animation/AnimationGuide.tsx` and `app/adapters/page.tsx`, and the files
+ * were deleted. Do not re-add them.
  */
 const UNRENDERED_CONTENT = {
   "devtools.md":
@@ -205,14 +217,6 @@ const UNRENDERED_CONTENT = {
   "architecture.md":
     "superseded by app/architecture/page.tsx — 13/13 snippets, 87% prose " +
     "vocabulary. Safe to delete.",
-  "animation.md":
-    "not superseded — only 2/13 snippets and 60% of prose are in " +
-    "AnimationGuide.tsx. 11 snippets (incl. the animations plugin and runtime " +
-    "token updates) exist only here. Fold in, then delete.",
-  "adapters.md":
-    "not superseded — only 7/33 snippets and 36% of prose are in " +
-    "app/adapters/page.tsx. 26 snippets (adapter contract, registry, strategies) " +
-    "exist only here. Wire to a sub-route or fold in; do not delete.",
 };
 
 /**
@@ -525,7 +529,10 @@ if (!existsSync(DEVTOOLS)) {
   if (src.length < 2000) {
     fail("§3.4 tooling pages (DevTools)", "app/devtools/page.tsx", "too short to cover the §3.4 contract");
   }
-  if (!src.includes("CodeBlock")) {
+  // `CodeExample` is the server wrapper that derives a snippet's JavaScript
+  // counterpart and renders `CodeBlock`; a page that migrated to it still shows
+  // the same complete example.
+  if (!src.includes("CodeBlock") && !src.includes("CodeExample")) {
     fail("§3.4 tooling pages (DevTools)", "app/devtools/page.tsx", "has no complete example (no CodeBlock)");
   }
   if (!src.includes("/api-reference/devtools")) {

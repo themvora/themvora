@@ -1,0 +1,22 @@
+{
+  "name": "@themvora/app-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Themvora Web Components example: HTML-first theming with no framework and no shared example package.",
+  "scripts": {
+    "dev": "vite --port 5195 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --port 5195 --strictPort",
+    "verify:consumer": "node scripts/consumer-check.mjs"
+  },
+  "dependencies": {
+    "@themvora/core": "workspace:*",
+    "@themvora/web": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5"
+  }
+}

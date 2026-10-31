@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { AccessibilityLab } from "../../components/accessibility/accessibility-lab";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -48,8 +47,8 @@ runtime.store.set(runtime.registry.get("plum-dark")!, {
 
 export default function AccessibilityPage() {
   return (
-    <DocsLayout>
-      <div className="max-w-3xl">
+    <DocsLayout wide>
+      <div>
         <PageHeader
           eyebrow="Accessibility"
           title="Theming that respects people"
@@ -116,10 +115,9 @@ export default function AccessibilityPage() {
               ))}
             </div>
           </div>
-          <CodeBlock
-            html={highlightCode(reducedMotionSnippet.code, "ts")}
+          <CodeExample
             code={reducedMotionSnippet.code}
-            language="ts"
+            lang="ts"
             filename={reducedMotionSnippet.title}
             className="m-0"
           />
@@ -248,10 +246,9 @@ export default function AccessibilityPage() {
           >
             Transition suppression
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(suppressSnippet.code, "ts")}
+          <CodeExample
             code={suppressSnippet.code}
-            language="ts"
+            lang="ts"
             filename={suppressSnippet.title}
             className="m-0"
           />

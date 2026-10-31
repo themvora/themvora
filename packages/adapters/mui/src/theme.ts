@@ -13,16 +13,56 @@ import {
 } from "@themvora/adapters";
 
 /**
+ * Integration options for {@link createMuiTheme}.
+ *
+ * @see {@link createMuiTheme}
+ * @see {@link buildMuiThemeOptions}
+ */
+export interface MuiThemeIntegrationOptions {
+  /**
+   * Font family to apply to MUI's typography.
+   *
+   * Use this when the application loads its font outside the theme (a Google
+   * font imported in global CSS) **and** renders `CssBaseline`, whose `body`
+   * rule would otherwise inherit from `<html>` instead of the application's
+   * `body`. When omitted, the theme's own `typography.fontFamilies` token wins;
+   * when the theme defines none, MUI is told to inherit the document font
+   * rather than being forced onto `system-ui`.
+   */
+  fontFamily?: string;
+  /**
+   * Theme-change duration in milliseconds, mapped onto MUI's own `transitions`
+   * scale so MUI-owned animations match Themvora's.
+   *
+   * Pass the same value as the runtime's `transition.duration` to keep the two
+   * engines in step. Defaults to MUI's own scale when omitted.
+   */
+  transitionDuration?: number;
+  /**
+   * Theme-change easing, mapped onto MUI's `transitions.easing.easeInOut`.
+   * Pass the runtime's `transition.easing` to keep the two in step.
+   */
+  transitionEasing?: string;
+}
+
+/**
  * Maps Themvora semantic tokens onto a Material UI theme.
  *
  * ```ts
  * import { createMuiTheme } from "@themvora/mui";
  * const muiTheme = createMuiTheme(runtime);
  * ```
+ *
+ * @param source - A runtime, store, theme definition or token object.
+ * @param options - Integration options (font family, transition timing).
+ * @returns A MUI `Theme`.
  */
-export function createMuiTheme(source: AdapterSource): Theme {
+export function createMuiTheme(
+  source: AdapterSource,
+  options: MuiThemeIntegrationOptions = {},
+): Theme {
   const resolved = resolveAdapterSource(source);
-  return createTheme(buildMuiThemeOptions(resolved));
+  return createTheme(buildMuiThemeOptions(resolved, options));
 }
 
 interface ResolvedColor {
@@ -102,7 +142,10 @@ function ensure(value: string | undefined, fallback: string): string {
  *
  * @see {@link MuiThemeProvider}
  */
-export function buildMuiThemeOptions(theme: AdapterResolvedTheme): ThemeOptions {
+export function buildMuiThemeOptions(
+  theme: AdapterResolvedTheme,
+  integration: MuiThemeIntegrationOptions = {},
+): ThemeOptions {
   const c = (key: string, fallback?: string) => readColor(theme, key, fallback);
   const background = ensure(
     c("background", theme.mode === "dark" ? "#121212" : "#ffffff"),
@@ -113,6 +156,7 @@ export function buildMuiThemeOptions(theme: AdapterResolvedTheme): ThemeOptions 
     theme.mode === "dark" ? "#ffffff" : "#000000",
   );
   const isDark = theme.mode === "dark";
+  const resolvedTransitions = buildMuiTransitions(integration);
 
   const options: ThemeOptions = {
     palette: {
@@ -156,16 +200,71 @@ export function buildMuiThemeOptions(theme: AdapterResolvedTheme): ThemeOptions 
       borderRadius: readRadiusNumber(theme, "lg", 8),
     },
     typography: {
-      fontFamily: readFontFamily(theme.tokens),
+      // A theme that declares no font family must not impose one. MUI's own
+      // default is Roboto, and this adapter used to fall back to
+      // `system-ui, sans-serif`; either way MUI's typography rule is a *class*
+      // rule with its own family, so an application that loads its font through
+      // global CSS (a Google font on `body`) styled everything except MUI.
+      // `"inherit"` makes MUI follow the document font instead — the behaviour a
+      // consumer expects — without Themvora hardcoding or downloading a font.
+      fontFamily: integration.fontFamily ?? (readFontFamily(theme.tokens, "") || "inherit"),
       fontSize: toFontSizePx(readFontSize(theme.tokens)),
     },
     shadows: buildShadows(theme),
     breakpoints: {
       values: toBreakpointValues(theme),
     },
+    // MUI's own animations (ripples, hover fades) are the only transitions it
+    // runs on a palette change, and they use this scale. Mapping Themvora's
+    // configured duration/easing onto it keeps the two engines from using
+    // visibly different timings for the same theme change.
+    ...(resolvedTransitions
+      ? { transitions: resolvedTransitions }
+      : {}),
   };
 
   return options;
+}
+
+/**
+ * Map Themvora's transition timing onto MUI's `transitions` scale.
+ *
+ * @internal
+ */
+function buildMuiTransitions(
+  options: MuiThemeIntegrationOptions,
+): ThemeOptions["transitions"] | undefined {
+  const duration = options.transitionDuration;
+  const easing = options.transitionEasing;
+  if (duration === undefined && easing === undefined) return undefined;
+
+  const result: NonNullable<ThemeOptions["transitions"]> = {};
+
+  if (duration !== undefined) {
+    // MUI's scale is a set of named durations; a theme change should be one
+    // length, so every entry gets it. `complex`/`enteringScreen` are the ones
+    // MUI's own overlays use and were the visible mismatch.
+    result.duration = {
+      shortest: Math.round(duration * 0.5),
+      shorter: Math.round(duration * 0.75),
+      short: Math.round(duration * 0.9),
+      standard: duration,
+      complex: duration,
+      enteringScreen: duration,
+      leavingScreen: Math.round(duration * 0.75),
+    };
+  }
+
+  if (easing !== undefined) {
+    result.easing = {
+      easeInOut: easing,
+      easeOut: easing,
+      easeIn: easing,
+      sharp: easing,
+    };
+  }
+
+  return result;
 }
 
 function toBreakpointValues(theme: AdapterResolvedTheme): Record<"xs" | "sm" | "md" | "lg" | "xl", number> {

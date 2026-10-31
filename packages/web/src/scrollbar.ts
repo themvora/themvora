@@ -1,25 +1,40 @@
-import { PRE_PAINT_SCROLLBAR_CSS, createOverlayScrollbar, type OverlayScrollbarOptions, type ThemeDefinition, type ThemeRuntime } from "@themvora/core";
+import {
+  createOverlayScrollbar,
+  PRE_PAINT_SCROLLBAR_CSS,
+  SCROLLBAR_HIDING_STYLE_ATTR,
+  SCROLLBAR_HIDING_STYLE_ID,
+  type OverlayScrollbarOptions,
+  type ThemeDefinition,
+  type ThemeRuntime,
+} from "@themvora/core";
 import { ThemvoraRuntimeConsumer } from "./runtime-consumer";
 
 /**
  * Injects the pre-paint scrollbar-hiding CSS and class into the document.
  *
- * Framework-free (vanilla JS). Adds a `<style id="tv-scrollbar-style">` with
- * the pre-paint scrollbar CSS and the `tv-scrollbar` class to the document
- * root so the native scrollbar is hidden before first paint. Idempotent and a
- * no-op on the server.
+ * Framework-free (vanilla JS). Adds a `<style>` carrying the pre-paint
+ * scrollbar CSS and the `tv-scrollbar` class to the document root so the
+ * native scrollbar is hidden before first paint. Idempotent and a no-op on the
+ * server.
+ *
+ * This is a manual bootstrap helper for a page that wants the native bar hidden
+ * before its own script runs. It is *not* how {@link ThemvoraScrollbar} hides
+ * the bar — that happens through `createOverlayScrollbar`, which claims the
+ * hiding and gives it back on `destroy()`. Calling this directly therefore
+ * hides the bar without registering a claim, so pair it with
+ * `restoreNativeScrollbar()` if you later want the native bar back.
  *
  * @see {@link ThemvoraScrollbar}
  * @see `createPrePaintScrollbarScript`
  */
 export function injectPrePaintScrollbarCSS(): void {
   if (typeof document === "undefined") return;
-  if (document.documentElement.classList.contains("tv-scrollbar")) return;
   const docEl = document.documentElement;
-  const existingStyle = document.getElementById("tv-scrollbar-style");
-  if (!existingStyle) {
+  if (!document.getElementById(SCROLLBAR_HIDING_STYLE_ID) &&
+      document.querySelector(`style[${SCROLLBAR_HIDING_STYLE_ATTR}]`) === null) {
     const style = document.createElement("style");
-    style.id = "tv-scrollbar-style";
+    style.id = SCROLLBAR_HIDING_STYLE_ID;
+    style.setAttribute(SCROLLBAR_HIDING_STYLE_ATTR, "");
     style.textContent = PRE_PAINT_SCROLLBAR_CSS;
     document.head.appendChild(style);
   }
@@ -148,17 +163,24 @@ function optionsFrom(el: HTMLElement): OverlayScrollbarOptions {
  * Creates the custom scrollbar overlay.
  *
  * Lifecycle:
- *   connectedCallback  → inject pre-paint hiding CSS + class
- *                        ↓ (Phase 1)
- *   connectedCallback  → create overlay → measure → attach listeners
+ *   connectedCallback  → resolve the runtime
+ *                        ↓
+ *   onRuntime          → hide native bar (Phase 1) → create overlay → attach
  *                        ↓ (Phase 2)
  *   later              → add tv-scrollbar-ready
  *                        ↓ (Phase 3)
+ *   onDetach / destroy → remove overlay → restore native bar
  *
- * Phase 1 is injected synchronously in `connectedCallback`. For static HTML
- * served via the Vite plugin (scrollbar: true), the pre-paint script in <head>
- * runs before first paint. This component's injection is a fallback for
- * dynamically-inserted scrollbar elements (which may have already painted).
+ * Phase 1 happens synchronously inside the overlay's construction. For static
+ * HTML served via the Vite plugin (scrollbar: true), the pre-paint script in
+ * <head> runs before first paint; for an SSR'd provider the class and CSS are
+ * in the markup. This component's own hiding is the fallback for
+ * dynamically-inserted elements (which may have already painted).
+ *
+ * The teardown is a real teardown. The hiding is claimed, not switched on, so
+ * removing the element gives the native scrollbar back instead of leaving the
+ * page with no scrollbar at all — and an attribute change swaps the overlay
+ * without ever passing through the "hidden, but nothing drawn" state.
  *
  * @remarks
  * **Attributes.** Every option is an attribute; changing one rebuilds the
@@ -261,11 +283,20 @@ export class ThemvoraScrollbar extends ThemvoraRuntimeConsumer {
   }
 
   private rebuild(runtime: ThemeRuntime<ThemeDefinition>) {
-    this.handle?.destroy();
+    // Create the replacement BEFORE destroying the incumbent.
+    //
+    // Both operations touch one document-wide fact — whether the native
+    // scrollbar is hidden — and that fact is reference counted. Destroying
+    // first would drop the count to zero, hand the native bar back, and let the
+    // new overlay take it away again: a one-frame flash of the native bar, and
+    // a horizontal reflow of the whole page by the bar's width. Creating first
+    // keeps the count at one across the swap, so changing a prop is invisible.
+    const previous = this.handle;
     this.handle = createOverlayScrollbar(
       runtime.store as any,
       optionsFrom(this),
     );
+    previous?.destroy();
   }
 
   static define(tag = "themvora-scrollbar") {

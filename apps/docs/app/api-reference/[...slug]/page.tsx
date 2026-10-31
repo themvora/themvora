@@ -93,6 +93,11 @@ export default function ApiReferencePage({
           title={pageTitle}
           eyebrow="API Reference"
           {...(pkgMeta?.tagline ? { description: pkgMeta.tagline } : {})}
+          // Generated from the declarations: every `ts` fence here is a
+          // signature, not runnable code. A JavaScript rendering of
+          // `function setTheme(theme: Theme): void` is a syntax error, so the
+          // page stays TypeScript-only rather than offering a broken choice.
+          codeExamples={false}
         />
       </div>
     </DocsLayout>

@@ -37,6 +37,17 @@ const activeRuns = new WeakMap<HTMLElement, ActiveRun>();
 const ROOT_TRANSITION_NODES = new WeakMap<HTMLElement, HTMLStyleElement>();
 const SUPPRESSION_NODES = new WeakMap<HTMLElement, HTMLStyleElement>();
 
+/**
+ * How many overlapping suppression windows are open per target.
+ *
+ * Two mechanisms can own one: the CSS-property run below, and a native View
+ * Transition. A counter rather than a boolean, because a second theme change can
+ * start before the first crossfade finishes — a boolean would have the earlier
+ * window's teardown clear the flag the later one still needs, and descendants
+ * would start easing mid-swap.
+ */
+const SUPPRESSION_DEPTH = new WeakMap<HTMLElement, number>();
+
 function ensureRootTransitionStyle(target: HTMLElement, list: string): void {
   if (typeof document === "undefined" || !document.head) return;
   let node = ROOT_TRANSITION_NODES.get(target);
@@ -94,6 +105,53 @@ function setAnimatingAttribute(target: HTMLElement, on: boolean): void {
   } else {
     target.removeAttribute("data-themvora-animating");
   }
+}
+
+/**
+ * Open a window in which descendant transitions are muted, and return a
+ * disposer that closes it.
+ *
+ * This is the same suppression the CSS-property run installs, exposed so the
+ * View Transition path can use it too. Both paths need it for the same reason:
+ * during a theme change the new palette is already in place underneath, and any
+ * component that also eases its own `background-color` (a UI library's button,
+ * a `transition-colors` utility) re-eases the same values on top of the
+ * crossfade. Measured on a React + MUI page: without this, the document
+ * switched in one frame while MUI's Button took ~30 frames (540 ms) to reach
+ * its new colour, and MUI's own `Paper` had already snapped — so the surfaces
+ * disagreed with each other as well as with the page.
+ *
+ * The disposer is idempotent and depth-counted, so overlapping windows (a second
+ * toggle during a crossfade) cannot clear the flag early.
+ *
+ * @param target - The element whose subtree should be muted (`<html>` for the
+ *   document binding, the scope element for a scoped binding).
+ * @returns A function that closes this window.
+ *
+ * @internal — shared animation-coordinator detail, not part of the public API.
+ */
+export function beginDescendantTransitionSuppression(
+  target: HTMLElement,
+): () => void {
+  ensureSuppressionStyle(target);
+  SUPPRESSION_DEPTH.set(target, (SUPPRESSION_DEPTH.get(target) ?? 0) + 1);
+  setAnimatingAttribute(target, true);
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+
+    const depth = Math.max(0, (SUPPRESSION_DEPTH.get(target) ?? 1) - 1);
+    if (depth === 0) {
+      SUPPRESSION_DEPTH.delete(target);
+      // Only clear the flag when no other window owns it — including the CSS
+      // run, which sets it through `setAnimatingAttribute` directly.
+      if (!activeRuns.has(target)) setAnimatingAttribute(target, false);
+      return;
+    }
+    SUPPRESSION_DEPTH.set(target, depth);
+  };
 }
 
 function reducedMotion(): boolean {
@@ -253,6 +311,7 @@ export function cancelThemeAnimation(target: HTMLElement): void {
  */
 export function disposeThemeTransitionStyles(target: HTMLElement): void {
   cancelActive(target);
+  SUPPRESSION_DEPTH.delete(target);
 
   const root = ROOT_TRANSITION_NODES.get(target);
   if (root) {

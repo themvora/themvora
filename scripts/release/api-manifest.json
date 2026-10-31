@@ -1,6 +1,6 @@
 {
   "@themvora/angular": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\angular\\dist\\types\\themvora-angular.d.ts",
     "exports": {
       "values": [
@@ -12,7 +12,9 @@
         "buildThemeCSSMap",
         "createAngularPersistence",
         "createBlockingScriptContent",
+        "injectEffectiveThemeMode",
         "injectGeneratedTheme",
+        "injectProvidedThemes",
         "injectTheme",
         "injectThemeBatch",
         "injectThemeHistory",
@@ -46,10 +48,15 @@
     }
   },
   "@themvora/astro": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\astro\\dist\\index.d.ts",
     "exports": {
       "values": [
+        "THEME_PRESSED_ATTRIBUTE",
+        "THEME_PRESSED_VALUE_ATTRIBUTE",
+        "THEME_READOUT_ATTRIBUTE",
+        "THEME_SELECTION_ATTRIBUTE",
+        "THEME_TOGGLE_ATTRIBUTE",
         "ThemvoraInspector",
         "ThemvoraScrollbar",
         "buildThemeCssMap",
@@ -62,6 +69,7 @@
         "getInitialThemeState",
         "getThemeController",
         "injectPrePaintScrollbarCSS",
+        "installThemeBindings",
         "requireGlobalRuntime",
         "setGlobalRuntime",
         "systemModeCSSTemplate",
@@ -80,7 +88,9 @@
         "types": []
       },
       "subpaths": [
+        "./ThemeFamilySelect.astro",
         "./ThemeInspector.astro",
+        "./ThemeScope.astro",
         "./ThemeScrollbar.astro",
         "./ThemeToggle.astro",
         "./client",
@@ -91,11 +101,15 @@
         "./runtime": {
           "ts": true,
           "values": [
+            "THEME_PRESSED_ATTRIBUTE",
+            "THEME_PRESSED_VALUE_ATTRIBUTE",
             "THEME_READOUT_ATTRIBUTE",
+            "THEME_SELECTION_ATTRIBUTE",
             "THEME_TOGGLE_ATTRIBUTE",
             "createThemeController",
             "getGlobalRuntime",
             "getThemeController",
+            "installThemeBindings",
             "requireGlobalRuntime",
             "setGlobalRuntime"
           ],
@@ -119,6 +133,24 @@
           }
         },
         "./ThemeToggle.astro": {
+          "ts": false,
+          "values": [],
+          "types": [],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        },
+        "./ThemeFamilySelect.astro": {
+          "ts": false,
+          "values": [],
+          "types": [],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        },
+        "./ThemeScope.astro": {
           "ts": false,
           "values": [],
           "types": [],
@@ -152,6 +184,7 @@
             "ThemeReadout",
             "ThemeScope",
             "useGeneratedTheme",
+            "useProvidedThemes",
             "useSetThemeFamily",
             "useSetThemeMode",
             "useTheme",
@@ -184,7 +217,7 @@
     }
   },
   "@themvora/cli": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\cli\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -223,7 +256,7 @@
     }
   },
   "@themvora/core": {
-    "version": "1.4.0",
+    "version": "1.5.0",
     "dts": "packages\\core\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -232,6 +265,8 @@
         "BRAND_PRESET_DISCLAIMER",
         "CONTEXT_RESTRICTIONS",
         "CORE_COLORS",
+        "CSS_DARK_SELECTOR",
+        "CSS_ROOT_SELECTOR",
         "DEFAULT_SCHEDULED_DARK_THEME",
         "DEFAULT_SCHEDULED_LIGHT_THEME",
         "DEFAULT_THEME_TRANSITION",
@@ -246,6 +281,8 @@
         "GROUP_VAR_PREFIXES",
         "OPTIONAL_SEMANTICS",
         "PRE_PAINT_SCROLLBAR_CSS",
+        "SCROLLBAR_HIDING_STYLE_ATTR",
+        "SCROLLBAR_HIDING_STYLE_ID",
         "SEMANTIC_CONTEXTS",
         "SEMANTIC_ROLE_GROUPS",
         "TOKEN_GROUPS",
@@ -283,6 +320,7 @@
         "createPluginManager",
         "createPrePaintScrollbarCSS",
         "createPrePaintScrollbarScript",
+        "createProvidedThemesSource",
         "createScheduledPlugin",
         "createScheduledThemeBinding",
         "createScopedThemeBinding",
@@ -341,6 +379,7 @@
         "getThemeMode",
         "getTimeZoneList",
         "hasForegroundPreference",
+        "hideNativeScrollbar",
         "isCoreColor",
         "isExpression",
         "isGeneratedTheme",
@@ -349,16 +388,20 @@
         "isSettled",
         "isThemeMode",
         "isUsableTheme",
+        "loadThemeRegistry",
         "measureThemeContrast",
         "mergePresetTokens",
         "mergeThemeDefinitions",
         "mergeTokens",
         "migrateTheme",
         "migrations",
+        "normalizeProvidedThemes",
         "normalizeThemeCatalog",
+        "parseThemeJson",
         "preferredInk",
         "prefersReducedMotion",
         "readBootstrapState",
+        "readThemeDefinitions",
         "readTransportedConfig",
         "registerMigration",
         "resetDiagnosticEmission",
@@ -378,8 +421,11 @@
         "resolveSolarLocation",
         "resolveTheme",
         "resolveThemeName",
+        "resolveThemeOverride",
+        "resolveThemeReference",
         "resolveThemeRegistry",
         "resolveTokens",
+        "restoreNativeScrollbar",
         "runThemeAnimation",
         "scanForTransition",
         "scopeToCSSVariables",
@@ -387,7 +433,9 @@
         "simulateCVD",
         "simulateThemeForCVD",
         "systemModeCSSTemplate",
+        "themeOverrideKey",
         "themeToCSSVariables",
+        "themeToCssDocument",
         "toBootstrapConfig",
         "validateTheme",
         "validateThemeContrast",
@@ -449,10 +497,12 @@
         "MigrateOptions",
         "MigrationStep",
         "MultiWindowSyncOptions",
+        "NonTextCheck",
         "NormalizedAnchor",
         "OptionalSemantic",
         "OverlayScrollbarHandle",
         "OverlayScrollbarOptions",
+        "ParsedThemeJson",
         "PersistencePluginOptions",
         "PluginManager",
         "PrePaintScrollbarOptions",
@@ -466,10 +516,21 @@
         "PresetThemeName",
         "PresetVariant",
         "PresetVariantOverride",
+        "ProvidedThemeFamily",
+        "ProvidedThemeProvenance",
+        "ProvidedThemeVariant",
+        "ProvidedThemesSource",
+        "RegistryFailureReason",
+        "RegistryLoadFailure",
+        "RegistryLoadResult",
+        "RegistryLoadSuccess",
+        "RegistrySourceLocation",
         "ResolveInitialThemeOptions",
         "ResolveSelectionOptions",
         "ResolveSelectionThemeOptions",
+        "ResolveThemeReferenceOptions",
         "ResolvedSolarLocation",
+        "ResolvedThemeReference",
         "ScheduledPluginOptions",
         "ScheduledThemeBindingOptions",
         "ScheduledThemeOptions",
@@ -494,6 +555,7 @@
         "SemanticRoleGroup",
         "SolarLocationInput",
         "StorageAdapter",
+        "SunTimes",
         "SyncFirstRenderRoot",
         "SyncFirstRootOptions",
         "SystemThemeBindingOptions",
@@ -507,8 +569,14 @@
         "ThemeChangeEvent",
         "ThemeChangeSource",
         "ThemeConfigurationUpdate",
+        "ThemeCssPair",
         "ThemeDebugger",
         "ThemeDefinition",
+        "ThemeDefinitionOrigin",
+        "ThemeDefinitionProblem",
+        "ThemeDefinitionReadOptions",
+        "ThemeDefinitionReadResult",
+        "ThemeDefinitionSource",
         "ThemeDiagnostic",
         "ThemeDiagnosticCode",
         "ThemeDiagnosticContext",
@@ -518,12 +586,16 @@
         "ThemeDiffProvenance",
         "ThemeDiffReport",
         "ThemeDiffSide",
+        "ThemeEffectiveSelection",
         "ThemeError",
         "ThemeErrorOptions",
         "ThemeFamilies",
+        "ThemeFamilyOf",
+        "ThemeGenerationInput",
         "ThemeGenerationProvenance",
         "ThemeHistory",
         "ThemeHistoryOptions",
+        "ThemeIdentifier",
         "ThemeLifecycle",
         "ThemeLifecycleEventMap",
         "ThemeLifecycleEventName",
@@ -535,6 +607,8 @@
         "ThemeModeGroupCounts",
         "ThemeModes",
         "ThemeName",
+        "ThemeOverride",
+        "ThemeOverrideSelection",
         "ThemePack",
         "ThemePersistenceAdapter",
         "ThemePersistenceOptions",
@@ -551,6 +625,7 @@
         "ThemeScheduleSetOptions",
         "ThemeScheduleState",
         "ThemeScheduleStatus",
+        "ThemeScheduleStore",
         "ThemeScheduleTransition",
         "ThemeSelectionBroadcastOptions",
         "ThemeSelectionPersistenceAdapter",
@@ -579,6 +654,7 @@
       ],
       "internal": {
         "values": [
+          "beginDescendantTransitionSuppression",
           "buildBootstrapPlan",
           "checkContrastPair",
           "clamp",
@@ -596,7 +672,9 @@
           "observeScrollbarSizing",
           "overscrollFactor",
           "parseContrastCall",
+          "providedThemesSourceFor",
           "resolveFlatTokens",
+          "resolveThemeOverrideReporting",
           "resolveValueReferences",
           "serializeThemeBootstrapScript"
         ],
@@ -605,6 +683,7 @@
           "ArrowIcon",
           "AxisState",
           "Host",
+          "ProvidedThemesRuntime",
           "RenderState",
           "ScrollbarInsets",
           "ScrollbarOptionsResolved",
@@ -631,8 +710,13 @@
           "types": [
             "GenerateThemeOptions",
             "GeneratedThemePair",
+            "ProvidedThemeFamily",
+            "ProvidedThemeProvenance",
+            "ProvidedThemeVariant",
             "ThemeDefinition",
             "ThemeMode",
+            "ThemeOverride",
+            "ThemeOverrideSelection",
             "ThemePack",
             "ThemeRegistry",
             "ThemeTokens",
@@ -685,7 +769,7 @@
     }
   },
   "@themvora/devtools": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\devtools\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -709,7 +793,7 @@
     }
   },
   "@themvora/next": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\next\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -742,6 +826,7 @@
             "ThemeScope",
             "createNextThemePersistence",
             "useGeneratedTheme",
+            "useProvidedThemes",
             "useScopedTheme",
             "useSetThemeFamily",
             "useSetThemeMode",
@@ -775,7 +860,7 @@
     }
   },
   "@themvora/nuxt": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\nuxt\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -784,6 +869,8 @@
         "BRAND_PRESET_DISCLAIMER",
         "CONTEXT_RESTRICTIONS",
         "CORE_COLORS",
+        "CSS_DARK_SELECTOR",
+        "CSS_ROOT_SELECTOR",
         "DEFAULT_SCHEDULED_DARK_THEME",
         "DEFAULT_SCHEDULED_LIGHT_THEME",
         "DEFAULT_THEME_TRANSITION",
@@ -798,6 +885,8 @@
         "GROUP_VAR_PREFIXES",
         "OPTIONAL_SEMANTICS",
         "PRE_PAINT_SCROLLBAR_CSS",
+        "SCROLLBAR_HIDING_STYLE_ATTR",
+        "SCROLLBAR_HIDING_STYLE_ID",
         "SEMANTIC_CONTEXTS",
         "SEMANTIC_ROLE_GROUPS",
         "TOKEN_GROUPS",
@@ -808,6 +897,7 @@
         "ThemeRegistry",
         "ThemeScope",
         "ThemeScrollbar",
+        "ThemeSymbol",
         "auditActionProminence",
         "auditSemanticContexts",
         "auto",
@@ -840,6 +930,7 @@
         "createPluginManager",
         "createPrePaintScrollbarCSS",
         "createPrePaintScrollbarScript",
+        "createProvidedThemesSource",
         "createScheduledPlugin",
         "createScheduledThemeBinding",
         "createScopedThemeBinding",
@@ -863,6 +954,7 @@
         "createThemeSelectionBroadcast",
         "createThemeStore",
         "createTransitionPlan",
+        "createVueThemeBootstrapScript",
         "darkModeCSSTemplate",
         "defineTheme",
         "defineThemvoraConfig",
@@ -898,6 +990,7 @@
         "getThemeMode",
         "getTimeZoneList",
         "hasForegroundPreference",
+        "hideNativeScrollbar",
         "isCoreColor",
         "isExpression",
         "isGeneratedTheme",
@@ -906,17 +999,22 @@
         "isSettled",
         "isThemeMode",
         "isUsableTheme",
+        "loadThemeRegistry",
         "measureThemeContrast",
         "mergePresetTokens",
         "mergeThemeDefinitions",
         "mergeTokens",
         "migrateTheme",
         "migrations",
+        "normalizeProvidedThemes",
         "normalizeThemeCatalog",
         "parseCookieHeader",
+        "parseThemeJson",
         "preferredInk",
         "prefersReducedMotion",
+        "provideThemeRuntime",
         "readBootstrapState",
+        "readThemeDefinitions",
         "readTransportedConfig",
         "registerMigration",
         "resetDiagnosticEmission",
@@ -937,8 +1035,11 @@
         "resolveTheme",
         "resolveThemeFromCookies",
         "resolveThemeName",
+        "resolveThemeOverride",
+        "resolveThemeReference",
         "resolveThemeRegistry",
         "resolveTokens",
+        "restoreNativeScrollbar",
         "runThemeAnimation",
         "scanForTransition",
         "scopeToCSSVariables",
@@ -946,9 +1047,13 @@
         "simulateCVD",
         "simulateThemeForCVD",
         "systemModeCSSTemplate",
+        "themeOverrideKey",
         "themeToCSSVariables",
+        "themeToCssDocument",
         "themvoraCookieNames",
         "toBootstrapConfig",
+        "useEffectiveThemeMode",
+        "useProvidedThemes",
         "useTheme",
         "useThemeBatch",
         "useThemeFamily",
@@ -1023,11 +1128,13 @@
         "MigrationStep",
         "ModuleOptions",
         "MultiWindowSyncOptions",
+        "NonTextCheck",
         "NormalizedAnchor",
         "NuxtThemeBootstrapOptions",
         "OptionalSemantic",
         "OverlayScrollbarHandle",
         "OverlayScrollbarOptions",
+        "ParsedThemeJson",
         "PersistencePluginOptions",
         "PluginManager",
         "PrePaintScrollbarOptions",
@@ -1041,11 +1148,22 @@
         "PresetThemeName",
         "PresetVariant",
         "PresetVariantOverride",
+        "ProvidedThemeFamily",
+        "ProvidedThemeProvenance",
+        "ProvidedThemeVariant",
+        "ProvidedThemesSource",
+        "RegistryFailureReason",
+        "RegistryLoadFailure",
+        "RegistryLoadResult",
+        "RegistryLoadSuccess",
+        "RegistrySourceLocation",
         "ResolveInitialThemeOptions",
         "ResolveSelectionOptions",
         "ResolveSelectionThemeOptions",
         "ResolveThemeFromCookiesOptions",
+        "ResolveThemeReferenceOptions",
         "ResolvedSolarLocation",
+        "ResolvedThemeReference",
         "ScheduledPluginOptions",
         "ScheduledThemeBindingOptions",
         "ScheduledThemeOptions",
@@ -1070,6 +1188,7 @@
         "SemanticRoleGroup",
         "SolarLocationInput",
         "StorageAdapter",
+        "SunTimes",
         "SyncFirstRenderRoot",
         "SyncFirstRootOptions",
         "SystemThemeBindingOptions",
@@ -1083,8 +1202,14 @@
         "ThemeChangeEvent",
         "ThemeChangeSource",
         "ThemeConfigurationUpdate",
+        "ThemeCssPair",
         "ThemeDebugger",
         "ThemeDefinition",
+        "ThemeDefinitionOrigin",
+        "ThemeDefinitionProblem",
+        "ThemeDefinitionReadOptions",
+        "ThemeDefinitionReadResult",
+        "ThemeDefinitionSource",
         "ThemeDiagnostic",
         "ThemeDiagnosticCode",
         "ThemeDiagnosticContext",
@@ -1094,12 +1219,16 @@
         "ThemeDiffProvenance",
         "ThemeDiffReport",
         "ThemeDiffSide",
+        "ThemeEffectiveSelection",
         "ThemeError",
         "ThemeErrorOptions",
         "ThemeFamilies",
+        "ThemeFamilyOf",
+        "ThemeGenerationInput",
         "ThemeGenerationProvenance",
         "ThemeHistory",
         "ThemeHistoryOptions",
+        "ThemeIdentifier",
         "ThemeInspectorProps",
         "ThemeLifecycle",
         "ThemeLifecycleEventMap",
@@ -1112,6 +1241,8 @@
         "ThemeModeGroupCounts",
         "ThemeModes",
         "ThemeName",
+        "ThemeOverride",
+        "ThemeOverrideSelection",
         "ThemePack",
         "ThemePersistenceAdapter",
         "ThemePersistenceOptions",
@@ -1125,10 +1256,12 @@
         "ThemeRuntimeOptions",
         "ThemeRuntimeSnapshot",
         "ThemeSchedule",
+        "ThemeScheduleController",
         "ThemeScheduleOptions",
         "ThemeScheduleSetOptions",
         "ThemeScheduleState",
         "ThemeScheduleStatus",
+        "ThemeScheduleStore",
         "ThemeScheduleTransition",
         "ThemeScopeProps",
         "ThemeScrollbarProps",
@@ -1159,6 +1292,7 @@
       ],
       "internal": {
         "values": [
+          "beginDescendantTransitionSuppression",
           "buildBootstrapPlan",
           "checkContrastPair",
           "clamp",
@@ -1176,7 +1310,9 @@
           "observeScrollbarSizing",
           "overscrollFactor",
           "parseContrastCall",
+          "providedThemesSourceFor",
           "resolveFlatTokens",
+          "resolveThemeOverrideReporting",
           "resolveValueReferences",
           "serializeThemeBootstrapScript"
         ],
@@ -1185,6 +1321,7 @@
           "ArrowIcon",
           "AxisState",
           "Host",
+          "ProvidedThemesRuntime",
           "RenderState",
           "ScrollbarInsets",
           "ScrollbarOptionsResolved",
@@ -1199,7 +1336,7 @@
     }
   },
   "@themvora/react": {
-    "version": "1.3.1",
+    "version": "1.4.0",
     "dts": "packages\\react\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1209,7 +1346,9 @@
         "ThemeScope",
         "ThemeScrollbar",
         "createThemeRoot",
+        "useEffectiveThemeMode",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useScopedTheme",
         "useSetThemeFamily",
         "useSetThemeMode",
@@ -1242,7 +1381,9 @@
         "ThemeScrollbarScope"
       ],
       "internal": {
-        "values": [],
+        "values": [
+          "useProvidedThemesSource"
+        ],
         "types": []
       },
       "subpaths": [],
@@ -1250,7 +1391,7 @@
     }
   },
   "@themvora/remix": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\remix\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1260,7 +1401,9 @@
         "ThemeScope",
         "ThemeScrollbar",
         "createRemixThemePersistence",
+        "getThemeShellProps",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useSetThemeFamily",
         "useSetThemeMode",
         "useTheme",
@@ -1284,7 +1427,9 @@
         "ThemeHeadProps",
         "ThemeInspectorProps",
         "ThemeProviderProps",
-        "ThemeScrollbarProps"
+        "ThemeScrollbarProps",
+        "ThemeShellOptions",
+        "ThemeShellProps"
       ],
       "internal": {
         "values": [],
@@ -1309,7 +1454,7 @@
     }
   },
   "@themvora/solid": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\solid\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1318,7 +1463,9 @@
         "ThemeScope",
         "ThemeScrollbar",
         "createSolidThemeBootstrapScript",
+        "useEffectiveThemeMode",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useTheme",
         "useThemeBatch",
         "useThemeFamily",
@@ -1348,7 +1495,7 @@
     }
   },
   "@themvora/svelte": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\svelte\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1362,7 +1509,9 @@
         "pickOptions",
         "setThemeRuntime",
         "themeInspector",
+        "useEffectiveThemeMode",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useTheme",
         "useThemeBatch",
         "useThemeFamily",
@@ -1392,7 +1541,7 @@
     }
   },
   "@themvora/tailwind": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\tailwind\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1444,7 +1593,7 @@
     }
   },
   "@themvora/vue": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "dts": "packages\\vue\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1455,7 +1604,9 @@
         "ThemeSymbol",
         "createVueThemeBootstrapScript",
         "provideThemeRuntime",
+        "useEffectiveThemeMode",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useTheme",
         "useThemeBatch",
         "useThemeFamily",
@@ -1486,7 +1637,7 @@
     }
   },
   "@themvora/web": {
-    "version": "1.4.0",
+    "version": "1.5.0",
     "dts": "packages\\web\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1507,8 +1658,11 @@
         "getThemeSchedule",
         "injectComponentStyles",
         "injectPrePaintScrollbarCSS",
+        "observeEffectiveThemeMode",
         "resolveGeneratedTheme",
+        "useEffectiveThemeMode",
         "useGeneratedTheme",
+        "useProvidedThemes",
         "useThemeFamily",
         "useThemeMode",
         "useThemeRuntime",
@@ -1535,7 +1689,7 @@
     }
   },
   "@themvora/antd": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\adapters\\antd\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1562,7 +1716,7 @@
     }
   },
   "@themvora/bootstrap": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "dts": "packages\\adapters\\bootstrap\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1678,7 +1832,7 @@
     }
   },
   "@themvora/chakra": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\adapters\\chakra\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1705,7 +1859,7 @@
     }
   },
   "@themvora/daisyui": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "dts": "packages\\adapters\\daisyui\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1821,7 +1975,7 @@
     }
   },
   "@themvora/mantine": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\adapters\\mantine\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1841,7 +1995,7 @@
     }
   },
   "@themvora/mui": {
-    "version": "1.3.0",
+    "version": "1.4.0",
     "dts": "packages\\adapters\\mui\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1857,6 +2011,7 @@
         "CreateMuiAdapterOptions",
         "MuiAdapterOptions",
         "MuiThemeAdapter",
+        "MuiThemeIntegrationOptions",
         "MuiThemeProviderProps"
       ],
       "internal": {
@@ -1868,7 +2023,7 @@
     }
   },
   "@themvora/open-props": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "dts": "packages\\adapters\\open-props\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1984,7 +2139,7 @@
     }
   },
   "@themvora/shadcn": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "dts": "packages\\adapters\\shadcn\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -2149,7 +2304,7 @@
     }
   },
   "@themvora/unocss": {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "dts": "packages\\adapters\\unocss\\dist\\index.d.ts",
     "exports": {
       "values": [

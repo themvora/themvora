@@ -88,6 +88,11 @@ them made the runtime overwrite an already-correct first paint.
 Returns `null` during SSR (no `window`). The cookie contract matches the
 other SSR integrations (`@themvora/next`, `@themvora/nuxt`, `@themvora/remix`).
 
+**Blocked storage degrades, it does not throw.** `window.localStorage` can
+throw on access and `setItem` throws when the quota is full; both are treated
+as "this browser cannot remember the selection". The cookie mirror is written
+either way, so the server still resolves the same theme on the next request.
+
 ---
 
 
@@ -160,7 +165,9 @@ variables.
 | --------- | ---- | ----------- |
 | `variables` | `Record<string, string>` | The CSS variables to emit under the dark media query. |
 
-**Returns** `string` — A `@media (prefers-color-scheme: dark)` block targeting `:root`.
+**Returns** `string` — A `@media (prefers-color-scheme: dark)` block targeting `:root`,
+  escaped so it cannot terminate a `<style>` element (`</` becomes `</`,
+  which CSS parses identically).
 
 This is a **pre-script** fallback only, and it cannot beat an inline `style`
 on the same element: inline declarations outrank every stylesheet rule
@@ -271,14 +278,73 @@ and `prefers-color-scheme`, none of which exist on a server — call it from a
 ### `injectPrePaintScrollbarCSS(): void`
 Injects the pre-paint scrollbar-hiding CSS and class into the document.
 
-Framework-free (vanilla JS). Adds a `<style id="tv-scrollbar-style">` with
-the pre-paint scrollbar CSS and the `tv-scrollbar` class to the document
-root so the native scrollbar is hidden before first paint. Idempotent and a
-no-op on the server.
+Framework-free (vanilla JS). Adds a `<style>` carrying the pre-paint
+scrollbar CSS and the `tv-scrollbar` class to the document root so the
+native scrollbar is hidden before first paint. Idempotent and a no-op on the
+server.
+
+This is a manual bootstrap helper for a page that wants the native bar hidden
+before its own script runs. It is *not* how ThemvoraScrollbar hides
+the bar — that happens through `createOverlayScrollbar`, which claims the
+hiding and gives it back on `destroy()`. Calling this directly therefore
+hides the bar without registering a claim, so pair it with
+`restoreNativeScrollbar()` if you later want the native bar back.
 
 **See also:** `ThemvoraScrollbar`
 
 **Returns** `void`
+
+---
+
+
+### `installThemeBindings(): void`
+Installs the delegated DOM bindings for the Themvora contracts.
+
+**See also:** `THEME_SELECTION_ATTRIBUTE`, `THEME_TOGGLE_ATTRIBUTE`
+
+**Returns** `void`
+
+Two contracts, one listener each, registered once per document:
+
+| Contract | Event | Effect |
+| -------- | ----- | ------ |
+| `[data-tv-toggle]` | `click` | `toggleTheme()` |
+| `[data-tv-select]` | `change` | `setFamily()` / `setMode()` from `value` |
+
+The `change` listener is the input half of `[data-tv-select]`; the output half
+— writing the live selection back into the element — lives in
+`syncSelectionControls`, and `[data-tv-pressed]` (a segmented control's
+`aria-pressed`) is mirrored by `syncPressedControls` on the same change. A
+page that renders `<ThemeToggle />` and a segmented control therefore needs no
+script of its own, and the two controls cannot disagree.
+
+**Delegated, not per-element.** This is the fix for the interaction bug, not
+a style preference. Astro bundles a component's `<script>` once per page, so
+a component that rendered the select cannot know how many instances the page
+has — `getElementById` binds one of them. And Astro's module scripts never
+re-execute across `<ClientRouter />` navigations, so a page you navigate back
+to keeps the listeners its *first* visit registered and no others. A
+`document`-level listener has neither problem: it is registered once and
+matches whatever the DOM contains at the moment the event fires.
+
+**Lazy.** Nothing here creates a runtime. The controller is resolved on the
+first interaction, so a page that renders a control but is never used ships
+the script and pays nothing else — the runtime, its persistence adapter and
+its cross-tab channel are still created on demand.
+
+Safe to call more than once, and safe to call on the server (a no-op).
+
+```ts
+<select data-tv-select="family">
+  <option value="mint">mint</option>
+  <option value="cocoa">cocoa</option>
+</select>
+
+<script>
+  import { installThemeBindings } from "@themvora/astro/runtime";
+  installThemeBindings();
+</script>
+```
 
 ---
 
@@ -293,7 +359,7 @@ Returns the app-wide global runtime, throwing when none has been installed.
 ---
 
 
-### `setGlobalRuntime(runtime): void`
+### `setGlobalRuntime<T extends ThemeDefinition<string>>(runtime): void`
 Installs the given runtime as the app-wide global runtime and, in the
 browser, publishes it where the rest of Themvora looks for it.
 
@@ -301,7 +367,7 @@ browser, publishes it where the rest of Themvora looks for it.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `runtime` | `ThemeRuntime<ThemeDefinition<string>>` | The theme runtime to install globally. |
+| `runtime` | `ThemeRuntime<T>` | The theme runtime to install globally. |
 
 **Returns** `void`
 
@@ -333,7 +399,8 @@ no script and no inline style.
 | `light` | `Record<string, string>` | The light theme's CSS variables. |
 | `dark` | `Record<string, string>` | The dark theme's CSS variables. |
 
-**Returns** `string` — Two media blocks, one per scheme, both targeting `:root`.
+**Returns** `string` — Two media blocks, one per scheme, both targeting `:root`, escaped
+  for `<style>`-element content exactly as darkModeCSSTemplate is.
 
 Use this **instead of** inlining the resolved variables whenever the mode is
 `"system"`. The two cannot be combined: an inline `style` on `<html>`
@@ -419,7 +486,7 @@ theme state would otherwise be replaced by the destination page's build-time
 attributes.
 
 ```ts
-// astro.config.ts — register the integration. No theme data.
+// Register the integration. No theme data.
 import { defineConfig } from "astro/config";
 import themvora from "@themvora/astro";
 
@@ -814,17 +881,24 @@ Phase 2 — ThemvoraScrollbar (Web Component): overlay only.
 Creates the custom scrollbar overlay.
 
 Lifecycle:
-  connectedCallback  → inject pre-paint hiding CSS + class
-                       ↓ (Phase 1)
-  connectedCallback  → create overlay → measure → attach listeners
+  connectedCallback  → resolve the runtime
+                       ↓
+  onRuntime          → hide native bar (Phase 1) → create overlay → attach
                        ↓ (Phase 2)
   later              → add tv-scrollbar-ready
                        ↓ (Phase 3)
+  onDetach / destroy → remove overlay → restore native bar
 
-Phase 1 is injected synchronously in `connectedCallback`. For static HTML
-served via the Vite plugin (scrollbar: true), the pre-paint script in <head>
-runs before first paint. This component's injection is a fallback for
-dynamically-inserted scrollbar elements (which may have already painted).
+Phase 1 happens synchronously inside the overlay's construction. For static
+HTML served via the Vite plugin (scrollbar: true), the pre-paint script in
+<head> runs before first paint; for an SSR'd provider the class and CSS are
+in the markup. This component's own hiding is the fallback for
+dynamically-inserted elements (which may have already painted).
+
+The teardown is a real teardown. The hiding is claimed, not switched on, so
+removing the element gives the native scrollbar back instead of leaving the
+page with no scrollbar at all — and an attribute change swaps the overlay
+without ever passing through the "hidden, but nothing drawn" state.
 
 **See also:** `ThemvoraProvider`
 
@@ -1266,7 +1340,7 @@ persisted cookie is present.
 | `injectBootstrap` (optional) | `boolean` | Set to `false` to skip injecting the pre-paint bootstrap script (e.g. when you emit it yourself with `createBlockingScript`). Defaults to `true`. |
 | `mode` (optional) | `ThemeMode` | Fallback mode when no selection is persisted. Defaults to the fallback theme's own mode — the mode `defaultTheme` resolves to. |
 | `navigation` (optional) | `boolean` | Keep the resolved theme across Astro client-side navigations (`<ClientRouter />`). Defaults to `true`. |
-| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide the native scrollbar before first paint, so the Themvora overlay scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame — the same guarantee the Vite plugin and the Nuxt module provide. `true` hides it on fine-pointer (desktop) devices; pass `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to `false` — only enable it when the page actually mounts `ThemeScrollbar`. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide the native scrollbar before first paint, so the Themvora overlay scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame — the same guarantee the Vite plugin and the Nuxt module provide. `true` hides it on fine-pointer (desktop) devices; pass `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to `false`. |
 | `themes` (optional) | `readonly ThemeDefinition<string>[]` | The theme registry the bootstrap resolves against. Defaults to the built-in neutral themes when omitted or empty. |
 
 ---
@@ -1286,6 +1360,60 @@ configuration is already in the browser — `themvora()` transports
 runtime is built from that. Passing `themes` / `defaultTheme` /
 `initialMode` / `initialFamily` here is for a test, a storybook, or an
 island that deliberately wants a different registry.
+
+---
+
+## Variables
+
+### `THEME_PRESSED_ATTRIBUTE`
+Marks an element as one option of a **segmented control**:
+`data-tv-pressed="mode"` or `data-tv-pressed="family"`.
+
+**See also:** `THEME_PRESSED_VALUE_ATTRIBUTE`, `THEME_READOUT_ATTRIBUTE`
+
+`"data-tv-pressed"`
+
+---
+
+
+### `THEME_PRESSED_VALUE_ATTRIBUTE`
+The option a THEME_PRESSED_ATTRIBUTE element represents, compared
+against the live mode selection (`"light"` / `"dark"` / `"system"`) or the
+live family selection.
+
+`"data-tv-value"`
+
+---
+
+
+### `THEME_READOUT_ATTRIBUTE`
+Opts an element into the **bootstrap readout** contract: its text is owned by
+Themvora.
+
+**See also:** `THEME_TOGGLE_ATTRIBUTE`
+
+`"data-tv-readout"`
+
+---
+
+
+### `THEME_SELECTION_ATTRIBUTE`
+Opts a `<select>` into the **selection-control** contract:
+`data-tv-select="family"` or `data-tv-select="mode"`.
+
+**See also:** `THEME_TOGGLE_ATTRIBUTE`, `THEME_READOUT_ATTRIBUTE`
+
+`"data-tv-select"`
+
+---
+
+
+### `THEME_TOGGLE_ATTRIBUTE`
+Marks an element as a Themvora theme toggle.
+
+**See also:** `THEME_READOUT_ATTRIBUTE`
+
+`"data-tv-toggle"`
 
 ---
 

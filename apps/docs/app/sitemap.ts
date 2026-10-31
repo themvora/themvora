@@ -35,6 +35,7 @@ const STANDALONE_ROUTES = [
   "/accessibility",
   "/theme-studio",
   "/playground",
+  "/vscode",
   "/reference/compatibility",
   "/reference/diagnostics",
   "/api-reference",

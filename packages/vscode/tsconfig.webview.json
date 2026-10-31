@@ -1,0 +1,20 @@
+{
+  // The React webview is a browser app: it needs the DOM lib and JSX, neither of
+  // which the extension host may have (see tsconfig.json). It was outside every
+  // typecheck until this file existed, which is how an undeclared identifier
+  // reached a shipped bundle and rendered a blank panel.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": [],
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  // The webview's own render test lives here too: it imports a `.tsx` module and
+  // needs JSX and the DOM lib, so it is typechecked with the code it exercises
+  // rather than with the host.
+  "include": ["webview", "test/studioLibraryRender.test.ts"]
+}

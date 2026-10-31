@@ -6,6 +6,7 @@ import {
 } from "../model";
 import type { ThemeMode } from "../model/theme";
 import { themeToCSSVariables } from "../css";
+import { escapeStyleElementText } from "../script-safety";
 import type { ThemeTransitionOptions } from "../transition";
 import {
   cancelThemeAnimation,
@@ -196,7 +197,11 @@ export interface ScopedThemePrePaint {
   lightVariables: Record<string, string>;
   /** `[selector] { light }` + `@media (prefers-color-scheme: dark) { [selector]
    *  { dark } }`, or `null` when the scope isn't OS-dependent. Emit this into
-   *  the rendered markup so the first paint already shows the correct theme. */
+   *  the rendered markup so the first paint already shows the correct theme.
+   *
+   *  Escaped for `<style>`-element content: `</` is written as `<\/` (a CSS
+   *  escape for `/`), so a token value cannot close the element. Do not pass it
+   *  to `style.setProperty()` — it belongs in a stylesheet. */
   css: string | null;
   /** The default resolved theme name (for `data-theme`-style attributes). */
   name: string;
@@ -254,9 +259,15 @@ export function resolveScopedThemePrePaint<T extends ThemeDefinition>(
   };
 
   const selector = options.selector ?? "[data-themvora-scope]";
-  const css =
+  // Frameworks render this string as the body of a `<style>` element (React via
+  // `dangerouslySetInnerHTML`, Vue/Astro via their equivalents), so a token
+  // value containing `</style` would end the element and turn the rest of the
+  // stylesheet into markup. `<\/` is a CSS escape for `/`, so the emitted
+  // declaration values are unchanged.
+  const css = escapeStyleElementText(
     `${selector} {\n${cssRules(lightVariables)}\n}\n` +
-    `@media (prefers-color-scheme: dark) {\n${selector} {\n${cssRules(darkVariables)}\n}\n}`;
+      `@media (prefers-color-scheme: dark) {\n${selector} {\n${cssRules(darkVariables)}\n}\n}`,
+  );
 
   return { ...base, systemBased: true, css };
 }

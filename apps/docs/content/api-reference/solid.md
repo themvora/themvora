@@ -130,6 +130,22 @@ only manages the scrollbar lifecycle for the surrounding content.
 ---
 
 
+### `useEffectiveThemeMode(): Accessor<"light" | "dark">`
+Reactive access to the mode actually **applied** — `"light"` or `"dark"`,
+never `"system"` — as a Solid signal.
+
+Render this when a control states the current appearance. useThemeMode
+reports what the visitor asked for: it stays `"system"` while that choice
+stands and it does not move at a sunrise/sunset transition, so a label bound
+to it kept announcing the old mode while the page changed colour.
+
+**See also:** `useThemeMode`, `useThemeSchedule`
+
+**Returns** `Accessor<"light" | "dark">` — A Solid signal holding the applied mode.
+
+---
+
+
 ### `useGeneratedTheme<T extends ThemeDefinition<string>>(): Accessor<T>`
 Reactive access to the theme produced by `generateTheme()` and registered
 with the provider, as a Solid signal.
@@ -155,26 +171,52 @@ reactive read rather than a stale theme being returned.
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: Accessor<string>; mode: Accessor<ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Accessor<T>; toggleTheme: __type(): void }`
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): Accessor<readonly ProvidedThemeFamily<T>[]>`
+Reactive access to the themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+the built-in catalog. The accessor tracks the provider's registry, so a
+`themes` prop change, a theme-pack install or a registry mutation re-runs
+every consumer of it, and the array instance is stable while nothing changes.
+
+```tsx
+const families = useProvidedThemes();
+
+<For each={families()}>{(family) => <h3>{family.name}</h3>}</For>
+```
+
+**See also:** `useThemeValue`
+
+**Returns** `Accessor<readonly ProvidedThemeFamily<T>[]>` — An accessor holding the provider's theme families.
+
+---
+
+
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: Accessor<"light" | "dark">; family: Accessor<string>; mode: Accessor<ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Accessor<T>; toggleTheme: __type(): void }`
 Reactive access to the current theme selection plus actions to change it.
 
-Combines the reactive signals from `useThemeValue`, `useThemeMode`, and
-`useThemeFamily` with imperative setters that drive the runtime selection.
-Must be called inside a component rendered within a `ThemeProvider`.
+Combines the reactive signals from `useThemeValue`, `useThemeMode`,
+`useEffectiveThemeMode` and `useThemeFamily` with imperative setters that drive
+the runtime selection. Must be called inside a component rendered within a
+`ThemeProvider`.
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+`mode` is the visitor's request; `effectiveMode` is what is on screen — they
+differ while a sunrise/sunset schedule runs, or while the selection is
+`"system"`.
 
-**Returns** `{ family: Accessor<string>; mode: Accessor<ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Accessor<T>; toggleTheme: __type(): void }` — An object with reactive `theme`, `mode`, and `family` signals and
-  the `setMode`, `setFamily`, and `toggleTheme` actions.
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
+
+**Returns** `{ effectiveMode: Accessor<"light" | "dark">; family: Accessor<string>; mode: Accessor<ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Accessor<T>; toggleTheme: __type(): void }` — An object with reactive `theme`, `mode`, `effectiveMode` and `family`
+  signals and the `setMode`, `setFamily`, and `toggleTheme` actions.
 
 ```ts
 import { useTheme } from "@themvora/solid";
 
 function ThemeToggle() {
-  const { mode, setMode, toggleTheme } = useTheme();
+  const { effectiveMode, toggleTheme } = useTheme();
   return (
     <button onClick={toggleTheme}>
-      Current mode: {mode()}
+      Current mode: {effectiveMode()}
     </button>
   );
 }
@@ -391,16 +433,17 @@ creating one.
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `children` (optional) | `Element` | The subtree rendered inside the provider's context. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `string` | Initial family used when nothing else is given. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Initial family used when nothing else is given. A **variant** name is also accepted and normalised to its family; the variant's own mode is used only when initialMode is absent, so an explicit mode always wins and the two props cannot silently disagree. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | An existing runtime to adopt. When omitted the provider creates and owns its own runtime from the remaining props. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -449,10 +492,11 @@ with the same options used by `createOverlayScrollbar`.
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Plugins](/plugins) — Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.

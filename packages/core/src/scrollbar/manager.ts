@@ -9,7 +9,7 @@ import {
 } from "./calculations";
 import { easeAlpha, isSettled, lerp, prefersReducedMotion, FRAME_MS } from "./physics";
 import { observeScrollbarSizing } from "./observers";
-import { PRE_PAINT_SCROLLBAR_CSS } from "./pre-paint";
+import { hideNativeScrollbar } from "./pre-paint";
 import {
   contrast,
   hexToRgb,
@@ -307,32 +307,23 @@ export function createOverlayScrollbar(
   // or by the Next.js server. When only `<ThemeScrollbar />` is mounted (no
   // provider scrollbar prop, no pre-paint script), we apply it here idempotently
   // so the native scrollbar is hidden and the overlay renders thumb + arrows.
-  const docEl = document.documentElement;
-  if (!docEl.classList.contains("tv-scrollbar")) {
-    try {
-      docEl.classList.add("tv-scrollbar");
-      if (!document.getElementById("tv-scrollbar-style")) {
-        const s = document.createElement("style");
-        s.id = "tv-scrollbar-style";
-        s.textContent = PRE_PAINT_SCROLLBAR_CSS;
-        document.head.appendChild(s);
-      }
-    } catch { /* ignore */ }
-  }
+  //
+  // The hiding is claimed, not switched on: `destroy()` releases the claim and
+  // the last overlay out restores the native scrollbar. A one-way switch here
+  // was what left a page with no scrollbar at all after the overlay unmounted.
+  const releaseHiding = hideNativeScrollbar();
 
   // Touch devices already have excellent native scrollbars. Desktop first.
   if (isCoarsePointer() && !options.touch) {
     // Restore the platform's native scrollbars: undo the bootstrap's
     // `tv-scrollbar` hiding (SSR'd or injected) so coarse-pointer devices keep
     // their native bars when the overlay is intentionally skipped.
-    try {
-      docEl.classList.remove("tv-scrollbar");
-      document.getElementById("tv-scrollbar-style")?.remove();
-    } catch { /* ignore */ }
+    releaseHiding();
     return null;
   }
 
   const opts = resolveOptions(options);
+  const docEl = document.documentElement;
   const scrollingEl: HTMLElement = (document.scrollingElement as HTMLElement | null) || docEl;
 
   const reduced = () => prefersReducedMotion();
@@ -1814,6 +1805,10 @@ if (host) {
       storeUnsubscribe();
       for (const [el, host] of [...hosts.entries()]) destroyHost(host, el);
       hosts.clear();
+      // Give the native scrollbar back — but only once no other overlay is
+      // still drawing. `destroyed` is already true, so the deferred
+      // `tv-scrollbar-ready` timer above cannot re-arm the hiding afterwards.
+      releaseHiding();
     },
   };
 }

@@ -27,6 +27,18 @@ export interface ContrastCheck {
 }
 
 /**
+ * The result of a single non-text UI component contrast check (WCAG 2.1 §1.4.11).
+ */
+export interface NonTextCheck {
+  foregroundToken: string;
+  backgroundToken: string;
+  foreground: string;
+  background: string;
+  ratio: number;
+  passesNonText: boolean;
+}
+
+/**
  * Options for {@link validateThemeContrast}.
  */
 export interface ValidateThemeContrastOptions {
@@ -45,6 +57,14 @@ export interface ContrastValidationResult {
   valid: boolean;
   /** The per-pair contrast checks performed. */
   checks: ContrastCheck[];
+  /** Non-text UI component contrast checks (WCAG 2.1 §1.4.11, 3:1). */
+  nonTextChecks: NonTextCheck[];
+  /** Number of text pairs passing AA normal. */
+  passCount: number;
+  /** Total number of text pairs checked. */
+  totalCount: number;
+  /** The worst text-pair ratio found. */
+  worstRatio: number;
 }
 
 const WCAG_AA_NORMAL = 4.5;
@@ -112,7 +132,20 @@ const SEMANTIC_PAIRS: [string, string][] = [
   ["mutedForeground", "muted"],
   ["accentForeground", "accent"],
   ["destructiveForeground", "destructive"],
+  ["successForeground", "success"],
+  ["warningForeground", "warning"],
 ];
+
+const NON_TEXT_PAIRS: [string, string][] = [
+  ["border", "background"],
+  ["border", "card"],
+  ["input", "background"],
+  ["input", "card"],
+  ["ring", "background"],
+  ["ring", "card"],
+];
+
+const WCAG_NON_TEXT_UI = 3.0;
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(value);
@@ -148,9 +181,10 @@ export function validateThemeContrast(
 
   const colors = target.tokens?.colors as Record<string, string | undefined> | undefined;
   const checks: ContrastCheck[] = [];
+  const nonTextChecks: NonTextCheck[] = [];
 
   if (!colors) {
-    return { valid: true, checks: [] };
+    return { valid: true, checks: [], nonTextChecks: [], passCount: 0, totalCount: 0, worstRatio: 1 };
   }
 
   for (const [fgToken, bgToken] of SEMANTIC_PAIRS) {
@@ -168,7 +202,30 @@ export function validateThemeContrast(
     });
   }
 
-  const valid = checks.every((c) => c.passesAANormal);
+  for (const [fgToken, bgToken] of NON_TEXT_PAIRS) {
+    const fg = colors[fgToken];
+    const bg = colors[bgToken];
 
-  return { valid, checks };
+    if (typeof fg !== "string" || typeof bg !== "string") continue;
+    if (!isHexColor(fg) || !isHexColor(bg)) continue;
+
+    const ratio = getContrastRatio(fg, bg);
+    nonTextChecks.push({
+      foregroundToken: fgToken,
+      backgroundToken: bgToken,
+      foreground: fg,
+      background: bg,
+      ratio,
+      passesNonText: ratio >= WCAG_NON_TEXT_UI,
+    });
+  }
+
+  const valid = checks.every((c) => c.passesAANormal);
+  const passCount = checks.filter((c) => c.passesAANormal).length;
+  const totalCount = checks.length;
+  const worstRatio = checks.length > 0
+    ? Math.min(...checks.map((c) => c.ratio))
+    : 1;
+
+  return { valid, checks, nonTextChecks, passCount, totalCount, worstRatio };
 }

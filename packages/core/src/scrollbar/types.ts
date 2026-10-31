@@ -37,8 +37,22 @@ export interface ScrollbarInsets {
 /** Direction of a single arrow button on an axis strip. */
 export type ScrollbarArrowDir = "up" | "down" | "left" | "right";
 
-/** A raw arrow glyph for a scrollbar button. Accepts an HTML/`innerHTML` string,
- *  a DOM node (element / inline SVG / text) or an array of both. */
+/**
+ * A raw arrow glyph for a scrollbar button.
+ *
+ * @remarks
+ * Accepts an HTML/`innerHTML` string, a DOM node (element / inline SVG / text)
+ * or an array of both.
+ *
+ * **A string is parsed as markup, not escaped.** It is inserted with
+ * `insertAdjacentHTML`, which is what makes an inline `<svg>` glyph work
+ * without a parser or a framework. That also means the string is a **trust
+ * boundary**: pass only markup you control — a literal in your source, or a
+ * value you have already sanitised. Never pass user-controlled content (a
+ * theme's metadata, a URL parameter, a CMS field) as a string; pass a DOM
+ * `Node` you built yourself instead, or use `arrowIconRenderer`, which hands
+ * the button element to your framework.
+ */
 /** @internal */
 export type ArrowIcon = string | Node | Array<string | Node>;
 
@@ -89,15 +103,22 @@ export interface OverlayScrollbarOptions {
   arrows?: boolean;
   /** Optional content shown inside every arrow button (overrides the built-in
    *  CSS triangle). Accepts an `innerHTML` string, a DOM node (element / inline
-   *  SVG / text) or an array of both. */
+   *  SVG / text) or an array of both.
+   *
+   *  **Trusted markup only.** A string is inserted as HTML, so it must be
+   *  markup you control — never user-controlled content. See {@link ArrowIcon}. */
   arrowIcon?: ArrowIcon;
-  /** Content for the "scroll up" button. Falls back to `arrowIcon`. */
+  /** Content for the "scroll up" button. Falls back to `arrowIcon`.
+   *  Trusted markup only — see {@link arrowIcon}. */
   arrowUpIcon?: ArrowIcon;
-  /** Content for the "scroll down" button. Falls back to `arrowIcon`. */
+  /** Content for the "scroll down" button. Falls back to `arrowIcon`.
+   *  Trusted markup only — see {@link arrowIcon}. */
   arrowDownIcon?: ArrowIcon;
-  /** Content for the "scroll left" button. Falls back to `arrowIcon`. */
+  /** Content for the "scroll left" button. Falls back to `arrowIcon`.
+   *  Trusted markup only — see {@link arrowIcon}. */
   arrowLeftIcon?: ArrowIcon;
-  /** Content for the "scroll right" button. Falls back to `arrowIcon`. */
+  /** Content for the "scroll right" button. Falls back to `arrowIcon`.
+   *  Trusted markup only — see {@link arrowIcon}. */
   arrowRightIcon?: ArrowIcon;
   /** Framework hook: invoked for every arrow button that has custom content, so
    *  framework wrappers (React/Vue/Svelte/...) can render framework-owned

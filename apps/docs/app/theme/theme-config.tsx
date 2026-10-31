@@ -1,4 +1,7 @@
-import { defineTheme, getBuiltInThemes } from "@themvora/core";
+import {
+  defineTheme,
+  getBuiltInThemes,
+} from "@themvora/core";
 
 interface scrollThumbProps {
   size?: number;
@@ -368,10 +371,7 @@ const scrollThumbIcons = scrollThumbIcon({ size: 24 });
 /** ThemeScrollbar options **/
 export const scrollbarConfig = {
   behavior: { autoHide: true },
-  /*
-   * The on-page TOC rail scrolls silently: native bars are hidden globally by the
-   * bootstrap, and the overlay strip is excluded here.
-   *
+  /**
    * Excluding the rail is the only place this can be done. The overlay is a
    * `position: fixed` node appended to `<body>` — not a pseudo-element of the
    * scrollport — so no amount of CSS on the rail itself can suppress it.
@@ -389,16 +389,6 @@ export const scrollbarConfig = {
   },
 };
 
-/**
- * Solar-time scheduling for the site. `autoDetectLocation` (the default) means
- * no coordinates are needed: every visitor's sunrise/sunset is computed from
- * their own browser timezone, so the schedule is correct anywhere in the
- * world. `lightTheme`/`darkTheme` are omitted on purpose — the schedule
- * auto-adapts to whichever theme family the visitor has selected (e.g. Plum →
- * plum-light/plum-dark) and falls back to Themvora's neutral light/dark
- * themes. Flip `enabled` to `true` (or call `schedule.enable()` from the
- * playground) to start switching at each visitor's local sunrise/sunset.
- */
 export const scheduleConfig = {
   autoDetectLocation: true,
   enabled: false,

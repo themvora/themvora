@@ -37,8 +37,10 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
+  type ProvidedThemeFamily,
 } from "@themvora/core";
 import { onMount, setContext } from "svelte";
+import { providedThemesSourceFor } from "@themvora/core";
 
 /**
  * Props accepted by the Svelte `ThemeProvider` component.
@@ -195,6 +197,46 @@ export function useThemeTokens<T extends ThemeDefinition>() {
 }
 
 /**
+ * Reactive access to the themes this provider was given, grouped by family.
+ *
+ * Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+ * the built-in catalog. The store emits a new value when the provider's `themes`
+ * prop changes, when a theme pack is installed, or when the registry is mutated,
+ * and it keeps the previous array instance while nothing changes.
+ *
+ * Must be called during component initialization inside a `ThemeProvider`
+ * subtree.
+ *
+ * ```svelte
+ * <script lang="ts">
+ *   import { useProvidedThemes } from "@themvora/svelte";
+ *   const families = useProvidedThemes();
+ * </script>
+ *
+ * {#each $families as family (family.id)}
+ *   <h3>{family.name}</h3>
+ *   {#each family.variants as variant (variant.name)}
+ *     <button>{variant.mode}</button>
+ *   {/each}
+ * {/each}
+ * ```
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns A readable store whose value is the provider's theme families.
+ *
+ * @see {@link useThemeValue}
+ */
+export function useProvidedThemes<T extends ThemeDefinition>() {
+  const runtime = getThemeRuntime<T>();
+  const source = providedThemesSourceFor(runtime);
+
+  return readableStore(
+    () => source.get() as readonly ProvidedThemeFamily<T>[],
+    (cb) => source.subscribe(() => cb(source.get() as readonly ProvidedThemeFamily<T>[])),
+  );
+}
+
+/**
  * Reactive access to the theme produced by `generateTheme()` and registered
  * with the provider, as a readable Svelte store.
  *
@@ -299,6 +341,39 @@ export function useThemeMode() {
 }
 
 /**
+ * Reactive access to the mode actually **applied** — `"light"` or `"dark"`,
+ * never `"system"` — as a readable Svelte store.
+ *
+ * Use this to display the current appearance. {@link useThemeMode} reports what
+ * the visitor asked for: it stays `"system"` for as long as that choice stands,
+ * and it does not move at a sunrise/sunset transition, so a label bound to it
+ * kept announcing the old mode while the page changed colour.
+ *
+ * Must be called during component initialization inside a `ThemeProvider`
+ * subtree.
+ *
+ * @returns A readable store whose value is the applied mode.
+ *
+ * @see {@link useThemeMode}
+ * @see {@link useThemeSchedule}
+ */
+export function useEffectiveThemeMode() {
+  const runtime = getThemeRuntime();
+  return readableStore(
+    () => runtime.selection.getEffectiveMode(),
+    (cb) => {
+      const emit = () => cb(runtime.selection.getEffectiveMode());
+      const unsubStore = runtime.store.subscribe(emit);
+      const unsubEffective = runtime.selection.subscribeEffective(emit);
+      return () => {
+        unsubStore();
+        unsubEffective();
+      };
+    },
+  );
+}
+
+/**
  * Reactive access to the current theme family as a readable Svelte store.
  *
  * Must be called during component initialization inside a `ThemeProvider`
@@ -321,9 +396,14 @@ export function useThemeFamily() {
  * Reactive access to the full theme selection state as readable Svelte stores
  * plus imperative selection controls.
  *
- * Returns `theme`, `mode` and `family` readable stores together with
- * `setMode`, `setFamily` and `toggleTheme` helpers. Must be called during
+ * Returns `theme`, `mode`, `effectiveMode` and `family` readable stores together
+ * with `setMode`, `setFamily` and `toggleTheme` helpers. Must be called during
  * component initialization inside a `ThemeProvider` subtree.
+ *
+ * `mode` is the visitor's request; `effectiveMode` is what is on screen — they
+ * differ while a sunrise/sunset schedule runs, or while the selection is
+ * `"system"`. Render `effectiveMode` in a label that states the current
+ * appearance.
  *
  * @returns An object of reactive stores and selection helpers.
  *
@@ -355,6 +435,19 @@ export function useTheme<T extends ThemeDefinition>() {
     },
   );
 
+  const effectiveMode = readableStore(
+    () => runtime.selection.getEffectiveMode(),
+    (cb) => {
+      const emit = () => cb(runtime.selection.getEffectiveMode());
+      const unsubStore = runtime.store.subscribe(emit);
+      const unsubEffective = runtime.selection.subscribeEffective(emit);
+      return () => {
+        unsubStore();
+        unsubEffective();
+      };
+    },
+  );
+
   const family = readableStore(
     () => runtime.selection.getFamily(),
     (cb) => {
@@ -378,6 +471,7 @@ export function useTheme<T extends ThemeDefinition>() {
   return {
     theme,
     mode,
+    effectiveMode,
     family,
     setMode,
     setFamily,

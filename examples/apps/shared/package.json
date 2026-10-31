@@ -1,0 +1,17 @@
+{
+  "name": "@themvora/app-shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared theme fixtures, content, and framework-independent styling for the Themvora example app suite.",
+  "exports": {
+    "./themes": "./src/themes.js",
+    "./content": "./src/content.js",
+    "./ui": "./src/ui.js",
+    "./icons": "./src/icons.js",
+    "./base.css": "./src/base.css"
+  },
+  "dependencies": {
+    "@themvora/core": "workspace:*"
+  }
+}

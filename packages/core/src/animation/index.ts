@@ -9,4 +9,5 @@ export {
   runThemeAnimation,
   cancelThemeAnimation,
   disposeThemeTransitionStyles,
+  beginDescendantTransitionSuppression,
 } from "./coordinator";

@@ -71,13 +71,23 @@ export function createScheduledPlugin<T extends ThemeDefinition>(
 ): ThemePlugin<T> {
   let binding: ReturnType<typeof createScheduledThemeBinding> | null = null;
   let store: ThemeStore<T> | null = null;
+  /**
+   * The store handle the engine writes through.
+   *
+   * Routed through `runtime.selection.applyAutomaticTheme` rather than the raw
+   * store for the same reasons as the runtime's own `scheduled` option: a
+   * transition must not rewrite the visitor's configured mode, must not persist
+   * or broadcast itself, and must not be overwritten by the OS binding.
+   */
+  let automaticStore: Pick<ThemeStore<T>, "get" | "set"> | null = null;
+  let releaseAppearance: (() => void) | null = null;
   let themes: readonly T[] = [];
   let unsubscribe: (() => void) | null = null;
   let lightTheme: T | null = null;
   let darkTheme: T | null = null;
 
   function installBinding() {
-    if (!store) return;
+    if (!store || !automaticStore) return;
     const resolved = resolveScheduledThemePair(themes, options, store.get());
     lightTheme = resolved.light;
     darkTheme = resolved.dark;
@@ -109,7 +119,7 @@ export function createScheduledPlugin<T extends ThemeDefinition>(
     }
 
     binding?.destroy();
-    binding = createScheduledThemeBinding(store, {
+    binding = createScheduledThemeBinding(automaticStore, {
       lightTheme,
       darkTheme,
       ...(options.latitude !== undefined ? { latitude: options.latitude } : {}),
@@ -133,6 +143,21 @@ export function createScheduledPlugin<T extends ThemeDefinition>(
       store = runtime.store as ThemeStore<T>;
       themes = runtime.themes as T[];
 
+      // A plugin receives the runtime, so it can use the same automatic-apply
+      // entry point the built-in `scheduled` option uses instead of holding the
+      // raw store.
+      automaticStore = {
+        get: () => store!.get(),
+        set: (theme, setOptions) =>
+          runtime.selection.applyAutomaticTheme(theme, setOptions),
+      };
+
+      if (options.enabled ?? true) {
+        runtime.selection.setAutomaticDriverActive(true);
+        releaseAppearance = () =>
+          runtime.selection.setAutomaticDriverActive(false);
+      }
+
       installBinding();
 
       // Re-resolve when the user switches theme family so auto-derived
@@ -150,6 +175,9 @@ export function createScheduledPlugin<T extends ThemeDefinition>(
       binding = null;
       unsubscribe?.();
       unsubscribe = null;
+      releaseAppearance?.();
+      releaseAppearance = null;
+      automaticStore = null;
       store = null;
       themes = [];
       lightTheme = null;

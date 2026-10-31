@@ -46,6 +46,13 @@ the panel.
 
 **Returns** `HTMLElement` — An `HTMLElement` containing the devtools panel.
 
+Every value the inspector reports — theme names, family names, CSS variable
+names and values, entry labels and types — is written with `textContent`,
+`style.setProperty()` or a validated `className`, never interpolated into an
+HTML string. Escaping alone would not have been enough: the CSS-variable
+swatch is a *CSS* context, where an HTML escape leaves the declaration
+separator and `url()` intact.
+
 ---
 
 

@@ -1,0 +1,53 @@
+/* Themvora emits its design tokens as CSS custom properties on the root
+   element, so a stylesheet only has to read them. Nothing here is
+   theme-specific: these rules render every theme, including ones you add
+   later. */
+
+/* The overlay scrollbar's own stylesheet. The rails are real elements, so
+   without this they exist but are unstyled — the native bar is hidden and
+   nothing is drawn in its place. */
+@import "@themvora/core/scrollbar.css";
+
+body {
+  margin: 0;
+  padding: 32px;
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.surface {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
+  box-shadow: var(--theme-shadow-md, 0 4px 6px rgb(0 0 0 / 0.07));
+}
+
+.muted {
+  color: var(--theme-color-mutedForeground);
+}
+
+.btn {
+  font: inherit;
+  padding: 8px 16px;
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  border: 1px solid var(--theme-color-primary);
+  border-radius: var(--theme-radius-md, 8px);
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}

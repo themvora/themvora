@@ -1,4 +1,116 @@
-# @theme-kit/astro
+# @themvora/astro
+
+## 2.1.0
+
+### Minor Changes
+
+- Add `installThemeBindings()`, the `data-tv-*` attribute contract, and two components — and widen the
+  Astro peer range to `^5.0.0 || ^6.0.0 || ^7.0.0`.
+
+  **`installThemeBindings()`** is the fix for a control that works once and then silently stops. Astro
+  bundles a page's `<script>` as a module, and module scripts never re-execute across a
+  `<ClientRouter />` navigation — so `document.getElementById("family").addEventListener(...)`, the
+  obvious way to wire a select, is never re-run for a page you navigate back to. The symptom is a control
+  that does nothing until a file save triggers HMR and the script happens to run again.
+
+  ```astro
+  <select data-tv-select="family">
+    <option value="mint">mint</option>
+    <option value="cocoa">cocoa</option>
+  </select>
+
+  <script>
+    import { installThemeBindings } from "@themvora/astro/runtime";
+    installThemeBindings();
+  </script>
+  ```
+
+  It registers one `document`-level delegated listener for the life of the document, so it survives
+  navigation without re-running. Every Themvora component calls it, so a page that uses the components
+  does not need to.
+
+  The attribute names are exported rather than hardcoded, because the page skeleton and the pre-paint
+  script have to agree on them:
+
+  - `THEME_SELECTION_ATTRIBUTE` (`data-tv-select`) — a `<select>` that picks family or mode.
+  - `THEME_TOGGLE_ATTRIBUTE` (`data-tv-toggle`) — a light/dark toggle.
+  - `THEME_READOUT_ATTRIBUTE` (`data-tv-readout`) — text showing the active theme or mode.
+  - `THEME_PRESSED_ATTRIBUTE` (`data-tv-pressed`) — one option of a segmented control, whose
+    `aria-pressed` Themvora then owns: the bootstrap writes it from `<head>` before the body is parsed,
+    and the controller keeps it in step afterwards.
+  - `THEME_PRESSED_VALUE_ATTRIBUTE` (`data-tv-value`) — which option a pressed element represents.
+
+  All five are exported from both `@themvora/astro` and `@themvora/astro/runtime`, so an `.astro`
+  component can import the names without reaching into the browser entry.
+
+  **`ThemeScope.astro`** re-resolves tokens for a subtree — optionally from a local theme definition —
+  without touching the global selection, and **`ThemeFamilySelect.astro`** is a ready-made family picker
+  built on the attribute contract above.
+
+  **Astro 6 and 7 are now supported** (`peerDependencies.astro` widened from `^5.0.0` to
+  `^5.0.0 || ^6.0.0 || ^7.0.0`). This is a widening of declared support, not a change in behaviour for
+  Astro 5.
+
+  `@themvora/astro/client` also gains `useProvidedThemes()` for island components.
+
+- Add `useProvidedThemes()` — and `injectProvidedThemes()` for Angular — so a theme picker can be built
+  from the provider itself.
+
+  Building a picker meant reaching past the provider into the preset catalog
+  (`Object.entries(getPresetThemes())`) and hoping the two collections agreed. They do not: an app that
+  supplies three of its own families has a picker that lists the presets and none of its own themes.
+
+  ```tsx
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+  const setMode = useSetThemeMode();
+
+  return families.map((family) => (
+    <fieldset key={family.id}>
+      <legend>{family.name}</legend>
+      {family.variants.map((variant) => (
+        <button
+          key={variant.name}
+          onClick={() => {
+            setFamily(family.family);
+            setMode(variant.mode);
+          }}
+        >
+          {variant.mode}
+        </button>
+      ))}
+    </fieldset>
+  ));
+  ```
+
+  The collection is exactly what the provider was given, grouped by family in supplied order, with each
+  variant's tokens already resolved — `auto()` / `contrast()` / expressions are evaluated, so
+  `variant.tokens.colors?.primary` reads directly. Each variant also keeps the original definition, for
+  anything the grouped view does not model.
+
+  It is reactive: a `themes` prop change, a `runtime.use(pack)` install or a registry mutation
+  re-renders the consumer. Entries keep their identity while their content is unchanged, so `React.memo`
+  and dependency arrays behave — a re-registered catalog whose only difference is the registry's
+  `meta.created` / `meta.updated` stamps is not treated as a change.
+
+  `ProvidedThemeFamily.provenance` reports a _declared_ source only — `{ kind: "generated", algorithm }`
+  from `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light`
+  is not thereby a preset, and nothing is inferred from a name, family or colour.
+
+  Angular follows its own convention: `injectProvidedThemes()` returns a `Signal` of the same collection,
+  because a DI-based framework has no hook call site to subscribe from.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
+  - @themvora/web@1.5.0
 
 ## 2.0.0
 

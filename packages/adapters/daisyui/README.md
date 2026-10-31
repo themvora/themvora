@@ -49,9 +49,16 @@ export function Page() {
 ## Style it with Themvora tokens
 
 The adapter has already written the library's variables, so these classes read
-the active theme:
+the active theme. The document rule uses Themvora's required `background` and
+`foreground`; spacing, typography and layout stay ordinary CSS:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .page {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
@@ -61,8 +68,8 @@ the active theme:
   background: var(--color-base-100);
   color: var(--color-base-content);
   border: 1px solid var(--color-primary);
-  border-radius: var(--theme-radius-md);
-  padding: var(--theme-spacing-4);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1rem;
 }
 ```
 
@@ -1107,7 +1114,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// src/main.ts
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideTheme } from "@themvora/angular";
 import "@themvora/daisyui/daisyui.css";
@@ -1126,7 +1132,6 @@ bootstrapApplication(AppComponent, {
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-// src/app/example.component.ts
 import { Component } from "@angular/core";
 
 @Component({
@@ -1147,7 +1152,6 @@ export class ExampleComponent {}
 **Theme switching**
 
 ```ts
-// src/app/theme-controls.component.ts
 import { Component } from "@angular/core";
 import { injectTheme } from "@themvora/angular";
 
@@ -1169,7 +1173,6 @@ export class ThemeControlsComponent {
 **Complete example**
 
 ```ts
-// src/main.ts
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideTheme } from "@themvora/angular";
 import "@themvora/daisyui/daisyui.css";
@@ -1220,7 +1223,6 @@ custom properties from the active theme — no provider of its own.
 
 ```ts
 ---
-// src/layouts/BaseLayout.astro
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 import "@themvora/daisyui/daisyui.css";
@@ -1237,7 +1239,6 @@ Ordinary markup using daisyui's own classes — the variables are already writte
 
 ```ts
 ---
-// src/components/Example.astro
 import "@themvora/daisyui/daisyui.css";
 ---
 
@@ -1254,7 +1255,6 @@ import "@themvora/daisyui/daisyui.css";
 
 ```ts
 ---
-// src/pages/index.astro
 import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 ---
 
@@ -1266,7 +1266,6 @@ import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 
 ```ts
 ---
-// src/layouts/BaseLayout.astro
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 import "@themvora/daisyui/daisyui.css";
@@ -1315,7 +1314,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// app/layout.tsx
 import { ThemeProvider } from "@themvora/next";
 import "@themvora/daisyui/daisyui.css";
 
@@ -1336,7 +1334,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-// app/example.tsx
 "use client";
 
 import "@themvora/daisyui/daisyui.css";
@@ -1356,7 +1353,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// app/theme-controls.tsx
 "use client";
 
 import { useTheme } from "@themvora/next/client";
@@ -1377,7 +1373,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// app/theme-zone.tsx
 "use client";
 
 import { useThemeRuntime } from "@themvora/next/client";
@@ -1425,7 +1420,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// nuxt.config.ts
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -1444,7 +1438,6 @@ export default defineNuxtConfig({
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-<!-- components/Example.vue -->
 <template>
   <div class="d-card">
     <div class="d-card-body">
@@ -1475,7 +1468,6 @@ const { setMode, toggleTheme } = useTheme();
 **Complete example**
 
 ```ts
-// nuxt.config.ts
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -1515,7 +1507,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// src/App.tsx
 import { ThemeProvider } from "@themvora/react";
 import "@themvora/daisyui/daisyui.css";
 
@@ -1537,7 +1528,6 @@ export default function App() {
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-// src/Example.tsx
 import "@themvora/daisyui/daisyui.css";
 
 export function Example() {
@@ -1555,7 +1545,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// src/ThemeControls.tsx
 import { useTheme } from "@themvora/react";
 
 export function ThemeControls() {
@@ -1574,7 +1563,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// src/App.tsx
 import { ThemeProvider, useThemeRuntime } from "@themvora/react";
 import { useDaisyTheme } from "@themvora/daisyui/react";
 import "@themvora/daisyui/daisyui.css";
@@ -1615,7 +1603,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// app/root.tsx
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
@@ -1676,7 +1663,6 @@ export default function App() {
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-// app/components/Example.tsx
 import "@themvora/daisyui/daisyui.css";
 
 export function Example() {
@@ -1694,7 +1680,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// app/components/ThemeControls.tsx
 import { useTheme } from "@themvora/remix";
 
 export function ThemeControls() {
@@ -1713,7 +1698,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// app/root.tsx
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
@@ -1790,7 +1774,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// src/main.tsx
 import { render } from "solid-js/web";
 import { ThemeProvider } from "@themvora/solid";
 import "@themvora/daisyui/daisyui.css";
@@ -1814,7 +1797,6 @@ render(
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-// src/components/Example.tsx
 import "@themvora/daisyui/daisyui.css";
 
 export function Example() {
@@ -1832,7 +1814,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// src/components/ThemeControls.tsx
 import { useTheme } from "@themvora/solid";
 
 export function ThemeControls() {
@@ -1851,7 +1832,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// src/main.tsx
 import { render } from "solid-js/web";
 import { ThemeProvider } from "@themvora/solid";
 import "@themvora/daisyui/daisyui.css";
@@ -1896,7 +1876,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-<!-- src/App.svelte -->
 <script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
   import "@themvora/daisyui/daisyui.css";
@@ -1914,7 +1893,6 @@ custom properties from the active theme — no provider of its own.
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```ts
-<!-- src/components/Example.svelte -->
   <div class="d-card">
     <div class="d-card-body">
       <h4 class="d-card-title">Themvora + daisyUI</h4>
@@ -1927,7 +1905,6 @@ Ordinary markup using daisyui's own classes — the variables are already writte
 **Theme switching**
 
 ```ts
-<!-- src/components/ThemeControls.svelte -->
 <script lang="ts">
   import { useTheme } from "@themvora/svelte";
 
@@ -1942,7 +1919,6 @@ Ordinary markup using daisyui's own classes — the variables are already writte
 **Complete example**
 
 ```ts
-<!-- src/App.svelte -->
 <script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
   import "@themvora/daisyui/daisyui.css";
@@ -1983,7 +1959,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```vue
-<!-- src/App.vue -->
 <script setup lang="ts">
 import { ThemeProvider } from "@themvora/vue";
 import "@themvora/daisyui/daisyui.css";
@@ -2003,7 +1978,6 @@ import ThemeZone from "./components/ThemeZone.vue";
 Ordinary markup using daisyui's own classes — the variables are already written.
 
 ```vue
-<!-- src/components/Example.vue -->
 <template>
   <div class="d-card">
     <div class="d-card-body">
@@ -2035,7 +2009,6 @@ const { setMode, toggleTheme } = useTheme();
 **Complete example**
 
 ```vue
-<!-- src/App.vue -->
 <script setup lang="ts">
 import { ThemeProvider } from "@themvora/vue";
 import "@themvora/daisyui/daisyui.css";

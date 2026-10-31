@@ -48,7 +48,7 @@ export interface CreateDaisyAdapterOptions extends DaisyAdapterOptions {
  * ```ts
  * import { createDaisyAdapter } from "@themvora/daisyui";
  *
- * runtime.installAdapter(createDaisyAdapter());
+ * runtime.adapters.use(createDaisyAdapter());
  * ```
  *
  * @see {@link useDaisyTheme}

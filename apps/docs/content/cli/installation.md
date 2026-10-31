@@ -75,27 +75,7 @@ same PR that changes the script, so machines and humans agree.
 
 ## 4. Set up shell completion
 
-Once `themvora` is on your PATH, the CLI can generate a completion script for
-your shell:
-
-```bash
-# bash
-themvora completion bash > /etc/bash_completion.d/themvora
-
-# zsh — either on your $fpath, or sourced from your rc file
-themvora completion zsh > "${fpath[1]}/_themvora"
-
-# fish
-themvora completion fish > ~/.config/fish/completions/themvora.fish
-
-# PowerShell
-themvora completion powershell | Out-String | Invoke-Expression
-```
-
-The script completes command names, flags, and the registry values (presets,
-brands, styles, init frameworks). It resolves those values from the installed
-CLI at completion time rather than embedding them, so upgrading Themvora does not
-leave you with a stale list.
+Once `themvora` is on your PATH, you can enable shell completion. See [`themvora completion`](./completion) for the full setup.
 
 ## Prefer a direct alias instead of installing?
 

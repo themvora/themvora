@@ -1,0 +1,23 @@
+{
+  "name": "@themvora/app-astro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 5197",
+    "build": "astro build",
+    "typecheck": "astro check",
+    "preview": "astro preview --port 5197"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@tailwindcss/vite": "^4.3.3",
+    "@themvora/app-shared": "workspace:*",
+    "@themvora/astro": "workspace:*",
+    "@themvora/core": "workspace:*",
+    "@themvora/tailwind": "workspace:*",
+    "astro": "^7.4.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}

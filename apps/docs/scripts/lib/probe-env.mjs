@@ -19,6 +19,8 @@
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -29,8 +31,48 @@ const toolsRequire = createRequire(
 
 export const { chromium } = toolsRequire("playwright-core");
 
-/** The Chromium to drive: `CHROME_PATH` wins, else Playwright's own install. */
-export const CHROME = process.env.CHROME_PATH ?? chromium.executablePath();
+/**
+ * Resolve the Chromium executable.
+ *
+ * `CHROME_PATH` wins. Otherwise we ask `playwright-core` for its expected
+ * path, but if that binary doesn't exist (the installed browser revision can
+ * drift ahead of the pinned `playwright-core` version) we scan the Playwright
+ * cache for the newest `chromium-*` directory and use its `chrome.exe` /
+ * `chrome` binary instead.
+ */
+export const CHROME = (() => {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+
+  const expected = chromium.executablePath();
+  if (fs.existsSync(expected)) return expected;
+
+  const platform = os.platform();
+  const cacheDir =
+    platform === "win32"
+      ? path.join(process.env.LOCALAPPDATA ?? "", "ms-playwright")
+      : platform === "darwin"
+        ? path.join(process.env.HOME ?? "", "Library", "Caches", "ms-playwright")
+        : path.join(process.env.HOME ?? "", ".cache", "ms-playwright");
+
+  if (!fs.existsSync(cacheDir)) return expected;
+
+  const dirs = fs
+    .readdirSync(cacheDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && d.name.startsWith("chromium-"))
+    .sort()
+    .reverse();
+
+  for (const dir of dirs) {
+    const sub = fs.readdirSync(path.join(cacheDir, dir.name));
+    const chromeDir = sub.find((s) => s.startsWith("chrome-win") || s.startsWith("chrome-mac") || s.startsWith("chrome-linux"));
+    if (!chromeDir) continue;
+    const exe = platform === "win32" ? "chrome.exe" : "chrome";
+    const full = path.join(cacheDir, dir.name, chromeDir, exe);
+    if (fs.existsSync(full)) return full;
+  }
+
+  return expected;
+})();
 
 /** The Node running this probe — never a hardcoded interpreter path. */
 export const NODE = process.env.PROBE_NODE ?? process.execPath;
@@ -50,3 +92,13 @@ export function probePort(fallback) {
 
 /** The docs app directory (`apps/docs`) — the probes' `next` working directory. */
 export const docsDir = path.join(here, "..", "..");
+
+/**
+ * The `next` binary path.
+ *
+ * pnpm hoists `next` to the monorepo root, so `apps/docs/node_modules/next`
+ * does not exist. We resolve from the root `node_modules/next/dist/bin/next`
+ * instead of the `.bin` shim, since the shim is a shell script that needs
+ * to be executed directly, not passed to `node`.
+ */
+export const nextBin = path.join(here, "../../../../node_modules/next/dist/bin/next");

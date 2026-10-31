@@ -70,9 +70,15 @@ body {
   background: color-mix(in srgb, var(--theme-color-primary) 30%, transparent);
 }
 
-:root :focus-visible {
-  outline: 1.89px solid var(--theme-color-ring);
-  outline-offset: 0.4px;
+/* Default focus indicator for elements that don't ship their own. It must live
+   in the base layer: unlayered rules beat Tailwind's utilities, which stacked
+   this outline on top of `focus:border-ring` / `focus-visible:ring-2` styles
+   and read as a double border on every focused input. */
+@layer base {
+  :root :focus-visible {
+    outline: 1.89px solid var(--theme-color-ring);
+    outline-offset: 0.4px;
+  }
 }
 
 .search-dialog-input:focus-visible {
@@ -260,10 +266,17 @@ body {
   }
 }
 
-.mono {
-  font-family: var(--font-mono);
-  white-space: normal;
-  overflow-wrap: anywhere;
+/* `@layer components`, NOT unlayered: an unlayered rule outranks every layered
+   one, so this was silently defeating `truncate` and `whitespace-nowrap` on any
+   element that also carried those utilities — mono text wrapped instead (the
+   workspace bar's theme-name pill was the visible symptom). Same trap as the
+   border-color rule above. */
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* ---------- Badges ---------- */
@@ -654,6 +667,20 @@ body {
   box-shadow: 0 1px 3px
     color-mix(in srgb, var(--theme-color-foreground) 4%, transparent);
 
+  /* ---------- Code density ----------
+
+     One place for the code pane's rhythm, shared by every renderer: the
+     server-highlighted blocks, markdown fences, the playground and the theme
+     studio all paint inside `.code-block`.
+
+     `--tv-code-line-height` is a *unitless ratio*, so it resolves against
+     whatever font size the pane ends up with, and `.line` can derive its
+     minimum height from the same number — a blank line in the source keeps a
+     line's worth of space instead of collapsing to nothing. */
+  --tv-code-line-height: 1.6;
+  --tv-code-padding-y: 0.85rem;
+  --tv-code-padding-x: 1.1rem;
+
   /* --tv-* are the single source of truth for syntax colors. They resolve
      against the active themvora theme (any light/dark/preset/brand/scoped
      theme) so snippets stay readable on every surface. Comfortable tweaks
@@ -846,6 +873,69 @@ html.dark {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* The toolbar is a flex row and the language switch never shrinks, so the
+     filename is the item that gives way. Without `min-width: 0` a long path
+     refuses to go below its content width and pushes the switch off the block. */
+  min-width: 0;
+}
+
+/* ---------- TypeScript | JavaScript ---------- */
+
+/* A segmented pill that lives in the existing toolbar. It is deliberately the
+   same height as the language chip it replaces, so a paired block is not taller
+   than an unpaired one and the page's rhythm does not change as you scroll. */
+.code-lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px;
+  flex: none;
+  border: 1px solid
+    color-mix(in srgb, var(--theme-color-border) 70%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--theme-color-card) 55%, transparent);
+}
+
+.code-lang-option {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 0.05rem 0.4rem;
+  border: 0;
+  border-radius: 0.33rem;
+  background: transparent;
+  color: var(--theme-color-foreground);
+  opacity: 0.6;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.code-lang-option:hover {
+  opacity: 0.95;
+}
+
+.code-lang-option[aria-checked="true"] {
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  opacity: 1;
+}
+
+.code-lang-option:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 1px;
+}
+
+@media (max-width: 420px) {
+  /* Two labels and a copy button on a 320px screen: drop the file name rather
+     than let the switch wrap onto a second row. */
+  .code-block[data-code-variants] .code-block-filename {
+    display: none;
+  }
 }
 
 .code-block-lang {
@@ -901,9 +991,9 @@ html.dark {
 
 .code-block pre.shiki {
   margin: 0;
-  padding: 0.9rem 1.1rem;
+  padding: var(--tv-code-padding-y) var(--tv-code-padding-x);
   font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: var(--tv-code-line-height);
   color: var(--tv-syntax-plain);
   background: var(--tv-code-bg);
   width: max-content;
@@ -919,57 +1009,33 @@ html.dark {
   color: inherit;
   padding: 0;
   font-size: 14.2px;
-  line-height: 1.5;
+  line-height: var(--tv-code-line-height);
   font-family: var(--font-geist-mono);
+  /* Shiki separates its `.line` spans with a real newline. With `pre` here,
+     every one of those newlines became a line box of its own between two
+     block-level lines — which is why consecutive lines sat 42px apart while
+     each line was 21px tall. The lines keep `pre` below; the separators
+     between them are collapsed. */
+  white-space: normal;
 }
 
+/* One line of code, and the unit the density is measured in.
+
+   `min-height` is what keeps a blank line blank rather than zero-height: an
+   empty block has no line box of its own. `width: max-content` plus
+   `min-width: 100%` gives the line a full-width background for `.highlighted`
+   while still letting a long line extend past the pane, which scrolls. */
 .code-block pre.shiki .line {
-  display: flex;
-  align-items: baseline;
-}
-
-.code-block pre.shiki code.has-line-numbers .line {
-  display: flex;
-  align-items: baseline;
+  display: block;
   width: max-content;
   min-width: 100%;
-}
-
-.code-block pre.shiki .line-code {
-  display: block;
-  flex: 1 0 auto;
-  min-width: max-content;
-  padding-left: 0.65rem;
-  padding-right: 1.1rem;
-}
-
-.code-block pre.shiki .line-number {
-  position: static;
-  flex: 0 0 auto;
-  width: 1.8rem;
-  min-width: 1.8rem;
-  padding-left: 0.2rem;
-  padding-right: 0.5rem;
-  text-align: right;
-  opacity: 0.45;
-  user-select: none;
-  -webkit-user-select: none;
-  font-size: 0.85em;
-  line-height: inherit;
-  font-variant-numeric: tabular-nums;
-  color: var(--theme-color-mutedForeground);
-  background: transparent;
-  border-right: 1px solid
-    color-mix(in srgb, var(--theme-color-border) 35%, transparent);
+  min-height: calc(1em * var(--tv-code-line-height));
+  white-space: pre;
 }
 
 .code-block pre.shiki .highlighted {
   background: color-mix(in srgb, var(--theme-color-primary) 12%, transparent);
   box-shadow: inset 2px 0 0 var(--theme-color-primary);
-}
-
-.code-block pre.shiki .highlighted .line-number {
-  background: color-mix(in srgb, var(--theme-color-primary) 12%, transparent);
 }
 
 /* Collapsible code blocks — collapsed state shows a max-height cut-off with
@@ -1256,6 +1322,44 @@ html.dark {
     opacity: 1;
     transform: none;
   }
+}
+
+/*
+  Theme-paired screenshots.
+
+  Product screenshots of the VS Code extension exist in a light and a dark
+  capture. Both are mounted, stacked in the same box, and the provider's resolved
+  `.dark` class on <html> decides which one is visible — the same hook the site
+  already uses for syntax colours. Doing it in CSS rather than in React means the
+  swap happens with the theme transition, needs no hydration, cannot flash the
+  wrong variant on first paint, and cannot shift the layout: the box is sized by
+  `aspect-ratio` and the images are absolutely positioned inside it.
+*/
+.shot-pair {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.shot-pair > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top center;
+}
+
+.shot-pair > .shot-dark {
+  visibility: hidden;
+}
+
+html.dark .shot-pair > .shot-light {
+  visibility: hidden;
+}
+
+html.dark .shot-pair > .shot-dark {
+  visibility: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {

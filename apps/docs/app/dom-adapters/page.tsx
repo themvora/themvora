@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
@@ -270,10 +270,9 @@ export default function DOMAdaptersPage() {
             <code className="mono text-[0.9em]">--theme-color-primary</code> and{" "}
             <code className="mono text-[0.9em]">--theme-radius-lg</code>.
           </p>
-          <CodeBlock
-            html={highlightCode(cssVariablesSnippet.code, "ts")}
+          <CodeExample
             code={cssVariablesSnippet.code}
-            language="ts"
+            lang="ts"
             filename={cssVariablesSnippet.title}
             className="m-0"
           />
@@ -305,10 +304,9 @@ export default function DOMAdaptersPage() {
             <code className="mono text-[0.9em]">color-scheme</code> CSS property
             so native form controls and scrollbars match the theme.
           </p>
-          <CodeBlock
-            html={highlightCode(domBindingSnippet.code, "ts")}
+          <CodeExample
             code={domBindingSnippet.code}
-            language="ts"
+            lang="ts"
             filename={domBindingSnippet.title}
             className="m-0"
           />
@@ -329,10 +327,9 @@ export default function DOMAdaptersPage() {
             bindings (CSS variables, DOM attributes) react automatically — no
             wiring needed.
           </p>
-          <CodeBlock
-            html={highlightCode(systemBindingSnippet.code, "ts")}
+          <CodeExample
             code={systemBindingSnippet.code}
-            language="ts"
+            lang="ts"
             filename={systemBindingSnippet.title}
             className="m-0"
           />
@@ -362,10 +359,9 @@ export default function DOMAdaptersPage() {
             local theme definitions, transition inheritance from the parent
             runtime, and clean teardown.
           </p>
-          <CodeBlock
-            html={highlightCode(scopedBindingSnippet.code, "ts")}
+          <CodeExample
             code={scopedBindingSnippet.code}
-            language="ts"
+            lang="ts"
             filename={scopedBindingSnippet.title}
             className="m-0"
           />
@@ -414,10 +410,9 @@ export default function DOMAdaptersPage() {
               ))}
             </div>
           </div>
-          <CodeBlock
-            html={highlightCode(transitionPipelineSnippet.code, "ts")}
+          <CodeExample
             code={transitionPipelineSnippet.code}
-            language="ts"
+            lang="ts"
             filename={transitionPipelineSnippet.title}
             className="m-0"
           />
@@ -445,10 +440,9 @@ export default function DOMAdaptersPage() {
             attribute binding at the provider level, and individual bindings
             accept options to disable transitions or unsubscribe from the store.
           </p>
-          <CodeBlock
-            html={highlightCode(disableSnippet.code, "ts")}
+          <CodeExample
             code={disableSnippet.code}
-            language="ts"
+            lang="ts"
             filename={disableSnippet.title}
             className="m-0"
           />

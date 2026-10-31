@@ -1,0 +1,70 @@
+---
+// src/pages/index.astro — the Astro half: mount the island, nothing else.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeIsland from "../components/ThemeIsland";
+---
+
+<BaseLayout>
+  <main>
+    <h1>Themvora · Astro + React</h1>
+
+    <p class="muted">
+      Interactive themed UI lives inside the island. The page itself stays
+      Astro.
+    </p>
+
+    <ThemeIsland client:load />
+
+    <section class="surface">
+      <h2>What this page demonstrates</h2>
+
+      <p>
+        The overlay scrollbar is mounted by the layout
+        (<code>&lt;ThemeScrollbar /&gt;</code>), not by the island, and the
+        layout pairs it with <code>scrollbar</code> on the provider so the
+        native bar is hidden from the first frame instead of after hydration.
+      </p>
+
+      <p>
+        It has to work on a cold load, with no interaction: the overlay reads
+        every colour from the theme runtime, so it needs a runtime before the
+        visitor touches anything. The island installs one when it hydrates; the
+        component installs the app-wide runtime itself when the page has none,
+        which is the case on any page that mounts the overlay without an
+        island.
+      </p>
+
+      <p>
+        This page is deliberately taller than the viewport — a scrollbar you
+        cannot scroll demonstrates nothing.
+      </p>
+
+      <h2>Try it</h2>
+
+      <ol>
+        <li>Scroll this page before touching a control. The themed rail is already there.</li>
+        <li>Toggle the theme in the island. The rail re-colours; it is not rebuilt.</li>
+        <li>Reload. The rail is back on the first frame, with the theme you left.</li>
+        <li>Follow the link to <a href="/native">the native controls page</a> and toggle from there.</li>
+      </ol>
+
+      <h2>Why it is split this way</h2>
+
+      <p>
+        Astro renders the document; the island owns the interactive panel. The
+        two share one runtime, published on <code>&lt;html&gt;</code>, so a
+        native control and a React control can never disagree about the
+        selection.
+      </p>
+
+      <p>
+        Nothing here is a workaround for the scrollbar. No theme toggle, no
+        second load, no file save: a normal page load initializes it.
+      </p>
+    </section>
+
+    <p>
+      <a href="/native">Native controls, same runtime</a>
+    </p>
+  </main>
+</BaseLayout>

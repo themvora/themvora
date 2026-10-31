@@ -24,6 +24,8 @@
  * | `@themvora/astro/client` | Browser | React island + hooks (optional peer) |
  * | `@themvora/astro/provider.astro` | Server + browser | the SSR document |
  * | `@themvora/astro/ThemeToggle.astro` | Server + browser | the native toggle |
+ * | `@themvora/astro/ThemeFamilySelect.astro` | Server + browser | the native family select |
+ * | `@themvora/astro/ThemeScope.astro` | Server + browser | a scoped-theme subtree |
  *
  * `@themvora/astro` re-exports this entry's symbols for Node-side callers
  * (tests, scripts, a server-side integration), so importing from the root in a
@@ -32,16 +34,15 @@
  *
  * @example
  * ```astro
- * <button id="theme-toggle">Toggle theme</button>
+ * <button data-tv-toggle>Toggle theme</button>
  *
  * <script>
- *   import { getThemeController } from "@themvora/astro/runtime";
+ *   import { installThemeBindings } from "@themvora/astro/runtime";
  *
- *   const theme = getThemeController();
- *
- *   document
- *     .querySelector("#theme-toggle")
- *     ?.addEventListener("click", () => theme.toggleTheme());
+ *   // Wires every `[data-tv-toggle]` and `[data-tv-select]` on the document,
+ *   // once, for the life of the document — no `querySelector`, and nothing to
+ *   // re-run after a client-side navigation.
+ *   installThemeBindings();
  * </script>
  * ```
  *
@@ -54,6 +55,14 @@ export type {
   ThemeControllerState,
 } from "./controller";
 
+export { installThemeBindings } from "./bindings";
+
 export { getGlobalRuntime, requireGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
 
-export { THEME_READOUT_ATTRIBUTE, THEME_TOGGLE_ATTRIBUTE } from "./attributes";
+export {
+  THEME_PRESSED_ATTRIBUTE,
+  THEME_PRESSED_VALUE_ATTRIBUTE,
+  THEME_READOUT_ATTRIBUTE,
+  THEME_SELECTION_ATTRIBUTE,
+  THEME_TOGGLE_ATTRIBUTE,
+} from "./attributes";

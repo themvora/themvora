@@ -22,6 +22,32 @@ export interface ThemeSelectionState {
 }
 
 /**
+ * The appearance actually on screen, as distinct from the selection that was
+ * configured.
+ *
+ * A {@link ThemeSelectionState} is a **request** — `{ family: "plum", mode:
+ * "system" }` says "give me the plum family and follow the operating system".
+ * The effective selection is what that request resolved to once every automatic
+ * driver had its say: `prefers-color-scheme` for `"system"`, or the
+ * sunrise/sunset schedule when one is running. Its `mode` is therefore never
+ * `"system"`, and its `family` is the family of the theme that is actually
+ * applied — which can differ from the requested family when an automatic driver
+ * applies a theme from another one.
+ *
+ * Keeping the two apart is what lets a control show the real appearance while
+ * `setMode`/`setFamily` still report and edit the visitor's choice. They agree
+ * whenever no automatic driver is running, and diverge exactly while one is.
+ *
+ * @see {@link ThemeSelectionState}
+ */
+export interface ThemeEffectiveSelection {
+  /** Family of the theme that is actually applied. */
+  family: string;
+  /** Mode of the theme that is actually applied — never `"system"`. */
+  mode: "light" | "dark";
+}
+
+/**
  * Get a theme's family. Themes without `meta.family` belong to the
  * `"default"` family.
  *

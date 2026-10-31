@@ -20,7 +20,8 @@ export interface RemixThemePersistenceOptions {
   /**
    * Cookie attribute string appended to the mirrored theme cookies (e.g.
    * `"path=/; max-age=31536000; samesite=lax"`). Defaults to
-   * `"path=/; max-age=31536000; samesite=lax"`.
+   * `"path=/; max-age=31536000; samesite=lax"`, plus `secure` on an HTTPS
+   * origin.
    */
   cookieOptions?: string;
 }
@@ -58,9 +59,86 @@ const COOKIE_NAMES = {
   fingerprint: "theme-fingerprint",
 } as const;
 
+/**
+ * Decode a percent-encoded cookie value, treating malformed input as absent.
+ *
+ * @remarks
+ * Nothing guarantees a theme cookie still decodes: a sibling subdomain can
+ * plant `theme-mode=%E0%A4%A` on the parent domain, and `decodeURIComponent`
+ * throws `URIError` on it. Unguarded, that throw escaped from `get()` — which
+ * the runtime calls during creation — and took the page with it.
+ */
+function safeDecode(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]!) : null;
+  const raw = match?.[2];
+  return raw === undefined ? null : safeDecode(raw);
+}
+
+/**
+ * Obtain the backing `Storage`, or `null` when the browser will not give one up.
+ *
+ * @remarks
+ * The **getter itself** throws `SecurityError` when storage is denied, so
+ * guarding the method calls alone is not enough.
+ */
+function resolveStorage(candidate: Storage | undefined): Storage | null {
+  if (candidate) return candidate;
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readKey(storage: Storage | null, key: string): string | null {
+  if (!storage) return null;
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeKey(storage: Storage | null, key: string, value: string): void {
+  if (!storage) return;
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Quota exceeded, or a store revoked after it was obtained. The cookie
+    // mirror below still runs.
+  }
+}
+
+function removeKey(storage: Storage | null, key: string): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Same as `writeKey`: the cookies are cleared regardless.
+  }
+}
+
+/**
+ * `Secure` is added only on an HTTPS origin, so an `http://localhost` build can
+ * still write the cookie it needs for server-side persistence.
+ */
+function withSecure(attributes: string): string {
+  if (/(^|;\s*)secure(\s*;|$)/i.test(attributes)) return attributes;
+  try {
+    return typeof location !== "undefined" && location.protocol === "https:"
+      ? `${attributes}; secure`
+      : attributes;
+  } catch {
+    return attributes;
+  }
 }
 
 /**
@@ -114,6 +192,11 @@ function readCookieSelection(fingerprint: string | null): ThemeSelectionState | 
  * default persistence behavior on the server. The cookie contract matches
  * `@themvora/next` and `@themvora/nuxt`.
  *
+ * **Blocked storage degrades, it does not throw.** `window.localStorage` can
+ * throw on access and `setItem` throws when the quota is full; both are treated
+ * as "this browser cannot remember the selection". The cookie mirror is written
+ * either way, so the server still resolves the same theme on the next request.
+ *
  * @see {@link ThemeProvider}
  * @see {@link ThemeHead}
  */
@@ -127,8 +210,10 @@ export function createRemixThemePersistence(
   }
 
   const key = options.key ?? "theme-selection";
-  const storage = options.storage ?? window.localStorage;
-  const cookieBase = options.cookieOptions ?? "path=/; max-age=31536000; samesite=lax";
+  const storage = resolveStorage(options.storage);
+  const cookieBase = withSecure(
+    options.cookieOptions ?? "path=/; max-age=31536000; samesite=lax",
+  );
   const fingerprint = themes?.length
     ? computeFingerprint(themes, defaultTheme)
     : null;
@@ -138,11 +223,13 @@ export function createRemixThemePersistence(
       // localStorage first (cross-tab, offline), then the cookies `ThemeHead`'s
       // bootstrap script reads — so the runtime adopts the already-painted
       // theme instead of overwriting it.
-      return parseState(storage.getItem(key)) ?? readCookieSelection(fingerprint);
+      return parseState(readKey(storage, key)) ?? readCookieSelection(fingerprint);
     },
 
     set(value) {
-      storage.setItem(key, JSON.stringify(value));
+      // Storage and cookies are independent: a full quota must not cost the
+      // visitor server-side persistence on their next request.
+      writeKey(storage, key, JSON.stringify(value));
 
       document.cookie = `${COOKIE_NAMES.family}=${encodeURIComponent(value.family)}; ${cookieBase}`;
       document.cookie = `${COOKIE_NAMES.mode}=${encodeURIComponent(value.mode)}; ${cookieBase}`;
@@ -153,9 +240,9 @@ export function createRemixThemePersistence(
     },
 
     remove() {
-      storage.removeItem(key);
+      removeKey(storage, key);
 
-      const expire = "path=/; max-age=0; samesite=lax";
+      const expire = withSecure("path=/; max-age=0; samesite=lax");
       document.cookie = `${COOKIE_NAMES.family}=; ${expire}`;
       document.cookie = `${COOKIE_NAMES.mode}=; ${expire}`;
       document.cookie = `${COOKIE_NAMES.fingerprint}=; ${expire}`;

@@ -207,7 +207,12 @@ export function renderThemesModule(
 ): string {
   const sources = renderSourcesLine(source.sources);
   const families = [...new Set([...themeFamilies(themes), ...DEMO_FAMILIES])];
-  const selection = families.map((family) => `"${family}"`).join(", ");
+  // `JSON.stringify`, not `"${family}"`: a family is free text and can come from
+  // a seed source, so a quote, a backslash or a newline in it produced invalid
+  // — or silently different — TypeScript in the user's registry. JSON string
+  // literals are valid TypeScript string literals with the escaping already
+  // correct, which is also what `renderThemeLiteral` uses for theme bodies.
+  const selection = families.map((family) => JSON.stringify(family)).join(", ");
 
   // Everything the catalog does not serve has to be written out, or the family
   // would sit in `selection` with no theme behind it — which is exactly what

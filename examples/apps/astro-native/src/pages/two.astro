@@ -1,0 +1,48 @@
+---
+// src/pages/two.astro — two controls of the same kind on one page.
+//
+// The component instance and the hand-written `<select>` are both live: the
+// `data-tv-select` attribute is the contract, and the delegated listener
+// matches every element carrying it. Changing one moves the other, because the
+// runtime writes the live selection back into both.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+import themeConfig from "../../theme.config";
+import { getThemeFamilies } from "@themvora/core";
+
+const families = getThemeFamilies(themeConfig.themes);
+---
+
+<BaseLayout>
+  <main>
+    <h1>Two controls, one selection</h1>
+
+    <p class="muted">family: <span data-tv-readout="family">—</span></p>
+
+    <section class="surface">
+      <h2>Component</h2>
+      <ThemeFamilySelect themes={themeConfig.themes} />
+    </section>
+
+    <section class="surface">
+      <h2>Hand-written markup, same contract</h2>
+      <label>
+        Family
+        <select data-tv-select="family">
+          {families.map((family) => <option value={family}>{family}</option>)}
+        </select>
+      </label>
+    </section>
+
+    <p><a href="/">Back home</a></p>
+  </main>
+</BaseLayout>
+
+<script>
+  // The component above already installed the bindings; this call is idempotent
+  // and exists to show the hand-written path on its own — this one line is all
+  // a page needs when the markup is yours.
+  import { installThemeBindings } from "@themvora/astro/runtime";
+
+  installThemeBindings();
+</script>

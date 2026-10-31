@@ -228,6 +228,21 @@ and `LICENSE`.
 
 MIT
 
+## Editor integration
+
+The same theme files can be explored, previewed and validated inside VS Code
+with **Themvora for VS Code** — a companion extension that reads
+`defineTheme()` definitions and theme JSON statically, previews a theme across a
+dashboard and component gallery, and reports contrast failures per token. It is
+an editor extension, not an npm package, and it is not published to the Visual
+Studio Marketplace yet.
+
+It does not replace the CLI: `init`, `add`, `doctor` and `export` remain
+terminal commands.
+
+- [Extension documentation](https://themvora-dev.vercel.app/vscode)
+- [Extension source](https://github.com/themvora/themvora/tree/main/packages/vscode)
+
 ## Documentation
 
 Full API reference and guides: [Themvora docs](https://themvora-dev.vercel.app).

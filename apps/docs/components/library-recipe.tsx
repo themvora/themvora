@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 
 import { CodeBlock } from "./code-block";
 import { InstallCommand, type PackageManager } from "./install-command";
+import type { CodeVariant } from "../lib/code-variants";
 import { FRAMEWORK_PACKAGE } from "../lib/libraries";
 import { supportedFrameworks } from "../lib/framework-support";
 
@@ -16,6 +17,14 @@ export type RecipeFile = {
   code: string;
   html: string;
   lang: string;
+  /** Both language forms of the file, when it has a JavaScript counterpart. */
+  variants?: CodeVariant[] | undefined;
+  /**
+   * The compatibility badge — `TS / JS`, `TSX / JSX`, `TS`, …
+   *
+   * Derived on the server with the compiler, so the client only displays it.
+   */
+  displayLanguage?: string | undefined;
 };
 
 /**
@@ -42,6 +51,10 @@ export type RecipeFrameworkExample = {
   lang: string;
   /** Highlighted HTML for `code` (the adapter wiring). */
   codeHtml: string;
+  /** Both language forms of the adapter wiring, when it has a JavaScript one. */
+  codeVariants?: CodeVariant[] | undefined;
+  /** The compatibility badge for `code` — `TS / JS`, `TSX / JSX`, `TS`, … */
+  displayLanguage?: string | undefined;
   filename?: string | undefined;
   mountProvider?: RecipeSnippet | undefined;
   completeExample?: RecipeSnippet | undefined;
@@ -85,6 +98,10 @@ function RecipeBlocks({
           filename={file.filename}
           code={file.code}
           language={file.lang}
+          {...(file.displayLanguage
+            ? { displayLanguage: file.displayLanguage }
+            : {})}
+          {...(file.variants ? { variants: file.variants } : {})}
           className={className ?? "rounded-lg m-0"}
         />
       ))}
@@ -255,7 +272,21 @@ export function LibraryRecipe({
         everything below changes with it.
       </p>
       <RecipeBlocks
-        block={{ lang: current.lang, files: [{ filename: current.filename, code: current.code, html: current.codeHtml, lang: current.lang }] }}
+        block={{
+          lang: current.lang,
+          files: [
+            {
+              filename: current.filename,
+              code: current.code,
+              html: current.codeHtml,
+              lang: current.lang,
+              ...(current.displayLanguage
+                ? { displayLanguage: current.displayLanguage }
+                : {}),
+              ...(current.codeVariants ? { variants: current.codeVariants } : {}),
+            },
+          ],
+        }}
         className="rounded-lg m-0"
       />
       </section>

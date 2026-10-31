@@ -1,0 +1,20 @@
+{
+  "name": "@themvora/app-vanilla-js",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Themvora Vanilla JS example: the imperative runtime with no framework, no Tailwind and no shared example package.",
+  "scripts": {
+    "dev": "vite --port 5196 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --port 5196 --strictPort"
+  },
+  "dependencies": {
+    "@themvora/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5"
+  }
+}

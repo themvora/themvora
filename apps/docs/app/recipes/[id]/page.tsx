@@ -5,7 +5,7 @@ import { DocsLayout } from "../../../components/docs-layout";
 import { PageHeader } from "../../../components/ui/page-header";
 import { Callout } from "../../../components/ui/callout";
 import { RelatedLinks } from "../../../components/ui/related-links";
-import { CodeBlock } from "../../../components/code-block";
+import { CodeExample } from "../../../components/code-example";
 import { highlightCode } from "../../../lib/highlight";
 import { docsUrl } from "../../../lib/site";
 import {
@@ -241,10 +241,9 @@ export default async function RecipePage({
           title="Implement"
           lead="Drop this into your project. It is the whole pattern — no other setup is required."
         >
-          <CodeBlock
-            html={highlightCode(recipe.code, "tsx")}
+          <CodeExample
             code={recipe.code}
-            language="tsx"
+            lang="tsx"
           />
         </Step>
 

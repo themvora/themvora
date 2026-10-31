@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
@@ -143,10 +143,16 @@ const uiHtmlSnippet = {
         <button type="button" data-family="plum">Plum</button>
       </p>
 
-      <section class="surface">
-        <h2>Themed card</h2>
-        <p class="muted">Surface, border and text follow the active theme.</p>
-        <button class="btn" type="button">Primary action</button>
+      <section class="themvora-example-card">
+        <div class="themvora-example-header">
+          <h2 class="themvora-example-title">Themed card</h2>
+          <span class="themvora-example-status">Active</span>
+        </div>
+        <p class="themvora-example-description">
+          Surface, border and text follow the active theme.
+        </p>
+        <p class="themvora-example-meta">Updated 2 minutes ago</p>
+        <button class="themvora-example-button" type="button">Primary action</button>
       </section>
     </main>
 
@@ -325,17 +331,15 @@ export default function VanillaPage() {
           >
             Set up
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(setupHtmlSnippet.code, setupHtmlSnippet.lang)}
+          <CodeExample
             code={setupHtmlSnippet.code}
-            language={setupHtmlSnippet.lang}
+            lang={setupHtmlSnippet.lang}
             filename={setupHtmlSnippet.title}
             className="rounded-lg m-0"
           />
-          <CodeBlock
-            html={highlightCode(setupTsSnippet.code, setupTsSnippet.lang)}
+          <CodeExample
             code={setupTsSnippet.code}
-            language={setupTsSnippet.lang}
+            lang={setupTsSnippet.lang}
             filename={setupTsSnippet.title}
             className="rounded-lg m-0 mt-3"
           />
@@ -353,10 +357,9 @@ export default function VanillaPage() {
           >
             Add a small UI
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(uiHtmlSnippet.code, uiHtmlSnippet.lang)}
+          <CodeExample
             code={uiHtmlSnippet.code}
-            language={uiHtmlSnippet.lang}
+            lang={uiHtmlSnippet.lang}
             filename={uiHtmlSnippet.title}
             className="rounded-lg m-0"
           />
@@ -366,10 +369,9 @@ export default function VanillaPage() {
           <SectionHeading num={4} desc={CANONICAL_STYLES_STEP.desc}>
             {CANONICAL_STYLES_STEP.label}
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(stylesSnippet.code, stylesSnippet.lang)}
+          <CodeExample
             code={stylesSnippet.code}
-            language={stylesSnippet.lang}
+            lang={stylesSnippet.lang}
             filename={stylesSnippet.title}
             className="rounded-lg m-0"
           />
@@ -388,10 +390,9 @@ export default function VanillaPage() {
             {apiSnippets.map((snippet) => (
               <div key={snippet.title}>
                 <h3 className="text-sm font-semibold mb-2">{snippet.title}</h3>
-                <CodeBlock
-                  html={highlightCode(snippet.code, snippet.lang)}
+                <CodeExample
                   code={snippet.code}
-                  language={snippet.lang}
+                  lang={snippet.lang}
                   className="rounded-lg m-0"
                 />
               </div>

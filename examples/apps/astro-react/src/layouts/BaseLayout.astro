@@ -1,0 +1,15 @@
+---
+// src/layouts/BaseLayout.astro — the one place the provider is mounted.
+import Provider from "@themvora/astro/provider.astro";
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+import { ClientRouter } from "astro:transitions";
+import themeConfig from "../../theme.config";
+import "../styles.css";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false} scrollbar>
+  <title slot="head">Themvora · Astro + React</title>
+  <ClientRouter slot="head" />
+  <ThemeScrollbar />
+  <slot />
+</Provider>

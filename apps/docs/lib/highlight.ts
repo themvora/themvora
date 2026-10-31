@@ -242,55 +242,45 @@ const ALIASES: Record<string, string> = {
 const FALLBACK = "text";
 
 export type HighlightOptions = {
-  /**
-   * Show a line-number gutter. Defaults to `true` when the snippet has more
-   * than one line.
-   */
-  lineNumbers?: boolean;
   /** 1-based line numbers to visually highlight. */
   highlightLines?: Set<number>;
   /** Class(es) to append to the root `<pre>` element. */
   preClassName?: string;
 };
 
-function themvoraTransformer({
-  lineNumbers,
-  highlightLines,
-}: {
-  lineNumbers: boolean;
-  highlightLines: Set<number>;
-}) {
+/**
+ * The one transformer every highlighted block goes through.
+ *
+ * It does exactly one thing: mark the lines a fence asked to highlight. It
+ * deliberately does **not** wrap each line in a gutter and a `.line-code` body.
+ *
+ * That wrapper used to exist, and it was the only reason a code block needed to
+ * reserve a left column. Removing it here — rather than hiding `.line-number` in
+ * CSS — is what makes the code start at the normal content alignment: there is no
+ * span to hide and no width to leave behind, and the copied source is the source
+ * the highlighter was given.
+ *
+ * Numbering was also the reason a short snippet and a long one looked different:
+ * the gutter appeared only past five lines, so identical snippets spaced their
+ * lines differently depending on length.
+ */
+function themvoraTransformer({ highlightLines }: { highlightLines: Set<number> }) {
   return {
     name: "themvora:syntax",
 
-    code(element: any) {
-      if (lineNumbers) {
-        const className: string[] = (element.properties?.className as string[]) ?? [];
-        element.properties!.className = [...className, "has-line-numbers"];
-      }
-    },
-
     line(element: any, lineNo: number) {
-      if (highlightLines.has(lineNo)) {
-        const className: string[] = (element.properties?.className as string[]) ?? [];
-        element.properties!.className = [...className, "highlighted"];
-      }
-
-      if (lineNumbers) {
-        const code = {
-          type: "element",
-          tagName: "span",
-          properties: { className: ["line-code"] },
-          children: element.children,
-        };
-        const gutter = {
-          type: "element",
-          tagName: "span",
-          properties: { className: ["line-number"] },
-          children: [{ type: "text", value: String(lineNo) }],
-        };
-        element.children = [gutter, code];
-      }
+      if (!highlightLines.has(lineNo)) return;
+      // Shiki writes the line's class as `properties.class`, not `className`.
+      // Assigning `className` added a *second* `class` attribute, and an HTML
+      // parser keeps the first one — so the mark never reached the DOM. Merging
+      // into the existing value is what makes `.highlighted` real.
+      const existing = element.properties?.class;
+      const classes = Array.isArray(existing)
+        ? existing
+        : String(existing ?? "")
+            .split(/\s+/)
+            .filter(Boolean);
+      element.properties.class = [...classes, "highlighted"];
     },
   };
 }
@@ -300,15 +290,12 @@ export function highlightCode(code: string, lang?: string, options?: HighlightOp
     ? (ALIASES[lang.toLowerCase()] ?? lang.toLowerCase())
     : FALLBACK;
 
-  const lineCount = code.split("\n").length;
   const highlightLines = options?.highlightLines ?? new Set<number>();
-  const lineNumbers =
-    options?.lineNumbers ?? (lineCount > 5 || highlightLines.size > 0);
 
   const html = highlighter.codeToHtml(code, {
     lang: language,
     theme: "themvora",
-    transformers: [themvoraTransformer({ lineNumbers, highlightLines })],
+    transformers: [themvoraTransformer({ highlightLines })],
   });
 
   return html;

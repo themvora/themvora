@@ -7,6 +7,7 @@ export {
 export type {
   ContrastCheck,
   ContrastValidationResult,
+  NonTextCheck,
   ValidateThemeContrastOptions,
 } from "./contrast";
 

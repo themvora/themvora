@@ -1,4 +1,32 @@
-# @theme-kit/devtools
+# @themvora/devtools
+
+## 1.3.1
+
+### Patch Changes
+
+- Rebuild the debugger panel as five tabs, so a long session stays readable.
+
+  The panel used to render everything into one scrolling column — the active selection, the event log,
+  the performance rows, the CSS variables and the history — which meant the thing you opened the panel to
+  look at was usually pushed off-screen by the event log.
+
+  It now renders **Inspector**, **Events**, **Perf**, **CSS Vars** and **History** as tabs. The tab list is
+  a single fixed constant, used both to build the tab bar and to validate a `data-tab` value, so a
+  persisted or hand-written `data-tab` cannot select a tab that does not exist.
+
+  Each tab also renders a real empty state ("No entries recorded", "No performance data", "No CSS
+  variables") instead of an empty region that looks like a failure to load.
+
+  No API changed: the entry point, the `debugger` handle and the emitted DOM classes are the same. The
+  package also gained a `test` script and its first test suite.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
 
 ## 1.3.0
 

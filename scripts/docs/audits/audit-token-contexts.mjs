@@ -80,7 +80,7 @@ const ACTION_HINTS = [
 const TERNARY_BRANCH = /^\s*[?:]/m;
 
 /** Syntax highlighting inside a code block sits on a code surface, not the canvas. */
-const CODE_HINTS = [/highlightCode/, /<code\b/, /<pre\b/, /CodeBlock/, /syntax/i, /mono\b.*text-primary/];
+const CODE_HINTS = [/highlightCode/, /<code\b/, /<pre\b/, /CodeBlock/, /CodeExample/, /syntax/i, /mono\b.*text-primary/];
 
 /**
  * Identity — a logo, wordmark, icon or gradient.

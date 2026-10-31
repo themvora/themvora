@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -124,6 +123,149 @@ const { theme } = resolveInitialTheme({
 const staticTheme = createUnoTheme(theme);`,
 };
 
+const strategySnippet = {
+  lang: "ts",
+  title: "strategy.ts",
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createBootstrapAdapter } from "@themvora/bootstrap/factory";
+
+const runtime = createThemeRuntime({ defaultTheme: "light" });
+
+// "native" (the default) behaves like the library and derives the semantic
+// concepts it expects. "aggressive" also adjusts spacing, typography,
+// elevation, saturation and contrast.
+runtime.adapters.use(createBootstrapAdapter({ strategy: "aggressive" }));`,
+};
+
+const strategyWrapperSnippet = {
+  lang: "tsx",
+  title: "strategy-wrapper.tsx",
+  code: `import { useThemeRuntime } from "@themvora/react";
+import { useShadcnTheme } from "@themvora/shadcn/react";
+
+export function InstallAdapter() {
+  const runtime = useThemeRuntime();
+  // The framework wrappers forward the strategy to the factory they create.
+  useShadcnTheme(runtime, { strategy: "exact" });
+  return null;
+}`,
+};
+
+const pluginsSnippet = {
+  lang: "ts",
+  title: "adapter-plugin.ts",
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createShadcnAdapter } from "@themvora/shadcn/factory";
+
+const runtime = createThemeRuntime({ defaultTheme: "light" });
+
+runtime.adapters.use(
+  createShadcnAdapter({
+    strategy: "aggressive",
+    plugins: [
+      {
+        id: "rounded",
+        // Receives the generated library variables, returns the final set.
+        transform(variables) {
+          return { ...variables, "--radius-md": "0.75rem" };
+        },
+      },
+    ],
+  }),
+);`,
+};
+
+const lifecycleSnippet = {
+  lang: "ts",
+  title: "two-adapters.ts",
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createBootstrapAdapter } from "@themvora/bootstrap/factory";
+import { createDaisyAdapter } from "@themvora/daisyui/factory";
+
+const runtime = createThemeRuntime({ defaultTheme: "light" });
+
+const bootstrap = runtime.adapters.use(createBootstrapAdapter());
+const daisy = runtime.adapters.use(createDaisyAdapter());
+
+bootstrap.dispose(); // bootstrap uninstalled; daisy stays installed
+runtime.destroy();   // tears daisy down too — daisy.dispose() is now a safe no-op`,
+};
+
+const refcountSnippet = {
+  lang: "ts",
+  title: "refcount-and-replacement.ts",
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createShadcnAdapter } from "@themvora/shadcn/factory";
+
+const runtime = createThemeRuntime({ defaultTheme: "light" });
+
+// Same instance twice: installed once, reference count 2.
+const adapter = createShadcnAdapter();
+const h1 = runtime.adapters.use(adapter);
+const h2 = runtime.adapters.use(adapter);
+h1.dispose(); // 2 → 1 — still installed
+h2.dispose(); // 1 → 0 — uninstall() runs exactly once
+
+// A different instance under the same id replaces the previous one.
+const first = runtime.adapters.use(createShadcnAdapter({ strategy: "exact" }));
+const second = runtime.adapters.use(createShadcnAdapter({ strategy: "aggressive" }));
+first.dispose();  // stale handle — safe no-op
+second.dispose(); // uninstalls the aggressive adapter`,
+};
+
+const customAdapterSnippet = {
+  lang: "ts",
+  title: "my-lib-adapter.ts",
+  code: `import type { ThemeAdapter } from "@themvora/core";
+import type { AdapterSource } from "@themvora/adapters";
+import { readColor, resolveAdapterSource } from "@themvora/adapters";
+
+/**
+ * A framework-neutral adapter: no framework import, one factory, and the
+ * install/uninstall contract the registry expects.
+ */
+export function createMyLibAdapter(): ThemeAdapter {
+  let unsubscribe: (() => void) | null = null;
+
+  function write(source: AdapterSource) {
+    // Accepts a runtime, a store, a theme or raw tokens — whatever the caller
+    // has — and normalises it to already-resolved tokens.
+    const theme = resolveAdapterSource(source);
+    const surface = readColor(theme, "background", "#ffffff");
+    document.documentElement.style.setProperty("--my-lib-surface", surface ?? "#ffffff");
+  }
+
+  return {
+    id: "my-lib",
+    supports: () => true,
+    install(runtime) {
+      write(runtime);                                                 // first paint
+      unsubscribe = runtime.store.subscribe((theme) => write(theme));  // keep it live
+    },
+    uninstall() {
+      unsubscribe?.();
+      unsubscribe = null;
+      document.documentElement.style.removeProperty("--my-lib-surface");
+    },
+  };
+}`,
+};
+
+const injectCssSnippet = {
+  lang: "ts",
+  title: "manual-stylesheet.ts",
+  code: `import { createThemeRuntime } from "@themvora/core";
+import { createBootstrapAdapter } from "@themvora/bootstrap/factory";
+
+// Import the compatibility stylesheet yourself…
+import "@themvora/bootstrap/bootstrap.css";
+
+const runtime = createThemeRuntime({ defaultTheme: "light" });
+
+// …then disable auto-injection so it is not injected a second time.
+runtime.adapters.use(createBootstrapAdapter({ injectCSS: false }));`,
+};
+
 export default function AdaptersPage() {
   return (
     <DocsLayout>
@@ -185,6 +327,56 @@ export default function AdaptersPage() {
           Remix and Astro.
         </Callout>
 
+        <div className="mt-6 overflow-hidden rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Kind</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">What it does</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Libraries</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-border align-top">
+                <td className="px-4 py-3 font-semibold">CSS-variable</td>
+                <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">
+                  Maintains a live <code className="mono text-[0.85em]">&lt;style&gt;</code>{" "}
+                  element holding the library&apos;s own custom properties
+                  (<code className="mono text-[0.85em]">--bs-*</code>,{" "}
+                  <code className="mono text-[0.85em]">--background</code>,{" "}
+                  <code className="mono text-[0.85em]">--color-base-*</code>). The
+                  library&apos;s stylesheet consumes them, so components restyle
+                  the instant the theme changes.
+                </td>
+                <td className="px-4 py-3 mono text-xs opacity-70 leading-relaxed">
+                  Bootstrap, shadcn/ui, daisyUI, Open Props
+                </td>
+              </tr>
+              <tr className="border-b border-border align-top">
+                <td className="px-4 py-3 font-semibold">Generated-theme</td>
+                <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">
+                  Builds the library&apos;s <em>native</em> theme object and hands
+                  it to that library&apos;s own provider. The object is rebuilt on
+                  every theme change.
+                </td>
+                <td className="px-4 py-3 mono text-xs opacity-70 leading-relaxed">
+                  MUI, Chakra UI, Ant Design, Mantine
+                </td>
+              </tr>
+              <tr className="align-top">
+                <td className="px-4 py-3 font-semibold">Build-time</td>
+                <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">
+                  Exposes tokens as utilities at build time; the utilities
+                  reference the live{" "}
+                  <code className="mono text-[0.85em]">--theme-*</code> variables,
+                  so they follow the active theme at runtime.
+                </td>
+                <td className="px-4 py-3 mono text-xs opacity-70 leading-relaxed">UnoCSS</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <section id="css-variables" className="scroll-mt-24 mb-10 mt-10">
           <SectionHeading
             num={1}
@@ -205,10 +397,9 @@ export default function AdaptersPage() {
             <code className="mono text-[0.9em]"> injectCSS: true</code> — the
             compatibility stylesheet is injected automatically at install time.
           </p>
-          <CodeBlock
-            html={highlightCode(cssVarsSnippet.code, cssVarsSnippet.lang)}
+          <CodeExample
             code={cssVarsSnippet.code}
-            language={cssVarsSnippet.lang}
+            lang={cssVarsSnippet.lang}
             filename={cssVarsSnippet.title}
             className="rounded-lg m-0"
           />
@@ -220,6 +411,38 @@ export default function AdaptersPage() {
               Vue app imports from{" "}
               <code className="mono text-[0.9em]">@themvora/shadcn/vue</code>{" "}
               — no React dependency is pulled in.
+            </p>
+          </div>
+
+          <div className="mt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">
+              Bringing your own stylesheet
+            </h3>
+            <p className="text-sm opacity-70 leading-relaxed mb-3">
+              Auto-injection is idempotent and SSR-safe, so the default is
+              usually what you want. If you already import the library&apos;s
+              official CSS — or ship it through your bundler — set{" "}
+              <code className="mono text-xs">injectCSS: false</code> to avoid a
+              second copy. <code className="mono text-xs">injectCSS</code> is a{" "}
+              <strong className="opacity-100">factory</strong> option: the
+              framework wrappers always inject, and only take{" "}
+              <code className="mono text-xs">{"{ strategy }"}</code>.
+            </p>
+            <CodeExample
+              code={injectCssSnippet.code}
+              lang={injectCssSnippet.lang}
+              filename={injectCssSnippet.title}
+              className="rounded-lg m-0"
+            />
+            <p className="mt-3 text-xs opacity-60 leading-relaxed">
+              The path is{" "}
+              <code className="mono text-[0.9em]">@themvora/&lt;library&gt;/&lt;library&gt;.css</code>{" "}
+              — <code className="mono text-[0.9em]">shadcn/shadcn.css</code>,{" "}
+              <code className="mono text-[0.9em]">daisyui/daisyui.css</code>,{" "}
+              <code className="mono text-[0.9em]">open-props/open-props.css</code>
+              . The variable style element (the <code className="mono text-[0.9em]">--*</code>{" "}
+              values for the current theme) is always managed by the adapter;
+              this option only toggles the static compatibility stylesheet.
             </p>
           </div>
         </section>
@@ -241,10 +464,9 @@ export default function AdaptersPage() {
             <code className="mono text-[0.9em]">--shadow-*</code> utilities
             that update at runtime.
           </p>
-          <CodeBlock
-            html={highlightCode(tailwindV4Snippet.code, tailwindV4Snippet.lang)}
+          <CodeExample
             code={tailwindV4Snippet.code}
-            language={tailwindV4Snippet.lang}
+            lang={tailwindV4Snippet.lang}
             filename={tailwindV4Snippet.title}
             className="rounded-lg m-0"
           />
@@ -270,10 +492,9 @@ export default function AdaptersPage() {
             via the factory for full control over strategy, plugins and CSS
             injection.
           </p>
-          <CodeBlock
-            html={highlightCode(shadcnHookSnippet.code, shadcnHookSnippet.lang)}
+          <CodeExample
             code={shadcnHookSnippet.code}
-            language={shadcnHookSnippet.lang}
+            lang={shadcnHookSnippet.lang}
             filename={shadcnHookSnippet.title}
             className="rounded-lg m-0"
           />
@@ -281,10 +502,9 @@ export default function AdaptersPage() {
             For framework-neutral or non-React use, register the adapter
             manually:
           </p>
-          <CodeBlock
-            html={highlightCode(shadcnAdapterSnippet.code, shadcnAdapterSnippet.lang)}
+          <CodeExample
             code={shadcnAdapterSnippet.code}
-            language={shadcnAdapterSnippet.lang}
+            lang={shadcnAdapterSnippet.lang}
             filename={shadcnAdapterSnippet.title}
             className="rounded-lg m-0"
           />
@@ -303,10 +523,9 @@ export default function AdaptersPage() {
             <code className="mono text-[0.9em]">AntdThemeProvider</code>. The
             theme object is rebuilt automatically on every theme change.
           </p>
-          <CodeBlock
-            html={highlightCode(antdAdapterSnippet.code, antdAdapterSnippet.lang)}
+          <CodeExample
             code={antdAdapterSnippet.code}
-            language={antdAdapterSnippet.lang}
+            lang={antdAdapterSnippet.lang}
             filename={antdAdapterSnippet.title}
             className="rounded-lg m-0"
           />
@@ -336,10 +555,9 @@ export default function AdaptersPage() {
             <code className="mono text-[0.9em]">font-sans</code> resolve to the
             active theme.
           </p>
-          <CodeBlock
-            html={highlightCode(unocssPresetSnippet.code, unocssPresetSnippet.lang)}
+          <CodeExample
             code={unocssPresetSnippet.code}
-            language={unocssPresetSnippet.lang}
+            lang={unocssPresetSnippet.lang}
             filename={unocssPresetSnippet.title}
             className="rounded-lg m-0"
           />
@@ -347,18 +565,230 @@ export default function AdaptersPage() {
             For build-time static output instead of runtime variables, use{" "}
             <code className="mono text-[0.9em]">createUnoTheme</code>:
           </p>
-          <CodeBlock
-            html={highlightCode(unocssStaticSnippet.code, unocssStaticSnippet.lang)}
+          <CodeExample
             code={unocssStaticSnippet.code}
-            language={unocssStaticSnippet.lang}
+            lang={unocssStaticSnippet.lang}
             filename={unocssStaticSnippet.title}
             className="rounded-lg m-0"
           />
         </section>
 
-        <section id="next" className="scroll-mt-24">
+        <section id="strategies" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={6}
+            desc="How faithfully an adapter reproduces the target library's native feel — you trade strictness for how at home the library's components look."
+          >
+            Strategies
+          </SectionHeading>
+          <div className="overflow-hidden rounded-xl border border-border mb-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Strategy</th>
+                  <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border align-top">
+                  <td className="px-4 py-3"><code className="mono text-[0.85em] font-semibold">exact</code></td>
+                  <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">Only map what Themvora defines. Change nothing else.</td>
+                </tr>
+                <tr className="border-b border-border align-top">
+                  <td className="px-4 py-3"><code className="mono text-[0.85em] font-semibold">native</code></td>
+                  <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">
+                    Behave like the library: derive missing semantic concepts
+                    (success / warning / info) and make small feel adjustments.{" "}
+                    <strong className="opacity-100">Default.</strong>
+                  </td>
+                </tr>
+                <tr className="align-top">
+                  <td className="px-4 py-3"><code className="mono text-[0.85em] font-semibold">aggressive</code></td>
+                  <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">Fully emulate the library: also adjust spacing, typography, elevation, saturation and contrast.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <CodeExample
+            code={strategySnippet.code}
+            lang={strategySnippet.lang}
+            filename={strategySnippet.title}
+            className="rounded-lg m-0"
+          />
+          <p className="mt-3 text-sm opacity-70 leading-relaxed mb-3">
+            The framework wrappers take the same option as their second
+            argument:
+          </p>
+          <CodeExample
+            code={strategyWrapperSnippet.code}
+            lang={strategyWrapperSnippet.lang}
+            filename={strategyWrapperSnippet.title}
+            className="rounded-lg m-0"
+          />
+        </section>
+
+        <section id="adapter-plugins" className="scroll-mt-24 mb-10">
+          <SectionHeading
+            num={7}
+            desc="Plugins extend any CSS-variable adapter with custom logic — refine the semantic state, or transform the generated variables."
+          >
+            Adapter plugins
+          </SectionHeading>
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
+            A plugin is an object with two optional hooks.{" "}
+            <code className="mono text-[0.9em]">refine</code> receives the
+            refined semantic state and may return updates to it;{" "}
+            <code className="mono text-[0.9em]">transform</code> receives the
+            generated library variables and must return the final set. Both get
+            the current <code className="mono text-[0.9em]">strategy</code> and{" "}
+            <code className="mono text-[0.9em]">mode</code> as context. Pass them
+            through the factory options:
+          </p>
+          <CodeExample
+            code={pluginsSnippet.code}
+            lang={pluginsSnippet.lang}
+            filename={pluginsSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <Callout className="mt-4" title="Factory-only">
+            <p className="text-sm">
+              The framework wrappers do not take{" "}
+              <code className="mono text-[0.9em]">plugins</code> — they create
+              the adapter for you and only forward{" "}
+              <code className="mono text-[0.9em]">strategy</code>. To use a
+              plugin, build the adapter with the factory and register it through{" "}
+              <code className="mono text-[0.9em]">runtime.adapters.use()</code>.
+            </p>
+          </Callout>
+        </section>
+
+        <section id="registry" className="scroll-mt-24 mb-10">
+          <SectionHeading
+            num={8}
+            desc="The runtime owns one registry. Registration is idempotent per instance, reference-counted, and deterministic on cleanup."
+          >
+            Lifecycle &amp; the registry
+          </SectionHeading>
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
+            <code className="mono text-[0.9em]">runtime.adapters.use()</code>{" "}
+            installs an adapter and returns a{" "}
+            <code className="mono text-[0.9em]">AdapterRegistration</code> whose{" "}
+            <code className="mono text-[0.9em]">dispose()</code> uninstalls it.
+            Several adapters can be installed at once — they write different sets
+            of variables and do not conflict:
+          </p>
+          <CodeExample
+            code={lifecycleSnippet.code}
+            lang={lifecycleSnippet.lang}
+            filename={lifecycleSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <p className="mt-4 text-sm opacity-80 leading-relaxed mb-3">
+            The guarantees that make this safe to compose — React Strict Mode,
+            Svelte lifecycles, nested providers — are per-instance idempotency,
+            reference counting, and replacement on identity change:
+          </p>
+          <CodeExample
+            code={refcountSnippet.code}
+            lang={refcountSnippet.lang}
+            filename={refcountSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <p className="mt-3 text-xs opacity-60 leading-relaxed">
+            <code className="mono text-[0.9em]">unuse(id)</code> force-uninstalls
+            every registration for an id and is deprecated — hold the handle from{" "}
+            <code className="mono text-[0.9em]">use()</code> instead.{" "}
+            <code className="mono text-[0.9em]">list()</code> returns the
+            installed adapters, and{" "}
+            <code className="mono text-[0.9em]">destroy()</code> uninstalls
+            everything. The framework bindings all take this same path, so a
+            composition API, an effect cleanup,{" "}
+            <code className="mono text-[0.9em]">onUnmounted</code>,{" "}
+            <code className="mono text-[0.9em]">onDestroy</code>,{" "}
+            <code className="mono text-[0.9em]">onCleanup</code> and{" "}
+            <code className="mono text-[0.9em]">DestroyRef.onDestroy</code> all
+            behave identically.
+          </p>
+        </section>
+
+        <section id="authoring" className="scroll-mt-24 mb-10">
+          <SectionHeading
+            num={9}
+            desc="Implement the same contract the shipped adapters do, and every framework wrapper works with it."
+          >
+            Authoring a custom adapter
+          </SectionHeading>
+          <ol className="flex flex-col gap-2 text-sm opacity-80 leading-relaxed mb-4 list-decimal pl-5">
+            <li>
+              <strong className="opacity-100">Implement <code className="mono text-[0.9em]">ThemeAdapter</code></strong>{" "}
+              — <code className="mono text-[0.9em]">id</code>,{" "}
+              <code className="mono text-[0.9em]">supports</code>,{" "}
+              <code className="mono text-[0.9em]">install</code>,{" "}
+              <code className="mono text-[0.9em]">uninstall</code>. Declare{" "}
+              <code className="mono text-[0.9em]">requires</code> /{" "}
+              <code className="mono text-[0.9em]">optional</code> to make the
+              roles you need a checkable contract instead of a silent empty
+              variable.
+            </li>
+            <li>
+              <strong className="opacity-100">Accept any source</strong> — run
+              input through{" "}
+              <code className="mono text-[0.9em]">resolveAdapterSource</code> from{" "}
+              <code className="mono text-[0.9em]">@themvora/adapters</code> so
+              your adapter takes a runtime, a store, a theme or raw tokens
+              interchangeably, with token references already resolved.
+            </li>
+            <li>
+              <strong className="opacity-100">Subscribe in <code className="mono text-[0.9em]">install</code></strong>{" "}
+              so the output follows theme changes, and unsubscribe in{" "}
+              <code className="mono text-[0.9em]">uninstall</code>.
+            </li>
+            <li>
+              <strong className="opacity-100">Stay framework-neutral</strong> —
+              export a <code className="mono text-[0.9em]">createMyAdapter()</code>{" "}
+              factory with zero framework imports, and let each framework package
+              wrap it exactly like the CSS-variable adapters do through their{" "}
+              <code className="mono text-[0.9em]">factory</code> subpaths.
+            </li>
+            <li>
+              <strong className="opacity-100">Honor the idempotency contract</strong>{" "}
+              — <code className="mono text-[0.9em]">install</code> and{" "}
+              <code className="mono text-[0.9em]">uninstall</code> must each be
+              safe to call exactly once, and{" "}
+              <code className="mono text-[0.9em]">uninstall</code> must remove
+              everything <code className="mono text-[0.9em]">install</code>{" "}
+              created (styles, listeners, DOM).
+            </li>
+          </ol>
+          <CodeExample
+            code={customAdapterSnippet.code}
+            lang={customAdapterSnippet.lang}
+            filename={customAdapterSnippet.title}
+            className="rounded-lg m-0"
+          />
+          <Callout className="mt-4" title="Rule of thumb">
+            <ul className="text-sm flex flex-col gap-1.5">
+              <li>
+                <strong>Class / utility-first CSS libraries</strong> (Bootstrap,
+                shadcn/ui, daisyUI, Open Props) → CSS-variable adapters + the{" "}
+                <code className="mono text-[0.9em]">factory</code> subpath for
+                framework-neutral use.
+              </li>
+              <li>
+                <strong>Component libraries with their own theme system</strong>{" "}
+                (MUI, Chakra, AntD, Mantine) → generated-theme adapters and
+                providers, React-first.
+              </li>
+              <li>
+                <strong>Atomic-CSS engines</strong> (UnoCSS) → build-time presets
+                plus runtime variable references.
+              </li>
+            </ul>
+          </Callout>
+        </section>
+
+        <section id="next" className="scroll-mt-24">
+          <SectionHeading
+            num={10}
             desc="Tokens are the input — adapters consume them. Explore what else Themvora offers."
           >
             What&apos;s next

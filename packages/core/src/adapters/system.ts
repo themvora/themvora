@@ -19,6 +19,17 @@ export interface SystemThemeBindingOptions<T extends ThemeDefinition> {
   /** The `Window` to observe. Defaults to the global `window` when present.
    *  @defaultValue `window` (when defined) */
   view?: Window;
+  /**
+   * Apply the current OS appearance as soon as the binding is created.
+   * @defaultValue `true`
+   *
+   * Pass `false` to resume *following* `prefers-color-scheme` without changing
+   * the theme that is already applied. That is what makes handing the
+   * appearance back from another automatic driver safe: turning a
+   * sunrise/sunset schedule off must not repaint the page by itself, but the
+   * next OS preference change should.
+   */
+  applyOnCreate?: boolean;
 }
 
 type LegacyMediaQueryList = MediaQueryList & {
@@ -55,7 +66,9 @@ export function createSystemThemeBinding<T extends ThemeDefinition>(
     apply(event.matches);
   };
 
-  apply(media.matches);
+  if (options.applyOnCreate ?? true) {
+    apply(media.matches);
+  }
 
   const legacyMedia = media as LegacyMediaQueryList;
 

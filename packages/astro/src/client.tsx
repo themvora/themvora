@@ -15,7 +15,7 @@
  *
  * @packageDocumentation
  */
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   createThemeRuntime,
   readTransportedConfig,
@@ -25,12 +25,13 @@ import {
   type ScheduledThemeOptions,
   type ThemeAdapter,
   type ThemeDefinition,
+  type ThemeIdentifier,
   type ThemeMode,
   type ThemePlugin,
   type ThemeRuntimeOptions,
   type ThemeTransitionOptions,
 } from "@themvora/core";
-import { getGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
+import { getGlobalRuntime, releaseGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
 import { createAstroThemePersistence } from "./persistence";
 
 /**
@@ -52,8 +53,23 @@ export interface ThemeProviderClientProps<T extends ThemeDefinition> {
   initial?: InitialThemeResolution<T>;
   /** The theme registry the client runtime resolves against. */
   themes?: readonly T[];
-  /** Fallback theme name when no selection is persisted. */
-  defaultTheme?: string;
+  /** Fallback theme when no selection is persisted.
+   * Accepts a supplied theme **name** (`"cocoa-light"`) or a **family**
+   * (`"cocoa"`); a family resolves to the variant for the mode in effect.
+   */
+  defaultTheme?: ThemeIdentifier<T>;
+  /**
+   * An explicit theme override applied over any persisted selection.
+   *
+   * Applied once per value and never written to persistence. Pass the same value
+   * to the integration's `provider.astro` / `createBlockingScript` for a
+   * flash-free override — the island alone can only correct it after mount.
+   */
+  themeOverride?:
+    | import("@themvora/core").ThemeOverride<
+        import("@themvora/core").ThemeIdentifier<T>
+      >
+    | undefined;
   /**
    * Mode used when nothing is persisted.
    *
@@ -78,9 +94,11 @@ export interface ThemeProviderClientProps<T extends ThemeDefinition> {
   /**
    * Family used when nothing is persisted. Optional for the same reason as
    * {@link ThemeProviderClientProps.initialMode} — the transported
-   * configuration already carries it.
+   * configuration already carries it. A variant name is accepted and
+   * normalised to its family; its mode applies only when `initialMode` is
+   * absent.
    */
-  initialFamily?: string;
+  initialFamily?: ThemeIdentifier<T>;
 
   /**
    * Animate theme changes. `true` uses the defaults; pass
@@ -179,6 +197,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
   initial,
   themes,
   defaultTheme,
+  themeOverride,
   initialMode,
   initialFamily,
   transition,
@@ -239,6 +258,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
       ...(initial ? { initial } : {}),
       themes: resolvedThemes,
       ...(resolvedDefaultTheme !== undefined ? { defaultTheme: resolvedDefaultTheme } : {}),
+      ...(themeOverride !== undefined ? { themeOverride } : {}),
       // Mirror the integration's `mode`/`family`. Without these the runtime
       // resolves the mode from `defaultTheme` alone and overwrites the theme
       // the blocking script already painted from `prefers-color-scheme`.
@@ -265,6 +285,12 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
 
   const { runtime } = entry;
 
+  // The island owns this runtime, so it reports the override itself. Once the
+  // prop has been supplied, its removal must reach `configure()` — otherwise the
+  // runtime keeps the override for the life of the page.
+  const overrideSupplied = useRef(false);
+  if (themeOverride !== undefined) overrideSupplied.current = true;
+
   // Live configuration. The `entry` memo runs once (the runtime is created or
   // adopted exactly once); this forwards subsequent prop changes to it so a
   // mounted island reacts without a reload. Only supplied props are forwarded.
@@ -272,6 +298,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
     const update: Record<string, unknown> = {};
     if (resolvedThemes !== undefined) update.themes = resolvedThemes;
     if (resolvedDefaultTheme !== undefined) update.defaultTheme = resolvedDefaultTheme;
+    if (overrideSupplied.current) update.themeOverride = themeOverride;
     if (resolvedInitialMode !== undefined) update.initialMode = resolvedInitialMode;
     if (resolvedInitialFamily !== undefined) update.initialFamily = resolvedInitialFamily;
     if (initial !== undefined) update.initial = initial;
@@ -284,6 +311,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
     runtime,
     resolvedThemes,
     resolvedDefaultTheme,
+    themeOverride,
     resolvedInitialMode,
     resolvedInitialFamily,
     initial,
@@ -303,7 +331,15 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
       // Only the owner tears it down. Destroying a runtime this island adopted
       // would take the document's theme with it while whatever created it is
       // still using it.
-      if (entry.owns) runtime.destroy();
+      if (entry.owns) {
+        runtime.destroy();
+        // ...and a destroyed runtime must stop being the app-wide one. Astro
+        // keeps the same `document` across `<ClientRouter />` navigations, so
+        // without this the destination page's island finds the destroyed
+        // runtime still installed, adopts it, and every control it renders
+        // changes the selection without painting anything.
+        releaseGlobalRuntime(runtime);
+      }
     };
   }, [entry, runtime]);
 
@@ -333,6 +369,7 @@ export {
   useThemeRestore,
   useThemeLifecycle,
   useThemePacks,
+  useProvidedThemes,
 } from "./hooks";
 
 export { ThemeScope } from "./theme-scope";

@@ -9,16 +9,21 @@
   "updateInternalDependencies": "patch",
   "ignore": [
     "@themvora/docs",
+    "tv-probe-tools",
     "@themvora/app-angular",
     "@themvora/app-astro",
-    "@themvora/app-next",
+    "@themvora/app-astro-native",
+    "@themvora/app-astro-react",
+    "@themvora/app-nextjs",
     "@themvora/app-nuxt",
     "@themvora/app-react",
     "@themvora/app-remix",
+    "@themvora/app-shared",
     "@themvora/app-solid",
     "@themvora/app-svelte",
-    "@themvora/app-tailwind",
+    "@themvora/app-vanilla-js",
     "@themvora/app-vue",
-    "@themvora/app-web"
+    "@themvora/app-web",
+    "themvora-vscode"
   ]
 }

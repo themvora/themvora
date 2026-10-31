@@ -1,594 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { highlightCode } from "../../lib/highlight";
+import { pairWithJavaScript } from "../../lib/code-language";
 import { CodeBlock } from "../../components/code-block";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { FrameworkPicker, getExample } from "../../components/framework-picker";
 
-function snippetBlock(snippet: { lang: string; title: string; code: string }) {
+type Snippet = { lang: string; title: string; code: string };
+
+/**
+ * One snippet, with its JavaScript counterpart when there is one.
+ *
+ * The page derives the JavaScript and passes it down as `jsSources` — the
+ * TypeScript compiler cannot be shipped to the browser — and the pair is
+ * assembled here with the Shiki instance this guide already runs.
+ */
+function snippetBlock(
+  snippet: Snippet,
+  jsSources: Record<string, string> | undefined,
+  labels?: Record<string, string>,
+) {
+  const js = jsSources?.[snippet.code];
+  const variants = js
+    ? pairWithJavaScript(snippet, js)?.map((variant) => ({
+        ...variant,
+        html: highlightCode(variant.code, variant.lang),
+      }))
+    : undefined;
+
   return (
     <CodeBlock
       html={highlightCode(snippet.code, snippet.lang)}
       code={snippet.code}
       language={snippet.lang}
+      {...(labels?.[snippet.code] ? { displayLanguage: labels[snippet.code] } : {})}
+      {...(variants ? { variants } : {})}
       className="rounded-lg m-0"
     />
   );
 }
 
-const presetTable = [
-  {
-    name: "smooth",
-    props:
-      "color, background(-color), border-color, outline-color, fill, stroke, border-radius, box-shadow, text-shadow, opacity",
-    when:
-      "Default. Full, rich cross-fade for the whole site — pick this unless you have a reason not to.",
-  },
-  {
-    name: "subtle",
-    props:
-      "color, background(-color), border-color, outline-color, fill, stroke, box-shadow, opacity",
-    when:
-      "Lower motion profile — skips radius/shadow/text-shadow so the switch reads quieter.",
-  },
-  {
-    name: "instant",
-    props: "none (interpolation disabled)",
-    when: "Never interpolate — always a hard, instant switch (also respects reduced motion).",
-  },
-  {
-    name: "[string, ...]",
-    props: "exactly the properties you list",
-    when:
-      "Fine-grained control — e.g. animate only color and background-color, nothing else.",
-  },
-];
+import {
+  animationsPluginOptionsSnippet,
+  animationsPluginSnippet,
+  bestPracticesSnippet,
+  frameworkSnippets,
+  liveTransitionSnippet,
+  presetTable,
+  runtimeConfigureSnippet,
+  runtimeTokenUpdateSnippet,
+  suppressTransitionSnippet,
+  transitionPropSnippet,
+  viewTransitionSnippet,
+} from "./snippets";
 
-// Concise, API-accurate "enable a transition" snippet per framework.
-const enableExamples: Record<
-  string,
-  { label: string; lang: string; title: string; code: string }
-> = {
-  react: {
-    label: "React",
-    lang: "tsx",
-    title: "App.tsx",
-    code: `import { ThemeProvider } from "@themvora/react";
-
-<ThemeProvider
-  defaultTheme="light"
-  transition={{ enabled: true, preset: "smooth" }}
->
-  <YourApp />
-</ThemeProvider>`,
-  },
-  next: {
-    label: "Next.js",
-    lang: "tsx",
-    title: "app/layout.tsx",
-    code: `// app/layout.tsx
-import { ThemeProvider } from "@themvora/next";
-
-<ThemeProvider
-  defaultTheme="light"
-  transition={{ enabled: true, preset: "smooth" }}
->
-  {children}
-</ThemeProvider>`,
-  },
-  vue: {
-    label: "Vue",
-    lang: "vue",
-    title: "App.vue",
-    code: `<script setup>
-import { ThemeProvider } from "@themvora/vue";
-</script>
-
-<template>
-  <ThemeProvider
-    defaultTheme="light"
-    :transition="{ enabled: true, preset: 'smooth' }"
-  >
-    <YourApp />
-  </ThemeProvider>
-</template>`,
-  },
-  svelte: {
-    label: "Svelte",
-    lang: "svelte",
-    title: "app.svelte",
-    code: `<script>
-  import { ThemeProvider } from "@themvora/svelte";
-</script>
-
-<ThemeProvider
-  defaultTheme="light"
-  transition={{ enabled: true, preset: "smooth" }}
->
-  <YourApp />
-</ThemeProvider>`,
-  },
-  solid: {
-    label: "Solid",
-    lang: "tsx",
-    title: "App.tsx",
-    code: `import { ThemeProvider } from "@themvora/solid";
-
-export function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <YourApp />
-    </ThemeProvider>
-  );
-}`,
-  },
-  angular: {
-    label: "Angular",
-    lang: "ts",
-    title: "app.config.ts",
-    code: `// app.config.ts
-import { ApplicationConfig } from "@angular/core";
-import { provideTheme } from "@themvora/angular";
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideTheme({
-      defaultTheme: "light",
-      transition: { enabled: true, preset: "smooth" },
-    }),
-  ],
-};`,
-  },
-  web: {
-    label: "Web Components",
-    lang: "html",
-    title: "index.html",
-    code: `<script type="module">
-  // Registers every <themvora-*> element and their stylesheet.
-  import "@themvora/web";
-</script>
-
-<!-- \`transition\` is a provider attribute, so it is part of the markup and is
-     read when the element upgrades. -->
-<themvora-provider
-  default-theme="light"
-  transition='{"enabled":true,"preset":"smooth"}'
->
-  <your-app></your-app>
-</themvora-provider>`,
-  },
-  astro: {
-    label: "Astro",
-    lang: "astro",
-    title: "src/pages/index.astro",
-    code: `---
-import { ThemeProviderClient } from "@themvora/astro/client";
----
-
-<ThemeProviderClient
-  defaultTheme="light"
-  transition={{ enabled: true, preset: "smooth" }}
-/>
-<ThemeSwitcher client:load />`,
-  },
-  tailwind: {
-    label: "Tailwind CSS",
-    lang: "ts",
-    title: "runtime.ts",
-    code: `import { createThemeRuntime } from "@themvora/core";
-import { synchronizeDarkClass } from "@themvora/tailwind";
-
-// Tailwind maps tokens to CSS variables (via @import "@themvora/tailwind");
-// the actual transition is owned by the runtime in your framework shell.
-const runtime = createThemeRuntime({
-  defaultTheme: "light",
-  transition: { enabled: true, preset: "smooth" },
-});
-synchronizeDarkClass(runtime.store.get());`,
-  },
-  nuxt: {
-    label: "Nuxt",
-    lang: "ts",
-    title: "nuxt.config.ts",
-    code: `// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ["@themvora/nuxt"],
-  themvora: {
-    defaultTheme: "light",
-    transition: { enabled: true, preset: "smooth" },
-  },
-});`,
-  },
-  remix: {
-    label: "Remix",
-    lang: "tsx",
-    title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@themvora/remix";
-
-export default function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <Outlet />
-    </ThemeProvider>
-  );
-}`,
-  },
-  vanilla: {
-    label: "Vanilla JS",
-    lang: "ts",
-    title: "main.ts",
-    code: `import { createThemeRuntime } from "@themvora/core";
-
-const runtime = createThemeRuntime({
-  defaultTheme: "light",
-  transition: { enabled: true, preset: "smooth" },
-});`,
-  },
-};
-
-const viewTransitionSnippet = {
-  lang: "ts",
-  title: "view-transition.ts",
-  code: `import { createThemeRuntime } from "@themvora/core";
-
-const runtime = createThemeRuntime({
-  transition: {
-    enabled: true,
-    useViewTransition: true,
-    duration: 300,
-  },
-});`,
-};
-
-const bestPracticesSnippet = {
-  lang: "ts",
-  title: "do-and-dont.css",
-  code: `/* ── Tailwind ─────────────────────────────────────────────────────── */
-/* ✗ DON'T — animating theme tokens via Tailwind utility classes     */
-.btn {
-  @apply transition-colors;            /* ← re-eases theme colors → lag */
-}
-.card {
-  @apply transition-all;               /* ← catches managed properties too */
-}
-
-/* ✓ DO — animate non-theme properties with Tailwind                  */
-.btn {
-  @apply transition-transform duration-200;
-}
-.btn:hover {
-  @apply -translate-y-0.5;             /* hover lift — fine */
-}
-
-/* ── Native CSS ───────────────────────────────────────────────────── */
-/* ✗ DON'T — color transition on themed elements                      */
-button {
-  transition: background-color 0.3s;   /* ← re-eases inherited var → lag */
-}
-* {
-  transition: color 0.2s, background-color 0.2s; /* ← catches everything */
-}
-
-/* ✓ DO — animate properties the theme doesn't manage                 */
-.toast {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.card {
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}`,
-};
-
-const frameworkSnippets: Record<
-  string,
-  { label: string; lang: string; title: string; code: string }
-> = {
-  react: {
-    label: "React",
-    lang: "tsx",
-    title: "App.tsx",
-    code: `import { ThemeProvider, ThemeScope } from "@themvora/react";
-
-export function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <YourApp />
-
-      {/* Nested region with its own theme + transition */}
-      <ThemeScope
-        theme="plum-dark"
-        transition={{ enabled: true, duration: 300, easing: "ease" }}
-      >
-        <Widget />
-      </ThemeScope>
-    </ThemeProvider>
-  );
-}`,
-  },
-  next: {
-    label: "Next.js",
-    lang: "tsx",
-    title: "app/layout.tsx",
-    code: `// app/layout.tsx
-import { ThemeProvider } from "@themvora/next";
-
-export default function RootLayout({ children }) {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      {children}
-    </ThemeProvider>
-  );
-}`,
-  },
-  vue: {
-    label: "Vue",
-    lang: "vue",
-    title: "App.vue",
-    code: `<script setup>
-import { ThemeProvider, ThemeScope } from "@themvora/vue";
-</script>
-
-<template>
-  <ThemeProvider
-    defaultTheme="light"
-    :transition="{ enabled: true, preset: 'smooth' }"
-  >
-    <YourApp />
-
-    <!-- Nested scoped region -->
-    <ThemeScope
-      theme="plum-dark"
-      :transition="{ enabled: true, duration: 300, easing: 'ease' }"
-    >
-      <Widget />
-    </ThemeScope>
-  </ThemeProvider>
-</template>`,
-  },
-  svelte: {
-    label: "Svelte",
-    lang: "svelte",
-    title: "app.svelte",
-    code: `<script>
-  import { ThemeProvider, ThemeScope } from "@themvora/svelte";
-</script>
-
-<ThemeProvider
-  defaultTheme="light"
-  transition={{ enabled: true, preset: "smooth" }}
->
-  <YourApp />
-
-  <!-- Nested scoped region -->
-  <ThemeScope
-    theme="plum-dark"
-    transition={{ enabled: true, duration: 300, easing: "ease" }}
-  >
-    <Widget />
-  </ThemeScope>
-</ThemeProvider>`,
-  },
-  solid: {
-    label: "Solid",
-    lang: "tsx",
-    title: "App.tsx",
-    code: `import { ThemeProvider, ThemeScope } from "@themvora/solid";
-
-export function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <YourApp />
-
-      {/* Nested scoped region */}
-      <ThemeScope
-        theme="plum-dark"
-        transition={{ enabled: true, duration: 300, easing: "ease" }}
-      >
-        <Widget />
-      </ThemeScope>
-    </ThemeProvider>
-  );
-}`,
-  },
-  angular: {
-    label: "Angular",
-    lang: "ts",
-    title: "app.config.ts",
-    code: `// app.config.ts
-import { ApplicationConfig } from "@angular/core";
-import { provideTheme } from "@themvora/angular";
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideTheme({
-      defaultTheme: "light",
-      transition: { enabled: true, preset: "smooth" },
-    }),
-  ],
-};
-
-// app.component.html
-<app-root>
-  <your-app></your-app>
-
-  <!-- Nested scoped region via directive -->
-  <div
-    themvoraScope="plum-dark"
-    themvoraScopeTransition="{ enabled: true, duration: 300, easing: 'ease' }"
-  >
-    <app-widget></app-widget>
-  </div>
-</app-root>`,
-  },
-  web: {
-    label: "Web Components",
-    lang: "html",
-    title: "index.html",
-    code: `<!-- Both the provider transition and the scope transition are attributes,
-     so nothing needs a script beyond the registration import. A scope inherits
-     the provider's transition unless \`theme-transition\` overrides it; pass
-     "false" to switch the animation off for one scope. -->
-<script type="module">
-  import "@themvora/web";
-</script>
-
-<themvora-provider
-  default-theme="light"
-  transition='{"enabled":true,"preset":"smooth"}'
->
-  <your-app></your-app>
-
-  <!-- Nested scoped region -->
-  <themvora-scope
-    theme="plum-dark"
-    theme-transition='{"enabled":true,"duration":300,"easing":"ease"}'
-  >
-    <your-widget></your-widget>
-  </themvora-scope>
-</themvora-provider>`,
-  },
-  tailwind: {
-    label: "Tailwind CSS",
-    lang: "css",
-    title: "globals.css",
-    code: `@import "tailwindcss";
-@import "@themvora/tailwind";
-
-/* Tailwind is a CSS layer — transitions are owned by the runtime
-   (React/Vue/Svelte shell above). Themvora exposes transition
-   variables so you can animate token-driven utilities. */
-@theme {
-  --transition-duration: 300ms;
-  --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bg-primary { transition: background-color var(--transition-duration) var(--transition-easing); }`,
-  },
-  astro: {
-    label: "Astro",
-    lang: "astro",
-    title: "src/pages/index.astro",
-    code: `---
-import { ThemeProviderClient } from "@themvora/astro/client";
----
-
-<html>
-  <head>
-    <title>My site</title>
-  </head>
-  <body>
-    <ThemeProviderClient
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    />
-    <ThemeSwitcher client:load />
-  </body>
-</html>`,
-  },
-  nuxt: {
-    label: "Nuxt",
-    lang: "ts",
-    title: "nuxt.config.ts",
-    code: `// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ["@themvora/nuxt"],
-  themvora: {
-    defaultTheme: "light",
-    transition: { enabled: true, preset: "smooth" },
-  },
-});
-
-// app.vue
-<template>
-  <ThemeProvider :transition="{ enabled: true, preset: 'smooth' }">
-    <NuxtPage />
-
-    <!-- Nested scoped region -->
-    <ThemeScope
-      theme="plum-dark"
-      :transition="{ enabled: true, duration: 300, easing: 'ease' }"
-    >
-      <Widget />
-    </ThemeScope>
-  </ThemeProvider>
-</template>`,
-  },
-  remix: {
-    label: "Remix",
-    lang: "tsx",
-    title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@themvora/remix";
-
-export default function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <Outlet />
-    </ThemeProvider>
-  );
-}`,
-  },
-  vanilla: {
-    label: "Vanilla JS",
-    lang: "ts",
-    title: "main.ts",
-    code: `import {
-  createThemeRuntime,
-  createScopedThemeBinding,
-  getBuiltInThemes,
-} from "@themvora/core";
-
-// createScopedThemeBinding takes the registry positionally; the built-in set
-// (the neutral light/dark pair plus the preset families) is a valid registry,
-// so no theme file is needed. createThemeRuntime falls back to it on its own.
-const themes = getBuiltInThemes();
-
-// The transition prop is set once, at runtime creation.
-const runtime = createThemeRuntime({
-  defaultTheme: "light",
-  transition: { enabled: true, preset: "smooth" },
-});
-
-// Apply a scoped theme inside a vanilla element
-const binding = createScopedThemeBinding(themes, element, "plum-dark", {
-  transition: { duration: 300, easing: "ease" },
-});`,
-  },
-};
-
-export function AnimationGuide() {
+export function AnimationGuide({
+  jsSources,
+  labels,
+}: {
+  /** Derived JavaScript for every snippet on the page, keyed by its source. */
+  jsSources?: Record<string, string>;
+  /** Compatibility badge per snippet, also keyed by source. */
+  labels?: Record<string, string>;
+}) {
   const [selectedFramework, setSelectedFramework] = useState("react");
   const selected = getExample(frameworkSnippets, selectedFramework);
-  const enableExample = getExample(enableExamples, selectedFramework);
+  const block = (snippet: Snippet) => snippetBlock(snippet, jsSources, labels);
 
   return (
     <>
-      <FrameworkPicker
-        value={selectedFramework}
-        onChange={setSelectedFramework}
-        label="Pick your framework"
-        scrollToId="enable"
-      />
-
       <section id="enable" className="scroll-mt-24 mb-10">
         <SectionHeading
           num={1}
@@ -609,57 +91,10 @@ export function AnimationGuide() {
             turn them off.
           </p>
         </Callout>
-        {snippetBlock(enableExample)}
-        <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">
-            Same prop on every framework
-          </h3>
-          <div className="flex flex-col gap-2 text-sm">
-            {[
-              ["React / Next / Svelte / Solid / Remix / Astro", 'transition={{ enabled: true, preset: "smooth" }}'],
-              ["Vue / Nuxt", `:transition="{ enabled: true, preset: 'smooth' }"`],
-              ["Angular", `provideTheme({ transition: { enabled: true, preset: "smooth" } })`],
-              ["Web Components", `<themvora-provider transition='{"enabled":true,"preset":"smooth"}'></themvora-provider>`],
-              ["Vanilla JS", `createThemeRuntime({ transition: { enabled: true, preset: "smooth" } })`],
-              ["Tailwind", `@import "@themvora/tailwind"`],
-            ].map(([framework, syntax]) => (
-              <div key={framework} className="flex flex-col gap-0.5">
-                <span className="text-xs font-medium opacity-60">{framework}</span>
-                <code className="mono text-xs px-2 py-1 rounded bg-muted/60 block">
-                  {syntax}
-                </code>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">
-            Paint the page with the theme so transitions are visible
-          </h3>
-          <CodeBlock
-            html={highlightCode(
-              `html,\nbody {\n  margin: 0;\n  min-height: 100vh;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}`,
-              "css",
-            )}
-            code={`html,
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--theme-color-background);
-  color: var(--theme-color-foreground);
-}`}
-            language="css"
-            filename="global.css"
-            className="rounded-lg"
-          />
-          <p className="text-sm opacity-70 mt-2 leading-relaxed">
-            The runtime animates the <code className="mono text-xs">--theme-color-*</code>{" "}
-            custom properties on <code className="mono text-xs">&lt;html&gt;</code>.
-            Any element that reads them (including the page background above)
-            cross-fades automatically on every theme change.
-          </p>
-        </div>
+        <p className="text-sm opacity-70 leading-relaxed">
+          The full framework-specific setup is in{" "}
+          <a href="#frameworks" className="underline">Section 3</a> below.
+        </p>
 
         <div className="mt-6">
           <h3 className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">
@@ -678,23 +113,15 @@ body {
             that is already on screen is not re-applied.
           </p>
           <Callout>
-            <strong>Live configuration</strong>
-            <span className="mx-1 opacity-40">|</span>
-            Set <code className="mono text-[0.9em]">transition={"{false}"}</code>{" "}
-            to make later changes instant: the persistent{" "}
-            <code className="mono text-[0.9em]">:root</code> transition rule is
-            removed, so a stale rule cannot interpolate later variable swaps.
-            Pass a config again to re-enable. Switching themes while a
-            transition is running cancels the in-flight animation first, and{" "}
-            <code className="mono text-[0.9em]">prefers-reduced-motion</code>{" "}
-            plus a one-off{" "}
-            <code className="mono text-[0.9em]">suppressTransition</code> are
-            still respected. An unusable{" "}
+            Set <code className="mono text-[0.9em]">transition={"{{false}}"}</code>{" "}
+            to make changes instant. Pass a config again to re-enable. An unusable{" "}
             <code className="mono text-[0.9em]">duration</code>/
             <code className="mono text-[0.9em]">easing</code> is reported as{" "}
-            <code className="mono text-[0.9em]">TV_CONFIG_OPTION_INVALID</code>{" "}
-            and the previous settings are kept.
+            <code className="mono text-[0.9em]">TV_CONFIG_OPTION_INVALID</code>.
           </Callout>
+          <div className="mt-4">
+            {block(liveTransitionSnippet)}
+          </div>
         </div>
       </section>
 
@@ -712,13 +139,13 @@ body {
           allow only those CSS properties to animate:
         </p>
         <CodeBlock
-          html={highlightCode(
-            `transition={{ enabled: true, properties: ["color", "background-color"] }}`,
-            "tsx",
-          )}
-          code={`transition={{ enabled: true, properties: ["color", "background-color"] }}`}
-          language="tsx"
-          filename="React / Next / Svelte / Solid — ThemeProvider"
+          html={highlightCode(transitionPropSnippet.code, transitionPropSnippet.lang)}
+          code={transitionPropSnippet.code}
+          language={transitionPropSnippet.lang}
+          filename={transitionPropSnippet.title}
+          {...(labels?.[transitionPropSnippet.code]
+            ? { displayLanguage: labels[transitionPropSnippet.code] }
+            : {})}
           className="rounded-lg"
         />
         <div className="mt-4 overflow-hidden rounded-xl border border-border">
@@ -764,46 +191,15 @@ body {
           to your provider (or runtime). Every framework exposes it with the
           same shape — only the binding syntax changes.
         </p>
+        <FrameworkPicker
+          value={selectedFramework}
+          onChange={setSelectedFramework}
+          label="Pick your framework"
+          scrollToId="frameworks"
+        />
         <div className="mt-4">
-          {snippetBlock(selected)}
+          {block(selected)}
         </div>
-        <Callout className="mt-4" title="Step-by-step:">
-          <ol className="list-decimal list-inside mt-2 flex flex-col gap-1">
-            <li>
-              <strong>Install</strong> the framework package (
-              <code className="mono text-xs">@themvora/react</code>,{" "}
-              <code className="mono text-xs">@themvora/vue</code>, etc.).
-            </li>
-            <li>
-              <strong>Pick your themes</strong> — omit the{" "}
-              <code className="mono text-xs">themes</code> prop to use the
-              built-in neutral <code className="mono text-xs">light</code>/
-              <code className="mono text-xs">dark</code> pair (and the built-in{" "}
-              <code className="mono text-xs">mint</code>,{" "}
-              <code className="mono text-xs">plum</code>, … families), or pass
-              your own registry — see{" "}
-              <Link href="/custom-themes" className="underline">custom themes</Link>.
-            </li>
-            <li>
-              <strong>Enable</strong> transitions by adding the{" "}
-              <code className="mono text-xs">transition</code> prop (
-              <code className="mono text-xs">:transition</code> in Vue/Svelte/Nuxt,
-              attribute JSON in Web Components).
-            </li>
-            <li>
-              <strong>Choose</strong> a preset —{" "}
-              <code className="mono text-xs">"smooth"</code> works for most
-              sites.
-            </li>
-            <li>
-              <strong>Scope</strong> a nested region with{" "}
-              <code className="mono text-xs">ThemeScope</code> (
-              <code className="mono text-xs">themvoraScope</code> in Angular,
-              <code className="mono text-xs">themvora-scope</code> in Web
-              Components) for independent subtrees.
-            </li>
-          </ol>
-        </Callout>
       </section>
 
       <section id="view-transitions" className="scroll-mt-24 mb-10">
@@ -813,7 +209,7 @@ body {
         >
           View Transitions API
         </SectionHeading>
-        {snippetBlock(viewTransitionSnippet)}
+        {block(viewTransitionSnippet)}
         <Callout className="mt-3">
           With <code className="mono text-[0.9em]">useViewTransition: true</code>{" "}
           the new theme is painted <em>beneath</em> a fading snapshot of the
@@ -823,11 +219,86 @@ body {
           <code className="mono text-[0.9em]">--theme-color-*</code>{" "}
           interpolation automatically.
         </Callout>
+        <p className="mt-3 text-sm opacity-70 leading-relaxed">
+          To opt out and go back to plain CSS-property interpolation, pass{" "}
+          <code className="mono text-xs">useViewTransition: false</code> together
+          with the duration and easing you want — the rest of the transition
+          options are unchanged, and the switch still animates, just without the
+          snapshot.
+        </p>
+      </section>
+
+      <section id="animations-plugin" className="scroll-mt-24 mb-10">
+        <SectionHeading
+          num={5}
+          desc="The explicit route: apply a plain CSS transition to one element before each theme change, instead of letting the runtime plan the diff."
+        >
+          The animations plugin
+        </SectionHeading>
+        <p className="text-sm opacity-70 leading-relaxed mb-3">
+          The runtime&apos;s own transition engine covers anything that reads the
+          inherited <code className="mono text-xs">--theme-*</code> variables. When
+          you need to animate a target the runtime does not own — a widget that
+          writes its own properties, a canvas host, a third-party element — use{" "}
+          <code className="mono text-xs">createAnimationsPlugin</code>. It applies
+          a CSS <code className="mono text-xs">transition</code> rule to one
+          element on <code className="mono text-xs">onBeforeThemeChange</code> and
+          removes it on <code className="mono text-xs">onDestroy</code>.
+        </p>
+        {block(animationsPluginSnippet)}
+        <p className="mt-4 text-sm opacity-70 leading-relaxed mb-3">
+          It takes two options — the transition to apply and the element to apply
+          it to. The element defaults to{" "}
+          <code className="mono text-xs">document.documentElement</code> in a
+          browser and to <code className="mono text-xs">null</code> (a no-op)
+          elsewhere, so a themed subtree has to name itself:
+        </p>
+        {block(animationsPluginOptionsSnippet)}
+        <Callout className="mt-4">
+          <strong>Pick one, not both.</strong> The plugin writes a CSS rule; the
+          runtime interpolates the variables themselves. Running both on the same
+          element double-eases the same value — the lag described in Section 7.
+          The plugin defaults <code className="mono text-[0.9em]">useViewTransition</code>{" "}
+          to <code className="mono text-[0.9em]">false</code> for exactly this
+          reason: it provides CSS transition properties, not page-level
+          cross-fades.
+        </Callout>
+      </section>
+
+      <section id="runtime-control" className="scroll-mt-24 mb-10">
+        <SectionHeading
+          num={6}
+          desc="Suppress one switch, reconfigure at runtime, and animate token overrides — the same contract with or without a framework."
+        >
+          Runtime control
+        </SectionHeading>
+        <p className="text-sm opacity-70 leading-relaxed mb-3">
+          Sometimes one switch must not animate — a first paint, a screenshot, a
+          bulk import. <code className="mono text-xs">suppressTransition</code> on
+          a store write wins over whatever the live configuration says, for that
+          update only:
+        </p>
+        {block(suppressTransitionSnippet)}
+        <p className="mt-4 text-sm opacity-70 leading-relaxed mb-3">
+          Framework-free runtimes configure the transition with{" "}
+          <code className="mono text-xs">runtime.configure()</code> and read it
+          back from <code className="mono text-xs">runtime.transition</code>. The
+          value is live: the next change uses it, and the theme already on screen
+          is not re-applied.
+        </p>
+        {block(runtimeConfigureSnippet)}
+        <p className="mt-4 text-sm opacity-70 leading-relaxed mb-3">
+          Token overrides are theme changes too, so they animate on the same
+          path — <code className="mono text-xs">runtime.update()</code> merges the
+          tokens, resolves references, runs plugin transforms, then commits
+          through the transition:
+        </p>
+        {block(runtimeTokenUpdateSnippet)}
       </section>
 
       <section id="things-to-avoid" className="scroll-mt-24 mb-10">
         <SectionHeading
-          num={5}
+          num={7}
           desc="Theme colors animate through the provider — adding your own color transition on top re-eases the same value and lags. Everything else (hover, transform, opacity, shadow) is yours to animate freely."
         >
           Things to avoid
@@ -856,7 +327,7 @@ body {
           the library, in both Tailwind and hand-written CSS.
         </p>
 
-        {snippetBlock(bestPracticesSnippet)}
+        {block(bestPracticesSnippet)}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="rounded-xl border border-border bg-card px-4 py-3.5">
@@ -908,117 +379,6 @@ body {
                 element — themvora handles that interpolation for you.
               </li>
             </ul>
-          </div>
-        </div>
-      </section>
-
-      <section id="api-reference" className="scroll-mt-24">
-        <SectionHeading
-          num={6}
-          desc="Exports from the transition and animation modules."
-        >
-          API Reference
-        </SectionHeading>
-        <p className="text-sm leading-relaxed opacity-80 mt-3">
-          This table is a summary. The authoritative, generated reference is{" "}
-          <Link href="/api-reference/core" className="underline">@themvora/core API reference</Link>.
-        </p>
-        <div className="flex flex-col gap-4 mt-4">
-          <div className="rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
-                    Export
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
-                    Module
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    name: "ThemeTransitionOptions",
-                    module: "transition",
-                    desc: "Interface for configuring transitions — enabled, duration, easing, useViewTransition, preset, properties.",
-                  },
-                  {
-                    name: "TransitionPreset",
-                    module: "transition",
-                    desc: "\"smooth\" | \"subtle\" | \"instant\" | \"custom\" | string[] — how the transition is filtered.",
-                  },
-                  {
-                    name: "TRANSITION_PRESETS",
-                    module: "transition",
-                    desc: "The curated property lists behind the smooth / subtle / instant presets.",
-                  },
-                  {
-                    name: "DEFAULT_TRANSITION_PRESET",
-                    module: "transition",
-                    desc: "The default preset — \"smooth\".",
-                  },
-                  {
-                    name: "DEFAULT_THEME_TRANSITION",
-                    module: "transition",
-                    desc: "Built-in defaults: enabled, 300ms, cubic-bezier(0.4, 0, 0.2, 1), smooth property list.",
-                  },
-                  {
-                    name: "createThemeDiff",
-                    module: "animation",
-                    desc: "Compare two variable maps and report which token groups changed.",
-                  },
-                  {
-                    name: "createTransitionPlan",
-                    module: "animation",
-                    desc: "Turn a ThemeDiff into a TransitionPlan; null when nothing can or should animate.",
-                  },
-                  {
-                    name: "scanForTransition",
-                    module: "animation",
-                    desc: "TreeWalker scan for elements whose computed style uses a planned property.",
-                  },
-                  {
-                    name: "runThemeAnimation",
-                    module: "animation",
-                    desc: "Run the attach → flush → swap → cleanup sequence for a theme change.",
-                  },
-                  {
-                    name: "cancelThemeAnimation",
-                    module: "animation",
-                    desc: "Abort an in-flight theme animation and remove its temporary styles.",
-                  },
-                  {
-                    name: "ThemeDiff / TransitionPlan",
-                    module: "animation",
-                    desc: "Types describing what changed and how to animate it.",
-                  },
-                  {
-                    name: "createAnimationsPlugin",
-                    module: "@themvora/core",
-                    desc: "Official plugin — attaches a CSS transition to <html> (options.transition) via onBeforeThemeChange. A lightweight, manual alternative to the built-in runtime pipeline.",
-                  },
-                  {
-                    name: "runtime.store.set(theme, { suppressTransition: true })",
-                    module: "@themvora/core",
-                    desc: "The runtime-level toggle. Transitions are configured once at runtime creation; this per-update option forces an instant, non-animated apply for a single switch.",
-                  },
-                ].map((item) => (
-                  <tr key={item.name} className="border-b border-border last:border-0 align-top">
-                    <td className="px-4 py-3">
-                      <code className="mono text-[0.85em] font-semibold" style={{ color: "var(--theme-color-primary)" }}>
-                        {item.name}
-                      </code>
-                    </td>
-                    <td className="px-4 py-3 mono text-xs opacity-50">{item.module}</td>
-                    <td className="px-4 py-3 text-sm opacity-70 leading-relaxed">{item.desc}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </section>

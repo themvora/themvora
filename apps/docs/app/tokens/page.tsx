@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 import { getBuiltInThemes, themeToCSSVariables } from "@themvora/core";
 import {
@@ -383,10 +382,9 @@ export default function TokensPage() {
           >
             Define every group in one theme
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(tokenSnippet.code, tokenSnippet.lang)}
+          <CodeExample
             code={tokenSnippet.code}
-            language={tokenSnippet.lang}
+            lang={tokenSnippet.lang}
             className="rounded-lg m-0"
           />
           <p className="mt-3 text-sm opacity-70 leading-relaxed">
@@ -433,24 +431,21 @@ export default function TokensPage() {
             Token references & derived values
           </SectionHeading>
 
-          <CodeBlock
-            html={highlightCode(referenceSnippet.code, referenceSnippet.lang)}
+          <CodeExample
             code={referenceSnippet.code}
-            language={referenceSnippet.lang}
+            lang={referenceSnippet.lang}
             className="rounded-lg m-0 mb-5"
           />
 
-          <CodeBlock
-            html={highlightCode(derivedColorsSnippet.code, derivedColorsSnippet.lang)}
+          <CodeExample
             code={derivedColorsSnippet.code}
-            language={derivedColorsSnippet.lang}
+            lang={derivedColorsSnippet.lang}
             className="rounded-lg m-0 mb-5"
           />
 
-          <CodeBlock
-            html={highlightCode(themeExtensionSnippet.code, themeExtensionSnippet.lang)}
+          <CodeExample
             code={themeExtensionSnippet.code}
-            language={themeExtensionSnippet.lang}
+            lang={themeExtensionSnippet.lang}
             className="rounded-lg m-0 mb-5"
           />
         </section>
@@ -465,11 +460,10 @@ export default function TokensPage() {
 
           <div className="space-y-4">
             {Object.entries(apiSnippets).map(([key, snippet]) => (
-              <CodeBlock
+              <CodeExample
                 key={key}
-                html={highlightCode(snippet.code, snippet.lang)}
                 code={snippet.code}
-                language={snippet.lang}
+                lang={snippet.lang}
                 className="m-0"
               />
             ))}

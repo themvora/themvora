@@ -4,113 +4,70 @@
  *
  * For every example.meta.json under examples/ it validates the invariants that
  * need no network or toolchain:
- *   - the meta schema (feature/framework/packages/peerDependencies/files/entry)
+ *   - the meta schema (feature/framework/packages/files/entry)
  *   - every declared `files` exists, and `entry` is one of them
  *   - every declared `packages` is a shipped, TypeScript entrypoint
  *   - every `expectedExportsUsed` is actually exported by at least one of the
  *     declared packages (INTERNAL excluded), and
- *   - `peerDependencies` are declared names only.
+ *   - §13 coverage: every capability in the registry has at least one example.
+ *
+ * An **empty or missing** `examples/` fails. Without that, the structural rules
+ * above are vacuously satisfied and the only signal left is a coverage failure
+ * per capability — the symptom, not the cause. The rules live in
+ * `scripts/docs/lib/example-audit.mjs` so they can be exercised against a
+ * synthetic inventory; this file is the CLI around them.
  *
  * The dynamic half (`--dynamic`, Audit C spec §8) — create a temp project,
  * install the declared packages from BUILT TARBALLS, copy `files`, run the
  * framework build/typecheck — lives in `scripts/docs/lib/consumer-compile.mjs`.
  * It needs `pnpm` (to pack) and network (to fetch registry peers).
  *
- * Usage: node scripts/docs/audits/audit-c-examples.mjs [--dynamic]
+ * Usage: node scripts/docs/audits/audit-c-examples.mjs [--offline] [--dynamic]
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadClassification, loadRegistry } from "../lib/registry.mjs";
-import { entrypointsOf, resolveSpecifier } from "../lib/api-index.mjs";
+import { auditExamples, CONTRACT } from "../lib/example-audit.mjs";
 
 const URL = fileURLToPath(import.meta.url);
 const repoRoot = join(dirname(dirname(dirname(dirname(URL)))));
 const EXAMPLES = join(repoRoot, "examples");
-const CONTRACT = "brief §8 Audit C — every example's meta.json must match the shipped ecosystem";
 
-function walk(dir) {
-  const out = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    const st = statSync(full);
-    if (st.isDirectory()) out.push(...walk(full));
-    else if (entry === "example.meta.json") out.push(full);
+/**
+ * Whether version control ignores a path.
+ *
+ * The concept examples sit under an `/examples/*` blanket rule, so a tree that
+ * is restored on disk but left ignored passes this audit and is still absent
+ * from every clone. Asking git turns that into a failure. Anything other than a
+ * definite "ignored" (no git, not a repository) is treated as "not ignored", so
+ * the audit never fails on a missing toolchain.
+ */
+function isIgnored(absPath) {
+  try {
+    execFileSync("git", ["check-ignore", "-q", "--", absPath], { cwd: repoRoot, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
   }
-  return out;
 }
 
-const classification = loadClassification();
-const entrypoints = entrypointsOf(classification);
-const failures = [];
-const fail = (file, symbol, contract, detail) => failures.push({ file, symbol, contract, detail });
+const capabilitySlugs = Object.values(loadRegistry().capabilities).map((c) => c.slug);
+const { metas, failures, coverage } = auditExamples({
+  examplesRoot: EXAMPLES,
+  classification: loadClassification(),
+  capabilitySlugs,
+  isIgnored,
+});
 
-const metas = walk(EXAMPLES);
 console.log("\n=== AUDIT C — CANONICAL EXAMPLES (static) ===\n");
 console.log(`Examples found: ${metas.length}\n`);
-
-/** Capability slugs that have at least one example (brief §13 coverage). */
-const coveredFeatures = new Set();
-
-for (const metaPath of metas) {
-  const dir = dirname(metaPath);
-  let meta;
-  try {
-    meta = JSON.parse(readFileSync(metaPath, "utf8"));
-  } catch (e) {
-    fail(metaPath, "(meta)", CONTRACT, `unparsable JSON: ${e.message}`);
-    continue;
-  }
-
-  for (const field of ["feature", "framework", "packages", "files", "entry"]) {
-    if (meta[field] === undefined) fail(metaPath, "(meta)", CONTRACT, `missing \`${field}\``);
-  }
-  if (typeof meta.feature === "string") coveredFeatures.add(meta.feature);
-  if (!Array.isArray(meta.files)) continue;
-
-  if (!meta.files.includes(meta.entry)) {
-    fail(metaPath, meta.entry ?? "(entry)", CONTRACT, "`entry` not listed in `files`");
-  }
-  for (const f of meta.files) {
-    if (!existsSync(join(dir, f))) fail(metaPath, f, CONTRACT, `declared file does not exist`);
-  }
-
-  for (const pkg of meta.packages ?? []) {
-    const resolved = resolveSpecifier(classification, pkg);
-    if (!resolved) fail(metaPath, pkg, CONTRACT, `declares package "${pkg}", which is not a shipped entrypoint`);
-    else if (resolved.isAsset) fail(metaPath, pkg, CONTRACT, `declares "${pkg}", which has no TypeScript surface`);
-  }
-
-  // A symbol is covered if at least one declared package exports it (post-@internal).
-  for (const symbol of meta.expectedExportsUsed ?? []) {
-    let found = false;
-    for (const pkg of meta.packages ?? []) {
-      const resolved = resolveSpecifier(classification, pkg);
-      if (!resolved || resolved.isAsset) continue;
-      const rows =
-        resolved.entry === "."
-          ? [...entrypoints.entries()].filter(([k]) => k.startsWith(`${resolved.pkg}|`)).map(([, r]) => r)
-          : [entrypoints.get(`${resolved.pkg}|${resolved.entry}`)];
-      if (rows.some((r) => r?.[symbol] && r[symbol] !== "INTERNAL")) { found = true; break; }
-    }
-    if (!found) fail(metaPath, symbol, CONTRACT, `expectedExportsUsed "${symbol}" is exported by none of "${(meta.packages ?? []).join(", ")}"`);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// §13 coverage: every capability needs at least one canonical example.
-// One-directional (capability → example): extra examples are allowed — e.g.
-// `basic-theme`, a getting-started example that is not itself a capability.
-// ---------------------------------------------------------------------------
-const capabilitySlugs = Object.values(loadRegistry().capabilities).map((c) => c.slug);
-const uncovered = capabilitySlugs.filter((s) => !coveredFeatures.has(s)).sort();
 console.log(
-  `§13 coverage: ${capabilitySlugs.length - uncovered.length}/${capabilitySlugs.length} capabilities have an example.\n`,
+  coverage
+    ? `§13 coverage: ${coverage.covered}/${coverage.total} capabilities have an example.\n`
+    : "§13 coverage: not evaluated — there is no example inventory to cover it.\n",
 );
-for (const slug of uncovered) {
-  fail("(coverage)", slug, CONTRACT, `capability "${slug}" has no example under examples/**`);
-}
 
 for (const f of failures) {
   console.log(`  ✗ ${f.symbol} — ${f.file}`);

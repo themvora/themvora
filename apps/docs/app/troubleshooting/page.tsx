@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
@@ -126,8 +126,8 @@ const flickerFix = {
   title: "layout.tsx — provider wraps the router",
   code: `// Ensure the ThemeProvider is ABOVE the router so the runtime
 // survives client-side navigation without re-mounting.
-import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
 import { ThemeProvider } from "@themvora/react";
+import { createThemeBootstrapScript, getBuiltInThemes } from "@themvora/core";
 
 export default function RootLayout({ children }) {
   return (
@@ -287,10 +287,9 @@ export default function TroubleshootingPage() {
             the first paint uses the browser default and then snaps to the
             correct theme — causing a visible flash.
           </Callout>
-          <CodeBlock
-            html={highlightCode(foucFix.code, "tsx")}
+          <CodeExample
             code={foucFix.code}
-            language="tsx"
+            lang="tsx"
             filename={foucFix.title}
             className="m-0"
           />
@@ -315,10 +314,9 @@ export default function TroubleshootingPage() {
             <code className="mono text-[0.9em]">localStorage</code> is
             accessible.
           </Callout>
-          <CodeBlock
-            html={highlightCode(persistenceFix.code, "ts")}
+          <CodeExample
             code={persistenceFix.code}
-            language="ts"
+            lang="ts"
             filename={persistenceFix.title}
             className="m-0"
           />
@@ -341,10 +339,9 @@ export default function TroubleshootingPage() {
             (it accepts a <code className="mono text-[0.9em]">prefix</code> and
             a <code className="mono text-[0.9em]">target</code> element).
           </Callout>
-          <CodeBlock
-            html={highlightCode(cssVarsFix.code, "tsx")}
+          <CodeExample
             code={cssVarsFix.code}
-            language="tsx"
+            lang="tsx"
             filename={cssVarsFix.title}
             className="m-0"
           />
@@ -388,10 +385,9 @@ export default function TroubleshootingPage() {
             where <code className="mono text-[0.9em]">&lt;html&gt;</code> is
             yours.
           </Callout>
-          <CodeBlock
-            html={highlightCode(hydrationFix.code, "tsx")}
+          <CodeExample
             code={hydrationFix.code}
-            language="tsx"
+            lang="tsx"
             filename={hydrationFix.title}
             className="m-0"
           />
@@ -411,10 +407,9 @@ export default function TroubleshootingPage() {
             re-reads from storage. Move the provider above the router so the
             runtime persists across all route changes.
           </Callout>
-          <CodeBlock
-            html={highlightCode(flickerFix.code, "tsx")}
+          <CodeExample
             code={flickerFix.code}
-            language="tsx"
+            lang="tsx"
             filename={flickerFix.title}
             className="m-0"
           />
@@ -437,10 +432,9 @@ export default function TroubleshootingPage() {
             is for local <em>definitions</em>, not theme names. Verify the
             wrapping hierarchy.
           </Callout>
-          <CodeBlock
-            html={highlightCode(scopedFix.code, "tsx")}
+          <CodeExample
             code={scopedFix.code}
-            language="tsx"
+            lang="tsx"
             filename={scopedFix.title}
             className="m-0"
           />
@@ -461,10 +455,9 @@ export default function TroubleshootingPage() {
             <code className="mono text-[0.9em]">enabled: true</code> and choose a
             preset to enable animated transitions.
           </Callout>
-          <CodeBlock
-            html={highlightCode(transitionsFix.code, "ts")}
+          <CodeExample
             code={transitionsFix.code}
-            language="ts"
+            lang="ts"
             filename={transitionsFix.title}
             className="m-0"
           />
@@ -485,10 +478,9 @@ export default function TroubleshootingPage() {
             different versions. The packages share internal modules and must be
             the exact same version. Reinstall both packages at the latest version.
           </Callout>
-          <CodeBlock
-            html={highlightCode(moduleNotFoundFix.code, "bash")}
+          <CodeExample
             code={moduleNotFoundFix.code}
-            language="bash"
+            lang="bash"
             filename={moduleNotFoundFix.title}
             className="m-0"
           />
@@ -509,10 +501,9 @@ export default function TroubleshootingPage() {
             audit every token pair at build time and catch failures before they
             reach production.
           </Callout>
-          <CodeBlock
-            html={highlightCode(a11yFix.code, "ts")}
+          <CodeExample
             code={a11yFix.code}
-            language="ts"
+            lang="ts"
             filename={a11yFix.title}
             className="m-0"
           />
@@ -536,10 +527,9 @@ export default function TroubleshootingPage() {
             <code className="mono text-[0.9em]">createMultiWindowSync()</code>{" "}
             to control the strategy.
           </Callout>
-          <CodeBlock
-            html={highlightCode(multiWindowFix.code, "ts")}
+          <CodeExample
             code={multiWindowFix.code}
-            language="ts"
+            lang="ts"
             filename={multiWindowFix.title}
             className="m-0"
           />

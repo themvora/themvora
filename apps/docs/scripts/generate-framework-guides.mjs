@@ -75,6 +75,35 @@ function readFrameworks() {
 }
 
 /**
+ * The only top-level declarations the generator is willing to put in scope for
+ * the array it evaluates.
+ *
+ * @remarks
+ * **Why there is an `eval` here at all.** `rawFrameworks` is a TypeScript array
+ * literal inside a `.tsx` module that also defines JSX icons. Reading it without
+ * a TypeScript toolchain means either parsing the literal by hand — which breaks
+ * the first time a snippet contains a backtick — or evaluating it. This script
+ * runs at build time, over a file that is committed to the repository.
+ *
+ * **Why it is not a trust boundary.** The evaluated source is
+ * `apps/docs/lib/frameworks.tsx` and nothing else: no network input, no user
+ * input, no environment-dependent text. Anyone able to change that file can
+ * already execute arbitrary code in the docs build, because Next.js compiles and
+ * runs it. `eval` grants no privilege that the file did not already have, so
+ * sandboxing it with `node:vm` would be security theatre rather than a control.
+ *
+ * **What is minimized.** The scope the array is evaluated in is this explicit
+ * list, not "every top-level constant the array happens to mention". A new
+ * shared value therefore fails loudly with instructions instead of silently
+ * widening what gets evaluated.
+ */
+const SHARED_DECLARATIONS = [
+  "CANONICAL_STYLES",
+  "CANONICAL_STYLES_STEP",
+  "INITIAL_MODE",
+];
+
+/**
  * The top-level `const` declarations the array references by name.
  *
  * `rawFrameworks` shares a value between entries where sharing is the point —
@@ -93,8 +122,25 @@ function sharedDeclarations(src, arraySource) {
   );
   const out = [];
   for (const name of referenced) {
+    if (!SHARED_DECLARATIONS.includes(name)) {
+      // A `null`/`true`/`false`-like identifier, or a property name, will not
+      // resolve to a declaration — only complain about names that do.
+      if (!topLevelDeclaration(src, name)) continue;
+      throw new Error(
+        `\`rawFrameworks\` references \`${name}\`, which the generator does not ` +
+          `know how to lift. Add it to SHARED_DECLARATIONS in ` +
+          `apps/docs/scripts/generate-framework-guides.mjs after checking it is a ` +
+          `plain literal, or inline the value in lib/frameworks.tsx.`,
+      );
+    }
     const decl = topLevelDeclaration(src, name);
-    if (decl) out.push(decl);
+    if (!decl) {
+      throw new Error(
+        `SHARED_DECLARATIONS lists \`${name}\`, but no top-level declaration of ` +
+          `that name exists in ${sourcePath}.`,
+      );
+    }
+    out.push(decl);
   }
   return out.join("\n");
 }
@@ -145,8 +191,12 @@ function topLevelDeclaration(src, name) {
 const SLOTS = [
   ["quickStart", "Quick Start"],
   ["quickStartExtra", "Quick Start"],
-  ["setupExtra", "Quick Start"],
   ["noTheme", "Quick Start"],
+  // The entry file comes after the file it complements: React's App.tsx, Vue's
+  // and Svelte's Vite entry, and the web guide's module all read as the second
+  // half of the setup shown above.
+  ["setupExtra", "Quick Start"],
+  ["uiExample", "Quick Start"],
   // The canonical stylesheet belongs with the setup, not with the extras: it is
   // the step that connects the reader's own classes to the theme, and every
   // framework entry carries the same one.
@@ -157,6 +207,9 @@ const SLOTS = [
   ["snippet3", "More Examples"],
   ["snippet4", "More Examples"],
   ["snippet6", "More Examples"],
+  ["snippet7", "More Examples"],
+  ["snippet8", "More Examples"],
+  ["snippet9", "More Examples"],
   ["reactSetup", "More Examples"],
 ];
 

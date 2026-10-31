@@ -12,6 +12,7 @@ import {
 } from "@themvora/core";
 import { computeFingerprint } from "./fingerprint";
 import { publishTransportedConfig } from "./transport";
+import { createScrollbarHidingGuardScript } from "./scrollbar-guard";
 import {
   buildThemeBootstrapPayload,
   systemModeCSSTemplate,
@@ -85,7 +86,15 @@ export interface Props {
    * Server rendering cannot detect the pointer type, so unlike the
    * `themvora({ scrollbar })` option (which keeps native scrollbars on
    * coarse-pointer devices unless `touch` is set) this applies to every
-   * device. Enable it only when the page mounts `ThemeScrollbar`.
+   * device. Enable it when the page mounts `ThemeScrollbar`.
+   *
+   * The hiding is provisional, and self-correcting: this half only *hides* the
+   * native bar, so it is only valid while an overlay element is present. If the
+   * page ends up rendering no `<themvora-scrollbar>` — the component was
+   * omitted, commented out, or failed to render — the class and the hiding
+   * stylesheet are removed at the end of `<body>` and the native scrollbar
+   * comes back. A mismatch between the two halves therefore degrades to a
+   * native scrollbar rather than to no scrollbar at all.
    */
   scrollbar?: boolean;
 }
@@ -174,6 +183,7 @@ const themeName = String(initial.theme.name);
 
 const {
   names,
+  labels,
   defaults,
   family: fallbackFamily,
   families,
@@ -219,6 +229,7 @@ const blockingScript = createBlockingScript(fingerprint, themeCssMap, {
   // would disagree with `data-theme-selection-family`.
   families,
   names,
+  labels,
   defaults,
 });
 const htmlClass = [
@@ -227,6 +238,17 @@ const htmlClass = [
 ]
   .filter(Boolean)
   .join(" ");
+
+/**
+ * Give the native scrollbar back when no overlay was ever mounted.
+ *
+ * The hiding this component server-renders is only valid while an overlay
+ * element exists; see `scrollbar-guard.ts` for why that had to be enforced and
+ * why it is enforced from the end of `<body>` with an inline script.
+ */
+const scrollbarGuardScript = scrollbar
+  ? createScrollbarHidingGuardScript()
+  : "";
 
 const ssrStyle = (
   isSystemMode
@@ -268,11 +290,14 @@ const ssrStyle = (
     {/* `data-themvora` lets the integration's own stylesheet install detect
         this element and skip, so the two never stack a duplicate sheet. */}
     {systemStyle && <style data-themvora="system" set:html={systemStyle} />}
-    {scrollbar && <style set:html={createPrePaintScrollbarCSS()} />}
+    {scrollbar && (
+      <style data-themvora-scrollbar-hiding set:html={createPrePaintScrollbarCSS()} />
+    )}
     <slot name="head" />
   </head>
   <body>
     <slot />
+    {scrollbarGuardScript && <script is:inline set:html={scrollbarGuardScript} />}
     {/*
       Bootstrap readouts, patched from the end of the body.
 

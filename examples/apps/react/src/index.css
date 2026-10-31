@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&display=swap");
+@import "tailwindcss";
+@import "@themvora/tailwind";
+
+* {
+  box-sizing: border-box;
+  font-family: "Geist", sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.page {
+  width: 100%;
+  min-height: 100dvh;
+  padding-inline: clamp(0rem, 1vw, 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,453 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+import {
+  docsLinks,
+  tailwindSnippet,
+  cssSnippet,
+  docsHome,
+} from "@themvora/app-shared/content";
+import { scrollbarIcons } from "@themvora/app-shared/icons";
+import { modes, selection, scopedTheme } from "@themvora/app-shared/themes";
+import { ui } from "@themvora/app-shared/ui";
+
+const scopedInitial = `${scopedTheme}-light`;
+---
+
+<BaseLayout>
+  <main class="page flex flex-col">
+    <ThemeScrollbar behavior={{ autoHide: false }} icons={scrollbarIcons} />
+
+    <div class={ui.page}>
+      <!-- Hero -->
+      <header class={ui.hero.wrap}>
+        <span class={ui.hero.pill}>
+          <span class={ui.hero.pillDot}></span>
+          {/*
+            Two bootstrap readouts, not one string. The server cannot know the
+            visitor's theme — a prerendered page has no request to read the
+            cookie from, and `system` mode is resolved by the browser — so this
+            is rendered with the build-time values and the pre-paint script
+            rewrites both parts from `<html>` before the body is painted.
+            A single `data-pill` element written from `render()` instead is
+            painted "Themvora Light · light" on a page already painted dark,
+            and corrects itself once the runtime mounts.
+          */}
+          <span class="truncate">
+            <span data-tv-readout="label">Themvora Light</span>
+            <span aria-hidden="true"> · </span>
+            <span data-tv-readout="mode">light</span>
+          </span>
+        </span>
+
+        <h1 class={`text-center ${ui.hero.title}`}>
+          Welcome to
+          <span class={`${ui.hero.gradient} hero-title-stroke`}>Themvora</span>
+        </h1>
+
+        <p class={ui.hero.lead}>
+          Your app is themed. Edit <code class={ui.hero.inlineCode}
+            >src/pages/index.astro</code
+          >
+          and start building. Every color, radius and font below is a Themvora token.
+        </p>
+
+        <nav aria-label="Documentation" class={ui.hero.nav}>
+          {
+            docsLinks.map((item, index) => (
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                class={index === 0 ? ui.btnPrimary : ui.btnOutline}
+              >
+                {item.label}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M7 17 17 7M8 7h9v9" />
+                </svg>
+              </a>
+            ))
+          }
+        </nav>
+      </header>
+
+      <!-- Controls -->
+      <section aria-label="Theme controls" class={`${ui.card} grid gap-5`}>
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class={ui.controlGroup.wrap}>
+            <h3 class={ui.controlGroup.label}>Mode + Toggle</h3>
+            <div
+              class={ui.controlGroup.group}
+              role="group"
+              aria-label="Mode + Toggle"
+            >
+              <div class={ui.controls.segmentWrap}>
+                {
+                  modes.map((item) => (
+                    <button
+                      type="button"
+                      data-tv-pressed="mode"
+                      data-tv-value={item}
+                      class={ui.segment}
+                    >
+                      {item}
+                    </button>
+                  ))
+                }
+              </div>
+              <ThemeToggle label="Toggle light/dark" class={ui.btnPrimary} />
+            </div>
+          </div>
+        </div>
+
+        <hr class={ui.controls.divider} />
+
+        <div class={ui.controlGroup.wrap}>
+          <h3 class={ui.controlGroup.label}>Presets</h3>
+          <div class={ui.controlGroup.group} role="group" aria-label="Presets">
+            {
+              selection.map((item) => (
+                <button
+                  type="button"
+                  data-tv-pressed="family"
+                  data-tv-value={item}
+                  class={ui.chip}
+                >
+                  {item}
+                </button>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Live preview -->
+      <section
+        id="preview"
+        aria-label="Theme preview"
+        class={ui.previewWindow.section}
+      >
+        <div id="preview-bar" class={ui.previewWindow.bar}>
+          <span class={`${ui.previewWindow.dot} bg-destructive`}></span>
+          <span class={`${ui.previewWindow.dot} bg-accent`}></span>
+          <span class={`${ui.previewWindow.dot} bg-success`}></span>
+          <span
+            id="preview-address"
+            class="ml-3 hidden h-5 flex-1 rounded-md sm:block"
+            aria-hidden="true"></span>
+        </div>
+
+        <div class={ui.previewWindow.body}>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold" data-theme-label>-</h2>
+            <p
+              class="mt-1 break-all font-mono text-xs text-muted-foreground"
+              data-theme-pair
+            >
+            </p>
+            <ul
+              id="preview-swatches"
+              class="mt-4 flex flex-wrap gap-x-4 gap-y-2"
+            >
+            </ul>
+          </div>
+          <div class="grid grid-cols-2 gap-2 sm:flex md:justify-end">
+            <span
+              id="preview-primary"
+              class="rounded-md px-3 py-2 text-center text-sm font-medium"
+              >Primary</span
+            >
+            <span
+              id="preview-secondary"
+              class="rounded-md px-3 py-2 text-center text-sm font-medium"
+              >Secondary</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- All theme colors -->
+      <section class={ui.card}>
+        <div class={ui.sectionHeading.wrap}>
+          <h2 class={ui.sectionHeading.title}>Theme colors</h2>
+          <p class={ui.sectionHeading.hint}>
+            <span id="token-count">0</span> tokens · tap to copy
+          </p>
+        </div>
+        <ul id="color-grid" class={ui.colorsGrid}></ul>
+      </section>
+
+      <!-- Use the tokens -->
+      <section class={ui.card}>
+        <div class={ui.sectionHeading.wrap}>
+          <h2 class={ui.sectionHeading.title}>Use the tokens</h2>
+          <p class={ui.sectionHeading.hint}>
+            Same tokens, two ways. Neither needs per-theme code.
+          </p>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class={ui.snippet.wrap}>
+            <div class={ui.snippet.header}>
+              <span class={ui.snippet.label}>Tailwind</span>
+              <button
+                type="button"
+                id="copy-tailwind"
+                class={ui.snippet.copyBtn}
+                ><span aria-live="polite">Copy</span></button
+              >
+            </div>
+            <pre class={ui.snippet.pre}><code>{tailwindSnippet}</code></pre>
+          </div>
+          <div class={ui.snippet.wrap}>
+            <div class={ui.snippet.header}>
+              <span class={ui.snippet.label}>CSS variables</span>
+              <button type="button" id="copy-css" class={ui.snippet.copyBtn}
+                ><span aria-live="polite">Copy</span></button
+              >
+            </div>
+            <pre class={ui.snippet.pre}><code>{cssSnippet}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scoped theme -->
+      <section class={ui.card}>
+        <div class={ui.sectionHeading.wrap}>
+          <h2 class={ui.sectionHeading.title}>Scoped theme</h2>
+          <p class={ui.sectionHeading.hint}>
+            This region is scoped to the {scopedTheme} theme.
+          </p>
+        </div>
+
+        <div
+          id="scope"
+          data-scope-theme={scopedInitial}
+          class="rounded-lg shadow-md"
+        >
+          <div class={ui.scoped.inner}>
+            <div
+              class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="min-w-0">
+                <h3 class="font-semibold">Feature tile</h3>
+                <p class="mt-1 text-sm text-primary-foreground/70">
+                  Scoped via createScopedThemeBinding(). It runs its own
+                  transition while the rest of the page is untouched.
+                </p>
+                <p
+                  class="mt-3 flex items-center gap-2 text-sm text-primary-foreground/70"
+                >
+                  <span class="size-2.5 shrink-0 rounded-full bg-success"
+                  ></span>
+                  Scoped to: {scopedTheme}
+                </p>
+              </div>
+              <button type="button" class={ui.scoped.button}
+                >Scoped button</button
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class={ui.footer}>
+        <span>Generated by</span>
+        <code class="rounded bg-secondary px-1.5 py-0.5">themvora init</code>
+        <span aria-hidden="true">·</span>
+        <a
+          href={docsHome}
+          target="_blank"
+          rel="noreferrer noopener"
+          class={`rounded text-primary underline-offset-4 hover:underline ${ui.focusRing}`}
+        >
+          Themvora docs
+        </a>
+      </footer>
+    </div>
+
+    <div class="max-h-40 w-lg overflow-auto my-8 border-2 border-border">
+      {
+        Array.from({ length: 100 }).map(() => (
+          <p>
+            Hello for the scrollbar example very very very very very very very
+            very very very long content
+          </p>
+        ))
+      }
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { getThemeController } from "@themvora/astro/runtime";
+  import { createScopedThemeBinding } from "@themvora/core";
+  import type { ThemeDefinition } from "@themvora/core";
+  import { ui } from "@themvora/app-shared/ui";
+  import {
+    previewColors,
+    scopedTheme,
+    selection,
+  } from "@themvora/app-shared/themes";
+
+  const controller = getThemeController();
+  const $ = <T extends Element>(selector: string) =>
+    document.querySelector(selector) as T;
+
+  const preview = $("#preview") as HTMLElement;
+  const previewBar = $("#preview-bar") as HTMLElement;
+  const previewAddress = $("#preview-address") as HTMLElement;
+  const previewLabel =
+    document.querySelector<HTMLElement>("[data-theme-label]")!;
+  const previewPair = document.querySelector<HTMLElement>("[data-theme-pair]")!;
+  const previewSwatches = $("#preview-swatches") as HTMLElement;
+  const previewPrimary = $("#preview-primary") as HTMLElement;
+  const previewSecondary = $("#preview-secondary") as HTMLElement;
+  const colorGrid = $("#color-grid") as HTMLElement;
+  const tokenCount = $("#token-count") as HTMLElement;
+  const scope = $("#scope") as HTMLElement;
+
+  // The framework-independent scoped-theme binding, driven by the controller's runtime.
+  const scopeBinding = createScopedThemeBinding(
+    controller.runtime.themes as readonly ThemeDefinition[],
+    scope,
+    scope.dataset.scopeTheme ?? `${scopedTheme}-light`,
+    {},
+  );
+
+  function render(): void {
+    const theme = controller.getTheme();
+    const resolvedMode = controller.getResolvedMode();
+    const colors = (theme.tokens?.colors ?? {}) as Record<
+      string,
+      string | undefined
+    >;
+    const get = (name: string, fallback = ""): string => {
+      const value = colors[name];
+      return typeof value === "string" ? value : fallback;
+    };
+
+    const background = get("background", "#fafbff");
+    const foreground = get("foreground", "#17172b");
+    const border = get("border", "#dfe3f5");
+    const muted = get("muted", "#f1f2fa");
+
+    // The hero pill and the two segmented controls are bootstrap-owned: the
+    // pre-paint script reconciles `[data-tv-readout]` and `[data-tv-pressed]`
+    // from `<html>` before the body is painted, and the controller keeps them
+    // live afterwards. Rendering them here would be a second writer racing the
+    // first — which is the flicker this page used to show.
+
+    preview.style.backgroundColor = background;
+    preview.style.borderColor = border;
+    preview.style.color = foreground;
+    previewBar.style.backgroundColor = muted;
+    previewBar.style.borderColor = border;
+    previewAddress.style.backgroundColor = background;
+    previewAddress.style.border = `1px solid ${border}`;
+
+    previewLabel.textContent = theme.meta?.label ?? "Themvora";
+    previewPair.textContent = `${foreground} on ${background}`;
+
+    previewSwatches.innerHTML = previewColors
+      .filter((name) => get(name))
+      .map(
+        (name) => `
+          <li class="flex items-center gap-1.5">
+            <span class="${ui.previewWindow.swatch}" style="background-color:${get(name)}"></span>
+            <span class="font-mono text-xs text-muted-foreground">${name}</span>
+          </li>`,
+      )
+      .join("");
+
+    previewPrimary.style.backgroundColor = get("primary");
+    previewPrimary.style.color = get("primaryForeground");
+    previewSecondary.style.backgroundColor = get("secondary");
+    previewSecondary.style.color = get("secondaryForeground");
+
+    const entries = Object.keys(colors)
+      .map((name) => [name, get(name)] as const)
+      .filter(([, value]) => value);
+
+    tokenCount.textContent = String(entries.length);
+    colorGrid.innerHTML = entries
+      .map(
+        ([name, value]) => `
+          <li class="min-w-0">
+            <button type="button" class="${ui.colorButton}" data-copy="${value}" title="Copy ${value}" aria-label="Copy ${name} ${value}">
+              <span class="size-9 shrink-0 rounded-md border-2 border-border" style="background-color:${value}"></span>
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-medium">${name}</span>
+                <span class="block truncate font-mono text-xs text-muted-foreground" data-value>${value}</span>
+              </span>
+            </button>
+          </li>`,
+      )
+      .join("");
+
+    scopeBinding.update(`${scopedTheme}-${resolvedMode}`);
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    // `[data-tv-pressed]` is the contract the pre-paint script and the
+    // controller both reconcile, so the handler reads the same attribute they
+    // write. `data-tv-value` is the option, and `dataset.tvValue` is how the
+    // DOM exposes it — distinct from the `data-value` the copy buttons use.
+    const pressed = target.closest<HTMLElement>("[data-tv-pressed]");
+    const value = pressed?.dataset.tvValue;
+    if (pressed && value) {
+      if (pressed.dataset.tvPressed === "mode") {
+        controller.setMode(value as "light" | "dark" | "system");
+      } else if (pressed.dataset.tvPressed === "family") {
+        controller.setFamily(value);
+      }
+      return;
+    }
+
+    const copyButton = target.closest<HTMLElement>("[data-copy]");
+    if (copyButton) {
+      void copy(copyButton.dataset.copy ?? "").then(() => {
+        const valueEl = copyButton.querySelector<HTMLElement>("[data-value]");
+        if (valueEl) flash(valueEl, "Copied!");
+      });
+    }
+  });
+
+  // Guard: only presets that are registered are wired above; `selection` is the
+  // documented preset list.
+  void selection;
+
+  async function copy(value: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  function flash(element: HTMLElement, text: string): void {
+    const original = element.dataset.original ?? element.textContent ?? "";
+    element.dataset.original = original;
+    element.textContent = text;
+    window.setTimeout(() => {
+      element.textContent = original;
+    }, 1400);
+  }
+
+  controller.subscribe(() => render());
+  render();
+</script>

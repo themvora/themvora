@@ -65,6 +65,9 @@ export function LibraryFrameworkGuide({
           code={current.code}
           language={current.lang}
           filename={current.filename ?? current.label}
+          {...(current.displayLanguage
+            ? { displayLanguage: current.displayLanguage }
+            : {})}
           className="rounded-lg m-0"
         />
       </section>

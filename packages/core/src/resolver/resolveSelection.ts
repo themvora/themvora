@@ -4,6 +4,7 @@ import {
   normalizeThemeFamily,
   type ThemeSelectionState,
 } from "../model";
+import { resolveThemeReference } from "../theme-reference";
 
 /**
  * Options for resolving a selection state.
@@ -12,13 +13,19 @@ export interface ResolveSelectionOptions<T extends ThemeDefinition> {
   /** Registered themes to resolve within. */
   themes: readonly T[];
 
-  /** Theme name to prefer when nothing else is given. */
-  defaultTheme?: T["name"];
+  /**
+   * Fallback theme: a **variant** name (`"mint-dark"`) or a **family** name
+   * (`"mint"`). See {@link resolveThemeReference}.
+   */
+  defaultTheme?: string;
 
   /** Initial mode. Defaults to the fallback theme's mode. */
   initialMode?: ThemeMode;
 
-  /** Initial family. Defaults to the fallback theme's family. */
+  /**
+   * Initial family. A variant name is accepted too and normalised to its
+   * family — its mode is then used only when `initialMode` is not supplied.
+   */
   initialFamily?: string;
 
   /** A persisted selection that wins over the other inputs when present. */
@@ -28,26 +35,30 @@ export interface ResolveSelectionOptions<T extends ThemeDefinition> {
 /**
  * Resolves a selection state from configuration inputs.
  *
- * Priority: `persistedSelection` wins; otherwise the resolved family/mode
- * default to the fallback theme's own family/mode. The fallback theme is
- * `defaultTheme` when provided and registered, else the first theme.
- *
- * The returned family is always one that exists in `themes`: a requested or
- * persisted family that is not registered is replaced by the fallback theme's
- * family. See {@link normalizeThemeFamily} for why that invariant matters.
+ * Priority: `persistedSelection` wins; otherwise `initialFamily` (family or
+ * variant), then `defaultTheme` (family or variant), then the first theme.
  *
  * @param options Resolution inputs.
  * @returns The resolved selection (family + mode).
  * @throws {Error} When `themes` is empty.
  * @see {@link resolveInitialTheme}
- * @see {@link resolveSelectionTheme}
+ * @see {@link resolveThemeReference}
  */
 export function resolveSelection<T extends ThemeDefinition>(
   options: ResolveSelectionOptions<T>,
 ): ThemeSelectionState {
-  const fallback =
-    options.themes.find((theme) => theme.name === options.defaultTheme) ??
-    options.themes[0];
+  const themes = options.themes;
+
+  // Both naming forms go through one resolver, so a family here behaves exactly
+  // as it does in `themeOverride` and in the pre-paint bootstrap.
+  const defaultRef = resolveThemeReference(themes, options.defaultTheme, {
+    ...(options.initialMode !== undefined ? { mode: options.initialMode } : {}),
+  });
+  const familyRef = resolveThemeReference(themes, options.initialFamily, {
+    ...(options.initialMode !== undefined ? { mode: options.initialMode } : {}),
+  });
+
+  const fallback = defaultRef?.theme ?? themes[0];
 
   if (!fallback) {
     throw new Error("At least one theme must be provided.");
@@ -56,7 +67,7 @@ export function resolveSelection<T extends ThemeDefinition>(
   if (options.persistedSelection) {
     return {
       family: normalizeThemeFamily(
-        options.themes,
+        themes,
         options.persistedSelection.family,
         fallback,
       ),
@@ -71,9 +82,21 @@ export function resolveSelection<T extends ThemeDefinition>(
   // family that is not registered at all, which would match no theme, drag
   // every downstream lookup to the `themes[0]` fallback, and leave the selection
   // naming a family that is not on screen.
-  return {
-    family: normalizeThemeFamily(options.themes, options.initialFamily, fallback),
+  const family = normalizeThemeFamily(
+    themes,
+    familyRef?.family ?? options.initialFamily,
+    fallback,
+  );
 
-    mode: options.initialMode ?? getThemeMode(fallback),
-  };
+  // Mode, in order: an explicit `initialMode`; the mode a *variant* reference
+  // states; the fallback theme's own mode. A family reference deliberately
+  // states none, so `initialFamily="mint"` keeps the mode the caller configured
+  // instead of quietly picking the family's light variant.
+  const mode: ThemeMode =
+    options.initialMode ??
+    familyRef?.mode ??
+    defaultRef?.mode ??
+    getThemeMode(fallback);
+
+  return { family, mode };
 }

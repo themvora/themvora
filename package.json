@@ -1,16 +1,22 @@
 {
   "name": "themvora",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "description": "Themvora monorepo: the published packages live under packages/, the docs site under apps/docs.",
   "scripts": {
     "clean": "node scripts/clean.mjs",
+    "test:scripts": "node --test scripts/clean.test.mjs scripts/release/audit-production.test.mjs scripts/release/module-specifiers.test.mjs scripts/docs/check-examples.test.mjs scripts/docs/audits/audit-c-examples.test.mjs",
     "themvora:audit:presets": "node scripts/audit-presets.mjs",
     "themvora:audit:brands": "node scripts/audit-brand-references.mjs",
     "lint": "node scripts/lint.mjs",
     "themvora:audit:presets:strict": "node scripts/audit-presets.mjs --strict-ui",
     "release:audit": "node scripts/release/audit-packages.mjs && node scripts/release/audit-dependencies.mjs && node scripts/release/export-inventory.mjs && node scripts/release/verify-breaking-contract.mjs && node scripts/release/jsdoc-audit.mjs && node scripts/release/snippet-audit.mjs",
     "release:audit:deps": "node scripts/release/audit-dependencies.mjs",
+    "audit:prod": "node scripts/release/audit-production.mjs",
     "release:audit:contract": "node scripts/release/verify-breaking-contract.mjs",
     "release:pack": "node scripts/release/pack-verify.mjs",
     "release:consumer": "node release-test/run.mjs",
@@ -37,6 +43,7 @@
     "docs:release-gate:full": "node scripts/docs/release-gate.mjs --full",
     "docs:release-gate:all": "node scripts/docs/release-gate.mjs --full --dynamic",
     "verify:astro-readouts": "node scripts/release/verify-astro-readouts.mjs",
+    "verify:remix-startup": "node scripts/release/verify-remix-startup.mjs",
     "verify:react-first-paint": "node scripts/release/verify-react-first-paint.mjs",
     "docs:api:check": "node apps/docs/scripts/generate-api-reference.mjs --check",
     "test:core": "pnpm --filter @themvora/core exec vitest run",
@@ -46,7 +53,10 @@
     "apps:build": "pnpm -r --filter \"./examples/apps/*\" run build",
     "apps:typecheck": "pnpm -r --filter \"./examples/apps/*\" run typecheck",
     "test:browser": "node scripts/web/browser-check.mjs",
-    "test:browser:strict": "node scripts/web/browser-check.mjs --strict"
+    "test:browser:strict": "node scripts/web/browser-check.mjs --strict",
+    "verify:astro-interaction": "node scripts/release/verify-astro-interaction.mjs",
+    "verify:astro-scrollbar": "node scripts/release/verify-astro-scrollbar.mjs --app astro-native && node scripts/release/verify-astro-scrollbar.mjs --app astro-react",
+    "verify:astro": "node scripts/release/verify-astro-interaction.mjs --app astro-native && node scripts/release/verify-astro-interaction.mjs --app astro-react && npm run verify:astro-scrollbar"
   },
   "keywords": [],
   "author": "",
@@ -59,6 +69,7 @@
     "prettier": "^3.9.6",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^4.1.10"
   }
 }

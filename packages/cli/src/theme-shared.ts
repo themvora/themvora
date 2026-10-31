@@ -1,4 +1,4 @@
-import type { ThemeDefinition } from "@themvora/core";
+import { parseThemeJson, type ThemeDefinition } from "@themvora/core";
 import { readFileSync } from "node:fs";
 
 /**
@@ -36,9 +36,12 @@ export function readThemeJSON(file: string): unknown {
   }
 
   try {
-    return JSON.parse(content);
-  } catch {
-    throw new Error(`file is not valid JSON: ${file}`);
+    // Shared with the editor: comments and trailing commas are accepted, and a
+    // genuinely broken file still reports where the parser gave up.
+    return parseThemeJson(content).value;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`file is not valid JSON or JSONC: ${file} — ${detail}`);
   }
 }
 

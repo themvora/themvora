@@ -1,0 +1,79 @@
+---
+// src/pages/native.astro — native controls on the same page as the island.
+//
+// Adding a renderer does not take the native components away: `<ThemeToggle />`
+// is still a real <button> with no island and no client:load, and
+// `<ThemeFamilySelect />` still wires itself. Both drive the one runtime the
+// island installs, so the two surfaces cannot disagree.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+import ThemeIsland from "../components/ThemeIsland";
+import themeConfig from "../../theme.config";
+---
+
+<BaseLayout>
+  <main>
+    <h1>Native controls + island</h1>
+
+    <section class="surface">
+      <h2>Astro, no client framework</h2>
+
+      <ThemeFamilySelect themes={themeConfig.themes} />
+
+      <ThemeToggle class="btn" label="Toggle light/dark" />
+      <ThemeToggle class="btn" showMode ariaLabel="Toggle colour scheme" />
+
+      <p class="muted">
+        family: <span data-tv-readout="family">—</span>
+        · mode: <span data-tv-readout="mode">—</span>
+        · theme: <span data-tv-readout="theme">—</span>
+      </p>
+    </section>
+
+    <ThemeIsland client:load />
+
+    <section class="surface">
+      <h2>One runtime, two surfaces</h2>
+
+      <p>
+        The select and the toggles above are plain Astro components — real form
+        controls, no island. The panel below them is React. Both drive the
+        single runtime the island installs, so the readouts, the controls and
+        the island's own text cannot disagree.
+      </p>
+
+      <p>
+        The overlay scrollbar on this page is the same one the island page
+        mounts: it is in the layout, so it survives client-side navigation
+        instead of being rebuilt per page.
+      </p>
+
+      <p>
+        Scroll, then toggle from the native button. The rail re-colours without
+        being torn down, and the island's text follows in the same frame.
+      </p>
+
+      <h2>Why the overlay lives in the layout</h2>
+
+      <p>
+        Mounting it per page would recreate the overlay on every navigation and
+        leave a gap where neither scrollbar is drawn. In the layout it is
+        mounted once, and the client router keeps the element — so a
+        navigation only re-measures it.
+      </p>
+
+      <p>
+        It is also the reason the layout passes <code>scrollbar</code> to the
+        provider: the class and the hiding CSS are then in the server-rendered
+        HTML, so the native bar is never painted in the first place. Without
+        that pairing the overlay still initializes, but only after the first
+        paint, and the native bar is visible until then.
+      </p>
+    </section>
+
+    <p>
+      <a href="/">Back to the island page</a>
+    </p>
+  </main>
+</BaseLayout>

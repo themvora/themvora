@@ -12,6 +12,7 @@ import type { ThemeDefinition, ThemeMode } from "./model/theme";
 import { getThemeFamilies, getThemeMode, normalizeThemeFamily } from "./model/selection";
 import type { ThemeSelectionState } from "./model/selection";
 import { resolveSelectedTheme } from "./model/resolve-selected-theme";
+import { resolveThemeReference } from "./theme-reference";
 import { createDiagnostic, emitDiagnostic } from "./diagnostics";
 import { getNeutralThemes } from "./neutral-themes";
 
@@ -137,21 +138,40 @@ export function resolveEffectiveConfiguration<T extends ThemeDefinition>(options
     return { selection, theme };
   }
 
-  const fallbackTheme =
-    themes.find((theme) => theme.name === options.defaultTheme) ?? themes[0]!;
+  // `defaultTheme` and `initialFamily` each accept a variant name or a family
+  // name, and both go through the same resolver the runtime uses at creation.
+  const defaultRef = resolveThemeReference(themes, options.defaultTheme, {
+    ...(options.initialMode !== undefined ? { mode: options.initialMode } : {}),
+  });
+  const familyRef = resolveThemeReference(themes, options.initialFamily, {
+    ...(options.initialMode !== undefined ? { mode: options.initialMode } : {}),
+  });
+
+  const fallbackTheme = defaultRef?.theme ?? themes[0]!;
 
   const requestedFamily =
     options.initialFamily && options.initialFamily.length > 0
       ? options.initialFamily
       : undefined;
 
-  const family = normalizeThemeFamily(themes, requestedFamily, fallbackTheme);
+  const family = normalizeThemeFamily(
+    themes,
+    familyRef?.family ?? requestedFamily,
+    fallbackTheme,
+  );
 
-  if (requestedFamily !== undefined && family !== requestedFamily) {
+  // Report only a reference that resolved to nothing. A variant name handed to
+  // `initialFamily` is a supported input now, so it must not be reported as an
+  // unknown family just because its text differs from the family it belongs to.
+  if (requestedFamily !== undefined && familyRef === null && family !== requestedFamily) {
     emitUnknownFamilyDiagnostic(requestedFamily, family, themes);
   }
 
-  const mode: ThemeMode = options.initialMode ?? getThemeMode(fallbackTheme);
+  const mode: ThemeMode =
+    options.initialMode ??
+    familyRef?.mode ??
+    defaultRef?.mode ??
+    getThemeMode(fallbackTheme);
 
   const selection: ThemeSelectionState = { family, mode };
   const theme = resolveSelectedTheme(themes, {

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 
 import { docsUrl } from "../../lib/site";
 export const metadata: Metadata = {
@@ -268,10 +267,9 @@ export default function MultiWindowSyncPage() {
             broadcast to all other tabs on the same origin that have subscribed
             to the same channel name.
           </div>
-          <CodeBlock
-            html={highlightCode(broadcastSyncSnippet.code, "ts")}
+          <CodeExample
             code={broadcastSyncSnippet.code}
-            language="ts"
+            lang="ts"
             filename={broadcastSyncSnippet.title}
             className="m-0"
           />
@@ -290,10 +288,9 @@ export default function MultiWindowSyncPage() {
             </code>{" "}
             directly:
           </div>
-          <CodeBlock
-            html={highlightCode(broadcastAdapterSnippet.code, "ts")}
+          <CodeExample
             code={broadcastAdapterSnippet.code}
-            language="ts"
+            lang="ts"
             filename={broadcastAdapterSnippet.title}
             className="m-0"
           />
@@ -318,10 +315,9 @@ export default function MultiWindowSyncPage() {
             modified — effectively giving you cross-tab messaging through the
             storage API.
           </div>
-          <CodeBlock
-            html={highlightCode(storageEventSnippet.code, "ts")}
+          <CodeExample
             code={storageEventSnippet.code}
-            language="ts"
+            lang="ts"
             filename={storageEventSnippet.title}
             className="m-0"
           />
@@ -385,24 +381,21 @@ export default function MultiWindowSyncPage() {
             on mount, subscribe to incoming changes, and clean up on unmount.
           </div>
           <div className="space-y-3">
-            <CodeBlock
-              html={highlightCode(reactSnippet.code, "tsx")}
+            <CodeExample
               code={reactSnippet.code}
-              language="tsx"
+              lang="tsx"
               filename={reactSnippet.title}
               className="m-0"
             />
-            <CodeBlock
-              html={highlightCode(vueSnippet.code, "ts")}
+            <CodeExample
               code={vueSnippet.code}
-              language="ts"
+              lang="ts"
               filename={vueSnippet.title}
               className="m-0"
             />
-            <CodeBlock
-              html={highlightCode(svelteSnippet.code, "ts")}
+            <CodeExample
               code={svelteSnippet.code}
-              language="ts"
+              lang="ts"
               filename={svelteSnippet.title}
               className="m-0"
             />
@@ -433,10 +426,9 @@ export default function MultiWindowSyncPage() {
             embedded widget, storefront), give each one a unique channel name.
             Messages on different channels never cross.
           </div>
-          <CodeBlock
-            html={highlightCode(customChannelSnippet.code, "ts")}
+          <CodeExample
             code={customChannelSnippet.code}
-            language="ts"
+            lang="ts"
             filename={customChannelSnippet.title}
             className="m-0"
           />
@@ -478,20 +470,6 @@ export default function MultiWindowSyncPage() {
               <span style={{ color: "var(--theme-color-primary)" }}>→</span>
             </a>
           </div>
-        </section>
-        <section id="api-reference" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={7}
-            desc="Every export used on this page is generated from source JSDoc — this guide links it rather than duplicating it."
-          >
-            API reference
-          </SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80">The full surface:</p>
-          <p className="mt-3 text-sm">
-            <a href="/api-reference/core" className="underline">
-              @themvora/core API reference
-            </a>
-          </p>
         </section>
 
         <RelatedLinks

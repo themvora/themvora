@@ -1,43 +1,165 @@
-function escapeHTML(str: string): string {
-  const map: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-    return str.replace(/[&<>"']/g, (c) => map[c] ?? c);
+/**
+ * The tab identifiers the panel renders.
+ *
+ * @remarks
+ * A fixed list, used both to build the tab bar and to validate `data-tab`
+ * values read back off the DOM. Nothing from a theme can add an entry.
+ */
+const TABS = [
+  ["inspector", "Inspector"],
+  ["events", "Events"],
+  ["performance", "Perf"],
+  ["css", "CSS Vars"],
+  ["history", "History"],
+] as const;
+
+type TabId = (typeof TABS)[number][0];
+
+/**
+ * The `DevToolsEntry["type"]` values, used as an allowlist for the
+ * `tv-type-<type>` class.
+ *
+ * @remarks
+ * The class name is built from recorded data, so it is only ever taken from
+ * this set: an unknown value gets the neutral base class instead of being
+ * spliced into `class="..."` where a space or a quote would let it name
+ * additional classes or break out of the attribute.
+ */
+const ENTRY_TYPES = new Set([
+  "theme-change",
+  "mode-change",
+  "family-change",
+  "persist",
+  "restore",
+  "batch",
+]);
+
+function isTabId(value: string | undefined): value is TabId {
+  return value !== undefined && TABS.some(([id]) => id === value);
 }
 
-function renderEntries(entries: unknown[]): string {
-  if (entries.length === 0) return "<p class='tv-devtools-empty'>No entries recorded.</p>";
-  return entries.map((e: any, i: number) => `
-    <div class="tv-devtools-entry">
-      <span class="tv-devtools-time">${new Date(e.timestamp).toLocaleTimeString()}</span>
-      <span class="tv-devtools-type tv-type-${e.type}">${escapeHTML(e.type)}</span>
-      <span class="tv-devtools-label">${escapeHTML(e.label)}</span>
-    </div>
-  `).join("");
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className?: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-function renderPerformance(perf: unknown[]): string {
-  if (perf.length === 0) return "<p class='tv-devtools-empty'>No performance data.</p>";
-  const maxDur = Math.max(...perf.map((p: any) => p.duration), 1);
-  return perf.map((p: any) => `
-    <div class="tv-devtools-perf-row">
-      <span class="tv-devtools-perf-type">${escapeHTML(p.type)}</span>
-      <div class="tv-devtools-bar-wrap">
-        <div class="tv-devtools-bar" style="width:${(p.duration / maxDur) * 100}%"></div>
-      </div>
-      <span class="tv-devtools-perf-val">${p.duration.toFixed(2)}ms</span>
-    </div>
-  `).join("");
+function emptyState(message: string): HTMLParagraphElement {
+  return element("p", "tv-devtools-empty", message);
 }
 
-function renderCSSVariables(vars: Record<string, string>): string {
-  const entries = Object.entries(vars);
-  if (entries.length === 0) return "<p class='tv-devtools-empty'>No CSS variables.</p>";
-  return entries.map(([key, val]) => `
-    <div class="tv-devtools-css-row">
-      <span class="tv-devtools-css-prop">${escapeHTML(key)}</span>
-      <span class="tv-devtools-css-val">${escapeHTML(val)}</span>
-      <span class="tv-devtools-css-swatch" style="background:${val}"></span>
-    </div>
-  `).join("");
+function renderEntries(entries: unknown[]): DocumentFragment {
+  const section = document.createDocumentFragment();
+
+  if (entries.length === 0) {
+    section.appendChild(emptyState("No entries recorded."));
+    return section;
+  }
+
+  for (const raw of entries as Array<Record<string, unknown>>) {
+    const row = element("div", "tv-devtools-entry");
+    const type = typeof raw.type === "string" ? raw.type : "";
+
+    row.appendChild(
+      element(
+        "span",
+        "tv-devtools-time",
+        new Date(Number(raw.timestamp)).toLocaleTimeString(),
+      ),
+    );
+    row.appendChild(
+      element(
+        "span",
+        ENTRY_TYPES.has(type) ? `tv-devtools-type tv-type-${type}` : "tv-devtools-type",
+        type,
+      ),
+    );
+    row.appendChild(
+      element(
+        "span",
+        "tv-devtools-label",
+        typeof raw.label === "string" ? raw.label : String(raw.label ?? ""),
+      ),
+    );
+
+    section.appendChild(row);
+  }
+
+  return section;
+}
+
+function renderPerformance(perf: unknown[]): DocumentFragment {
+  const section = document.createDocumentFragment();
+
+  if (perf.length === 0) {
+    section.appendChild(emptyState("No performance data."));
+    return section;
+  }
+
+  const rows = perf as Array<Record<string, unknown>>;
+  const maxDur = Math.max(...rows.map((p) => Number(p.duration) || 0), 1);
+
+  for (const p of rows) {
+    const duration = Number(p.duration) || 0;
+    const row = element("div", "tv-devtools-perf-row");
+
+    row.appendChild(
+      element(
+        "span",
+        "tv-devtools-perf-type",
+        typeof p.type === "string" ? p.type : String(p.type ?? ""),
+      ),
+    );
+
+    const wrap = element("div", "tv-devtools-bar-wrap");
+    const bar = element("div", "tv-devtools-bar");
+    // A number is the only thing a width may be, so it is set as a property
+    // rather than interpolated into a style attribute.
+    bar.style.setProperty("width", `${(duration / maxDur) * 100}%`);
+    wrap.appendChild(bar);
+    row.appendChild(wrap);
+
+    row.appendChild(
+      element("span", "tv-devtools-perf-val", `${duration.toFixed(2)}ms`),
+    );
+
+    section.appendChild(row);
+  }
+
+  return section;
+}
+
+function renderCSSVariables(vars: Record<string, string>): DocumentFragment {
+  const section = document.createDocumentFragment();
+  const entries = Object.entries(vars ?? {});
+
+  if (entries.length === 0) {
+    section.appendChild(emptyState("No CSS variables."));
+    return section;
+  }
+
+  for (const [key, value] of entries) {
+    const row = element("div", "tv-devtools-css-row");
+    row.appendChild(element("span", "tv-devtools-css-prop", key));
+    row.appendChild(element("span", "tv-devtools-css-val", String(value)));
+
+    const swatch = element("span", "tv-devtools-css-swatch");
+    // `setProperty` parses the value as a single declaration value: a payload
+    // such as `red; background-image: url(…)` is rejected outright instead of
+    // becoming two declarations, which is what the old
+    // `style="background:${val}"` attribute interpolation allowed.
+    swatch.style.setProperty("background", String(value));
+    row.appendChild(swatch);
+
+    section.appendChild(row);
+  }
+
+  return section;
 }
 
 /**
@@ -50,6 +172,14 @@ function renderCSSVariables(vars: Record<string, string>): string {
  *
  * @param inspector The inspector to render and control.
  * @returns An `HTMLElement` containing the devtools panel.
+ *
+ * @remarks
+ * Every value the inspector reports — theme names, family names, CSS variable
+ * names and values, entry labels and types — is written with `textContent`,
+ * `style.setProperty()` or a validated `className`, never interpolated into an
+ * HTML string. Escaping alone would not have been enough: the CSS-variable
+ * swatch is a *CSS* context, where an HTML escape leaves the declaration
+ * separator and `url()` intact.
  *
  * @see {@link createDevToolsInspector}
  */
@@ -69,112 +199,163 @@ export function createDevToolsPanel(inspector: {
   root.setAttribute("role", "complementary");
   root.setAttribute("aria-label", "Themvora DevTools");
 
-  let currentTab = "inspector";
+  let currentTab: TabId = "inspector";
+
+  function download(contents: string, type: string, filename: string) {
+    const blob = new Blob([contents], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function buildTab(state: any): DocumentFragment {
+    const history = (state.history ?? []) as Array<{ index: number }>;
+
+    switch (currentTab) {
+      case "inspector": {
+        const fragment = document.createDocumentFragment();
+
+        const themeSection = element("section", "tv-devtools-section");
+        themeSection.appendChild(element("h4", undefined, "Current Theme"));
+        const themePre = document.createElement("pre");
+        themePre.textContent = JSON.stringify(state.currentTheme, null, 2);
+        themeSection.appendChild(themePre);
+        fragment.appendChild(themeSection);
+
+        const selectionSection = element("section", "tv-devtools-section");
+        selectionSection.appendChild(element("h4", undefined, "Selection"));
+        const selectionPre = document.createElement("pre");
+        selectionPre.textContent = JSON.stringify(state.selection, null, 2);
+        selectionSection.appendChild(selectionPre);
+        fragment.appendChild(selectionSection);
+
+        return fragment;
+      }
+      case "events": {
+        const fragment = document.createDocumentFragment();
+        const section = element("section", "tv-devtools-section");
+        section.appendChild(element("h4", undefined, "Lifecycle Events"));
+        section.appendChild(renderEntries(inspector.getEntries()));
+        fragment.appendChild(section);
+        return fragment;
+      }
+      case "performance": {
+        const fragment = document.createDocumentFragment();
+        const section = element("section", "tv-devtools-section");
+        section.appendChild(element("h4", undefined, "Performance"));
+        section.appendChild(renderPerformance(inspector.getPerformance()));
+        fragment.appendChild(section);
+        return fragment;
+      }
+      case "css": {
+        const fragment = document.createDocumentFragment();
+        const section = element("section", "tv-devtools-section");
+        section.appendChild(element("h4", undefined, "CSS Variables"));
+        section.appendChild(renderCSSVariables(state.cssVariables ?? {}));
+        fragment.appendChild(section);
+        return fragment;
+      }
+      case "history": {
+        const fragment = document.createDocumentFragment();
+        const section = element("section", "tv-devtools-section");
+        section.appendChild(
+          element("h4", undefined, `History (${history.length} entries)`),
+        );
+        const list = element("div", "tv-devtools-history");
+
+        for (const entry of history) {
+          const row = element("div", "tv-devtools-history-entry");
+          row.appendChild(element("span", undefined, `#${entry.index}`));
+          const jump = element("button", undefined, "Jump");
+          jump.dataset.jump = String(entry.index);
+          row.appendChild(jump);
+          list.appendChild(row);
+        }
+
+        section.appendChild(list);
+        fragment.appendChild(section);
+        return fragment;
+      }
+      default:
+        return document.createDocumentFragment();
+    }
+  }
 
   function render() {
-    const state = inspector.getState();
-    root.innerHTML = `
-      <div class="tv-devtools-header">
-        <h3>Themvora DevTools</h3>
-        <nav class="tv-devtools-tabs">
-          <button class="tv-tab ${currentTab === "inspector" ? "active" : ""}" data-tab="inspector">Inspector</button>
-          <button class="tv-tab ${currentTab === "events" ? "active" : ""}" data-tab="events">Events</button>
-          <button class="tv-tab ${currentTab === "performance" ? "active" : ""}" data-tab="performance">Perf</button>
-          <button class="tv-tab ${currentTab === "css" ? "active" : ""}" data-tab="css">CSS Vars</button>
-          <button class="tv-tab ${currentTab === "history" ? "active" : ""}" data-tab="history">History</button>
-        </nav>
-      </div>
-      <div class="tv-devtools-body">
-        ${renderTab(state)}
-      </div>
-      <div class="tv-devtools-footer">
-        <button id="tv-clear-entries">Clear Events</button>
-        <button id="tv-clear-perf">Clear Perf</button>
-        <button id="tv-export-json">Export JSON</button>
-        <button id="tv-export-css">Export CSS</button>
-      </div>
-    `;
+    root.innerHTML = "";
 
-    root.querySelectorAll(".tv-tab").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        currentTab = (btn as HTMLButtonElement).dataset.tab!;
-        render();
-      });
-    });
+    const header = element("div", "tv-devtools-header");
+    header.appendChild(element("h3", undefined, "Themvora DevTools"));
 
-    const clearBtn = root.querySelector("#tv-clear-entries") as HTMLButtonElement;
-    if (clearBtn) clearBtn.addEventListener("click", () => inspector.clearEntries());
+    const nav = element("nav", "tv-devtools-tabs");
+    for (const [id, label] of TABS) {
+      const button = element(
+        "button",
+        currentTab === id ? "tv-tab active" : "tv-tab",
+        label,
+      );
+      button.dataset.tab = id;
+      nav.appendChild(button);
+    }
+    header.appendChild(nav);
+    root.appendChild(header);
 
-    const perfBtn = root.querySelector("#tv-clear-perf") as HTMLButtonElement;
-    if (perfBtn) perfBtn.addEventListener("click", () => inspector.clearPerformance());
+    const body = element("div", "tv-devtools-body");
+    body.appendChild(buildTab(inspector.getState()));
+    root.appendChild(body);
 
-    const jsonBtn = root.querySelector("#tv-export-json") as HTMLButtonElement;
-    if (jsonBtn) jsonBtn.addEventListener("click", () => {
-      const blob = new Blob([inspector.exportState()], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "themvora-state.json"; a.click();
-      URL.revokeObjectURL(url);
-    });
+    const footer = element("div", "tv-devtools-footer");
 
-    const cssBtn = root.querySelector("#tv-export-css") as HTMLButtonElement;
-    if (cssBtn) cssBtn.addEventListener("click", () => {
+    const clearEntries = element("button", undefined, "Clear Events");
+    clearEntries.id = "tv-clear-entries";
+    clearEntries.addEventListener("click", () => inspector.clearEntries());
+    footer.appendChild(clearEntries);
+
+    const clearPerf = element("button", undefined, "Clear Perf");
+    clearPerf.id = "tv-clear-perf";
+    clearPerf.addEventListener("click", () => inspector.clearPerformance());
+    footer.appendChild(clearPerf);
+
+    const exportJson = element("button", undefined, "Export JSON");
+    exportJson.id = "tv-export-json";
+    exportJson.addEventListener("click", () =>
+      download(inspector.exportState(), "application/json", "themvora-state.json"),
+    );
+    footer.appendChild(exportJson);
+
+    const exportCss = element("button", undefined, "Export CSS");
+    exportCss.id = "tv-export-css";
+    exportCss.addEventListener("click", () => {
       const cssVars = inspector.exportCSS();
-      const css = Object.entries(cssVars).map(([k, v]) => `${k}: ${v};`).join("\n  ");
-      const blob = new Blob([`/* Themvora CSS Variables */\n:root {\n  ${css}\n}`], { type: "text/css" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "themvora.css"; a.click();
-      URL.revokeObjectURL(url);
+      const css = Object.entries(cssVars)
+        .map(([k, v]) => `${k}: ${v};`)
+        .join("\n  ");
+      download(
+        `/* Themvora CSS Variables */\n:root {\n  ${css}\n}`,
+        "text/css",
+        "themvora.css",
+      );
     });
+    footer.appendChild(exportCss);
+
+    root.appendChild(footer);
   }
 
-  function renderTab(state: any): string {
-    const history = (state.history ?? []) as Array<{ index: number }>;
-    const cssVars = (state.cssVariables ?? {}) as Record<string, string>;
-    switch (currentTab) {
-      case "inspector":
-        return `
-          <section class="tv-devtools-section">
-            <h4>Current Theme</h4>
-            <pre>${escapeHTML(JSON.stringify(state.currentTheme, null, 2))}</pre>
-          </section>
-          <section class="tv-devtools-section">
-            <h4>Selection</h4>
-            <pre>${escapeHTML(JSON.stringify(state.selection, null, 2))}</pre>
-          </section>
-        `;
-      case "events":
-        return `<section class="tv-devtools-section"><h4>Lifecycle Events</h4>${renderEntries(inspector.getEntries())}</section>`;
-      case "performance":
-        return `<section class="tv-devtools-section"><h4>Performance</h4>${renderPerformance(inspector.getPerformance())}</section>`;
-      case "css":
-        return `<section class="tv-devtools-section"><h4>CSS Variables</h4>${renderCSSVariables(state.cssVariables || {})}</section>`;
-      case "history":
-        return `
-          <section class="tv-devtools-section">
-            <h4>History (${state.history.length} entries)</h4>
-            <div class="tv-devtools-history">
-              ${state.history.map((h: any) => `
-                <div class="tv-devtools-history-entry">
-                  <span>#${h.index}</span>
-                  <button data-jump="${h.index}">Jump</button>
-                </div>
-              `).join("")}
-            </div>
-          </section>
-        `;
-      default:
-        return "";
-    }
-  }
-
+  // Delegated so a re-render does not stack listeners on fresh nodes.
   root.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    if (target.dataset.tab) {
-      currentTab = target.dataset.tab;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    const tab = target.dataset.tab;
+    if (isTabId(tab)) {
+      currentTab = tab;
       render();
+      return;
     }
+
     if (target.dataset.jump !== undefined) {
       inspector.jump(Number(target.dataset.jump));
     }

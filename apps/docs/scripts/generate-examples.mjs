@@ -4,10 +4,14 @@
  *
  * `/examples` must describe implementations that actually exist — the whole
  * point of the page is that you can run and copy them. So nothing here is
- * authored: the 21 concept examples come from their own `example.meta.json`
- * files, and the 11 framework starter apps from their `package.json`
- * (`@themvora/*` dependencies + the `dev` script), which live under
- * `examples/apps/`.
+ * authored: the concept examples come from their own `example.meta.json` files
+ * under `examples/<feature>/<framework>/`, and the framework starter apps from
+ * their `package.json` (`@themvora/*` dependencies + the `dev` script), which
+ * live under `examples/apps/`.
+ *
+ * Counts are deliberately not written down here. They were, and they drifted:
+ * the doc comment still claimed 21 concepts and 11 starters long after both
+ * numbers had changed, which is how a stale catalogue stays believable.
  *
  *   node scripts/generate-examples.mjs           # write
  *   node scripts/generate-examples.mjs --check   # verify (CI gate)
@@ -63,6 +67,10 @@ function collectStarters() {
   const out = [];
   for (const entry of readdirSync(APPS, { withFileTypes: true })) {
     if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) continue;
+    // A `_`-prefixed directory under `apps/` is tooling, not an example: the
+    // browser probes keep their Playwright install in `apps/_tools`, which has a
+    // manifest but no framework, no dev server and nothing to demonstrate.
+    if (entry.name.startsWith("_")) continue;
     let pkg;
     try {
       pkg = JSON.parse(readFileSync(join(APPS, entry.name, "package.json"), "utf8"));
@@ -129,8 +137,8 @@ function render(concepts, starters) {
  * GENERATED FILE — do not edit.
  *
  * Produced by \`apps/docs/scripts/generate-examples.mjs\` from the real
- * \`examples/\` workspace: the 21 concept examples' own \`example.meta.json\`
- * files and the 10 framework starter apps' \`package.json\`. Regenerate with
+ * \`examples/\` workspace: the concept examples' own \`example.meta.json\`
+ * files and the framework starter apps' \`package.json\`. Regenerate with
  * \`pnpm --filter @themvora/docs examples:generate\`; \`examples:check\` fails
  * when this drifts.
  *

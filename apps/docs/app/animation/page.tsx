@@ -5,7 +5,68 @@ import { PageHeader } from "../../components/ui/page-header";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { AnimationGuide } from "./AnimationGuide";
+import {
+  animationsPluginOptionsSnippet,
+  animationsPluginSnippet,
+  bestPracticesSnippet,
+  enableExamples,
+  frameworkSnippets,
+  liveTransitionSnippet,
+  runtimeConfigureSnippet,
+  runtimeTokenUpdateSnippet,
+  suppressTransitionSnippet,
+  transitionPropSnippet,
+  viewTransitionSnippet,
+} from "./snippets";
+import { compatibilityLabels, javascriptSources } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
+
+/**
+ * Every snippet the guide can render, in one place.
+ *
+ * Both derivations below read this list, so a snippet can never be paired
+ * without also being labelled — or the other way round.
+ *
+ * The framework key is carried onto each entry rather than dropped: it is what
+ * keeps Angular's snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`),
+ * and `Object.values` would have discarded the only copy of it.
+ */
+const snippets = [
+  ...Object.entries(enableExamples).map(([framework, snippet]) => ({
+    ...snippet,
+    framework,
+  })),
+  ...Object.entries(frameworkSnippets).map(([framework, snippet]) => ({
+    ...snippet,
+    framework,
+  })),
+  viewTransitionSnippet,
+  bestPracticesSnippet,
+  transitionPropSnippet,
+  animationsPluginSnippet,
+  animationsPluginOptionsSnippet,
+  liveTransitionSnippet,
+  suppressTransitionSnippet,
+  runtimeConfigureSnippet,
+  runtimeTokenUpdateSnippet,
+];
+
+/**
+ * The JavaScript counterpart of every snippet the guide can render.
+ *
+ * Derived here, on the server, because the guide is a client component and the
+ * TypeScript compiler cannot be shipped to the browser. Only the derived source
+ * crosses the boundary; the guide highlights it with its own Shiki instance.
+ */
+const jsSources = javascriptSources(snippets);
+
+/**
+ * The compatibility badge of every snippet — `TS / JS`, `TS`, and so on.
+ *
+ * Separate from `jsSources` because a label is metadata, not source: a snippet
+ * highlighted with the TypeScript grammar may still be valid JavaScript.
+ */
+const labels = compatibilityLabels(snippets);
 
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/animation") },
@@ -67,7 +128,7 @@ export default function AnimationPage() {
           className="mb-8"
         />
 
-        <AnimationGuide />
+        <AnimationGuide jsSources={jsSources} labels={labels} />
 
         <RelatedLinks
           links={[

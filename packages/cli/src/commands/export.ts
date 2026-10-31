@@ -1,17 +1,10 @@
-import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
+import { themeToCssDocument, themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { writeFileSync } from "node:fs";
 import { getString } from "../utils.js";
 import type { ParsedArgs } from "../utils.js";
 import { UsageError } from "../exit-codes.js";
 import { readThemeJSON, isThemePair } from "../theme-shared.js";
 import { status } from "../output.js";
-
-function cssBlock(selector: string, map: Record<string, string>): string {
-  const lines = Object.entries(map)
-    .map(([key, val]) => `  ${key}: ${val};`)
-    .join("\n");
-  return `${selector} {\n${lines}\n}`;
-}
 
 /**
  * Implements the `export` command: exports a theme file as CSS variables or
@@ -20,6 +13,12 @@ function cssBlock(selector: string, map: Record<string, string>): string {
  * Reads `--file`/`-f` (or the first positional), `--format`/`-F` (`css` or
  * `json`), and `--output`/`-o`. Prints the exported CSS or JSON to stdout, or
  * writes it to the output file when provided.
+ *
+ * @remarks
+ * The CSS document is formatted by core's `themeToCssDocument()`, not here. The
+ * extension's Copy CSS Variables command calls the same function, so the CSS a
+ * user copies in the editor is byte-identical to the CSS this command writes.
+ * What stays in the CLI is the file handling: `--output` and the status line.
  *
  * @param args The parsed command-line arguments.
  * @throws {UsageError} When no file is provided or the format is unknown.
@@ -38,18 +37,9 @@ export async function cmdExport(args: ParsedArgs) {
   const parsed = readThemeJSON(file);
 
   if (format === "css") {
-    let css: string;
-
-    if (isThemePair(parsed)) {
-      css = [
-        cssBlock(":root", themeToCSSVariables(parsed.light)),
-        "",
-        cssBlock('.dark, [data-theme="dark"]', themeToCSSVariables(parsed.dark)),
-        "",
-      ].join("\n");
-    } else {
-      css = `${cssBlock(":root", themeToCSSVariables(parsed as ThemeDefinition))}\n`;
-    }
+    const css = themeToCssDocument(
+      isThemePair(parsed) ? parsed : (parsed as ThemeDefinition),
+    );
 
     if (output) {
       writeFileSync(output, css, "utf-8");

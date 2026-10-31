@@ -28,7 +28,11 @@ ThemvoraScrollbar.define();
  *
  * It resolves the runtime from the nearest ancestor that has one — the
  * `<themvora-provider>` element, or the runtime `ThemeProviderClient` installs
- * (which `@themvora/astro` publishes on `<html>`).
+ * (which `@themvora/astro` publishes on `<html>`) — and installs the app-wide
+ * runtime itself when the page has none. That second half is what makes the
+ * overlay work on a page with no island: the native controls are deliberately
+ * lazy and create the runtime on first use, so depending on them meant the
+ * scrollbar only appeared *after* a theme change and vanished again on refresh.
  *
  * The props are the same four groups every other adapter uses. Astro has no
  * nested props on a custom element, so each group is flattened onto the
@@ -141,6 +145,31 @@ for (const [key, value] of Object.entries(props.icons ?? {})) {
 <themvora-scrollbar {...attrs}></themvora-scrollbar>
 
 <script>
+  import { getThemeController } from "@themvora/astro/runtime";
   import { ThemvoraScrollbar } from "@themvora/web";
+
   ThemvoraScrollbar.define();
+
+  // The overlay cannot exist without a runtime: `createOverlayScrollbar` reads
+  // every colour from `runtime.store`, so `<themvora-scrollbar>` subscribes to
+  // the app-wide runtime the moment it connects.
+  //
+  // Astro's provider is server-rendered *markup*, not a `<themvora-provider>`
+  // element, so there is no ancestor runtime to inherit — the element resolves
+  // one by walking up to `<html>`, where `@themvora/astro` publishes it, and
+  // otherwise parks on the `theme-ready` event. Nothing on a page with no
+  // island ever published one: `<ThemeToggle />`'s bindings are deliberately
+  // lazy and create the runtime on the first *click*. So the overlay only
+  // appeared after a theme change, and a refresh took it away again.
+  //
+  // `getThemeController()` is the documented "get or create the app-wide
+  // runtime" entry, not a second engine: when an island already installed a
+  // runtime this adopts it, so a page that mixes `<ThemeScrollbar />` with a
+  // React island still has exactly one runtime writing `<html>`.
+  //
+  // Order-independent with `define()` above, which is why both calls are safe
+  // in either order: if the runtime exists first, the element's
+  // `connectedCallback` finds it on `<html>`; if it does not, the element parks
+  // on `theme-ready` and this call dispatches it.
+  getThemeController();
 </script>

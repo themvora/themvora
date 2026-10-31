@@ -1,0 +1,26 @@
+{
+  "name": "@themvora/app-solid",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5193 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --port 5193 --strictPort"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@themvora/app-shared": "workspace:*",
+    "@themvora/core": "workspace:*",
+    "@themvora/solid": "workspace:*",
+    "@themvora/tailwind": "workspace:*",
+    "solid-js": "^1.9.14",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5",
+    "vite-plugin-solid": "^2.11.0"
+  }
+}

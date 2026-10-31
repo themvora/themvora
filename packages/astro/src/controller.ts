@@ -7,9 +7,13 @@ import {
   type ThemeRuntime,
   type ThemeRuntimeOptions,
 } from "@themvora/core";
-import { THEME_READOUT_ATTRIBUTE } from "./attributes";
+import { patchReadouts, syncPressedControls, syncSelectionControls } from "./dom";
 import { createAstroThemePersistence } from "./persistence";
-import { getGlobalRuntime, setGlobalRuntime } from "./shared-runtime";
+import {
+  getGlobalRuntime,
+  releaseGlobalRuntime,
+  setGlobalRuntime,
+} from "./shared-runtime";
 
 /**
  * The reactive state a {@link ThemeController} publishes to its subscribers.
@@ -159,58 +163,6 @@ export type ThemeControllerOptions<T extends ThemeDefinition> = Partial<
 };
 
 /**
- * Resolves the text a readout element should display.
- *
- * @param kind - The element's `data-tv-readout` value.
- * @param theme - The resolved theme.
- * @param mode - The visitor's mode selection.
- * @param family - The visitor's family selection.
- * @returns The text, or `null` for a kind this contract does not own.
- *
- * @internal
- */
-function readoutValue<T extends ThemeDefinition>(
-  kind: string | null,
-  theme: T,
-  mode: ThemeMode,
-  family: string,
-): string | null {
-  if (kind === "theme") return String(theme.name);
-  if (kind === "mode") return mode;
-  if (kind === "family") return family;
-  return null;
-}
-
-/**
- * Writes the live state into every `[data-tv-readout]` element.
- *
- * @internal
- */
-function patchReadouts<T extends ThemeDefinition>(
-  theme: T,
-  mode: ThemeMode,
-  family: string,
-) {
-  if (typeof document === "undefined") return;
-
-  const els = document.querySelectorAll<HTMLElement>(
-    `[${THEME_READOUT_ATTRIBUTE}]`,
-  );
-  for (let i = 0; i < els.length; i += 1) {
-    const el = els[i]!;
-    const value = readoutValue(
-      el.getAttribute(THEME_READOUT_ATTRIBUTE),
-      theme,
-      mode,
-      family,
-    );
-    if (value != null && el.textContent !== value) {
-      el.textContent = value;
-    }
-  }
-}
-
-/**
  * Builds a controller around an existing runtime.
  *
  * @param runtime - The runtime to wrap.
@@ -261,16 +213,26 @@ function wrapRuntime<T extends ThemeDefinition>(
   // subscription. A `<ThemeToggle showMode />` has no subscriber of its own —
   // it just calls `toggleTheme()` — and without this its label would keep the
   // value the pre-paint bootstrap wrote and never move again.
-  const unsubReadouts = readouts
-    ? observe((state) => patchReadouts(state.theme, state.mode, state.family))
-    : null;
+  //
+  // The two *state* contracts are reconciled unconditionally, unlike the
+  // readouts. They only touch elements that opted in with an attribute, so they
+  // cost one query on a page that uses neither — and gating them on `readouts`
+  // would mean a page that renders its own text but marks a segmented control
+  // with `data-tv-pressed` never sees that control move.
+  const unsubDom = observe((state) => {
+    if (readouts) patchReadouts(state.theme, state.mode, state.family);
+    syncPressedControls(state.mode, state.family);
+    syncSelectionControls(state.mode, state.family);
+  });
 
-  // Patch once now, so a readout rendered on a page whose bootstrap did not run
+  // Patch once now, so a control rendered on a page whose bootstrap did not run
   // (JS-enabled but `injectBootstrap: false`) is correct from the first frame
   // the runtime exists rather than from the first change.
-  if (readouts) {
+  {
     const initial = readState();
-    patchReadouts(initial.theme, initial.mode, initial.family);
+    if (readouts) patchReadouts(initial.theme, initial.mode, initial.family);
+    syncPressedControls(initial.mode, initial.family);
+    syncSelectionControls(initial.mode, initial.family);
   }
 
   return {
@@ -290,8 +252,14 @@ function wrapRuntime<T extends ThemeDefinition>(
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      unsubReadouts?.();
-      if (owns) runtime.destroy();
+      unsubDom();
+      if (owns) {
+        runtime.destroy();
+        // A destroyed runtime must stop being the app-wide one, or the next
+        // island to mount adopts it and paints nothing. See
+        // `releaseGlobalRuntime`.
+        releaseGlobalRuntime(runtime);
+      }
     },
   };
 }
@@ -423,13 +391,19 @@ export function getThemeController<T extends ThemeDefinition>(
   // Re-wrap whenever the installed runtime changes: a React island mounts its
   // own runtime through `ThemeProviderClient`, and a controller cached against
   // the previous one would then drive a runtime nothing is listening to.
-  if (cached && live && cached.runtime === live) return cached as ThemeController<T>;
+  //
+  // The two casts below go through `unknown` because `ThemeController<T>` and
+  // `ThemeRuntime<T>` are invariant in `T` — the cached slot holds the
+  // type-erased controller for the document, and the generic accessor
+  // re-asserts the caller's `T` on the way out. See `setGlobalRuntime`.
+  if (cached && live && cached.runtime === live)
+    return cached as unknown as ThemeController<T>;
 
   const controller = live
-    ? wrapRuntime(live as ThemeRuntime<T>, options.readouts ?? true, false)
+    ? wrapRuntime(live as unknown as ThemeRuntime<T>, options.readouts ?? true, false)
     : createThemeController<T>(options);
 
-  controllers.set(key, controller as ThemeController<ThemeDefinition>);
+  controllers.set(key, controller as unknown as ThemeController<ThemeDefinition>);
   return controller;
 }
 

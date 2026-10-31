@@ -1,0 +1,49 @@
+import { defineTheme } from "@themvora/core";
+
+export const brand = defineTheme({
+  "name": "generated-light",
+  "meta": {
+    "family": "generated",
+    "mode": "light",
+    "label": "Generated Light",
+    "order": 10,
+    "generation": {
+      "kind": "generated",
+      "algorithm": "semantic-v2",
+      "seed": "#0ea5e9",
+      "contrast": {
+        "text": 4.5,
+        "largeText": 3,
+        "ui": 3
+      }
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#eef2f5",
+      "foreground": "#171b1e",
+      "muted": "#e4e8eb",
+      "mutedForeground": "#626668",
+      "card": "#f7fcff",
+      "cardForeground": "#171b1e",
+      "popover": "#f3f7fa",
+      "popoverForeground": "#171b1e",
+      "primary": "#0090cd",
+      "primaryForeground": "#0e1215",
+      "secondary": "#dee5ea",
+      "secondaryForeground": "#212527",
+      "accent": "#6a82cc",
+      "accentForeground": "#0e1215",
+      "destructive": "#cc2827",
+      "destructiveForeground": "#f8fcff",
+      "success": "#0a8234",
+      "successForeground": "#f8fcff",
+      "border": "#d5dadd",
+      "input": "#83888b",
+      "ring": "#0086bf"
+    },
+    "radius": {
+      "lg": "8px"
+    }
+  }
+});

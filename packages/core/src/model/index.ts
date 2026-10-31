@@ -1,4 +1,12 @@
-export type { ThemeDefinition, ThemeFamilies, ThemeModes, ThemeMode, ThemeName } from "./theme";
+export type {
+  ThemeDefinition,
+  ThemeFamilies,
+  ThemeFamilyOf,
+  ThemeIdentifier,
+  ThemeModes,
+  ThemeMode,
+  ThemeName,
+} from "./theme";
 export type { ThemeMeta } from "./meta";
 export type { CodeTokens, ThemeTokens } from "./tokens";
 export type {
@@ -14,7 +22,7 @@ export {
   isCoreColor,
   isOptionalSemantic,
 } from "./semantic-roles";
-export type { ThemeSelectionState } from "./selection";
+export type { ThemeEffectiveSelection, ThemeSelectionState } from "./selection";
 export { getThemeFamilies, getThemeFamily, getThemeMode, normalizeThemeFamily, resolveThemeName } from "./selection";
 export { resolveSelectedTheme } from "./resolve-selected-theme";
 export { composeTheme } from "./compose-theme";

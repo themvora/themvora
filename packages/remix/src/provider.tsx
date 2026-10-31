@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import type {
   InitialThemeResolution,
   ThemeDefinition,
+  ThemeIdentifier,
   ThemeMode,
 } from "@themvora/core";
 import {
@@ -39,8 +40,11 @@ export interface ThemeProviderProps<T extends ThemeDefinition> {
   initial?: InitialThemeResolution<T>;
   /** The theme registry the selection is resolved against. */
   themes?: readonly T[];
-  /** Fallback theme name when no selection is persisted. */
-  defaultTheme?: T["name"];
+  /** Fallback theme when no selection is persisted.
+   * Accepts a supplied theme **name** (`"cocoa-light"`) or a **family**
+   * (`"cocoa"`); a family resolves to the variant for the mode in effect.
+   */
+  defaultTheme?: ThemeIdentifier<T>;
   /**
    * Mode used when neither `initial` nor a persisted selection is available.
    *
@@ -55,8 +59,26 @@ export interface ThemeProviderProps<T extends ThemeDefinition> {
   /**
    * Family used when neither `initial` nor a persisted selection is available.
    * Pair it with `initialMode` for the same reason.
+   *
+   * Constrained to the identifiers in `themes` when they are statically known.
+   * A variant name is accepted and normalised to its family; its mode applies
+   * only when `initialMode` is absent.
    */
-  initialFamily?: string;
+  initialFamily?: ThemeIdentifier<T>;
+  /**
+   * An explicit theme override applied over any persisted selection.
+   *
+   * Applied once per value, never written to the theme cookies, and it does not
+   * fight a later manual selection. For a flash-free override, pass the same
+   * value to {@link ThemeHead} so the pre-paint script resolves it too.
+   *
+   * @see `ThemeRuntimeOptions.themeOverride`
+   */
+  themeOverride?:
+    | import("@themvora/core").ThemeOverride<
+        import("@themvora/core").ThemeIdentifier<T>
+      >
+    | undefined;
   /** The application content rendered inside the provider. */
   children: React.ReactNode;
 }
@@ -140,6 +162,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
   initial,
   themes,
   defaultTheme,
+  themeOverride,
   initialMode,
   initialFamily,
   children,
@@ -165,6 +188,8 @@ export function ThemeProvider<T extends ThemeDefinition>({
       // changes. When an SSR-resolved `initial` is present it still wins, so
       // the zero-flash path is unchanged.
       {...(defaultTheme !== undefined ? { defaultTheme } : {})}
+      // Unconditional: the React provider observes removal through this key.
+      themeOverride={themeOverride}
       {...(initialMode !== undefined ? { initialMode } : {})}
       {...(initialFamily !== undefined ? { initialFamily } : {})}
       readPersistenceOnInit={!initial}

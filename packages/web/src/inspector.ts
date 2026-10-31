@@ -51,26 +51,148 @@ function isColorValue(value: string): boolean {
   );
 }
 
-function entryRow(path: string, value: string): string {
-  const swatch = isColorValue(value)
-    ? `<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:${value};border:1px solid var(--theme-color-border);box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);" aria-hidden="true"></span>`
-    : "";
-  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;padding:3px 4px;border-radius:6px;font-family:var(--font-mono, ui-monospace, monospace);">
-    <span title="${path}" style="color:var(--theme-color-muted-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">${path}</span>
-    <span style="display:flex;align-items:center;gap:6px;min-width:0;max-width:60%;justify-content:flex-end;">${swatch}<span title="${value}" style="color:var(--theme-color-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${value}</span></span>
-  </div>`;
+/** A `span` carrying inline styles, applied as properties rather than text. */
+function styled<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  cssText: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  node.style.cssText = cssText;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-function sectionHeader(label: string, count?: number): string {
-  return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
-    <span style="width:3px;height:12px;border-radius:2px;background:var(--theme-color-primary);opacity:0.75;flex-shrink:0;"></span>
-    <span style="font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--theme-color-muted-foreground);">${label}</span>
-    ${
-      typeof count === "number"
-        ? `<span style="margin-left:auto;font-size:10px;font-family:var(--font-mono, ui-monospace, monospace);color:var(--theme-color-muted-foreground);opacity:0.65;">${count}</span>`
-        : ""
-    }
-  </div>`;
+/**
+ * Builds one token / variable row.
+ *
+ * @remarks
+ * Text goes through `textContent` and the swatch colour through
+ * `style.setProperty`, which parses it as a single declaration value. Both
+ * inputs are theme data — a token name and its value — and the value can be any
+ * CSS string. Interpolating them into an HTML string (the previous
+ * implementation) meant a name or value containing markup created nodes, and a
+ * value containing `;` added declarations the swatch never intended.
+ */
+function entryRow(path: string, value: string): HTMLDivElement {
+  const row = styled(
+    "div",
+    "display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;padding:3px 4px;border-radius:6px;font-family:var(--font-mono, ui-monospace, monospace);",
+  );
+
+  const label = styled(
+    "span",
+    "color:var(--theme-color-muted-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;",
+    path,
+  );
+  label.title = path;
+  row.appendChild(label);
+
+  const right = styled(
+    "span",
+    "display:flex;align-items:center;gap:6px;min-width:0;max-width:60%;justify-content:flex-end;",
+  );
+
+  if (isColorValue(value)) {
+    const swatch = styled(
+      "span",
+      "width:10px;height:10px;border-radius:3px;flex-shrink:0;border:1px solid var(--theme-color-border);box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);",
+    );
+    swatch.setAttribute("aria-hidden", "true");
+    swatch.style.setProperty("background", value);
+    right.appendChild(swatch);
+  }
+
+  const text = styled(
+    "span",
+    "color:var(--theme-color-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",
+    value,
+  );
+  text.title = value;
+  right.appendChild(text);
+
+  row.appendChild(right);
+  return row;
+}
+
+function sectionHeader(label: string, count?: number): HTMLDivElement {
+  const header = styled(
+    "div",
+    "display:flex;align-items:center;gap:7px;margin-bottom:6px;",
+  );
+
+  header.appendChild(
+    styled(
+      "span",
+      "width:3px;height:12px;border-radius:2px;background:var(--theme-color-primary);opacity:0.75;flex-shrink:0;",
+    ),
+  );
+  header.appendChild(
+    styled(
+      "span",
+      "font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--theme-color-muted-foreground);",
+      label,
+    ),
+  );
+
+  if (typeof count === "number") {
+    header.appendChild(
+      styled(
+        "span",
+        "margin-left:auto;font-size:10px;font-family:var(--font-mono, ui-monospace, monospace);color:var(--theme-color-muted-foreground);opacity:0.65;",
+        String(count),
+      ),
+    );
+  }
+
+  return header;
+}
+
+/** A pill showing one identity value (family or mode). */
+function identityChip(value: string, accent = false): HTMLSpanElement {
+  const chip = styled(
+    "span",
+    "display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;text-transform:capitalize;font-family:var(--font-sans, system-ui, sans-serif);border:1px solid var(--theme-color-border);",
+    value,
+  );
+  chip.style.setProperty(
+    "background",
+    accent
+      ? "color-mix(in srgb, var(--theme-color-primary) 14%, transparent)"
+      : "var(--theme-color-muted)",
+  );
+  chip.style.setProperty(
+    "color",
+    accent ? "var(--theme-color-primary)" : "var(--theme-color-muted-foreground)",
+  );
+  return chip;
+}
+
+/** A `<section>` with a header, a list of rows and an optional "+N more" note. */
+function tokenSection(
+  label: string,
+  count: number,
+  rows: Array<[string, string]>,
+  limit: number,
+): HTMLElement {
+  const section = styled("section", "margin-top:16px;");
+  section.appendChild(sectionHeader(label, count));
+
+  for (const [path, value] of rows.slice(0, limit)) {
+    section.appendChild(entryRow(path, value));
+  }
+
+  if (count > limit) {
+    section.appendChild(
+      styled(
+        "div",
+        "color:var(--theme-color-muted-foreground);font-size:10.5px;margin-top:4px;padding-left:4px;",
+        `+${count - limit} more`,
+      ),
+    );
+  }
+
+  return section;
 }
 
 /**
@@ -235,70 +357,90 @@ export class ThemvoraInspector extends ThemvoraRuntimeConsumer {
     const family = runtime.selection.getFamily();
     const vars = themeToCSSVariables(theme);
     const tokenEntries = flattenTokens(theme.tokens as Record<string, unknown>);
+    const varEntries = Object.entries(vars);
 
-    const identityChips = (value: string, accent = false) =>
-      `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;text-transform:capitalize;font-family:var(--font-sans, system-ui, sans-serif);background:${
-        accent
-          ? "color-mix(in srgb, var(--theme-color-primary) 14%, transparent)"
-          : "var(--theme-color-muted)"
-      };color:${
-        accent
-          ? "var(--theme-color-primary)"
-          : "var(--theme-color-muted-foreground)"
-      };border:1px solid var(--theme-color-border);">${value}</span>`;
+    // Built as nodes, never as an HTML string: theme names, family names, token
+    // paths and token values are all data, and every one of them previously
+    // reached `innerHTML` unescaped — the token value twice, once as text and
+    // once inside a `style` attribute, which is a CSS context an HTML escape
+    // does not protect.
+    const panel = document.createDocumentFragment();
 
-    const tokensRows = tokenEntries
-      .slice(0, 16)
-      .map(([path, value]) => entryRow(path, value))
-      .join("");
-    const cssRows = Object.entries(vars)
-      .slice(0, 8)
-      .map(([key, value]) => entryRow(key, value))
-      .join("");
+    const top = styled(
+      "div",
+      "display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:8px;",
+    );
+    const identity = styled("div", "display:flex;align-items:center;gap:8px;");
+    const dot = styled(
+      "span",
+      "width:8px;height:8px;border-radius:50%;background:var(--theme-color-card);box-shadow:0 0 0 3px color-mix(in srgb, var(--theme-color-primary) 22%, transparent);",
+    );
+    dot.setAttribute("aria-hidden", "true");
+    identity.appendChild(dot);
+    identity.appendChild(
+      styled(
+        "span",
+        "font-weight:700;font-size:12px;letter-spacing:0.01em;",
+        "Theme Inspector",
+      ),
+    );
+    top.appendChild(identity);
 
-    this.panelEl.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:var(--theme-color-card);box-shadow:0 0 0 3px color-mix(in srgb, var(--theme-color-primary) 22%, transparent);"></span>
-          <span style="font-weight:700;font-size:12px;letter-spacing:0.01em;">Theme Inspector</span>
-        </div>
-        <button type="button" data-close style="background:transparent;border:1px solid transparent;border-radius:7px;cursor:pointer;font-size:14px;line-height:1;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--theme-color-muted-foreground);">${X_ICON}</button>
-      </div>
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px;padding-right:8px;">
-        <span style="font-size:12.5px;font-weight:600;color:var(--theme-color-foreground);margin-right:2px;">${theme.name}</span>
-        ${identityChips(family)}
-        ${identityChips(mode, true)}
-      </div>
-      <div style="height:1px;margin:14px 0 0;background:linear-gradient(90deg, var(--theme-color-border), transparent);"></div>
-      <section style="margin-top:16px;">${sectionHeader("Theme")}
-        ${entryRow("Name", String(theme.name))}
-        ${entryRow("Family", family)}
-        ${entryRow("Mode", mode)}
-      </section>
-      <section style="margin-top:16px;">${sectionHeader("Selection")}
-        ${entryRow("family", selection.family)}
-        ${entryRow("mode", selection.mode)}
-      </section>
-      <section style="margin-top:16px;">${sectionHeader("Tokens", tokenEntries.length)}
-        ${tokensRows}
-        ${
-          tokenEntries.length > 16
-            ? `<div style="color:var(--theme-color-muted-foreground);font-size:10.5px;margin-top:4px;padding-left:4px;">+${tokenEntries.length - 16} more</div>`
-            : ""
-        }
-      </section>
-      <section style="margin-top:16px;">${sectionHeader("CSS Variables", Object.keys(vars).length)}
-        ${cssRows}
-        ${
-          Object.keys(vars).length > 8
-            ? `<div style="color:var(--theme-color-muted-foreground);font-size:10.5px;margin-top:4px;padding-left:4px;">+${Object.keys(vars).length - 8} more</div>`
-            : ""
-        }
-      </section>
-    `;
+    const closeButton = styled(
+      "button",
+      "background:transparent;border:1px solid transparent;border-radius:7px;cursor:pointer;font-size:14px;line-height:1;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--theme-color-muted-foreground);",
+    );
+    closeButton.type = "button";
+    closeButton.dataset.close = "";
+    closeButton.innerHTML = X_ICON;
+    closeButton.addEventListener("click", () => this.close());
+    top.appendChild(closeButton);
+    panel.appendChild(top);
 
-    const closeBtn = this.panelEl.querySelector<HTMLButtonElement>("[data-close]");
-    closeBtn?.addEventListener("click", () => this.close());
+    const chips = styled(
+      "div",
+      "display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px;padding-right:8px;",
+    );
+    chips.appendChild(
+      styled(
+        "span",
+        "font-size:12.5px;font-weight:600;color:var(--theme-color-foreground);margin-right:2px;",
+        String(theme.name),
+      ),
+    );
+    chips.appendChild(identityChip(family));
+    chips.appendChild(identityChip(mode, true));
+    panel.appendChild(chips);
+
+    panel.appendChild(
+      styled(
+        "div",
+        "height:1px;margin:14px 0 0;background:linear-gradient(90deg, var(--theme-color-border), transparent);",
+      ),
+    );
+
+    const themeSection = styled("section", "margin-top:16px;");
+    themeSection.appendChild(sectionHeader("Theme"));
+    themeSection.appendChild(entryRow("Name", String(theme.name)));
+    themeSection.appendChild(entryRow("Family", family));
+    themeSection.appendChild(entryRow("Mode", mode));
+    panel.appendChild(themeSection);
+
+    const selectionSection = styled("section", "margin-top:16px;");
+    selectionSection.appendChild(sectionHeader("Selection"));
+    selectionSection.appendChild(entryRow("family", selection.family));
+    selectionSection.appendChild(entryRow("mode", selection.mode));
+    panel.appendChild(selectionSection);
+
+    panel.appendChild(
+      tokenSection("Tokens", tokenEntries.length, tokenEntries, 16),
+    );
+    panel.appendChild(
+      tokenSection("CSS Variables", varEntries.length, varEntries, 8),
+    );
+
+    this.panelEl.innerHTML = "";
+    this.panelEl.appendChild(panel);
   }
 
   private close() {

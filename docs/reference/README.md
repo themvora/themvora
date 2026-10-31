@@ -40,7 +40,7 @@ the existing pages rather than against a new `docs/**` tree.
 | `node scripts/docs/audits/audit-b-package-to-docs.mjs --coverage=fail` | §8 Audit B: every shipped public export lands on its generated API page and has a registry/guide destination. |
 | `node scripts/docs/audits/audit-c-examples.mjs` | §8 Audit C (static): every `examples/**/example.meta.json` is internally consistent with the shipped surface, **and §13 coverage** — every capability slug in the registry has at least one example. |
 | `node scripts/docs/audits/audit-c-examples.mjs --offline` | §8 Audit C (offline): compiles each example's sources against the workspace's **built `.d.ts`**, then bundles framework examples with esbuild and **renders them with `react-dom/server`** so the component tree actually executes. Deterministic, no `npm install`, no network. This is the `--full` gate step. |
-| `node scripts/docs/audits/audit-c-examples.mjs --dynamic` | §8 Audit C (dynamic, strongest): packs each declared package, installs a temp consumer fixture from those tarballs, then typechecks and smoke-runs the example. Needs `pnpm` + network (~4 min for 21 examples); uses a private npm cache per run. |
+| `node scripts/docs/audits/audit-c-examples.mjs --dynamic` | §8 Audit C (dynamic, strongest): packs each declared package, installs a temp consumer fixture from those tarballs, then typechecks and smoke-runs the example. Needs `pnpm` + network (~4 min for 23 examples); uses a private npm cache per run. |
 | `node scripts/release/audit-dependencies.mjs`  | §8 Audit D: dependency isolation — no forbidden edges, every peer earned. |
 | `node scripts/docs/audits/audit-g-terminology.mjs` | §8 Audit G: canonical vocabulary across JSDoc, guides, README, examples, CLI docs. Allowlist: `baselines/audit-g-terminology.allowlist.json`. |
 | `node scripts/docs/audits/audit-page-contracts.mjs` | §2 IA integrity + all three §3 page contracts: **feature (§3.1)** — every `core-feature` capability's guide links its generated API reference; **framework (§3.2)** and **adapter (§3.3)** page shape, plus a sidebar entry for every framework/adapter entry; **tooling (§3.4)** — the CLI section covers Installation / Overview / Commands / Configuration / CI & Automation / a complete example, and every tooling page links its generated API reference. Also flags `content/*.md` that no route renders. |
@@ -111,10 +111,12 @@ deliberately; never widen the registry to silence a failure.
 
 **Nothing from §12 remains unwired**, and **§13's coverage criterion is met and
 enforced**: `audit-c-examples.mjs` reports
-`§13 coverage: 20/20 capabilities have an example` and fails if any capability
-slug has no example (negative-tested). 21 examples exist in total — the 20
+`§13 coverage: 22/22 capabilities have an example` and fails if any capability
+slug has no example (negative-tested). 23 examples exist in total — the 22
 capabilities plus `basic-theme`, a getting-started example that is not itself a
-capability.
+capability. The audit also fails when the inventory is empty, so a missing
+`examples/` tree reports a cause rather than a clean run. The audit's output is
+the authority on both numbers; the counts here are a snapshot.
 
 All three §3 page contracts are now enforced (§3.1 feature, §3.2 framework,
 §3.3 adapter, §3.4 tooling) by `audit-page-contracts.mjs`.

@@ -35,12 +35,26 @@
  * Usage: node scripts/probe-guide-first-success.mjs
  */
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
-import { chromium, CHROME, NODE, probePort } from "./lib/probe-env.mjs";
+import { chromium, CHROME, NODE, probePort, nextBin } from "./lib/probe-env.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(here, "..", "..", "..");
+const docsRoot = path.dirname(here);
+
+/**
+ * The `next` binary, resolved through the docs app's module graph.
+ *
+ * Hardcoding `<docs>/node_modules/next/...` assumed a flat install. pnpm hoists
+ * `next` to the workspace root on Windows, so that path does not exist and the
+ * dev server never starts — every route then failed with ERR_CONNECTION_REFUSED
+ * before the assertions ran.
+ */
+const NEXT_BIN = createRequire(path.join(docsRoot, "package.json")).resolve(
+  "next/dist/bin/next",
+);
 /**
  * The custom properties the shipped runtime emits.
  *
@@ -103,6 +117,31 @@ function stylesheetProblems(text, where) {
   return problems;
 }
 
+/**
+ * Tailwind is a deliberately CSS-only flow, so it does not render the shared
+ * component stylesheet. Assert the smaller contract instead: the two imports,
+ * both document-setup alternatives, and no React runtime snippet in the
+ * onboarding flow.
+ */
+function tailwindCssProblems(text) {
+  const problems = [];
+  for (const needle of [
+    '@import "tailwindcss"',
+    '@import "@themvora/tailwind"',
+    "@apply bg-background text-foreground",
+    "var(--theme-color-background)",
+    "var(--theme-color-foreground)",
+  ]) {
+    if (!text.includes(needle)) {
+      problems.push(`tailwind: the CSS-only setup does not show ${needle}`);
+    }
+  }
+  if (/from "@themvora\/react"/.test(text)) {
+    problems.push("tailwind: the setup flow contains a React runtime import");
+  }
+  return problems;
+}
+
 const PORT = probePort(4540);
 
 // slug -> the packages the install command must name, and the zero-flash
@@ -115,7 +154,7 @@ const SLUGS = [
   ["solid", ["@themvora/core", "@themvora/solid"], "Partial"],
   ["angular", ["@themvora/core", "@themvora/angular"], "Partial"],
   ["web", ["@themvora/core", "@themvora/web"], "Partial"],
-  ["tailwind", ["@themvora/core", "@themvora/tailwind", "@themvora/react"], undefined],
+  ["tailwind", ["@themvora/core", "@themvora/tailwind", "tailwindcss"], undefined],
   ["astro", ["@themvora/core", "@themvora/astro"], "Yes"],
   ["nuxt", ["@themvora/core", "@themvora/nuxt"], "Yes"],
   ["remix", ["@themvora/core", "@themvora/remix"], "Partial"],
@@ -123,7 +162,7 @@ const SLUGS = [
 
 const proc = spawn(
   NODE,
-  ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT)],
+  [NEXT_BIN, "dev", "-p", String(PORT)],
   {
     cwd: path.dirname(here),
     stdio: ["ignore", "pipe", "pipe"],
@@ -201,7 +240,8 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
   // so a single ordered list of h2s would not describe it.
   const problems = [];
 
-  if (slug === "astro") {    const astro = await page.evaluate((sel) => {
+  if (slug === "astro") {
+    let astro = await page.evaluate((sel) => {
       const collapse = (s) =>
         s.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, " ");
       const only = document.querySelector(sel.only);
@@ -238,6 +278,29 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
         ),
       };
     }, { only: "#astro-only", react: "#astro-react" });
+
+    // The two paths are in-page tabs: only the selected panel is visible, so
+    // `innerText` of the hidden React panel is empty. Select that tab and read
+    // its panel in the same way the reader sees it.
+    await page.getByRole("tab", { name: "Astro + React" }).click();
+    await page.waitForTimeout(400);
+    const reactView = await page.evaluate(() => {
+      const collapse = (s) =>
+        s.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, " ");
+      const react = document.querySelector("#astro-react");
+      const install = react?.querySelector('[role="tabpanel"]');
+      return {
+        hasReact: Boolean(react && !react.hasAttribute("hidden")),
+        reactSteps: react
+          ? [...react.querySelectorAll("h3")].map((h) =>
+              h.textContent.replace(/^\d+\.\s*/, "").trim(),
+            )
+          : [],
+        reactText: collapse(react ? react.innerText : ""),
+        reactInstall: install ? collapse(install.innerText) : "",
+      };
+    });
+    astro = { ...astro, ...reactView };
 
     const wantH2 = [
       "Overview",
@@ -349,7 +412,11 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
         "the guide still renders the \"You're ready\" completion card",
       );
 
-    problems.push(...stylesheetProblems(info.text, slug));
+    problems.push(
+      ...(slug === "tailwind"
+        ? tailwindCssProblems(info.text)
+        : stylesheetProblems(info.text, slug)),
+    );
   }
 
   if (!info.hasInstallCmd) problems.push("no install command");

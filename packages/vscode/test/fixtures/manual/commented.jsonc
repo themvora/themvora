@@ -1,0 +1,23 @@
+{
+  // Hand-authored theme: comments and trailing commas are allowed.
+  "light": {
+    "name": "brand-light",
+    "meta": { "family": "brand", "mode": "light" },
+    "tokens": {
+      "colors": {
+        // The brand colour.
+        "primary": "#4f46e5",
+      },
+    },
+  },
+  /* The dark half. */
+  "dark": {
+    "name": "brand-dark",
+    "meta": { "family": "brand", "mode": "dark" },
+    "tokens": {
+      "colors": {
+        "primary": "#6366f1",
+      },
+    },
+  },
+}

@@ -1,0 +1,16 @@
+# Review ownership.
+#
+# `*` covers the whole repository. The entries below repeat the surfaces where a
+# change deserves a closer look — the inline-script builders, the CLI's
+# filesystem writes, and the security policy itself — so they are obvious in a
+# review diff rather than buried under the default rule.
+
+* @saugaproductions78-art
+
+# Security-sensitive surfaces.
+/.github/ @saugaproductions78-art
+/SECURITY.md @saugaproductions78-art
+/packages/core/src/bootstrap.ts @saugaproductions78-art
+/packages/core/src/script-safety.ts @saugaproductions78-art
+/packages/core/src/scrollbar/ @saugaproductions78-art
+/packages/cli/src/init/ @saugaproductions78-art

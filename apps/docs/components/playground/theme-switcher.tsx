@@ -46,7 +46,7 @@ export function ThemeSwitcher() {
     const data = JSON.stringify(config);
     try {
       const encoded = btoa(encodeURIComponent(data));
-      const url = `${typeof window !== "undefined" ? window.location.origin + window.location.pathname : "https://theme-kit.vercel.app/playground"}?config=${encoded}`;
+      const url = `${typeof window !== "undefined" ? window.location.origin + window.location.pathname : "https://themvora.vercel.app/playground"}?config=${encoded}`;
       navigator.clipboard.writeText(url);
       setShared(true);
       setTimeout(() => setShared(false), 2000);

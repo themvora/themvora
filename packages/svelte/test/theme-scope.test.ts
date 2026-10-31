@@ -153,7 +153,7 @@ describe("compiled consumer e2e", () => {
   <ThemeScope theme="ocean-light">
     <p id="forrest">leaf</p>
   </ThemeScope>
-  <ThemeScope themes={local} theme="local-red">
+  <ThemeScope themes={local} theme="local-red" data-testid="local-scope">
     <p id="local-leaf">local</p>
   </ThemeScope>
 </ThemeProvider>
@@ -163,16 +163,29 @@ describe("compiled consumer e2e", () => {
     writeFileSync(outFile, js.code);
     const mod2 = await import(outFile.replace(/\\/g, "/"));
 
+    // The provider keeps its own catalog; only the second scope gets `local`.
+    // Passing `localThemes` as the provider catalog made `ocean-light` above
+    // unresolvable, so that scope fell back to `local-red` — the same
+    // `data-theme` the local scope produces. `find()` then picked the *first*
+    // of two identical scopes and the assertion looked for `#local-leaf` inside
+    // the wrong subtree. The fixture now gives the provider the catalog its
+    // scopes actually reference, which is also the scenario the test describes:
+    // a parent theme and a locally supplied one side by side.
     const instance = mount(mod2.default, {
       target,
-      props: { runtime, themes: localThemes, local: localThemes },
+      props: { runtime, themes, local: localThemes },
     });
     flushSync();
 
-    const local = Array.from(target.querySelectorAll("div")).find(
-      (el) => el.getAttribute("data-theme") === "local-red",
-    ) as HTMLElement | undefined;
+    const scopes = Array.from(target.querySelectorAll("div"));
+    const ocean = scopes.find((el) => el.getAttribute("data-theme") === "ocean-light");
+    const local = target.querySelector('[data-testid="local-scope"]') as HTMLElement | null;
+
+    // The parent catalog is untouched by the local one, and vice versa.
+    expect(ocean).toBeTruthy();
+    expect(ocean!.querySelector("#forrest")?.textContent).toBe("leaf");
     expect(local).toBeTruthy();
+    expect(local!.getAttribute("data-theme")).toBe("local-red");
     expect(local!.style.getPropertyValue("--theme-color-background")).toBe("#ff0000");
     expect(local!.querySelector("#local-leaf")?.textContent).toBe("local");
 

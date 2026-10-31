@@ -6,6 +6,8 @@ import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { SunriseSunsetGuide } from "./SunriseSunsetGuide";
+import { controllerExamples, mountExamples } from "./snippets";
+import { compatibilityLabels, javascriptSources } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -58,10 +60,48 @@ const optionRows: { name: string; type: string; desc: string }[] = [
   },
 ];
 
+/**
+ * Every snippet the guide can render, in one place.
+ *
+ * Both derivations below read this list, so a snippet can never be paired
+ * without also being labelled — or the other way round.
+ *
+ * The framework key is carried onto each entry rather than dropped: it is what
+ * keeps Angular's snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`),
+ * and `Object.values` would have discarded the only copy of it.
+ */
+const snippets = [
+  ...Object.entries(mountExamples).map(([framework, snippet]) => ({
+    ...snippet,
+    framework,
+  })),
+  ...Object.entries(controllerExamples).map(([framework, snippet]) => ({
+    ...snippet,
+    framework,
+  })),
+];
+
+/**
+ * The JavaScript form of every snippet on this page, derived once on the server.
+ *
+ * `SunriseSunsetGuide` is a client component, so it cannot import the TypeScript
+ * compiler. It receives source text only and highlights both forms with the
+ * Shiki instance it already runs — the same split the other guides use.
+ */
+const jsSources = javascriptSources(snippets);
+
+/**
+ * The compatibility badge of every snippet — `TS / JS`, `TS`, and so on.
+ *
+ * Separate from `jsSources` because a label is metadata, not source: a snippet
+ * highlighted with the TypeScript grammar may still be valid JavaScript.
+ */
+const labels = compatibilityLabels(snippets);
+
 export default function SunriseSunsetPage() {
   return (
-    <DocsLayout>
-      <div className="max-w-3xl">
+    <DocsLayout wide>
+      <div>
         <PageHeader
           icon={
             <svg
@@ -105,7 +145,11 @@ export default function SunriseSunsetPage() {
             </>
           }
         />
-        <SunriseSunsetGuide optionRows={optionRows} />
+        <SunriseSunsetGuide
+          optionRows={optionRows}
+          jsSources={jsSources}
+          labels={labels}
+        />
       </div>
     </DocsLayout>
   );

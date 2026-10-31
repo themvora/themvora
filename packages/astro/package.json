@@ -1,7 +1,7 @@
 {
   "name": "@themvora/astro",
   "license": "MIT",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -18,6 +18,8 @@
     },
     "./provider.astro": "./src/provider.astro",
     "./ThemeToggle.astro": "./src/ThemeToggle.astro",
+    "./ThemeFamilySelect.astro": "./src/ThemeFamilySelect.astro",
+    "./ThemeScope.astro": "./src/ThemeScope.astro",
     "./ThemeInspector.astro": "./src/ThemeInspector.astro",
     "./ThemeScrollbar.astro": "./src/ThemeScrollbar.astro",
     "./client": {
@@ -29,10 +31,16 @@
     "dist",
     "src/provider.astro",
     "src/ThemeToggle.astro",
+    "src/ThemeFamilySelect.astro",
+    "src/ThemeScope.astro",
     "src/ThemeInspector.astro",
     "src/ThemeScrollbar.astro",
     "src/integration.ts",
     "src/controller.ts",
+    "src/bindings.ts",
+    "src/dom.ts",
+    "src/scrollbar-guard.ts",
+    "src/theme-readout.tsx",
     "src/attributes.ts",
     "src/transport.ts",
     "src/runtime.ts",
@@ -44,14 +52,16 @@
     "src/persistence.ts",
     "src/shared-runtime.ts",
     "src/hooks.ts",
-    "src/theme-scope.tsx"
+    "src/theme-scope.tsx",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest"
   },
   "peerDependencies": {
-    "astro": "^5.0.0",
+    "astro": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -70,7 +80,7 @@
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "astro": "^5.0.0",
+    "astro": "^7.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

@@ -6,6 +6,14 @@ import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { ScopedThemeGuide } from "./ScopedThemeGuide";
+import {
+  imperativeExamples,
+  localThemeExamples,
+  nestedScopeExamples,
+  scopeExamples,
+  transitionExamples,
+} from "./snippets";
+import { compatibilityLabels, javascriptSources } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -14,6 +22,46 @@ export const metadata: Metadata = {
   description:
     "Apply a theme to a subtree — a sandboxed island inside the app. ThemeScope, the themvoraScope directive, and per-framework scope theming snippets.",
 };
+
+/**
+ * Every snippet the guide can render, in one place.
+ *
+ * Both derivations below read this list, so a snippet can never be paired
+ * without also being labelled — or the other way round.
+ *
+ * The framework key is carried onto each entry rather than dropped: it is what
+ * keeps Angular's snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`),
+ * and `Object.values` would have discarded the only copy of it.
+ */
+const snippets = [
+  scopeExamples,
+  imperativeExamples,
+  localThemeExamples,
+  transitionExamples,
+  nestedScopeExamples,
+].flatMap((examples) =>
+  Object.entries(examples).map(([framework, snippet]) => ({
+    ...snippet,
+    framework,
+  })),
+);
+
+/**
+ * The JavaScript counterpart of every snippet the guide can render.
+ *
+ * Derived here, on the server, because the guide is a client component and the
+ * TypeScript compiler cannot be shipped to the browser. The guide highlights the
+ * result with its own Shiki instance, so only the source crosses the boundary.
+ */
+const jsSources = javascriptSources(snippets);
+
+/**
+ * The compatibility badge of every snippet — `TS / JS`, `TS`, and so on.
+ *
+ * Separate from `jsSources` because a label is metadata, not source: a snippet
+ * highlighted with the TypeScript grammar may still be valid JavaScript.
+ */
+const labels = compatibilityLabels(snippets);
 
 export default function ScopedThemePage() {
   return (
@@ -49,7 +97,7 @@ export default function ScopedThemePage() {
             </>
           }
         />
-        <ScopedThemeGuide />
+        <ScopedThemeGuide jsSources={jsSources} labels={labels} />
       </div>
     </DocsLayout>
   );

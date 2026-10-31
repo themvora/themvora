@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   BRAND_PRESET_DISCLAIMER,
   describeRoleUsage,
@@ -525,10 +525,8 @@ export function PresetMiniPreview({ theme }: { theme: ThemeDefinition | undefine
  */
 export function PresetCatalogCard({
   entry,
-  footer,
 }: {
   entry: PresetCatalogEntry;
-  footer?: ReactNode;
 }) {
   const { theme } = useTheme();
   const setFamily = useSetThemeFamily();
@@ -546,9 +544,6 @@ export function PresetCatalogCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          {/* Deliberately not an <h3>: the docs TOC rail scans `h2, h3`, so a
-              heading here would list every card title under "On this page". The
-              section heading above the grid is the real heading. */}
           <div className="font-semibold text-sm tracking-tight truncate">{entry.name}</div>
           <PresetCharacter entry={entry} />
         </div>
@@ -585,10 +580,6 @@ export function PresetCatalogCard({
       </div>
 
       <PresetMiniPreview theme={previewTheme} />
-      <InteractionRoles theme={previewTheme} />
-      <QualityPanel quality={entry.quality} />
-      <ContrastPanel theme={previewTheme} />
-      <RoleUsage role="primary" />
 
       <button
         type="button"
@@ -601,10 +592,6 @@ export function PresetCatalogCard({
       >
         {isActive ? "Applied to this site" : "Use preset"}
       </button>
-
-      <GeneratedFrom entry={entry} />
-
-      {footer}
     </div>
   );
 }

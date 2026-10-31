@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import {
   ThemeProvider as MuiThemeProviderBase,
   type Theme as MuiTheme,
 } from "@mui/material/styles";
 import type { ThemeDefinition, ThemeRuntime } from "@themvora/core";
 import { useRuntimeThemeFactory } from "@themvora/adapters/react";
-import { createMuiTheme } from "./theme";
+import { createMuiTheme, type MuiThemeIntegrationOptions } from "./theme";
 
 /**
  * Subscribes to a Themvora runtime and returns a Material UI theme that is
@@ -15,14 +15,31 @@ import { createMuiTheme } from "./theme";
  */
 export function useMuiTheme<T extends ThemeDefinition>(
   runtime: ThemeRuntime<T>,
+  options: MuiThemeIntegrationOptions = {},
 ): MuiTheme {
-  return useRuntimeThemeFactory(runtime, createMuiTheme);
+  const { fontFamily, transitionDuration, transitionEasing } = options;
+
+  // The factory has to be referentially stable: `useRuntimeThemeFactory`
+  // memoizes on it, and a new function per render would rebuild the MUI theme —
+  // and re-inject its Emotion styles — on every parent render.
+  const factory = useCallback(
+    (source: T) =>
+      createMuiTheme(source, {
+        ...(fontFamily !== undefined ? { fontFamily } : {}),
+        ...(transitionDuration !== undefined ? { transitionDuration } : {}),
+        ...(transitionEasing !== undefined ? { transitionEasing } : {}),
+      }),
+    [fontFamily, transitionDuration, transitionEasing],
+  );
+
+  return useRuntimeThemeFactory(runtime, factory);
 }
 
 /**
  * Props for {@link MuiThemeProvider}.
  */
-export interface MuiThemeProviderProps<T extends ThemeDefinition> {
+export interface MuiThemeProviderProps<T extends ThemeDefinition>
+  extends MuiThemeIntegrationOptions {
   /** The Themvora runtime whose active theme drives the MUI theme. */
   runtime: ThemeRuntime<T>;
   /** The React subtree rendered inside MUI's `ThemeProvider`. */
@@ -50,8 +67,15 @@ export interface MuiThemeProviderProps<T extends ThemeDefinition> {
  */
 export function MuiThemeProvider<T extends ThemeDefinition>({
   runtime,
+  fontFamily,
+  transitionDuration,
+  transitionEasing,
   children,
 }: MuiThemeProviderProps<T>) {
-  const theme = useMuiTheme(runtime);
+  const theme = useMuiTheme(runtime, {
+    ...(fontFamily !== undefined ? { fontFamily } : {}),
+    ...(transitionDuration !== undefined ? { transitionDuration } : {}),
+    ...(transitionEasing !== undefined ? { transitionEasing } : {}),
+  });
   return <MuiThemeProviderBase theme={theme}>{children}</MuiThemeProviderBase>;
 }

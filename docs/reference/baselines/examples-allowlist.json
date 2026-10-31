@@ -22,6 +22,7 @@
     "@mui/material": "MUI components (mui library page)",
     "@mui/material/styles": "MUI theme helpers (mui library page)",
     "@remix-run/dev": "Remix Vite plugin (remix guide, vite-plugin registration tabs)",
+    "@remix-run/node": "Remix server loader types — LoaderFunctionArgs, LinksFunction (remix guide and its example app)",
     "@remix-run/react": "Remix runtime (remix guide)",
     "@sveltejs/vite-plugin-svelte": "Svelte + Vite build setup (svelte guide)",
     "@tailwindcss/vite": "Tailwind v4 Vite plugin (tailwind guide)",

@@ -20,7 +20,9 @@ export {
 export {
   injectThemeRuntime,
   injectTheme,
+  injectEffectiveThemeMode,
   injectGeneratedTheme,
+  injectProvidedThemes,
   injectThemeHistory,
   injectThemeBatch,
   injectThemeSnapshot,

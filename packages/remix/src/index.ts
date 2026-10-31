@@ -2,7 +2,8 @@
  * Themvora Remix integration.
  *
  * Provides the SSR-safe `ThemeProvider`, the `ThemeHead` blocking script
- * for zero-flash bootstrapping, and the cookie-backed
+ * for zero-flash bootstrapping, `getThemeShellProps` for the `<html>` element
+ * Remix owns, and the cookie-backed
  * `createRemixThemePersistence`, plus the React `ThemeScope`,
  * `ThemeScrollbar`, and `ThemeInspector` re-exports.
  *
@@ -12,6 +13,8 @@ export { ThemeProvider } from "./provider";
 export type { ThemeProviderProps } from "./provider";
 export { ThemeHead } from "./blocking-script";
 export type { ThemeHeadProps } from "./blocking-script";
+export { getThemeShellProps } from "./shell";
+export type { ThemeShellProps, ThemeShellOptions } from "./shell";
 export { createRemixThemePersistence } from "./persistence";
 export type { RemixThemePersistenceOptions } from "./persistence";
 export { ThemeScope, ThemeScrollbar, ThemeInspector } from "@themvora/react";

@@ -205,7 +205,7 @@ recipe has one.
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | Explained successfully. |
-| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON). |
+| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). |
 | `2`  | Usage error: no source, more than one source, an unresolvable id, or an invalid seed. |
 
 ## Next Steps

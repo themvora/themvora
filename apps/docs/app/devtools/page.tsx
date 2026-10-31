@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -162,10 +161,9 @@ export default function DevToolsPage() {
           >
             Quick start
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(quickStartCode, "ts")}
+          <CodeExample
             code={quickStartCode}
-            language="ts"
+            lang="ts"
             filename="setup"
             className="m-0"
           />
@@ -178,10 +176,9 @@ export default function DevToolsPage() {
           >
             createDevToolsPlugin(options)
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(pluginCode, "ts")}
+          <CodeExample
             code={pluginCode}
-            language="ts"
+            lang="ts"
             filename="plugin"
             className="m-0"
           />
@@ -202,10 +199,9 @@ export default function DevToolsPage() {
           >
             createDevToolsInspector(options)
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(inspectorCode, "ts")}
+          <CodeExample
             code={inspectorCode}
-            language="ts"
+            lang="ts"
             filename="inspector"
             className="m-0"
           />
@@ -225,10 +221,9 @@ export default function DevToolsPage() {
           >
             createDevToolsPanel(inspector)
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(panelCode, "ts")}
+          <CodeExample
             code={panelCode}
-            language="ts"
+            lang="ts"
             filename="panel"
             className="m-0"
           />
@@ -272,10 +267,9 @@ export default function DevToolsPage() {
           >
             Global hook
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(globalHookCode, "ts")}
+          <CodeExample
             code={globalHookCode}
-            language="ts"
+            lang="ts"
             filename="global hook"
             className="m-0"
           />
@@ -315,26 +309,6 @@ export default function DevToolsPage() {
               </tbody>
             </table>
           </div>
-        </section>
-
-        <section id="api-reference" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={7}
-            desc="Every export on this page is generated from source JSDoc — this guide does not duplicate it."
-          >
-            API reference
-          </SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80">
-            The full surface — <code className="mono text-[0.9em]">createDevToolsPlugin</code>,{" "}
-            <code className="mono text-[0.9em]">createDevToolsInspector</code>,{" "}
-            <code className="mono text-[0.9em]">createDevToolsPanel</code> and their option
-            and state types — is documented in the generated reference:
-          </p>
-          <p className="mt-3 text-sm">
-            <Link href="/api-reference/devtools" className="underline">
-              @themvora/devtools API reference
-            </Link>
-          </p>
         </section>
 
         <RelatedLinks

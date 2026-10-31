@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 
-import { CodeBlock } from "../code-block";
+import { CodeExample } from "../code-example";
 import { Callout } from "../ui/callout";
 import { InlineCode } from "../ui/inline-code";
 import { InstallCommand, type PackageManager } from "../install-command";
-import { highlightCode } from "../../lib/highlight";
+import { PathTabs } from "./path-tabs";
 import type {
   FrameworkItem,
-  FrameworkSetupGuide,
   FrameworkSnippet,
   SetupPath,
   SetupStep,
@@ -40,8 +39,11 @@ type InstallCommandSets = {
  *
  * So the guide presents the two shapes as an explicit choice first, gives each
  * one only its own steps, and explains what they share exactly once, below
- * both. This component is presentation only: every string, snippet and anchor
- * id comes from `lib/frameworks.tsx`, which stays the guide's single source.
+ * both. The two paths are *alternatives*, so they are rendered as in-page tabs
+ * rather than stacked: only the selected path is on the page, and `#astro-only`
+ * / `#astro-react` select it directly. This component is presentation only:
+ * every string, snippet and anchor id comes from `lib/frameworks.tsx`, which
+ * stays the guide's single source.
  */
 export function AstroSetupGuide({
   framework,
@@ -57,10 +59,16 @@ export function AstroSetupGuide({
 
   return (
     <>
-      <GuideNav guide={guide} />
-
-      <section id="overview" className="mt-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight">Overview</h2>
+      {/* The anchors below are carried by the headings, not by these
+          `<section>` wrappers. The TOC gives every `h2`/`h3` an id derived from
+          its text, so an explicit `id="overview"` on the wrapper produced two
+          elements with that id — invalid HTML, and a fragment link that could
+          resolve to either. One element per anchor, and `scroll-mt-24` moves to
+          the heading so the jump still clears the sticky header. */}
+      <section className="mt-10">
+        <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
+          Overview
+        </h2>
         {guide.overview.map((paragraph) => (
           <p key={paragraph} className="mt-2 text-sm leading-relaxed opacity-80">
             <InlineCode>{paragraph}</InlineCode>
@@ -69,19 +77,13 @@ export function AstroSetupGuide({
         <Pre>{ARCHITECTURE}</Pre>
       </section>
 
-      <section id="choose-your-setup" className="mt-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight">
+      <section className="mt-10">
+        <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
           {guide.choose.title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed opacity-80">
           <InlineCode>{guide.choose.intro}</InlineCode>
         </p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {guide.choose.paths.map((path) => (
-            <ChoiceCard key={path.id} path={path} />
-          ))}
-        </div>
 
         <h3 className="mt-6 text-sm font-semibold">
           {guide.choose.decision.title}
@@ -142,22 +144,32 @@ export function AstroSetupGuide({
         </p>
       </section>
 
-      <PathSection
-        path={only}
-        framework={framework}
-        installCommands={installCommands}
+      <PathTabs
+        label="Astro setup path"
+        tabs={guide.choose.paths.map((path) => ({
+          id: path.id,
+          label: path.name,
+        }))}
+        panels={[
+          <PathSection
+            key={only.id}
+            path={only}
+            framework={framework}
+            installCommands={installCommands}
+          />,
+          <PathSection
+            key={react.id}
+            path={react}
+            framework={framework}
+            installCommands={installCommands}
+            diagram={guide.boundary}
+            diagramLabel="Where React lives"
+          />,
+        ]}
       />
 
-      <PathSection
-        path={react}
-        framework={framework}
-        installCommands={installCommands}
-        diagram={guide.boundary}
-        diagramLabel="Where React lives"
-      />
-
-      <section id="shared-behavior" className="mt-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight">
+      <section className="mt-10">
+        <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
           {guide.shared.title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed opacity-80">
@@ -173,8 +185,8 @@ export function AstroSetupGuide({
         ))}
       </section>
 
-      <section id="examples" className="mt-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight">
+      <section className="mt-10">
+        <h2 className="scroll-mt-24 text-lg font-semibold tracking-tight">
           {guide.examples.title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed opacity-80">
@@ -212,94 +224,6 @@ const ARCHITECTURE = `Astro
 └── Astro + React
     └── Astro pages + optional React islands`;
 
-/**
- * A compact, contextual local navigation for the Astro guide.
- *
- * Deliberately small: the global rail already lists every heading, so this
- * exists for one job — making the two setup paths reachable without scrolling.
- * The setup switch is the primary affordance; the anchor list below it is the
- * secondary one.
- */
-function GuideNav({ guide }: { guide: FrameworkSetupGuide }) {
-  const [only, react] = guide.choose.paths;
-
-  const items: Array<{ id: string; label: string }> = [
-    { id: "overview", label: "Overview" },
-    { id: "choose-your-setup", label: "Choose your setup" },
-    { id: only.id, label: only.name },
-    { id: react.id, label: react.name },
-    { id: "shared-behavior", label: "Shared behavior" },
-    { id: "examples", label: "Examples" },
-    { id: "caveats", label: "Caveats" },
-  ];
-
-  return (
-    <nav
-      aria-label="Astro guide sections"
-      className="mt-8 rounded-xl border border-border bg-card p-4"
-    >
-      <div className="text-xs font-semibold uppercase tracking-wide opacity-60">
-        On this page
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {guide.choose.paths.map((path) => (
-          <a
-            key={path.id}
-            href={`#${path.id}`}
-            className="chip no-underline"
-            aria-label={`Jump to the ${path.name} setup`}
-          >
-            {path.name}
-          </a>
-        ))}
-      </div>
-      <p className="mt-2 text-xs opacity-60">
-        Two supported setups. Pick one — the guide below gives each its own
-        steps and shares the rest.
-      </p>
-
-      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-        {items.map((item) => (
-          <li key={item.id}>
-            <a
-              href={`#${item.id}`}
-              className="text-xs opacity-70 no-underline hover:text-foreground hover:opacity-100"
-            >
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
-/**
- * One of the two choices. Both cards use the same component and the same
- * classes — they are distinguished by their badge and summary, not by an
- * arbitrary color system invented for this page.
- */
-function ChoiceCard({ path }: { path: SetupPath }) {
-  return (
-    <a
-      href={`#${path.id}`}
-      className="block rounded-xl border border-border bg-card p-4 no-underline transition-colors hover:border-ring"
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">
-          {path.name}
-        </span>
-        <span className="chip text-xs">{path.badge}</span>
-      </div>
-      <p className="mt-2 text-xs leading-relaxed opacity-70">{path.summary}</p>
-      <p className="mt-2 text-xs leading-relaxed opacity-60">
-        <InlineCode>{path.useWhen}</InlineCode>
-      </p>
-    </a>
-  );
-}
-
 /** One path: its badge, its steps, and nothing the other path also needs. */
 function PathSection({
   path,
@@ -315,9 +239,20 @@ function PathSection({
   diagramLabel?: string;
 }) {
   return (
-    <section id={path.id} className="mt-10 scroll-mt-24">
+    <section className="mt-10">
+      {/* The id lives on the heading, not on a wrapper. The TOC scan assigns
+          one to every `h2`/`h3` from its text, so an explicit `id={path.id}`
+          here produced two elements with the same id on the page and made
+          `#astro-only` resolve to whichever came first in document order.
+          `scroll-mt-24` therefore moves to the heading as well, or the anchor
+          lands under the sticky header. */}
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold tracking-tight">{path.name}</h2>
+        <h2
+          id={`${path.id}-path`}
+          className="scroll-mt-24 text-lg font-semibold tracking-tight"
+        >
+          {path.name}
+        </h2>
         <span className="chip text-xs">{path.badge}</span>
       </div>
       <p className="mt-2 text-sm leading-relaxed opacity-80">
@@ -432,10 +367,9 @@ function stepSnippets(
 
 function SnippetBlock({ snippet }: { snippet: FrameworkSnippet }) {
   return (
-    <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
+    <CodeExample
       code={snippet.code}
-      language={snippet.lang}
+      lang={snippet.lang}
       filename={snippet.title}
       className="rounded-lg m-0"
     />

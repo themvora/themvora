@@ -1,0 +1,160 @@
+{
+  "name": "themvora-vscode",
+  "displayName": "Themvora for VS Code",
+  "description": "Explore, preview, create and validate your Themvora themes without leaving VS Code.",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "publisher": "themvora",
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "themvora",
+    "theme",
+    "themes",
+    "theming",
+    "theme-editor",
+    "theme-preview",
+    "theme-validation",
+    "design-tokens",
+    "design-system",
+    "css-variables",
+    "color-contrast",
+    "dark-mode"
+  ],
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1b4b",
+    "theme": "dark"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/themvora/themvora.git",
+    "directory": "packages/vscode"
+  },
+  "homepage": "https://themvora-dev.vercel.app",
+  "bugs": {
+    "url": "https://github.com/themvora/themvora/issues"
+  },
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "themvora.generateTheme",
+        "title": "Generate Theme…",
+        "category": "Themvora"
+      },
+      {
+        "command": "themvora.validateTheme",
+        "title": "Validate Theme…",
+        "category": "Themvora"
+      },
+      {
+        "command": "themvora.copyCssVariables",
+        "title": "Copy CSS Variables",
+        "category": "Themvora"
+      },
+      {
+        "command": "themvora.browsePresets",
+        "title": "Browse Presets",
+        "category": "Themvora"
+      },
+      {
+        "command": "themvora.compareThemes",
+        "title": "Compare Themes…",
+        "category": "Themvora"
+      },
+      {
+        "command": "themvora.previewTheme",
+        "title": "Preview Theme",
+        "category": "Themvora",
+        "icon": "media/themvora.svg"
+      },
+      {
+        "command": "themvora.refresh",
+        "title": "Refresh Project",
+        "category": "Themvora",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "themvora.openStudio",
+        "title": "Open Theme Studio",
+        "category": "Themvora",
+        "icon": "$(window)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "themvora",
+          "title": "Themvora",
+          "icon": "media/themvora.svg"
+        }
+      ]
+    },
+    "views": {
+      "themvora": [
+        {
+          "id": "themvora.workspace",
+          "name": "Workspace",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "themvora.refresh",
+          "when": "view == themvora.workspace",
+          "group": "navigation"
+        },
+        {
+          "command": "themvora.openStudio",
+          "when": "view == themvora.workspace",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "themvora.previewTheme",
+          "when": "resourceFilename =~ /^(theme\\.config|themes)\\.[cm]?[jt]sx?$/",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.build.json && node scripts/build-webview.mjs",
+    "watch": "tsup --watch",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.webview.json",
+    "test": "vitest run",
+    "test:host": "pnpm build && node scripts/test-host.mjs",
+    "test:host:vsix": "pnpm build && pnpm package && node scripts/verify-vsix.mjs && node scripts/test-host.mjs --vsix",
+    "icon": "node scripts/make-icon.mjs",
+    "package": "npx --yes @vscode/vsce@3.6.2 package --no-dependencies",
+    "build-webview": "node scripts/build-webview.mjs",
+    "verify:vsix": "node scripts/verify-vsix.mjs"
+  },
+  "devDependencies": {
+    "@themvora/core": "workspace:^",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/vscode": "1.94.0",
+    "esbuild": "^0.28.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}

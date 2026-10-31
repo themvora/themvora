@@ -116,7 +116,13 @@ export function applyDOMEffects(options: DOMEffectsOptions) {
     }
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        document.head.removeChild(cssNode!);
+        // Guarded for the same reason as the equivalent cleanup in
+        // `css-variables.ts`: the document may have been replaced between
+        // scheduling and running, and a throw from a frame callback is
+        // uncaught rather than attributed to any caller.
+        if (cssNode && document.head.contains(cssNode)) {
+          document.head.removeChild(cssNode);
+        }
       });
     });
   }

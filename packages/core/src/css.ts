@@ -135,3 +135,118 @@ export function themeToCSSVariables(
 
   return variables;
 }
+
+/**
+ * A light/dark pair, as {@link generateTheme} returns it.
+ *
+ * Structural rather than nominal: any `{ light, dark }` object qualifies, which
+ * is what lets a document parsed from JSON be passed straight in.
+ */
+export interface ThemeCssPair {
+  /** The light theme. */
+  light: ThemeDefinition;
+  /** The dark theme. */
+  dark: ThemeDefinition;
+}
+
+/** The selector a single theme, or a pair's light half, is emitted under. */
+export const CSS_ROOT_SELECTOR = ":root";
+
+/**
+ * The selector a pair's dark half is emitted under.
+ *
+ * Matches the convention the CLI's `export` command has always written, and the
+ * one `themvora init` uses in the generated stylesheet: an explicit class and a
+ * `data-theme` attribute, so a host can opt in with either.
+ */
+export const CSS_DARK_SELECTOR = '.dark, [data-theme="dark"]';
+
+/**
+ * Whether a value is a light/dark pair rather than a single theme.
+ *
+ * A `ThemeDefinition` is keyed by `name`/`tokens`; it never has both `light` and
+ * `dark` as objects, so the check cannot mistake one for the other.
+ *
+ * @param value - The value to test.
+ * @returns `true` when it holds both halves.
+ */
+function isThemeCssPair(value: ThemeDefinition | ThemeCssPair): value is ThemeCssPair {
+  const candidate = value as { light?: unknown; dark?: unknown };
+  const isObject = (input: unknown): boolean => typeof input === "object" && input !== null;
+  return isObject(candidate.light) && isObject(candidate.dark);
+}
+
+/**
+ * Render one rule block.
+ *
+ * @param selector - The selector to emit under.
+ * @param variables - The custom properties, in emission order.
+ * @returns The block, with a trailing newline added by the caller.
+ *
+ * @remarks
+ * An empty variable set still produces a block (`selector {\n\n}`), which is what
+ * the CLI's exporter has always written for a theme with no tokens. It is
+ * preserved rather than tidied so the CLI refactor stays byte-compatible; a theme
+ * with no tokens does not pass `validateTheme()`, so this is not a state a
+ * validated theme can reach.
+ */
+function cssBlock(selector: string, variables: Record<string, string>): string {
+  const lines = Object.entries(variables)
+    .map(([name, value]) => `  ${name}: ${value};`)
+    .join("\n");
+
+  return `${selector} {\n${lines}\n}`;
+}
+
+/**
+ * Render a theme, or a light/dark pair, as a CSS custom-property document.
+ *
+ * This is the canonical formatting for Themvora's `:root` document convention,
+ * and the only place it exists: the CLI's `export --format css` and the VS Code
+ * extension's Copy CSS Variables both call it, so the CSS a user copies is the
+ * CSS the CLI writes.
+ *
+ * A single theme is emitted under {@link CSS_ROOT_SELECTOR}. A pair is emitted as
+ * the light theme under `:root` followed by the dark theme under
+ * {@link CSS_DARK_SELECTOR}.
+ *
+ * Output is deterministic: the variable order comes from
+ * {@link themeToCSSVariables}, which emits token groups in a fixed order, so the
+ * same theme always produces byte-identical CSS.
+ *
+ * @param theme - A theme definition, or a `{ light, dark }` pair.
+ * @returns The document, ending with a newline.
+ *
+ * @throws {TypeError} When the argument is not an object. This matches
+ *   {@link themeToCSSVariables}, which is total over a theme's tokens and throws
+ *   only on input that is not a theme at all; neither invents a diagnostic code
+ *   for a programming error.
+ *
+ * @example
+ * ```ts
+ * const { light, dark } = generateTheme({ seed: "#4f46e5" });
+ * const css = themeToCssDocument({ light, dark });
+ * // :root { --theme-color-background: #fbfbff; … }
+ * // .dark, [data-theme="dark"] { … }
+ * ```
+ *
+ * @see {@link themeToCSSVariables}
+ */
+export function themeToCssDocument(theme: ThemeDefinition | ThemeCssPair): string {
+  if (typeof theme !== "object" || theme === null) {
+    throw new TypeError(
+      "themeToCssDocument() expects a theme definition or a { light, dark } pair.",
+    );
+  }
+
+  if (isThemeCssPair(theme)) {
+    return [
+      cssBlock(CSS_ROOT_SELECTOR, themeToCSSVariables(theme.light)),
+      "",
+      cssBlock(CSS_DARK_SELECTOR, themeToCSSVariables(theme.dark)),
+      "",
+    ].join("\n");
+  }
+
+  return `${cssBlock(CSS_ROOT_SELECTOR, themeToCSSVariables(theme))}\n`;
+}

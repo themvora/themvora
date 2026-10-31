@@ -99,12 +99,23 @@ duration for its own fade.
 A minimal demo-style button that cycles the theme mode:
 `light → dark → system → light`.
 
-Renders a `<button>` whose label is the current mode. Use it for demos and
-prototypes, or build your own control with useTheme.
+Renders a `<button>` whose label is the mode **actually applied**, with the
+configured mode shown alongside it while that is `"system"`. Cycling always
+follows the configured mode, so a visitor who picked "system" stays on it.
 
-**See also:** `useTheme`, `useThemeMode`
+Use it for demos and prototypes, or build your own control with
+useTheme.
+
+**See also:** `useTheme`, `useEffectiveThemeMode`
 
 **Returns** `Element`
+
+The label reads useEffectiveThemeMode rather than useThemeMode
+on purpose. With a sunrise/sunset schedule running, the configured mode is the
+visitor's standing request — `"system"`, or whichever mode they last picked —
+and it does not move at sunset. A label bound to it therefore kept announcing
+the old mode while the page changed colour. The effective mode moves with the
+page.
 
 ```ts
 <ThemeModeButton />
@@ -231,6 +242,33 @@ Props are four optional groups — `behavior`, `appearance`, `scope` and
 ---
 
 
+### `useEffectiveThemeMode(): "light" | "dark"`
+Subscribe to the mode actually **applied** — `"light"` or `"dark"`, never
+`"system"`.
+
+This is the value a control that says "you are in dark mode" must render.
+useThemeMode reports the request, which is the right thing for a
+three-way light/dark/system picker but the wrong thing for a toggle or a
+label: with `mode: "system"` it never changes, and with a sunrise/sunset
+schedule running it stays on the configured value while the page changes
+underneath it.
+
+Updates for every cause — a click, an OS appearance change, a schedule
+transition — because it subscribes to the appearance rather than to the
+selection.
+
+```tsx
+const effectiveMode = useEffectiveThemeMode();
+return <span>{effectiveMode === "dark" ? "Dark" : "Light"}</span>;
+```
+
+**See also:** `useThemeMode`, `useThemeSchedule`
+
+**Returns** `"light" | "dark"`
+
+---
+
+
 ### `useGeneratedTheme<T extends ThemeDefinition<string>>(): T`
 The theme produced by `generateTheme()` and registered with the provider.
 
@@ -259,6 +297,40 @@ render rather than a stale theme being returned.
 **See also:** `useThemeValue`
 
 **Returns** `T` — The registered generated theme.
+
+---
+
+
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): readonly ProvidedThemeFamily<T>[]`
+The themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+the built-in catalog, and not every theme that exists in the project. Build a
+theme picker from it instead of enumerating a separate preset source:
+
+```tsx
+const themes = useProvidedThemes();
+
+return themes.map((family) => (
+  <section key={family.id}>
+    <h3>{family.name}</h3>
+    {family.variants.map((variant) => (
+      <button key={variant.name} onClick={() => setFamily(family.family)}>
+        {variant.mode}
+      </button>
+    ))}
+  </section>
+));
+```
+
+The collection is reactive: a `themes` prop change, a `runtime.use(pack)`
+install or a registry mutation re-renders the consumer. Entries keep their
+identity while their content is unchanged, so `React.memo` and dependency
+arrays behave.
+
+**See also:** `useTheme`, `normalizeProvidedThemes`
+
+**Returns** `readonly ProvidedThemeFamily<T>[]` — The provider's theme families, in supplied order.
 
 ---
 
@@ -310,7 +382,7 @@ Get a stable `setMode` function (does not re-render on change).
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies): void; setMode: __type(mode: ModesOf): void; theme: T; toggleTheme: __type(): void }`
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies): void; setMode: __type(mode: ModesOf): void; theme: T; toggleTheme: __type(): void }`
 The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
@@ -327,9 +399,9 @@ The primary Themvora hook. Returns the current theme, mode, family and
    setMode("dark");
    ```
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
 
-**Returns** `{ family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies): void; setMode: __type(mode: ModesOf): void; theme: T; toggleTheme: __type(): void }`
+**Returns** `{ effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies): void; setMode: __type(mode: ModesOf): void; theme: T; toggleTheme: __type(): void }`
 
 ---
 
@@ -382,7 +454,12 @@ gives you the theme definitions rather than `unknown` — the same precision
 ### `useThemeMode(): ThemeMode`
 Subscribe to the current selection mode ("light" | "dark" | "system").
 
-**See also:** `useSetThemeMode`
+This is the mode the visitor **asked for**. While a sunrise/sunset schedule
+is running, or while the selection is `"system"`, the appearance on screen can
+differ from it — use useEffectiveThemeMode to display what is actually
+applied.
+
+**See also:** `useEffectiveThemeMode`, `useSetThemeMode`
 
 **Returns** `ThemeMode`
 
@@ -548,16 +625,17 @@ this helper manages), plus:
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `container` | `Element \| DocumentFragment` | The DOM node this root mounts into. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `ThemeFamilies<readonly T[]>` | The family resolved on first load. When themes are defined with `as const`, this is constrained to the families defined in `themes` (autocomplete). |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | The family resolved on first load. When themes are defined with `as const`, this is constrained to the families defined in `themes` (autocomplete). A **variant** name is accepted too and normalised to its family — the variant's mode is used only when `initialMode` is absent, so an explicit mode always wins. |
 | `initialMode` (optional) | `"system" \| ThemeModes<readonly T[]>` | The mode resolved on first load: `"light" \| "dark" \| "system"`. When themes are defined with `as const`, this is constrained to the modes defined in `themes` plus `"system"` (autocomplete). |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `render` | `__type(context: { runtime: ThemeRuntime<T> }): ReactNode` | Render the application tree. Called with the Themvora runtime so other library providers can derive their configuration from it. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -593,16 +671,17 @@ Accepts all `createThemeRuntime` options except `initialFamily`/`initialMode`
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `children` | `ReactNode` | The application tree rendered inside the provider. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `ThemeFamilies<readonly T[]>` | The family resolved on first load. When themes are defined with `as const`, this is constrained to the families defined in `themes` (autocomplete). |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | The family resolved on first load. When themes are defined with `as const`, this is constrained to the families defined in `themes` (autocomplete). A **variant** name is accepted too and normalised to its family — the variant's mode is used only when `initialMode` is absent, so an explicit mode always wins. |
 | `initialMode` (optional) | `"system" \| ThemeModes<readonly T[]>` | The mode resolved on first load: `"light" \| "dark" \| "system"`. When themes are defined with `as const`, this is constrained to the modes defined in `themes` plus `"system"` (autocomplete). |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | A runtime owned by the caller. When provided, the provider does not create or destroy a runtime — the caller owns its lifecycle. When omitted, the provider creates an internal runtime (owning `dom` and `cssVariables` itself) and destroys it on unmount. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -737,10 +816,11 @@ part of `appearance`.
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Plugins](/plugins) — Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.
 - [DevTools](/devtools) — Inspect and drive the live runtime from a panel: adapters, history, snapshots and performance entries.

@@ -11,6 +11,7 @@
 import { useEffect, useRef } from "react";
 import type {
   AdapterStrategy,
+  ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
 } from "@themvora/core";
@@ -44,11 +45,13 @@ export function useShadcnTheme<T extends ThemeDefinition = ThemeDefinition>(
   runtime: ThemeRuntime<T>,
   options?: { strategy?: AdapterStrategy },
 ): void {
-  const adapterRef = useRef<ReturnType<typeof createShadcnAdapter> | null>(
-    null,
-  );
+  // Typed against the caller's `T`: `createShadcnAdapter` is generic, but
+  // without the argument it falls back to the `ThemeDefinition` constraint and
+  // the resulting `ThemeAdapter<ThemeDefinition>` is not assignable to
+  // `ThemeAdapter<T>` for a caller that narrowed the definition type.
+  const adapterRef = useRef<ThemeAdapter<T> | null>(null);
   if (!adapterRef.current) {
-    adapterRef.current = createShadcnAdapter(
+    adapterRef.current = createShadcnAdapter<T>(
       options?.strategy ? { strategy: options.strategy } : {},
     );
   }

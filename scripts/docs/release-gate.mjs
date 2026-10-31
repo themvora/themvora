@@ -82,7 +82,7 @@
  *   --dynamic   adds the strongest example check: pack each example's declared
  *               packages, install a throwaway consumer project from those
  *               tarballs, then typecheck and smoke-run the example. Needs `pnpm`
- *               + network (~4 min for 21 examples). Uses a private npm cache per
+ *               + network (~4 min for 23 examples). Uses a private npm cache per
  *               run, so it no longer depends on the state of the machine's
  *               default npm cache.
  *
@@ -170,6 +170,38 @@ const staticSteps = [
   // `src/main.ts` throws without. It existed but was wired to nothing, which is
   // how two of those files shipped broken.
   { name: "quick-start snippets (copy-paste contract)", cmd: "apps/docs/scripts/check-quickstart-snippets.mjs", args: [] },
+  // Every JavaScript variant the docs offer is *derived* from the TypeScript
+  // snippet by `apps/docs/lib/code-variants.ts`, so a derivation bug is a wrong
+  // snippet on a live page that no other gate can see: the TypeScript source is
+  // still correct, and the JavaScript is only ever rendered in the browser. The
+  // gate asserts the transform against hand-written cases, refuses to emit
+  // anything it cannot prove is plain JavaScript, and prints the inventory of
+  // examples that deliberately stay TypeScript-only. It imports a `.ts` module,
+  // hence the explicit `nodeArgs`.
+  { name: "code-language variants (derived JavaScript is valid)", cmd: "apps/docs/scripts/check-code-variants.mjs", args: [], nodeArgs: ["--experimental-strip-types"] },
+  // The toolbar badge (`TS / JS`, `TSX / JSX`, `TS`, …) is a claim about the
+  // *source*, and it is computed by a different code path from the derivation
+  // above — so it can disagree with it, and nothing else would notice. The gate
+  // asserts the label for every construct the docs use (including the ambiguous
+  // ones, which must fall back to the grammar rather than guess), cross-checks
+  // the label against the derivation's verdict, and prints the corpus census as
+  // an inventory for review rather than as an assertion about the numbers.
+  //
+  // It also owns the one framework exception: Angular documentation is
+  // TypeScript-only by decision (`TYPESCRIPT_ONLY_FRAMEWORKS`), so no Angular
+  // snippet may derive a variant, render a selector or carry a combined label —
+  // including the ones that are technically valid JavaScript. That is checked at
+  // the policy level, at the recognition level and across the corpus, so the
+  // exception cannot quietly turn into an omission.
+  { name: "code compatibility labels (badge matches the source)", cmd: "apps/docs/scripts/check-code-compatibility.mjs", args: [], nodeArgs: ["--experimental-strip-types"] },
+  // Line numbers were markup, not text: a Shiki transformer wrapped every line
+  // in a gutter span, so "remove them" is a claim about the generated HTML and
+  // about the stylesheet that reserved the column — neither of which any other
+  // gate reads. The same gate pins the density that replaced them, including the
+  // three properties whose interaction doubled the line spacing, and round-trips
+  // the highlighted text against the source so the change cannot have altered a
+  // single character of any snippet.
+  { name: "code-block presentation (no gutter, one line-height)", cmd: "apps/docs/scripts/check-code-block.mjs", args: [], nodeArgs: ["--experimental-strip-types"] },
   // A `<themvora-*>` attribute the element does not observe is silently ignored
   // at runtime and invisible to every other check, because it lives in a string.
   { name: "web element attributes (docs vs observedAttributes)", cmd: "apps/docs/scripts/check-web-element-attributes.mjs", args: [] },
@@ -406,12 +438,17 @@ for (const tier of TIERS) {
 
   let tierFailed = false;
   for (const step of tier.steps) {
-    console.log(`\n>>> ${step.name} — node ${step.cmd} ${step.args.join(" ")}`);
-    const r = spawnSync(process.execPath, [join(repoRoot, step.cmd), ...step.args], {
-      stdio: "inherit",
-      cwd: step.cwd ?? repoRoot,
-      env: process.env,
-    });
+    const invocation = [...(step.nodeArgs ?? []), step.cmd, ...step.args].join(" ");
+    console.log(`\n>>> ${step.name} — node ${invocation}`);
+    const r = spawnSync(
+      process.execPath,
+      [...(step.nodeArgs ?? []), join(repoRoot, step.cmd), ...step.args],
+      {
+        stdio: "inherit",
+        cwd: step.cwd ?? repoRoot,
+        env: process.env,
+      },
+    );
     if (r.status !== 0) {
       console.error(`\n>>> FAILED: ${step.name} (exit ${r.status})`);
       tierFailed = true;

@@ -78,6 +78,7 @@ import {
   moduleKey,
   resolveLocal,
 } from "./lib/snippets.mjs";
+import { hasUnboundThemesReference } from "./lib/example-bindings.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(join(here, "..", ".."));
@@ -176,30 +177,10 @@ function packageOf(specifier) {
     : specifier.split("/")[0];
 }
 
-/** Remove comments and string literals so identifier scans do not read prose. */
-function stripNoise(code) {
-  return code
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ")
-    .replace(/`(?:\\.|[^`\\])*`/g, '""')
-    .replace(/'(?:\\.|[^'\\\n])*'/g, '""')
-    .replace(/"(?:\\.|[^"\\\n])*"/g, '""');
-}
-
-/** True when `themes` has a binding somewhere in the entry or its bundle. */
-function themesIsBound(entry, declaredKeys) {
-  if (declaredKeys.has("themes")) return true;
-  const code = entry.code ?? "";
-  if (/(?:const|let|var)\s+themes\b/.test(code)) return true; // const themes = …
-  if (/(?:const|let|var)\s*\{[^}]*\bthemes\b[^}]*\}/.test(code)) return true; // const { themes } = …
-  if (/\bimport\s*\{[^}]*\bthemes\b[^}]*\}/.test(code)) return true; // import { themes } from "…"
-  if (/\bimport\s+themes\s*(?:,|from)/.test(code)) return true; // import themes from "…"
-  for (const { specifier } of parseAllImports(code)) {
-    if (isRelativeSpecifier(specifier) && moduleKey(specifier) === "themes") return true;
-  }
-  return false;
-}
+// `stripNoise`, `themesIsBound` and the "is this a reference at all?" question
+// live in `lib/example-bindings.mjs`: telling a prop name, a property access and
+// a word of JSX prose apart from a value reference is the whole difficulty of
+// rule D, and it is tested directly there rather than through the full scan.
 
 // --- token references --------------------------------------------------------
 
@@ -434,13 +415,11 @@ for (const root of roots) {
 
       // --- D. `themes` is bound ----------------------------------------------
       // Only *value references* count. `<ThemeScope themes={[x]}>` mentions
-      // `themes` as a prop name (not a reference), and `runtime.themes` is a
-      // property access — neither needs a binding, and flagging them would bury
-      // the real cases (`<ThemeProvider themes={themes}>` with no import).
-      const bare = stripNoise(code)
-        .replace(/(?<=[\s<{,:])themes\s*(?==|:)/g, "PROPNAME")
-        .replace(/\.\s*themes\b/g, "PROPACCESS");
-      if (/\bthemes\b/.test(bare) && !themesIsBound(entry, declaredKeys)) {
+      // `themes` as a prop name (not a reference), `runtime.themes` is a
+      // property access, and `<button>View themes</button>` is a label — none
+      // needs a binding, and flagging them would bury the real cases
+      // (`<ThemeProvider themes={themes}>` with no import).
+      if (hasUnboundThemesReference(code, declaredKeys)) {
         add(
           "D",
           page,

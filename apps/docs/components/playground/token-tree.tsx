@@ -290,7 +290,7 @@ export function TokenTree() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search tokens... e.g. colors.primary, border-width"
           aria-label="Search tokens"
-          className="w-full rounded-lg border border-border bg-muted/40 pl-8 pr-3 py-2 text-sm outline-none focus:border-ring transition-colors"
+          className="w-full rounded-lg border-2 border-border bg-muted/40 pl-8 pr-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         {isSearching && (
           <button

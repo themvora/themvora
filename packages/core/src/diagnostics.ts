@@ -35,6 +35,11 @@ export type ThemeDiagnosticCode =
   | "TV_THEME_TOKEN_MISSING"
   /** A request named a theme family that is not registered in the effective catalog. */
   | "TV_THEME_FAMILY_UNKNOWN"
+  /**
+   * An explicit `themeOverride` named a theme, family or mode the provider could
+   * not resolve. The override is ignored and the previous selection is kept.
+   */
+  | "TV_THEME_OVERRIDE_UNRESOLVED"
   /** No usable theme was available in the effective catalog; the neutral fallback was applied. */
   | "TV_THEME_NEUTRAL_FALLBACK"
   /** A semantic token is present but is not a valid color. */
@@ -58,6 +63,12 @@ export type ThemeDiagnosticCode =
   | "TV_SCROLLBAR_OPTION_INVALID"
   /** A plugin's `onDestroy` hook threw while the manager was tearing down. */
   | "TV_PLUGIN_DESTROY_FAILED"
+  /**
+   * A persistence or broadcast adapter threw while the runtime was applying a
+   * selection or mode. The change is still applied locally and the listeners
+   * are still notified; only the cross-session/cross-tab mirror failed.
+   */
+  | "TV_SYNC_FAILED"
   /** `generateTheme()` received a seed that is not a parseable color. */
   | "TV_GENERATION_INVALID_SEED"
   /** The generator adjusted a color to satisfy the contrast contract. Verbose only. */

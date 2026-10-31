@@ -1,8 +1,9 @@
 import React from "react";
-import type { ThemeDefinition, ThemeMode } from "@themvora/core";
+import type { ThemeDefinition, ThemeIdentifier, ThemeMode } from "@themvora/core";
 import {
   buildBootstrapPlan,
   createPrePaintScrollbarCSS,
+  darkModeCSSTemplate,
   resolveSelectionTheme,
   resolveInitialTheme,
   serializeThemeBootstrapScript,
@@ -23,7 +24,12 @@ export interface ThemeHeadProps<T extends ThemeDefinition> {
   /** The theme registry the blocking script resolves against. */
   themes: readonly T[];
   /** Fallback theme name when no selection is persisted. */
-  defaultTheme?: T["name"];
+  defaultTheme?: ThemeIdentifier<T>;
+  /**
+   * An explicit theme override, applied by the pre-paint script over any
+   * persisted selection. Pass the same value given to {@link ThemeProvider}.
+   */
+  themeOverride?: import("@themvora/core").ThemeOverride<ThemeIdentifier<T>>;
   /**
    * Fallback mode when no selection is persisted. Defaults to the fallback
    * theme's own mode — whatever `defaultTheme` resolves to.
@@ -58,17 +64,16 @@ export interface ThemeHeadProps<T extends ThemeDefinition> {
   scrollbar?: boolean;
 }
 
-function darkModeCSSTemplate(variables: Record<string, string>): string {
-  const rules = Object.entries(variables)
-    .map(([key, value]) => `  ${key}: ${value};`)
-    .join("\n");
-  return `@media (prefers-color-scheme: dark) {:root {\n${rules}\n}}`;
-}
+// The dark-mode fallback stylesheet comes from core, not from a local copy:
+// the copy that used to live here did not escape `</`, so a token value
+// containing `</style` closed the `<style>` element `ThemeHead` renders it
+// into. Core's version is escaped for style-element content.
 
 export function getBlockingScriptContent<T extends ThemeDefinition>(
   themes: readonly T[],
-  defaultTheme?: T["name"],
+  defaultTheme?: ThemeIdentifier<T>,
   mode?: ThemeMode,
+  themeOverride?: import("@themvora/core").ThemeOverride<ThemeIdentifier<T>>,
 ): string {
   const plan = buildBootstrapPlan(themes, {
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
@@ -76,6 +81,9 @@ export function getBlockingScriptContent<T extends ThemeDefinition>(
     // `getDarkModeCSS` below resolves from the same inputs, so the two halves of
     // this `<head>` cannot disagree — and both agree with the client runtime.
     ...(mode !== undefined ? { initialMode: mode } : {}),
+    // The pre-paint script applies the override over the cookie selection, so
+    // an override passed to the provider is also the first thing painted.
+    ...(themeOverride !== undefined ? { themeOverride } : {}),
   });
 
   return serializeThemeBootstrapScript(
@@ -94,7 +102,7 @@ export function getBlockingScriptContent<T extends ThemeDefinition>(
 
 export function getDarkModeCSS<T extends ThemeDefinition>(
   themes: readonly T[],
-  defaultTheme?: T["name"],
+  defaultTheme?: ThemeIdentifier<T>,
   mode?: ThemeMode,
 ): string | null {
   // Emitted only when the resolved mode is `"system"` — i.e. when someone
@@ -132,7 +140,6 @@ export function getDarkModeCSS<T extends ThemeDefinition>(
  *
  * @example
  * ```tsx
- * // app/root.tsx
  * import { ThemeHead } from "@themvora/remix";
  *
  * export function Layout({ children }) {
@@ -160,9 +167,15 @@ export function ThemeHead<T extends ThemeDefinition>({
   themes,
   defaultTheme,
   mode,
+  themeOverride,
   scrollbar,
 }: ThemeHeadProps<T>) {
-  const scriptContent = getBlockingScriptContent(themes, defaultTheme, mode);
+  const scriptContent = getBlockingScriptContent(
+    themes,
+    defaultTheme,
+    mode,
+    themeOverride,
+  );
   const darkCSS = getDarkModeCSS(themes, defaultTheme, mode);
 
   return (

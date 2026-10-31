@@ -26,7 +26,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 ```ts
 import { createOpenPropsAdapter } from "@themvora/open-props";
 
-runtime.installAdapter(createOpenPropsAdapter());
+runtime.adapters.use(createOpenPropsAdapter());
 ```
 
 ---

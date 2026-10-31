@@ -115,36 +115,9 @@ store.destroy();
 
 ## Model Builders
 
-Type-safe, zero-cost helpers for composing themes:
+Type-safe, zero-cost helpers for composing themes: `defineTheme`, `extendTheme`, `composeTheme`, `mergeThemeDefinitions`, `mergeTokens`, and `resolveTheme`.
 
-```ts
-import {
-  defineTheme,
-  extendTheme,
-  composeTheme,
-  mergeThemeDefinitions,
-  mergeTokens,
-  resolveTheme,
-} from "@themvora/core";
-
-const base = defineTheme({ name: "base", tokens: { ... } });
-
-// Inherit from a base theme and override pieces
-const plum = extendTheme("plum", base, {
-  meta: { family: "plum" },
-  tokens: { colors: { primary: "#a78bfa" } },
-});
-
-// Merge several definitions into one
-const full = composeTheme("full", base, plum, { tokens: { radius: { lg: "12px" } } });
-
-// Low-level merges
-const mergedTokens = mergeTokens(a.tokens, b.tokens);
-const mergedTheme = mergeThemeDefinitions(a, b);
-
-// Resolve a definition, following `extends` chains
-const resolved = resolveTheme([base, plum], "plum");
-```
+See the [Tokens reference](/tokens) for full code examples of each builder.
 
 ## Theme Registry
 
@@ -221,42 +194,15 @@ Utilities: `flattenTokens`, `resolveTokens`, `evaluateExpression`.
 
 ## Theme Generation
 
-Generate a complete light + dark theme pair from a single seed color, deriving secondary, muted, accent, card, popover, input, border and ring colors in OKLCH.
-
-```ts
-import { generateTheme } from "@themvora/core";
-
-const { light, dark } = generateTheme({ seed: "#6366f1", family: "indigo" });
-```
+`generateTheme()` produces a complete light + dark theme pair from a single seed color, deriving secondary, muted, accent, card, popover, input, border, and ring colors in OKLCH with WCAG-compliant code tokens. See the [Custom Themes guide](/custom-themes) for the full generation API, style options, and guarantees.
 
 ## Theme Validation
 
-Validate that a theme defines all required semantic color tokens, resolving `extends` chains when a theme list is provided.
-
-```ts
-import { getBuiltInThemes, validateTheme } from "@themvora/core";
-
-// Pass a theme list to resolve `extends` chains before validating.
-const result = validateTheme(theme, { themes: getBuiltInThemes() });
-// { valid: boolean, issues: [{ type: "missing", path, message }] }
-```
+`validateTheme()` checks that a theme defines all required semantic color tokens, resolving `extends` chains when a theme list is provided. See the [Accessibility guide](/accessibility) for the full validation API and contrast auditing.
 
 ## Theme Migration
 
-Version themes with a migration chain. Old theme files automatically upgrade to the latest format.
-
-```ts
-import { migrateTheme, registerMigration } from "@themvora/core";
-
-registerMigration({
-  from: "1.0.0",
-  to: "2.0.0",
-  remapColors: { primaryColor: "primary" },
-  migrate(theme) { /* arbitrary transforms */ },
-});
-
-const next = migrateTheme(theme, { targetVersion: "2.0.0" });
-```
+Version themes with a migration chain so old theme files automatically upgrade to the latest format. See the [Migration guide](/migration) for `registerMigration`, `migrateTheme`, and the full API.
 
 ## Theme History (Undo / Redo)
 
@@ -374,32 +320,9 @@ const sync = createMultiWindowSync({ prefer: "auto" });
 
 ## Scheduled Themes (Solar Time)
 
-Automatically switch between light and dark themes based on actual sunrise/sunset.
+Automatically switch between light and dark themes based on actual sunrise/sunset. The schedule derives light/dark variants from the active family, auto-detects the visitor's location from their browser timezone, and exposes a separate *effective mode* channel so UI can reflect appearance without overwriting the user's explicit choice.
 
-```ts
-const runtime = createThemeRuntime({
-  scheduled: {
-    // Everything is optional. lightTheme/darkTheme adapt to the currently
-    // selected theme's family (fallback: neutral light/dark), and the
-    // location auto-detects from each visitor's browser timezone.
-    // lightTheme: "mint-light",
-    // darkTheme: "mint-dark",
-    // timeZone: "Asia/Kathmandu",
-    // latitude: 40.7128, longitude: -74.006,
-    checkInterval: 60_000,
-  },
-});
-```
-
-`calculateSunTimes(date, lat?, lon?)` computes NOAA solar events — with no
-coordinates it auto-detects the visitor's timezone (via
-`Intl.DateTimeFormat().resolvedOptions().timeZone`). When `lightTheme` /
-`darkTheme` are omitted, the schedule derives them from the current theme's
-family (e.g. `plum-dark` → `plum-light`/`plum-dark`) and falls back to the
-neutral `light`/`dark` themes, re-resolving when the user switches family.
-`timeZone` / `autoDetectLocation` / `latitude` / `longitude` are all
-changeable at runtime with `runtime.schedule.set()`. `skipApplyMs` defers
-changes briefly after a cross-tab sync.
+See the [Sunrise & Sunset guide](/sunrise-sunset) for the full configuration API, `getTimes` customization, the configured-vs-effective mode table, and framework accessors.
 
 ## Persistence
 
@@ -442,26 +365,9 @@ const fallbackCSS = darkModeCSSTemplate(cssMap["dark"] ?? {});
 
 ## Built-in Themes
 
-`getBuiltInThemes()` bundles everything the library ships:
+The library ships with neutral light/dark themes, nine preset families (Oat, Berry, Mint, Citrus, Cocoa, Plum, Iris, Sky, Graphite), brand presets (Apple, GitHub, Vercel, Slack, Discord), and accessibility profiles (High Contrast, Large Text).
 
-- **Neutral** — `light` / `dark` with a full token scale (spacing, radius, shadows, border widths, z-index, breakpoints, typography)
-- **Preset families** — Oat, Berry, Mint, Citrus, Cocoa, Plum, Iris, Sky, Graphite (light + dark)
-- **Brand presets** — Apple, GitHub, Vercel, Slack, Discord (light + dark)
-- **Accessibility profiles** — High Contrast (light/dark) and Large Text (light/dark), tagged `"accessibility"`
-
-```ts
-import {
-  getBuiltInThemes,
-  getNeutralThemes,
-  getPresetThemes,
-  getBrandPresets,
-  getAccessibilityProfiles,
-} from "@themvora/core";
-
-const all = getBuiltInThemes();
-const presets = getPresetThemes();          // nine signature families
-const brands = getBrandPresets();           // five real-world brands
-```
+See the [Presets page](/presets) for the full catalog and `getPresetThemes()` / `getBrandPresets()` API, and the [Accessibility guide](/accessibility) for the contrast profiles.
 
 ## Vanilla (No Framework)
 
@@ -488,7 +394,6 @@ Events: `themeChange`, `modeChange`, `familyChange`. Exposes `.runtime`, `.regis
 `@themvora/core/vite` injects the blocking bootstrap script into `index.html` (`head-prepend`) so the persisted theme applies before first paint in client-rendered apps — no manual inline scripts.
 
 ```ts
-// theme.config.ts — the canonical application configuration
 import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
 const themes = [
@@ -514,7 +419,6 @@ export default defineThemvoraConfig({
 ```
 
 ```ts
-// vite.config.ts — the plugin discovers the file above
 import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({

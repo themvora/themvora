@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 export function CopyButton({
   text,
   label = "Copy",
-  copiedLabel = "Copied ✓",
+  copiedLabel = "Copied",
   title,
   className,
 }: {
@@ -31,8 +31,12 @@ export function CopyButton({
     <button
       type="button"
       onClick={handleCopy}
-      title={title ?? label}
-      aria-label={title ?? label}
+      title={title ?? (copied ? copiedLabel : label)}
+      // The label follows the state. It used to be pinned to `label`, so the
+      // visible text changed to "Copied" while the accessible name stayed
+      // "Copy" — a screen-reader user was told nothing, and `aria-live` had
+      // nothing to announce because the name never changed.
+      aria-label={title ?? (copied ? copiedLabel : label)}
       aria-live="polite"
       className={`chip shrink-0 ${className ?? ""}`.trim()}
       style={copied ? { color: "var(--theme-color-success)" } : undefined}

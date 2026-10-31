@@ -36,10 +36,18 @@ export function Page() {
 
 ## Style it with Themvora tokens
 
-Themvora emits one CSS variable per token, so your own classes read the active
-theme without any per-theme CSS:
+Themvora emits the active theme's tokens as CSS custom properties, so the
+document itself is themed and your own classes read the same variables without
+any per-theme CSS. The rules use only required semantic colours — spacing,
+typography and layout stay ordinary CSS:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .page {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
@@ -49,8 +57,8 @@ theme without any per-theme CSS:
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-md);
-  padding: var(--theme-spacing-4);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1rem;
 }
 ```
 
@@ -602,7 +610,6 @@ builds the target library's own theme object from the runtime.
 
 ```ts
 ---
-// src/layouts/BaseLayout.astro
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 ---
@@ -634,7 +641,6 @@ export function Example() {
 
 ```ts
 ---
-// src/pages/index.astro
 import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 ---
 
@@ -646,7 +652,6 @@ import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
 
 ```ts
 ---
-// src/layouts/BaseLayout.astro
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 ---
@@ -712,7 +717,6 @@ Mount the framework provider, then the library adapter inside it. The adapter
 builds the target library's own theme object from the runtime.
 
 ```ts
-// app/layout.tsx
 import { ThemeProvider } from "@themvora/next";
 
 import { ThemeZone } from "./theme-zone";
@@ -732,7 +736,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 Real antd components. There is no Themvora-specific prop on any of them.
 
 ```ts
-// app/example.tsx
 "use client";
 
 import { Button, Card, Typography } from "antd";
@@ -750,7 +753,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// app/theme-controls.tsx
 "use client";
 
 import { useTheme } from "@themvora/next/client";
@@ -772,7 +774,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// app/theme-zone.tsx
 "use client";
 
 import { useThemeRuntime } from "@themvora/next/client";
@@ -823,7 +824,6 @@ Mount the framework provider, then the library adapter inside it. The adapter
 builds the target library's own theme object from the runtime.
 
 ```ts
-// src/App.tsx
 import { ThemeProvider } from "@themvora/react";
 
 import { Page } from "./Page";
@@ -845,7 +845,6 @@ export default function App() {
 Real antd components. There is no Themvora-specific prop on any of them.
 
 ```ts
-// src/Example.tsx
 import { Button, Card, Typography } from "antd";
 
 export function Example() {
@@ -861,7 +860,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// src/ThemeControls.tsx
 import { useTheme } from "@themvora/react";
 import { Button, Stack } from "antd";
 
@@ -881,7 +879,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// src/App.tsx
 import { ThemeProvider, useThemeRuntime } from "@themvora/react";
 import { AntdThemeProvider } from "@themvora/antd";
 
@@ -924,7 +921,6 @@ Mount the framework provider, then the library adapter inside it. The adapter
 builds the target library's own theme object from the runtime.
 
 ```ts
-// app/root.tsx
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
@@ -985,7 +981,6 @@ export default function App() {
 Real antd components. There is no Themvora-specific prop on any of them.
 
 ```ts
-// app/components/Example.tsx
 import { Button, Card, Typography } from "antd";
 
 export function Example() {
@@ -1001,7 +996,6 @@ export function Example() {
 **Theme switching**
 
 ```ts
-// app/components/ThemeControls.tsx
 import { useTheme } from "@themvora/remix";
 import { Button, Stack } from "antd";
 
@@ -1021,7 +1015,6 @@ export function ThemeControls() {
 **Complete example**
 
 ```ts
-// app/root.tsx
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";

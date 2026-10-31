@@ -1,0 +1,36 @@
+{
+  "name": "@themvora/app-remix",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "dev": "remix vite:dev",
+    "build": "remix vite:build",
+    "typecheck": "tsc --noEmit",
+    "preview": "cross-env PORT=5200 remix-serve ./build/server/index.js"
+  },
+  "dependencies": {
+    "@remix-run/node": "^2.17.5",
+    "@remix-run/react": "^2.17.5",
+    "@remix-run/serve": "^2.17.5",
+    "@themvora/app-shared": "workspace:*",
+    "@themvora/core": "workspace:*",
+    "@themvora/react": "workspace:*",
+    "@themvora/remix": "workspace:*",
+    "@themvora/tailwind": "workspace:*",
+    "isbot": "^5.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^2.17.5",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "cross-env": "^7.0.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5"
+  }
+}

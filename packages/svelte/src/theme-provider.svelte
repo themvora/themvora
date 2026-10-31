@@ -48,6 +48,10 @@
 
   setContext(ThemeKey, runtimeInstance);
 
+  // Once this provider has supplied `themeOverride` it owns the input and must
+  // report its removal (see the React provider).
+  let overrideSupplied = rest.themeOverride !== undefined;
+
   let domBinding: { setTransition?(transition: ThemeTransitionOptions | undefined): void; destroy(): void } | null = null;
   let cssBinding: { setTransition?(transition: ThemeTransitionOptions | undefined): void; destroy(): void } | null = null;
 
@@ -69,6 +73,7 @@
         ...(rest.defaultTheme !== undefined ? { defaultTheme: rest.defaultTheme as string } : {}),
         ...(rest.initialMode !== undefined ? { initialMode: rest.initialMode } : {}),
         ...(rest.initialFamily !== undefined ? { initialFamily: rest.initialFamily } : {}),
+        ...(rest.themeOverride !== undefined ? { themeOverride: rest.themeOverride } : {}),
       });
       if (bootstrap) {
         const script = document.createElement("script");
@@ -101,6 +106,8 @@
     if (rest.themes !== undefined) update.themes = rest.themes;
     if (rest.initial !== undefined) update.initial = rest.initial;
     if (rest.defaultTheme !== undefined) update.defaultTheme = rest.defaultTheme;
+    if (rest.themeOverride !== undefined) overrideSupplied = true;
+    if (overrideSupplied) update.themeOverride = rest.themeOverride;
     if (rest.initialFamily !== undefined) update.initialFamily = rest.initialFamily;
     if (rest.initialMode !== undefined) update.initialMode = rest.initialMode;
     if (rest.transition !== undefined) update.transition = rest.transition;

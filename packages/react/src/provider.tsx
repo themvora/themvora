@@ -14,13 +14,15 @@ import React, {
 import {
   createCSSVariablesBinding,
   createDOMBinding,
+  providedThemesSourceFor,
   createThemeRuntime,
   createThemeBootstrapScript,
   resolveRuntimeOptions,
   type CSSVariablesOptions,
   type DOMBindingOptions,
+  type ProvidedThemesSource,
   type ThemeDefinition,
-  type ThemeFamilies,
+  type ThemeIdentifier,
   type ThemeModes,
   type ThemeRuntime,
   type ThemeRuntimeOptions,
@@ -29,6 +31,14 @@ import {
 
 type ThemeContextValue<T extends ThemeDefinition> = {
   runtime: ThemeRuntime<T>;
+  /**
+   * The provider's theme discovery source.
+   *
+   * Created once per provider so every `useProvidedThemes()` consumer in the
+   * tree shares one derivation — a second source would duplicate the work and
+   * could disagree about identity.
+   */
+  providedThemes: ProvidedThemesSource<T>;
 };
 
 const ThemeContext = createContext<ThemeContextValue<any> | null>(null);
@@ -57,8 +67,12 @@ export interface ThemeProviderProps<
   /**
    * The family resolved on first load. When themes are defined with `as const`,
    * this is constrained to the families defined in `themes` (autocomplete).
+   *
+   * A **variant** name is accepted too and normalised to its family — the
+   * variant's mode is used only when `initialMode` is absent, so an explicit
+   * mode always wins.
    */
-  initialFamily?: ThemeFamilies<readonly T[]>;
+  initialFamily?: ThemeIdentifier<T>;
   /**
    * The mode resolved on first load: `"light" | "dark" | "system"`.
    * When themes are defined with `as const`, this is constrained to the
@@ -132,6 +146,15 @@ export function ThemeProvider<T extends ThemeDefinition>({
   // reach them directly — the runtime can only update bindings it owns itself.
   const domBindingRef = useRef<ReturnType<typeof createDOMBinding> | null>(null);
   const cssBindingRef = useRef<ReturnType<typeof createCSSVariablesBinding> | null>(null);
+  // Whether this provider has ever supplied `themeOverride`. Once it has, it owns
+  // that input and must report its removal — otherwise the runtime never learns
+  // the prop went away and keeps the override until a reload. Before it has, the
+  // provider must not touch an override a caller-owned runtime was created with.
+  const overrideSuppliedRef = useRef(false);
+  if (runtimeOptions.themeOverride !== undefined) {
+    overrideSuppliedRef.current = true;
+  }
+
   // Holds the pending runtime-destroy timer left by a cleanup. React
   // StrictMode (dev) runs effect cleanups and re-runs setup synchronously, so
   // a deferred destroy lets the re-run cancel it — the runtime survives
@@ -195,6 +218,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
     const update: ThemeConfigurationUpdate<T> = {};
     if (runtimeOptions.themes !== undefined) update.themes = runtimeOptions.themes as readonly T[];
     if (runtimeOptions.defaultTheme !== undefined) update.defaultTheme = runtimeOptions.defaultTheme;
+    if (overrideSuppliedRef.current) update.themeOverride = runtimeOptions.themeOverride;
     if (runtimeOptions.initialFamily !== undefined) update.initialFamily = runtimeOptions.initialFamily;
     if (runtimeOptions.initialMode !== undefined) update.initialMode = runtimeOptions.initialMode;
     if (runtimeOptions.initial !== undefined) update.initial = runtimeOptions.initial;
@@ -216,6 +240,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
     resolvedRuntime,
     runtimeOptions.themes,
     runtimeOptions.defaultTheme,
+    runtimeOptions.themeOverride,
     runtimeOptions.initialFamily,
     runtimeOptions.initialMode,
     runtimeOptions.initial,
@@ -254,6 +279,12 @@ export function ThemeProvider<T extends ThemeDefinition>({
           : {}),
         ...(coreOptions.initialFamily !== undefined
           ? { initialFamily: coreOptions.initialFamily }
+          : {}),
+        // Without this the script would paint the saved selection and the
+        // runtime would correct it on mount — a visible flash of the theme the
+        // override exists to replace.
+        ...(coreOptions.themeOverride !== undefined
+          ? { themeOverride: coreOptions.themeOverride }
           : {}),
       });
       if (bootstrap) {
@@ -342,11 +373,17 @@ export function ThemeProvider<T extends ThemeDefinition>({
     };
   }, [ownsRuntime, resolvedRuntime]);
 
+  const providedThemes = useMemo(
+    () => providedThemesSourceFor(resolvedRuntime),
+    [resolvedRuntime],
+  );
+
   const value = useMemo(
     () => ({
       runtime: resolvedRuntime,
+      providedThemes,
     }),
-    [resolvedRuntime],
+    [resolvedRuntime, providedThemes],
   );
 
   return (
@@ -380,4 +417,22 @@ export function useThemeRuntime<T extends ThemeDefinition>() {
   }
 
   return context.runtime as ThemeRuntime<T>;
+}
+
+/**
+ * The provider's theme discovery source.
+ *
+ * @internal — the public surface is `useProvidedThemes()` in this package; this
+ *   exposes the shared source so the hook does not create a second one.
+ *
+ * @see {@link useProvidedThemes}
+ */
+export function useProvidedThemesSource<T extends ThemeDefinition>() {
+  const context = useContext(ThemeContext);
+
+  if (!context) {
+    throw new Error("useProvidedThemes must be used inside ThemeProvider.");
+  }
+
+  return context.providedThemes as ProvidedThemesSource<T>;
 }

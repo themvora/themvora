@@ -31,7 +31,11 @@ export {
 export {
   createPrePaintScrollbarCSS,
   createPrePaintScrollbarScript,
+  hideNativeScrollbar,
   PRE_PAINT_SCROLLBAR_CSS,
+  restoreNativeScrollbar,
+  SCROLLBAR_HIDING_STYLE_ATTR,
+  SCROLLBAR_HIDING_STYLE_ID,
   type PrePaintScrollbarOptions,
 } from "./pre-paint";
 export {

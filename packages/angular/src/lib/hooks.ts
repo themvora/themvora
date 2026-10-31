@@ -16,7 +16,12 @@ import type {
   ThemeScheduleState,
   ThemeScheduleSetOptions,
 } from "@themvora/core";
-import { EMPTY_THEME_SCHEDULE_STATE, resolveGeneratedTheme } from "@themvora/core";
+import {
+  EMPTY_THEME_SCHEDULE_STATE,
+  providedThemesSourceFor,
+  resolveGeneratedTheme,
+  type ProvidedThemeFamily,
+} from "@themvora/core";
 import { THEME_RUNTIME, THEME_SCOPED_RUNTIME } from "./tokens";
 
 function resolveRuntime<T extends ThemeDefinition>(): ThemeRuntime<T> {
@@ -28,7 +33,11 @@ function resolveRuntime<T extends ThemeDefinition>(): ThemeRuntime<T> {
       "No Themvora runtime found. Ensure provideTheme() is included in your providers.",
     );
   }
-  return runtime as ThemeRuntime<T>;
+  // The injection tokens are typed against the base `ThemeDefinition`: Angular's
+  // DI has no way to carry the caller's `T` through an `InjectionToken`. The
+  // double cast is the honest expression of that — the runtime is the same
+  // object, and `T` is the caller's narrowing of the catalog it was built from.
+  return runtime as unknown as ThemeRuntime<T>;
 }
 
 /**
@@ -62,7 +71,14 @@ export interface ThemeState<T extends ThemeDefinition = ThemeDefinition> {
   mode: ThemeMode;
   /** The current theme family name. */
   family: string;
-  /** The resolved mode (`"light"` or `"dark"`) after applying `"system"`. */
+  /**
+   * The mode actually applied — `"light"` or `"dark"`, never `"system"`.
+   *
+   * Differs from {@link mode} while an automatic driver decides the appearance:
+   * `mode` is the visitor's request and stays `"system"` (or on the mode they
+   * picked) through a sunrise/sunset transition, while this moves with the page.
+   * Render this in a label that states the current appearance.
+   */
   resolvedMode: "light" | "dark";
   /** Sets the theme mode. */
   setMode: (mode: ThemeMode) => void;
@@ -98,8 +114,9 @@ export function injectTheme<T extends ThemeDefinition = ThemeDefinition>(): Sign
     theme: runtime.store.get() as T,
     mode: runtime.selection.getMode(),
     family: runtime.selection.getFamily(),
-    resolvedMode:
-      runtime.store.get().meta?.mode === "dark" ? "dark" : "light",
+    // Read from the selection controller rather than re-deriving it here, so
+    // every framework reports the same applied mode.
+    resolvedMode: runtime.selection.getEffectiveMode(),
     setMode: (m: ThemeMode) => runtime.selection.setMode(m),
     setFamily: (f: string) => runtime.selection.setFamily(f),
     toggleTheme: () => runtime.selection.toggleTheme(),
@@ -110,7 +127,7 @@ export function injectTheme<T extends ThemeDefinition = ThemeDefinition>(): Sign
       theme: t as T,
       mode: runtime.selection.getMode(),
       family: runtime.selection.getFamily(),
-      resolvedMode: t.meta?.mode === "dark" ? "dark" : "light",
+      resolvedMode: runtime.selection.getEffectiveMode(),
       setMode: state().setMode,
       setFamily: state().setFamily,
       toggleTheme: state().toggleTheme,
@@ -120,6 +137,45 @@ export function injectTheme<T extends ThemeDefinition = ThemeDefinition>(): Sign
   destroyRef.onDestroy(unsub);
 
   return state.asReadonly();
+}
+
+/**
+ * Injects the mode actually **applied** — `"light"` or `"dark"`, never
+ * `"system"` — as a read-only signal.
+ *
+ * The narrow form of {@link injectTheme}: use it in a component that only
+ * displays the current appearance, so it re-renders for an OS change or a
+ * sunrise/sunset transition and not for anything else.
+ *
+ * May be called from an Angular injection context.
+ *
+ * @returns A read-only `Signal<"light" | "dark">`.
+ *
+ * @example
+ * ```ts
+ * const mode = injectEffectiveThemeMode();
+ * // template: <span>{{ mode() }}</span>
+ * ```
+ *
+ * @see {@link injectTheme}
+ * @see {@link ThemeState.resolvedMode}
+ */
+export function injectEffectiveThemeMode(): Signal<"light" | "dark"> {
+  const runtime = resolveRuntime();
+  const destroyRef = inject(DestroyRef);
+
+  const mode = signal<"light" | "dark">(runtime.selection.getEffectiveMode());
+
+  const sync = () => mode.set(runtime.selection.getEffectiveMode());
+  const unsubStore = runtime.store.subscribe(sync);
+  const unsubEffective = runtime.selection.subscribeEffective(sync);
+
+  destroyRef.onDestroy(() => {
+    unsubStore();
+    unsubEffective();
+  });
+
+  return mode.asReadonly();
 }
 
 /**
@@ -181,6 +237,42 @@ export function injectGeneratedTheme<T extends ThemeDefinition = ThemeDefinition
   });
 
   return theme;
+}
+
+/**
+ * Injects the themes this provider was given, grouped by family.
+ *
+ * Returns exactly the collection supplied to `provideTheme` — not the built-in
+ * catalog. The signal updates when a theme pack is installed or the registry is
+ * mutated, and unsubscribes automatically when the injector is destroyed.
+ *
+ * ```ts
+ * const families = injectProvidedThemes();
+ * effect(() => console.log(families().map((f) => f.family)));
+ * ```
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns A read-only `Signal` holding the provider's theme families.
+ *
+ * @see {@link injectTheme}
+ */
+export function injectProvidedThemes<
+  T extends ThemeDefinition = ThemeDefinition,
+>(): Signal<readonly ProvidedThemeFamily<T>[]> {
+  const runtime = resolveRuntime<T>();
+  const destroyRef = inject(DestroyRef);
+  const source = providedThemesSourceFor(runtime);
+
+  const families = signal<readonly ProvidedThemeFamily<T>[]>(
+    source.get() as readonly ProvidedThemeFamily<T>[],
+  );
+
+  const unsubscribe = source.subscribe(() => {
+    families.set(source.get() as readonly ProvidedThemeFamily<T>[]);
+  });
+  destroyRef.onDestroy(unsubscribe);
+
+  return families.asReadonly();
 }
 
 /**

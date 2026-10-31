@@ -405,7 +405,7 @@ export const STARTER_EDITORIAL: Record<string, StarterEditorial> = {
     complexity: "beginner",
     docsHref: "/framework-guides/react",
   },
-  next: {
+  nextjs: {
     label: "Next.js",
     blurb: "App Router with server-side theme resolution.",
     complexity: "intermediate",
@@ -447,6 +447,18 @@ export const STARTER_EDITORIAL: Record<string, StarterEditorial> = {
     complexity: "intermediate",
     docsHref: "/framework-guides/astro",
   },
+  "astro-native": {
+    label: "Astro (native)",
+    blurb: "The native ThemeScope and inline script — no client framework at all.",
+    complexity: "beginner",
+    docsHref: "/framework-guides/astro",
+  },
+  "astro-react": {
+    label: "Astro + React",
+    blurb: "The Astro integration with a React island and the React hooks.",
+    complexity: "intermediate",
+    docsHref: "/framework-guides/astro",
+  },
   remix: {
     label: "Remix",
     blurb: "Remix v2 with loader-side theme resolution.",
@@ -459,11 +471,17 @@ export const STARTER_EDITORIAL: Record<string, StarterEditorial> = {
     complexity: "beginner",
     docsHref: "/framework-guides/web",
   },
-  tailwind: {
-    label: "Tailwind CSS v4",
-    blurb: "The Tailwind plugin exposing tokens as utilities.",
+  "vanilla-js": {
+    label: "Vanilla JS",
+    blurb: "The runtime driven directly, with no build step and no framework.",
     complexity: "beginner",
-    docsHref: "/framework-guides/tailwind",
+    docsHref: "/framework-guides",
+  },
+  shared: {
+    label: "Shared fixture",
+    blurb: "The workspace package the apps import from — not a standalone app.",
+    complexity: "beginner",
+    docsHref: "/framework-guides",
   },
 };
 

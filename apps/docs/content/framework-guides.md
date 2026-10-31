@@ -44,9 +44,10 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 **Hooks**
 
-- **useTheme()** — Returns `{ theme, mode, family, setMode, setFamily, toggleTheme }`.
+- **useTheme()** — Returns `{ theme, mode, effectiveMode, family, setMode, setFamily, toggleTheme }`.
 - **useThemeValue() / useThemeTokens()** — The active theme definition, and the active theme tokens.
 - **useThemeMode() / useThemeFamily()** — Granular reads for the current mode and family.
+- **useEffectiveThemeMode()** — The mode actually applied — `light` or `dark`, never `system`. This is what a label or icon showing the current appearance must render: it follows a sunrise/sunset transition, while `useThemeMode()` keeps reporting what the visitor asked for.
 - **useSetThemeMode() / useSetThemeFamily()** — Granular setters — set mode or family independently.
 - **useToggleTheme()** — Toggle function for light/dark.
 - **useThemeRuntime()** — Access the full runtime: registry, history, lifecycle, plugins.
@@ -88,30 +89,29 @@ Provider and hooks for React, with scoped themes, transitions, and an optional b
 
 #### quickStart
 
-```tsx title="src/App.tsx"
-// src/App.tsx
-import { ThemeProvider, useTheme } from "@themvora/react";
+```tsx title="src/main.tsx"
+import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "@themvora/react";
+import "./index.css";
+import { App } from "./App";
 
-function Header() {
-  const { theme, toggleTheme } = useTheme();
-  return <button onClick={toggleTheme}>{theme.name}</button>;
-}
-
-export function App() {
-  return (
-    <ThemeProvider defaultTheme="mint-light" transition={{ enabled: true }}>
-      <Header />
-    </ThemeProvider>
-  );
-}
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider
+    defaultTheme="mint-light"
+    initialMode="system"
+    transition={{ enabled: true, duration: 250 }}
+  >
+    <App />
+  </ThemeProvider>,
+);
 ```
 
 #### noTheme
 
 ```tsx title="src/main.tsx"
-// src/main.tsx
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@themvora/react";
+import "./index.css";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(
@@ -121,53 +121,133 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
+#### setupExtra
+
+```tsx title="src/App.tsx"
+// Application UI only; the provider lives in src/main.tsx.
+import { ThemeSwitcher } from "./ThemeSwitcher";
+import { WorkspaceCard } from "./components/WorkspaceCard";
+
+export function App() {
+  return (
+    <main>
+      <ThemeSwitcher />
+      <WorkspaceCard />
+    </main>
+  );
+}
+```
+
+#### uiExample
+
+```tsx title="src/components/WorkspaceCard.tsx"
+export function WorkspaceCard() {
+  return (
+    <div className="themvora-example-card">
+      <div className="themvora-example-header">
+        <h3 className="themvora-example-title">Design system</h3>
+        <span className="themvora-example-status">Active</span>
+      </div>
+      <p className="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p className="themvora-example-meta">Updated 2 minutes ago</p>
+      <button className="themvora-example-button" type="button">View themes</button>
+    </div>
+  );
+}
+```
+
 #### styles
 
-```css title="src/styles.css"
+```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -178,52 +258,15 @@ h1 {
 #### snippet
 
 ```tsx title="src/ThemeSwitcher.tsx"
-// src/ThemeSwitcher.tsx
 import { useTheme } from "@themvora/react";
 
-const page = {
-  background: "var(--theme-color-background)",
-  color: "var(--theme-color-foreground)",
-  minHeight: "100vh",
-  padding: "2rem",
-};
-
 export function ThemeSwitcher() {
-  const { theme, mode, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <main style={page}>
-      <h1>Themvora</h1>
-      <p>Current theme: {theme.name} ({mode})</p>
-
-      <button
-        onClick={toggleTheme}
-        style={{
-          background: "var(--theme-color-primary)",
-          color: "var(--theme-color-primaryForeground)",
-          border: 0,
-          borderRadius: "0.5rem",
-          padding: "0.5rem 1rem",
-        }}
-      >
-        Toggle theme
-      </button>
-
-      <section
-        style={{
-          background: "var(--theme-color-card)",
-          border: "1px solid var(--theme-color-border)",
-          borderRadius: "0.75rem",
-          marginTop: "1.5rem",
-          padding: "1rem",
-        }}
-      >
-        <h2>Themed card</h2>
-        <p style={{ color: "var(--theme-color-mutedForeground)" }}>
-          Surface, border and text follow the theme.
-        </p>
-      </section>
-    </main>
+    <button type="button" onClick={toggleTheme}>
+      Theme: {theme.name} — toggle
+    </button>
   );
 }
 ```
@@ -232,9 +275,8 @@ export function ThemeSwitcher() {
 
 #### snippet2
 
-```tsx title="src/theme-scope.tsx"
-// src/theme-scope.tsx
-import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/react";
+```tsx title="src/components/ThemeScopePanel.tsx"
+import { ThemeScope, useThemeHistory } from "@themvora/react";
 
 function HistoryControls() {
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -246,15 +288,15 @@ function HistoryControls() {
   );
 }
 
-export function App() {
+export function ThemeScopePanel() {
   return (
-    <ThemeProvider defaultTheme="mint-light">
+    <>
       {/* Pinned to plum-dark regardless of the app-wide selection. */}
       <ThemeScope theme="plum-dark" transition={{ duration: 300, easing: "ease" }}>
         <p>This subtree is always plum-dark.</p>
       </ThemeScope>
       <HistoryControls />
-    </ThemeProvider>
+    </>
   );
 }
 ```
@@ -262,7 +304,6 @@ export function App() {
 #### snippet3
 
 ```tsx title="src/main.tsx — optimized CSR bootstrap"
-// src/main.tsx — optimized CSR bootstrap
 import { createThemeRoot } from "@themvora/react";
 import "@themvora/core/scrollbar.css";
 import { App } from "./App";
@@ -272,7 +313,6 @@ createThemeRoot({
   defaultTheme: "mint-light",
   initialMode: "system",
   transition: { enabled: true },
-  // The runtime is handed in, so library providers can share the instance.
   render: () => <App />,
 });
 ```
@@ -323,12 +363,11 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 #### quickStart
 
 ```tsx title="app/layout.tsx"
-// app/layout.tsx
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@themvora/next";
+import "./globals.css";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // ThemeProvider renders <html>, <head> and <body> itself.
   return (
     <ThemeProvider defaultTheme="mint-light">
       {children}
@@ -340,15 +379,35 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 #### noTheme
 
 ```tsx title="app/layout.tsx"
-// app/layout.tsx
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@themvora/next";
+import "./globals.css";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="light">
       {children}
     </ThemeProvider>
+  );
+}
+```
+
+#### uiExample
+
+```tsx title="app/workspace-card.tsx"
+export function WorkspaceCard() {
+  return (
+    <div className="themvora-example-card">
+      <div className="themvora-example-header">
+        <h3 className="themvora-example-title">Design system</h3>
+        <span className="themvora-example-status">Active</span>
+      </div>
+      <p className="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p className="themvora-example-meta">Updated 2 minutes ago</p>
+      <button className="themvora-example-button" type="button">View themes</button>
+    </div>
   );
 }
 ```
@@ -360,46 +419,89 @@ export default function RootLayout({ children }: { children: ReactNode }) {
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -410,7 +512,6 @@ h1 {
 #### snippet
 
 ```tsx title="app/theme-switcher.tsx"
-// app/theme-switcher.tsx
 "use client";
 import { useTheme } from "@themvora/next/client";
 
@@ -466,7 +567,7 @@ export function ThemeSwitcher() {
 #### snippet2
 
 ```tsx title="app/dashboard.tsx"
-// app/dashboard.tsx — scoped theming + history controls
+// Scoped theming + history controls
 "use client";
 import { ThemeScope, useThemeHistory } from "@themvora/next/client";
 
@@ -506,7 +607,8 @@ Provider and composables for Vue 3, with scoped themes.
 
 **Composables**
 
-- **useTheme()** — Reactive refs for `theme`, `mode`, `family` plus `setMode`, `setFamily`, `toggleTheme`.
+- **useTheme()** — Reactive refs for `theme`, `mode`, `effectiveMode`, `family` plus `setMode`, `setFamily`, `toggleTheme`.
+- **useEffectiveThemeMode()** — A `Ref` of the mode actually applied (`light` or `dark`). Follows a sunrise/sunset transition; `useThemeMode()` keeps reporting the configured mode.
 - **useThemeHistory()** — Undo / redo / jump through theme history.
 - **useThemeBatch()** — Atomic, coalesced updates via `runtime.batch()`.
 - **useThemeSnapshot() / useThemeRestore()** — Serialize and restore the full runtime state.
@@ -541,7 +643,6 @@ Provider and composables for Vue 3, with scoped themes.
 #### quickStart
 
 ```vue title="src/App.vue"
-<!-- src/App.vue -->
 <script setup lang="ts">
 import { ThemeProvider } from "@themvora/vue";
 </script>
@@ -558,7 +659,7 @@ import { ThemeProvider } from "@themvora/vue";
 #### noTheme
 
 ```vue title="src/App.vue"
-<!-- src/App.vue — no theme definition needed -->
+<!-- No theme definition needed -->
 <script setup lang="ts">
 import { ThemeProvider } from "@themvora/vue";
 </script>
@@ -574,53 +675,125 @@ import { ThemeProvider } from "@themvora/vue";
 </template>
 ```
 
+#### setupExtra
+
+```ts title="src/main.ts"
+// The Vite entry: mount the app and load the stylesheet once.
+import { createApp } from "vue";
+import "./style.css";
+import App from "./App.vue";
+
+createApp(App).mount("#app");
+```
+
+#### uiExample
+
+```vue title="src/components/WorkspaceCard.vue"
+<template>
+  <div class="themvora-example-card">
+    <div class="themvora-example-header">
+      <h3 class="themvora-example-title">Design system</h3>
+      <span class="themvora-example-status">Active</span>
+    </div>
+    <p class="themvora-example-description">
+      Tokens resolve at runtime, so this card follows whichever theme is active.
+    </p>
+    <p class="themvora-example-meta">Updated 2 minutes ago</p>
+    <button class="themvora-example-button" type="button">View themes</button>
+  </div>
+</template>
+```
+
 #### styles
 
-```css title="src/styles.css"
+```css title="src/style.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -631,7 +804,6 @@ h1 {
 #### snippet
 
 ```vue title="src/ThemeSwitcher.vue"
-<!-- src/ThemeSwitcher.vue -->
 <script setup lang="ts">
 import { useTheme } from "@themvora/vue";
 const { theme, mode, toggleTheme } = useTheme();
@@ -683,7 +855,6 @@ const { theme, mode, toggleTheme } = useTheme();
 #### snippet2
 
 ```vue title="src/ThemeScopeExample.vue"
-<!-- src/ThemeScopeExample.vue -->
 <script setup lang="ts">
 // Import both explicitly — `ThemeScope` is only globally registered if your
 // entry does `app.use(ThemeScope)`.
@@ -720,7 +891,8 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 
 **Stores**
 
-- **useTheme()** — Reactive readable stores for `theme`, `mode`, `family` and their setters.
+- **useTheme()** — Reactive readable stores for `theme`, `mode`, `effectiveMode`, `family` and their setters.
+- **useEffectiveThemeMode()** — A readable store of the mode actually applied (`light` or `dark`). Follows a sunrise/sunset transition; `useThemeMode()` keeps reporting the configured mode.
 - **useThemeHistory()** — Undo / redo / jump through theme history.
 - **useThemeBatch()** — Atomic, coalesced updates.
 - **useThemeSnapshot() / useThemeRestore()** — Serialize and restore runtime state.
@@ -755,7 +927,6 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 #### quickStart
 
 ```svelte title="src/App.svelte"
-<!-- src/App.svelte -->
 <script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
   import ThemeSwitcher from "./ThemeSwitcher.svelte";
@@ -771,7 +942,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 #### noTheme
 
 ```svelte title="src/App.svelte"
-<!-- src/App.svelte — no theme definition needed -->
+<!-- No theme definition needed -->
 <script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
 </script>
@@ -785,53 +956,123 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 </ThemeProvider>
 ```
 
+#### setupExtra
+
+```ts title="src/main.ts"
+// The Vite entry: mount the app and load the stylesheet once.
+import { mount } from "svelte";
+import "./app.css";
+import App from "./App.svelte";
+
+mount(App, { target: document.getElementById("app")! });
+```
+
+#### uiExample
+
+```svelte title="src/lib/WorkspaceCard.svelte"
+<div class="themvora-example-card">
+  <div class="themvora-example-header">
+    <h3 class="themvora-example-title">Design system</h3>
+    <span class="themvora-example-status">Active</span>
+  </div>
+  <p class="themvora-example-description">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="themvora-example-meta">Updated 2 minutes ago</p>
+  <button class="themvora-example-button" type="button">View themes</button>
+</div>
+```
+
 #### styles
 
-```css title="src/styles.css"
+```css title="src/app.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -842,7 +1083,6 @@ h1 {
 #### snippet
 
 ```svelte title="src/ThemeSwitcher.svelte"
-<!-- src/ThemeSwitcher.svelte -->
 <script lang="ts">
   import { useTheme } from "@themvora/svelte";
   const { theme, mode, toggleTheme } = useTheme();
@@ -892,7 +1132,6 @@ h1 {
 #### snippet2
 
 ```svelte title="src/App.svelte — history + scope"
-<!-- src/App.svelte -->
 <script lang="ts">
   import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/svelte";
   import ThemeSwitcher from "./ThemeSwitcher.svelte";
@@ -930,7 +1169,8 @@ Signals-first theming with a context provider and scoped subtrees.
 
 **Signals**
 
-- **useTheme()** — Signals for `theme`, `mode`, `family` with getter access and setters.
+- **useTheme()** — Signals for `theme`, `mode`, `effectiveMode`, `family` with getter access and setters.
+- **useEffectiveThemeMode()** — A signal of the mode actually applied (`light` or `dark`). Follows a sunrise/sunset transition; `useThemeMode()` keeps reporting the configured mode.
 - **useThemeHistory()** — Undo / redo / jump through theme history.
 - **useThemeBatch()** — Atomic, coalesced updates.
 - **useThemeSnapshot() / useThemeRestore()** — Serialize and restore runtime state.
@@ -965,7 +1205,6 @@ Signals-first theming with a context provider and scoped subtrees.
 #### quickStart
 
 ```tsx title="src/main.tsx"
-// src/main.tsx
 import { render } from "solid-js/web";
 import { ThemeProvider } from "@themvora/solid";
 import { App } from "./App";
@@ -982,11 +1221,12 @@ render(
 
 #### noTheme
 
-```tsx title="src/main.tsx"
-// src/main.tsx
-import { render } from "solid-js/web";
-import { ThemeProvider } from "@themvora/solid";
+```tsx title="src/index.tsx"
+// The Vite entry: render the tree and load the stylesheet once.
+import "./index.css";
 import { App } from "./App";
+import { ThemeProvider } from "@themvora/solid";
+import { render } from "solid-js/web";
 
 render(
   () => (
@@ -998,53 +1238,116 @@ render(
 );
 ```
 
+#### uiExample
+
+```tsx title="src/components/WorkspaceCard.tsx"
+export function WorkspaceCard() {
+  return (
+    <div class="themvora-example-card">
+      <div class="themvora-example-header">
+        <h3 class="themvora-example-title">Design system</h3>
+        <span class="themvora-example-status">Active</span>
+      </div>
+      <p class="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p class="themvora-example-meta">Updated 2 minutes ago</p>
+      <button class="themvora-example-button" type="button">View themes</button>
+    </div>
+  );
+}
+```
+
 #### styles
 
-```css title="src/styles.css"
+```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -1055,7 +1358,6 @@ h1 {
 #### snippet
 
 ```tsx title="src/App.tsx"
-// src/App.tsx
 import { useTheme } from "@themvora/solid";
 
 const page = {
@@ -1113,7 +1415,6 @@ export function App() {
 #### snippet2
 
 ```tsx title="src/App.tsx — history + scope"
-// src/App.tsx
 import { ThemeProvider, ThemeScope, useThemeHistory } from "@themvora/solid";
 
 function HistoryControls() {
@@ -1158,7 +1459,8 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 **Injectables**
 
 - **injectThemeRuntime()** — Inject the full runtime.
-- **injectTheme()** — Reactive `ThemeState` — theme, mode, family plus setters.
+- **injectTheme()** — Reactive `ThemeState` — theme, mode, `resolvedMode` (the mode actually applied), family plus setters.
+- **injectEffectiveThemeMode()** — A `Signal<'light' | 'dark'>` of the mode actually applied. Follows a sunrise/sunset transition; `state().mode` keeps reporting the configured mode.
 - **injectThemeHistory()** — Undo / redo / jump through theme history.
 - **injectThemeBatch()** — Atomic, coalesced updates.
 - **injectThemeSnapshot() / injectThemeRestore()** — Serialize and restore runtime state.
@@ -1185,14 +1487,13 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 
 - **Zero-flash:** Not automatic. Render `createBlockingScriptContent()` into `index.html`’s `<head>` to paint the persisted theme before the bundle loads — without it the first frame is the default theme.
 - **Starting mode:** `provideTheme({ defaultTheme, initialMode })` chooses the starting theme. `initialMode: "system"` follows the visitor's OS.
-- **Configuration:** Themes and the starting mode are passed to `provideTheme()` when the app bootstraps. Angular does not use Vite, so there is no bundler plugin to add: the provider emits the pre-paint script.
+- **Configuration:** Themes and the starting mode are passed to `provideTheme()` when the app bootstraps. Angular does not use Vite, so there is no bundler plugin to add: the provider emits the pre-paint script. The stylesheet lives in `src/styles.css`, which the Angular CLI already registers in `angular.json`.
 
 ### Quick Start
 
 #### quickStart
 
 ```ts title="src/main.ts"
-// src/main.ts
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideTheme } from "@themvora/angular";
 import { AppComponent } from "./app/app.component";
@@ -1205,14 +1506,29 @@ bootstrapApplication(AppComponent, {
 #### noTheme
 
 ```ts title="src/main.ts"
-// src/main.ts
-import { bootstrapApplication } from "@angular/platform-browser";
-import { provideTheme } from "@themvora/angular";
 import { AppComponent } from "./app/app.component";
+import { provideTheme } from "@themvora/angular";
+import { bootstrapApplication } from "@angular/platform-browser";
 
 bootstrapApplication(AppComponent, {
   providers: [provideTheme({ defaultTheme: "light", initialMode: "system" })],
 });
+```
+
+#### uiExample
+
+```html title="src/app/workspace-card.component.html"
+<div class="themvora-example-card">
+  <div class="themvora-example-header">
+    <h3 class="themvora-example-title">Design system</h3>
+    <span class="themvora-example-status">Active</span>
+  </div>
+  <p class="themvora-example-description">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="themvora-example-meta">Updated 2 minutes ago</p>
+  <button class="themvora-example-button" type="button">View themes</button>
+</div>
 ```
 
 #### styles
@@ -1222,46 +1538,89 @@ bootstrapApplication(AppComponent, {
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -1272,7 +1631,6 @@ h1 {
 #### snippet
 
 ```ts title="src/app/theme-switcher.component.ts"
-// src/app/theme-switcher.component.ts
 import { Component } from "@angular/core";
 import { injectTheme } from "@themvora/angular";
 
@@ -1333,7 +1691,6 @@ export class ThemeSwitcherComponent {
 #### snippet2
 
 ```ts title="src/app/history-controls.component.ts"
-// src/app/history-controls.component.ts
 import { Component } from "@angular/core";
 import type { ThemeTransitionOptions } from "@themvora/core";
 import {
@@ -1369,7 +1726,6 @@ export class HistoryControlsComponent {
 #### snippet3
 
 ```ts title="src/app/app.component.ts"
-// src/app/app.component.ts
 import { Component } from "@angular/core";
 import { ThemeSwitcherComponent } from "./theme-switcher.component";
 import { HistoryControlsComponent } from "./history-controls.component";
@@ -1433,6 +1789,7 @@ HTML-first theming for any page: import the package once, then write custom elem
 - **getProviderRuntime(providerEl)** — The runtime attached to a specific provider. Returns `undefined` before that element has upgraded — use it whenever more than one provider exists.
 - **useThemeRuntime()** — Page-level convenience: the runtime of the first initialized provider in document order. Throws when none has initialized.
 - **Mode and family control** — From the runtime: `selection.setMode("dark")`, `setFamily("plum")` and `toggleTheme()`. The built-in controls call exactly these, so a custom control needs no other API.
+- **useEffectiveThemeMode() / observeEffectiveThemeMode()** — The mode actually applied (`light` or `dark`) and a subscription to it. Render this in a label that states the current appearance: `useThemeMode()` reports the configured mode, which does not move at a sunrise/sunset transition.
 
 ### Notes
 
@@ -1471,34 +1828,6 @@ HTML-first theming for any page: import the package once, then write custom elem
 </html>
 ```
 
-#### setupExtra
-
-```ts title="src/main.ts"
-// The whole setup. This one import registers the elements and injects their
-// stylesheet, so the markup in index.html upgrades on its own. The page's own
-// stylesheet is a <link> in index.html, not an import here — see the comment
-// in that file.
-import "@themvora/web";
-
-// Optional: read the current theme in application code. The runtime's helpers
-// are getters, so subscribe and re-read.
-import { useThemeRuntime } from "@themvora/web";
-
-const runtime = useThemeRuntime();
-const readout = document.querySelector<HTMLElement>("#theme-name");
-
-if (!readout) {
-  throw new Error("index.html must contain a #theme-name element.");
-}
-
-const render = () => {
-  readout.textContent = runtime.store.get().name;
-};
-
-runtime.store.subscribe(render);
-render();
-```
-
 #### noTheme
 
 ```html title="index.html"
@@ -1527,6 +1856,50 @@ render();
 </html>
 ```
 
+#### setupExtra
+
+```ts title="src/main.ts"
+// The whole setup. This one import registers the elements and injects their
+// stylesheet, so the markup in index.html upgrades on its own. The page's own
+// stylesheet is a <link> in index.html, not an import here — see the comment
+// in that file.
+import "@themvora/web";
+
+// Optional: read the current theme in application code. The runtime's helpers
+// are getters, so subscribe and re-read.
+import { useThemeRuntime } from "@themvora/web";
+
+const runtime = useThemeRuntime();
+const readout = document.querySelector<HTMLElement>("#theme-name");
+
+if (!readout) {
+  throw new Error("index.html must contain a #theme-name element.");
+}
+
+const render = () => {
+  readout.textContent = runtime.store.get().name;
+};
+
+runtime.store.subscribe(render);
+render();
+```
+
+#### uiExample
+
+```html title="index.html"
+<div class="themvora-example-card">
+  <div class="themvora-example-header">
+    <h3 class="themvora-example-title">Design system</h3>
+    <span class="themvora-example-status">Active</span>
+  </div>
+  <p class="themvora-example-description">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="themvora-example-meta">Updated 2 minutes ago</p>
+  <button class="themvora-example-button" type="button">View themes</button>
+</div>
+```
+
 #### styles
 
 ```css title="src/style.css"
@@ -1534,46 +1907,89 @@ render();
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -1591,18 +2007,6 @@ h1 {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Themvora</title>
     <link rel="stylesheet" href="/src/style.css" />
-    <style>
-      /* Theme variables are ordinary custom properties: read them from a
-         stylesheet and every theme, including one registered later, renders
-         without per-theme CSS. */
-      .surface {
-        background: var(--theme-color-card);
-        color: var(--theme-color-cardForeground);
-        border: 1px solid var(--theme-color-border);
-        border-radius: var(--theme-radius-lg);
-        padding: var(--theme-spacing-6);
-      }
-    </style>
   </head>
   <body>
     <themvora-provider default-theme="light" initial-mode="system">
@@ -1614,9 +2018,16 @@ h1 {
         <themvora-select type="family"></themvora-select>
       </p>
 
-      <section class="surface">
-        <h2>Themed card</h2>
-        <p>Surface, border and text follow the active theme.</p>
+      <section class="themvora-example-card">
+        <div class="themvora-example-header">
+          <h2 class="themvora-example-title">Themed card</h2>
+          <span class="themvora-example-status">Active</span>
+        </div>
+        <p class="themvora-example-description">
+          Surface, border and text follow the active theme.
+        </p>
+        <p class="themvora-example-meta">Updated 2 minutes ago</p>
+        <button class="themvora-example-button" type="button">View themes</button>
       </section>
     </themvora-provider>
 
@@ -1649,9 +2060,11 @@ h1 {
            ("cocoa") also resolves, to that family's theme for the current mode.
            Nested scopes override their ancestor, never the reverse. -->
       <themvora-scope theme="cocoa-dark">
-        <section class="surface">
-          <h2>Scoped section</h2>
-          <p>This subtree is always themed "cocoa-dark".</p>
+        <section class="themvora-example-card">
+          <h2 class="themvora-example-title">Scoped section</h2>
+          <p class="themvora-example-description">
+            This subtree is always themed "cocoa-dark".
+          </p>
         </section>
 
         <themvora-scope theme="berry-light">
@@ -1695,6 +2108,8 @@ Map every semantic token to Tailwind v4 utilities and theme variables.
 
 **Tags:** CSS · Design tokens · v4
 
+**Also installs:** `tailwindcss`
+
 ### Feature map
 
 **Integration**
@@ -1734,64 +2149,48 @@ body {
 ```css title="src/globals.css"
 @import "tailwindcss";
 @import "@themvora/tailwind";
+```
 
-/* No custom themes? The built-in neutral light/dark set
-   maps straight to utilities — bg-background, text-foreground,
-   bg-primary, text-primary-foreground and the rest. */
-body {
-  @apply bg-background text-foreground;
-}
+#### uiExample
+
+```html title="index.html"
+<div class="grid max-w-sm gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+  <div class="flex items-center justify-between gap-2">
+    <h3 class="text-[15px] font-semibold">Design system</h3>
+    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+      Active
+    </span>
+  </div>
+  <p class="text-[13px] text-muted-foreground">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="text-xs text-muted-foreground">Updated 2 minutes ago</p>
+  <button
+    type="button"
+    class="justify-self-start rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground hover:brightness-110"
+  >
+    View themes
+  </button>
+</div>
 ```
 
 #### styles
 
-```css title="src/styles.css"
-/* Themvora emits its design tokens as CSS custom properties on the root
-   element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+```css title="src/globals.css"
+/* Pick one of the two document rules below. Both rely only on the
+   required `background` and `foreground` colours. */
+
+/* 1. Tailwind utility approach */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
+  @apply bg-background text-foreground;
+}
+
+/* 2. Direct CSS-variable approach */
+html,
+body {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
-}
-
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
-  display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
-  background: var(--theme-color-card);
-  color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
-}
-
-.muted {
-  color: var(--theme-color-mutedForeground);
-}
-
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
-  background: var(--theme-color-primary);
-  color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
-  cursor: pointer;
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--theme-color-ring);
-  outline-offset: 2px;
 }
 ```
 
@@ -1905,10 +2304,24 @@ Astro-native theming: an integration for the pre-paint bootstrap, a React-free <
 
 - **provider.astro** — Server-renders the themed `<html data-theme>` from the request cookies. A concrete mode inlines that theme's variables; `system` emits both schemes as media blocks instead, since an inline variable would outrank the dark block.
 - **ThemeToggle.astro** — A native Astro toggle: a real `<button>`, so keyboard and focus behaviour come from the platform. No island, no `client:load`, and no per-page `initialMode` / `initialFamily`. `showMode` makes its text the live mode.
+- **ThemeFamilySelect.astro** — A native `<select>` over the families in the registry. It renders from `theme.config.ts`, forwards `class` to the `<select>` itself, and needs no script of its own. A mode select is the same contract by hand: `<select data-tv-select="mode">`.
+- **data-tv-select** — The selection-control contract. A `change` event is delegated from `document`, and the live selection is written back into the element's `value` — so every control of a kind agrees, a restored selection is shown rather than the first option, and a control swapped in by navigation works without re-running a script. The pre-paint bootstrap writes it too, so a `<select>` never shows its first option on a page painted in another theme.
+- **ThemeScope.astro** — A subtree painted with a theme of its own, resolved in the frontmatter — so the server markup already carries the scoped variables and nothing repaints. Independent of the app-wide selection, and it ships no client JavaScript unless a runtime already exists.
+- **ThemeScrollbar.astro** — The overlay scrollbar as a native component — no island, no client framework. Pair it with `scrollbar` on `provider.astro` (or `themvora({ scrollbar })`), which is what puts the hiding class and CSS in the server-rendered HTML so the native bar is never painted. The component installs the app-wide runtime itself when the page has none, so the overlay is live on the first load instead of waiting for a theme change.
 - **getThemeController()** — The framework-neutral browser API, from `@themvora/astro/runtime`. Not a hook: a plain object with `getMode()`, `setMode()`, `setFamily()`, `toggleTheme()` and `subscribe()`, valid in any `<script>`. Idempotent — one runtime per document, shared with every other consumer.
-- **data-tv-readout** — Marks an element whose text Themvora owns. The pre-paint bootstrap patches it from `<head>`, before the body is parsed, and the controller keeps it in sync afterwards — so a server-rendered label is never painted and then corrected.
+- **installThemeBindings()** — Registers the delegated `click` / `change` listeners for `[data-tv-toggle]` and `[data-tv-select]` once per document, and mirrors the live selection into `[data-tv-select]` and `[data-tv-pressed]` on every change. The Themvora components call it for you; call it yourself when the markup is hand-written.
+- **data-tv-readout** — Marks an element whose text Themvora owns. `theme` (the machine name), `label` (the theme's `meta.label`), `mode`, `family`, or `var:--theme-color-primary`. The pre-paint bootstrap patches it from `<head>`, before the body is parsed, and the controller keeps it in sync afterwards — so a server-rendered label is never painted and then corrected.
+- **data-tv-pressed** — Marks an element as one option of a segmented control: `data-tv-pressed="mode"` or `"family"`, with `data-tv-value` naming the option it represents. Themvora owns its `aria-pressed` — written before the first paint and kept live afterwards — so a server-rendered control never asserts a selection the page is not showing. Only `aria-pressed` is written, which is what lets a token class keyed off it (`aria-pressed:bg-primary`) keep the visual and accessible states in step.
 - **getInitialThemeState()** — Resolves the initial state from `Astro.request` so a client island hydrates against exactly what the document rendered. Needs the registry (`config` or `themes`) and a request, so it belongs on a server-rendered page.
 - **createAstroThemePersistence() / computeFingerprint()** — Cookie + localStorage persistence adapter, plus config fingerprinting to reject stale cookies.
+
+**Scoped themes**
+
+- **ThemeScope.astro** — Wrap any subtree and give it its own theme: `<ThemeScope theme="cocoa-dark">`. The variables are resolved during render, so the scoped panel is correct in the first paint — an implementation that applied them from a `<script>` would paint the page theme first and repaint, which is a visible flash on every load.
+- **Props** — `theme` (required), `themes` (only outside a provider), `as` (wrapper element, default `div`), `class`, `id`, `transition`. `class` merges with the `dark` marker the component adds for a dark theme, so Tailwind's `dark:` variants work inside the scope on the first paint.
+- **Independent of the selection** — A scope does not read or change the app-wide selection. A page can show a cocoa panel next to a mint page, and switching the page theme leaves the panel alone.
+- **No client JavaScript by default** — A scope is static markup. The component's script only refreshes an existing runtime's scopes when the registry is reconfigured, and honours `transition` — it never creates a runtime, so a page that only displays a scoped panel stays a page with no client framework on it.
+- **Any number per page** — Scopes are matched by the `data-tv-scope` attribute, not by an id, so the same component can be rendered as many times as the page needs.
 
 **Client islands (opt-in)**
 
@@ -1963,13 +2376,32 @@ export default defineThemvoraConfig({
 #### noTheme
 
 ```js title="astro.config.mjs"
-// astro.config.mjs
 import { defineConfig } from "astro/config";
 import themvora from "@themvora/astro";
 
 export default defineConfig({
   integrations: [themvora()],
 });
+```
+
+#### uiExample
+
+```astro title="src/components/WorkspaceCard.astro"
+---
+// Nothing to run here: the classes read the variables the provider applies.
+---
+
+<div class="themvora-example-card">
+  <div class="themvora-example-header">
+    <h3 class="themvora-example-title">Design system</h3>
+    <span class="themvora-example-status">Active</span>
+  </div>
+  <p class="themvora-example-description">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="themvora-example-meta">Updated 2 minutes ago</p>
+  <button class="themvora-example-button" type="button">View themes</button>
+</div>
 ```
 
 #### styles
@@ -1979,46 +2411,89 @@ export default defineConfig({
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -2030,7 +2505,7 @@ h1 {
 
 ```astro title="src/layouts/BaseLayout.astro"
 ---
-// src/layouts/BaseLayout.astro — the one place the provider is mounted.
+// The one place the provider is mounted.
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
 import "../styles.css";
@@ -2044,7 +2519,6 @@ import "../styles.css";
 #### switchSnippet
 
 ```tsx title="src/components/ThemeIsland.tsx"
-// src/components/ThemeIsland.tsx
 import { ThemeProviderClient, useTheme } from "@themvora/astro/client";
 
 function Panel() {
@@ -2128,12 +2602,12 @@ import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
   <h1>Themed with no client framework</h1>
 
   <!-- class is forwarded to the real <button>, so your own token-driven class
-       styles it — here the .btn the stylesheet defines. -->
-  <ThemeToggle class="btn" />
+       styles it — here the example button the stylesheet defines. -->
+  <ThemeToggle class="themvora-example-button" />
 
   <!-- showMode makes the visible text the live mode. The accessible name stays
        an action, because "dark" does not say what the button does. -->
-  <ThemeToggle class="btn" showMode ariaLabel="Toggle colour scheme" />
+  <ThemeToggle class="themvora-example-button" showMode ariaLabel="Toggle colour scheme" />
 </BaseLayout>
 ```
 
@@ -2152,21 +2626,21 @@ import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
     <ThemeToggle />
     <ThemeToggle showMode />
 
-    <section class="surface">
-      <h2>Semantic tokens</h2>
-      <p>
+    <section class="themvora-example-card">
+      <div class="themvora-example-header">
+        <h2 class="themvora-example-title">Semantic tokens</h2>
+        <span class="themvora-example-status">Connected</span>
+      </div>
+      <p class="themvora-example-description">
         This panel is themed by <code>--theme-color-card</code>, a
         <code>--theme-color-border</code> outline and
         <code>--theme-color-cardForeground</code> text — no hardcoded color.
       </p>
+      <p class="themvora-example-meta">
+        mode: <span data-tv-readout="mode">—</span>
+      </p>
+      <button class="themvora-example-button" type="button">View themes</button>
     </section>
-
-    <p>
-      mode:
-      <span
-        style="font-family: var(--theme-typography-font-family-mono)"
-        data-tv-readout="mode">—</span>
-    </p>
   </main>
 </BaseLayout>
 ```
@@ -2193,33 +2667,119 @@ theme.subscribe(({ theme, mode, family }) => { /* ... */ });
 
 ```astro title="src/pages/custom-toggle.astro"
 ---
-// src/pages/custom-toggle.astro — no <ThemeToggle />, no island.
+// No <ThemeToggle />, no island.
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout>
   <h1>Your own toggle</h1>
 
-  <button class="btn" id="theme-toggle">Toggle theme</button>
+  <!-- The attribute *is* the contract. Nothing binds to this element by id. -->
+  <button class="btn" data-tv-toggle>Toggle theme</button>
 
   <script>
-    // The same runtime <ThemeToggle /> drives, reached directly. No component
-    // import, no client framework, no hydration.
-    import { getThemeController } from "@themvora/astro/runtime";
+    // One call, once per document. It delegates clicks from any element
+    // carrying data-tv-toggle, so it does not matter how many toggles this page
+    // rendered, and a toggle that a client-side navigation swaps in later works
+    // without this script running again.
+    import { installThemeBindings } from "@themvora/astro/runtime";
 
-    const theme = getThemeController();
-
-    document
-      .getElementById("theme-toggle")
-      ?.addEventListener("click", () => theme.toggleTheme());
+    installThemeBindings();
   </script>
 </BaseLayout>
+```
+
+#### snippet7
+
+```astro title="src/pages/settings.astro"
+---
+// Native controls, no script of your own.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+---
+
+<BaseLayout>
+  <h1>Appearance</h1>
+
+  <!-- Renders one <select> per dimension from theme.config.ts. -->
+  <ThemeFamilySelect />
+
+  <!-- Or hand-write the markup: data-tv-select is the whole contract. -->
+  <label>
+    Mode
+    <select data-tv-select="mode">
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+      <option value="system">System</option>
+    </select>
+  </label>
+
+  <ThemeToggle />
+
+  <p>
+    mode: <span data-tv-readout="mode">—</span> ·
+    family: <span data-tv-readout="family">—</span> ·
+    theme: <span data-tv-readout="theme">—</span>
+  </p>
+</BaseLayout>
+```
+
+#### snippet8
+
+```astro title="src/pages/pricing.astro"
+---
+// A panel that is always one theme.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeScope from "@themvora/astro/ThemeScope.astro";
+---
+
+<BaseLayout>
+  <h1>Pricing</h1>
+
+  <!--
+    Painted cocoa-dark whatever the visitor selects. The variables are in the
+    server markup, so the panel is never painted with the page theme first.
+  -->
+  <ThemeScope theme="cocoa-dark" as="section" class="rounded-xl p-6">
+    <h2>Team</h2>
+    <p>Everything inside reads the scoped tokens.</p>
+  </ThemeScope>
+
+  <!-- Scopes are matched by attribute, not id: render as many as you like. -->
+  <ThemeScope theme="ocean-dark" as="section" class="rounded-xl p-6">
+    <h2>Enterprise</h2>
+  </ThemeScope>
+</BaseLayout>
+```
+
+#### snippet9
+
+```astro title="src/layouts/BaseLayout.astro"
+---
+// With client-side navigation.
+import { ClientRouter } from "astro:transitions";
+import Provider from "@themvora/astro/provider.astro";
+import themeConfig from "../../theme.config";
+import "../styles.css";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false}>
+  <!--
+    With <ClientRouter />, Astro swaps the body and never re-executes a
+    page's module <script> again. themvora() injects a `before-swap` script
+    that carries the live theme onto the incoming document, so the theme,
+    the readouts and every data-tv-select control survive navigation.
+  -->
+  <ClientRouter slot="head" />
+  <slot />
+</Provider>
 ```
 
 #### reactSetup
 
 ```js title="astro.config.mjs"
-// astro.config.mjs — the only addition is the React renderer.
+// The only addition is the React renderer.
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import themvora from "@themvora/astro";
@@ -2231,9 +2791,9 @@ export default defineConfig({
 
 ---
 
-## Nuxt 3 (`@themvora/nuxt`)
+## Nuxt 4 (`@themvora/nuxt`)
 
-Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composables, and config-driven options.
+Nuxt 4 module with server-rendered theming, cookie sync, auto-imported composables, and config-driven options.
 
 **Tags:** Module · SSR · Zero-flash · Auto-import
 
@@ -2249,7 +2809,7 @@ Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composabl
 **Client**
 
 - **Runtime plugin** — A Nuxt plugin installs one app-wide runtime, provided to `useTheme()`, `useThemeRuntime()` and every auto-imported composable.
-- **Auto-imports** — Composables (`useTheme`, `useThemeMode`, `useThemeHistory`, …) and components (`ThemeScope`, `ThemeScrollbar`) are auto-imported — no manual imports. They are also re-exported from `@themvora/nuxt` if you prefer being explicit.
+- **Auto-imports** — Composables (`useTheme`, `useThemeMode`, `useThemeHistory`, …) and components (`ThemeScope`, `ThemeScrollbar`) are auto-imported — no manual imports. Outside the auto-import scope, import them from `@themvora/vue`; Nuxt's import protection rejects a module's entry point in app code.
 - **configKey: "themvora"** — Configure `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar`, `storageKey` and `scheduled` in `nuxt.config.ts`.
 - **useThemeSchedule()** — Auto-imported composable exposing the sunrise/sunset schedule: reactive `state` (`enabled`, `status`, `sunrise`, `sunset`, `nextTransition`) plus `enable()`/`disable()`/`set()`. Configure via `scheduled` in the module config.
 
@@ -2274,11 +2834,11 @@ Nuxt 3 module with server-rendered theming, cookie sync, auto-imported composabl
 #### quickStart
 
 ```ts title="nuxt.config.ts"
-// nuxt.config.ts
 export default defineNuxtConfig({
   modules: ["@themvora/nuxt"],
-  // Required when scrollbar: true — the styles ship with core, not the module.
-  css: ["@themvora/core/scrollbar.css"],
+  // Keep your stylesheet, and add the scrollbar styles that ship with core
+  // (not the module) whenever scrollbar is enabled.
+  css: ["~/assets/css/main.css", "@themvora/core/scrollbar.css"],
   themvora: {
     defaultTheme: "mint-light",
     initialMode: "system",
@@ -2291,62 +2851,125 @@ export default defineNuxtConfig({
 #### noTheme
 
 ```ts title="nuxt.config.ts"
-// nuxt.config.ts
 export default defineNuxtConfig({
   modules: ["@themvora/nuxt"],
+  // Nuxt 4: the app lives in app/, so "~" resolves this to
+  // app/assets/css/main.css (the file from the styling step).
+  css: ["~/assets/css/main.css"],
   themvora: {
     defaultTheme: "light",
   },
 });
 ```
 
+#### uiExample
+
+```vue title="app/components/WorkspaceCard.vue"
+<template>
+  <div class="themvora-example-card">
+    <div class="themvora-example-header">
+      <h3 class="themvora-example-title">Design system</h3>
+      <span class="themvora-example-status">Active</span>
+    </div>
+    <p class="themvora-example-description">
+      Tokens resolve at runtime, so this card follows whichever theme is active.
+    </p>
+    <p class="themvora-example-meta">Updated 2 minutes ago</p>
+    <button class="themvora-example-button" type="button">View themes</button>
+  </div>
+</template>
+```
+
 #### styles
 
-```css title="assets/css/main.css"
+```css title="app/assets/css/main.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -2356,7 +2979,7 @@ h1 {
 
 #### snippet
 
-```vue title="components/ThemeSwitcher.vue"
+```vue title="app/components/ThemeSwitcher.vue"
 <script setup lang="ts">
 // useTheme is auto-imported by the module — no import statement needed.
 const { theme, mode, toggleTheme } = useTheme();
@@ -2407,7 +3030,7 @@ const { theme, mode, toggleTheme } = useTheme();
 
 #### snippet2
 
-```vue title="components/ThemeHistoryControls.vue"
+```vue title="app/components/ThemeHistoryControls.vue"
 <script setup lang="ts">
 // Both composables and both components are auto-imported by the module.
 const { undo, redo, canUndo, canRedo } = useThemeHistory();
@@ -2424,7 +3047,7 @@ const { theme, setFamily } = useTheme();
 
   <button @click="setFamily('mint')">{{ theme.name }}</button>
 
-  <ThemeScrollbar auto-hide />
+  <ThemeScrollbar :behavior="{ autoHide: true }" />
 </template>
 ```
 
@@ -2442,6 +3065,7 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 - **getInitialThemeState()** — Reads the `theme-mode` / `theme-family` cookies off the request and resolves the initial state. Imported from `@themvora/remix/server`.
 - **ThemeHead** — Emits the blocking bootstrap in the document <head> so the page paints already themed, plus the `prefers-color-scheme` dark fallback.
+- **getThemeShellProps()** — Renders the `<html>` attributes and CSS variables the blocking script writes, plus `suppressHydrationWarning` for the resolved mode the server cannot know. Remix owns the document, so the shell has to be written by the app — this is what keeps it in agreement with the script instead of hand-copying seven attributes.
 - **SSR-first resolution** — Request → loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.
 
 **Client**
@@ -2464,7 +3088,7 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 **Scrollbar**
 
 - **scrollbar prop** — Pass `scrollbar` to `ThemeHead` to hide the native scrollbar from the very first paint and hand over to Themvora's overlay engine once the runtime hydrates.
-- **Import the pre-paint styles** — Needs `import "@themvora/core/scrollbar.css"` plus the `tv-scrollbar` class on `<html>`, which the snippet above sets. Without both, the native bar hides before the overlay exists.
+- **Import the pre-paint styles** — Needs `import "@themvora/core/scrollbar.css"` plus the `tv-scrollbar` class on `<html>` — `getThemeShellProps(initial, { scrollbar: true })` renders that class, and the snippet above uses it. Without both, the native bar is painted and then hidden once the runtime hydrates.
 
 ### Notes
 
@@ -2477,7 +3101,6 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 #### quickStart
 
 ```tsx title="app/root.tsx"
-// app/root.tsx
 import type { ReactNode } from "react";
 import {
   Links,
@@ -2488,7 +3111,7 @@ import {
   useLoaderData,
 } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
-import { ThemeHead, ThemeProvider } from "@themvora/remix";
+import { ThemeHead, ThemeProvider, getThemeShellProps } from "@themvora/remix";
 import { getInitialThemeState } from "@themvora/remix/server";
 
 const themes = getBuiltInThemes();
@@ -2510,25 +3133,25 @@ export async function loader({ request }: { request: Request }) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const { initial } = useLoaderData<typeof loader>();
-  const family = initial.theme.meta?.family ?? initial.selection.family;
 
   return (
-    // ThemeHead writes these onto <html> before React hydrates, so the server
-    // renders them too — that is what keeps the two in agreement.
-    <html
-      lang="en"
-      data-theme={initial.theme.name}
-      data-theme-mode={initial.selection.mode === "dark" ? "dark" : "light"}
-      {...(family ? { "data-theme-family": family } : {})}
-      data-theme-selection-mode={initial.selection.mode}
-      {...(family ? { "data-theme-selection-family": family } : {})}
-      data-theme-ready="true"
-    >
+    // Remix owns the document, so this element is hand-written — and the
+    // blocking script rewrites it before first paint. getThemeShellProps
+    // renders the same attributes and CSS variables the script writes, plus
+    // suppressHydrationWarning for the resolved mode the server cannot know,
+    // so React hydrates against the DOM it was given. The scrollbar option
+    // adds the tv-scrollbar class the pre-paint stylesheet is scoped to.
+    <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
       <head>
         <meta charSet="utf-8" />
         <Meta />
         <Links />
-        <ThemeHead themes={themes} defaultTheme="light" mode={INITIAL_MODE} />
+        <ThemeHead
+          themes={themes}
+          defaultTheme="light"
+          mode={INITIAL_MODE}
+          scrollbar
+        />
       </head>
       <body>
         {children}
@@ -2552,8 +3175,8 @@ export default function App() {
 #### noTheme
 
 ```tsx title="app/root.tsx"
-// app/root.tsx
 import type { ReactNode } from "react";
+import type { LinksFunction } from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -2562,46 +3185,40 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "@remix-run/react";
-import { getBuiltInThemes } from "@themvora/core";
-import { ThemeHead, ThemeProvider } from "@themvora/remix";
+import {
+  ThemeHead,
+  ThemeProvider,
+  getThemeShellProps,
+} from "@themvora/remix";
 import { getInitialThemeState } from "@themvora/remix/server";
+import { getBuiltInThemes } from "@themvora/core";
+import styles from "./styles.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
 const themes = getBuiltInThemes();
 
-// One source of truth for the starting mode: the pre-paint script and the
-// runtime resolve it independently, so both are told the same thing.
-const INITIAL_MODE = "system";
-
 export async function loader({ request }: { request: Request }) {
   return {
-    initial: await getInitialThemeState(request, {
-      themes,
-      defaultTheme: "light",
-      mode: INITIAL_MODE,
-    }),
+    initial: await getInitialThemeState(request, { themes, defaultTheme: "light" }),
   };
 }
 
 export function Layout({ children }: { children: ReactNode }) {
   const { initial } = useLoaderData<typeof loader>();
-  const family = initial.theme.meta?.family ?? initial.selection.family;
 
   return (
-    // ThemeHead writes these onto <html> before React hydrates, so the server
-    // renders them too — that is what keeps the two in agreement.
-    <html
-      lang="en"
-      data-theme={initial.theme.name}
-      data-theme-mode={initial.selection.mode === "dark" ? "dark" : "light"}
-      {...(family ? { "data-theme-family": family } : {})}
-      data-theme-selection-mode={initial.selection.mode}
-      {...(family ? { "data-theme-selection-family": family } : {})}
-      data-theme-ready="true"
-    >
+    // Remix owns the document, so <html> is written here — and the blocking
+    // script in <ThemeHead> rewrites it before first paint. getThemeShellProps
+    // renders the same attributes and CSS variables that script writes, plus
+    // suppressHydrationWarning for the resolved mode the server cannot know,
+    // so React hydrates against the DOM it was actually given.
+    <html lang="en" {...getThemeShellProps(initial)}>
       <head>
+        <meta charSet="utf-8" />
         <Meta />
         <Links />
-        <ThemeHead themes={themes} defaultTheme="light" mode={INITIAL_MODE} />
+        <ThemeHead themes={themes} defaultTheme="light" />
       </head>
       <body>
         <ThemeProvider initial={initial} themes={themes} defaultTheme="light">
@@ -2619,6 +3236,26 @@ export default function App() {
 }
 ```
 
+#### uiExample
+
+```tsx title="app/components/workspace-card.tsx"
+export function WorkspaceCard() {
+  return (
+    <div className="themvora-example-card">
+      <div className="themvora-example-header">
+        <h3 className="themvora-example-title">Design system</h3>
+        <span className="themvora-example-status">Active</span>
+      </div>
+      <p className="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p className="themvora-example-meta">Updated 2 minutes ago</p>
+      <button className="themvora-example-button" type="button">View themes</button>
+    </div>
+  );
+}
+```
+
 #### styles
 
 ```css title="app/styles.css"
@@ -2626,46 +3263,89 @@ export default function App() {
    element, so a stylesheet only has to read them. Nothing here is
    theme-specific: these rules render every theme, including ones you add
    later. */
+html,
 body {
-  margin: 0;
-  padding: var(--theme-spacing-8);
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
-  font-family: var(--theme-typography-font-family-sans);
-  line-height: var(--theme-typography-line-height-normal);
 }
 
-h1 {
-  margin: 0;
-  font-size: var(--theme-typography-font-size-2xl);
-}
-
-.surface {
+.themvora-example-card {
   display: grid;
-  gap: var(--theme-spacing-3);
-  padding: var(--theme-spacing-6);
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: var(--theme-shadow-md);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
 }
 
-.muted {
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
   color: var(--theme-color-mutedForeground);
 }
 
-.btn {
-  font: inherit;
-  padding: var(--theme-spacing-2) var(--theme-spacing-4);
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
   background: var(--theme-color-primary);
   color: var(--theme-color-primaryForeground);
-  border: var(--theme-border-width-1) solid var(--theme-color-primary);
-  border-radius: var(--theme-radius-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:focus-visible {
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
   outline: 2px solid var(--theme-color-ring);
   outline-offset: 2px;
 }
@@ -2750,8 +3430,7 @@ export const themes = [
 #### snippet3
 
 ```tsx title="app/components/history-scope.tsx"
-// app/components/history-scope.tsx — used inside the root provider, so it
-// does NOT create a second runtime of its own.
+// Used inside the root provider, so it does NOT create a second runtime of its own.
 import { ThemeScope, useThemeHistory } from "@themvora/remix";
 
 export function HistoryScope() {

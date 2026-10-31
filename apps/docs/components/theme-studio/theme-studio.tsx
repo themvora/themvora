@@ -5,13 +5,24 @@ import {
   generateTheme,
   themeToCSSVariables,
   type GeneratedThemePair,
+  type GenerationStyle,
 } from "@themvora/core";
 import { useThemeRuntime } from "@themvora/next/client";
 import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { CopyButton } from "../ui/copy-button";
 import { Button } from "../ui/button";
+import { Select } from "../ui/select";
 import { highlightCode } from "../../lib/highlight";
+
+const GENERATION_STYLES: { value: GenerationStyle; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "soft", label: "Soft" },
+  { value: "vibrant", label: "Vibrant" },
+  { value: "editorial", label: "Editorial" },
+  { value: "minimal", label: "Minimal" },
+  { value: "brand", label: "Brand" },
+];
 
 /**
  * `generateTheme()` recipes.
@@ -32,7 +43,7 @@ const GENERATE_RECIPES: readonly {
   {
     title: "The minimum",
     blurb:
-      "One required option. Family defaults to \"generated\", so the pair is named generated-light and generated-dark.",
+      'One required option. Family defaults to "generated", so the pair is named generated-light and generated-dark.',
     code: `import { generateTheme } from "@themvora/core";
 
 const { light, dark } = generateTheme({ seed: "#6366f1" });
@@ -237,6 +248,8 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
   const [seed, setSeed] = useState("#6366f1");
   const [family, setFamily] = useState("indigo");
+  const [style, setStyle] = useState<GenerationStyle>("balanced");
+  const [withCode, setWithCode] = useState(false);
   const [applied, setApplied] = useState<string | null>(null);
 
   const seedInputId = useId();
@@ -262,8 +275,10 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
     return generateTheme({
       seed,
       family: family.trim() || seed.replace("#", ""),
+      style,
+      withCode,
     });
-  }, [seed, family, isValid]);
+  }, [seed, family, isValid, style, withCode]);
 
   /*
     The CSS export.
@@ -278,7 +293,11 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
   */
   const css = useMemo(() => {
     if (!pair) return "";
-    const block = (label: string, selector: string, theme: GeneratedThemePair["light"]) => {
+    const block = (
+      label: string,
+      selector: string,
+      theme: GeneratedThemePair["light"],
+    ) => {
       const vars = themeToCSSVariables(theme);
       const body = Object.entries(vars)
         .map(([name, value]) => `  ${name}: ${value};`)
@@ -307,6 +326,13 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
       The page's own copy says "computed with HSL math by generateTheme()". Now
       the code agrees with it.
     */
+    const options = [
+      `  seed: ${JSON.stringify(seed)},`,
+      `  family: ${JSON.stringify(family.trim() || seed.replace("#", ""))},`,
+      ...(style !== "balanced" ? [`  style: ${JSON.stringify(style)},`] : []),
+      ...(withCode ? [`  withCode: true,`] : []),
+    ].join("\n");
+
     return `import { generateTheme } from "@themvora/core";
 
 /**
@@ -315,14 +341,13 @@ export function ThemeStudio({ compact = false }: { compact?: boolean }) {
  * so nothing drifts out of contrast with anything else.
  */
 export const { light: ${baseName}Light, dark: ${baseName}Dark } = generateTheme({
-  seed: ${JSON.stringify(seed)},
-  family: ${JSON.stringify(family.trim() || seed.replace("#", ""))},
+${options}
 });
 
 // Hand the pair straight to the provider:
 export const themes = [${baseName}Light, ${baseName}Dark];
 `;
-  }, [pair, family, seed, sanitizeName]);
+  }, [pair, family, seed, sanitizeName, style, withCode]);
 
   function apply(kind: "light" | "dark") {
     if (!pair) return;
@@ -356,9 +381,14 @@ export const themes = [${baseName}Light, ${baseName}Dark];
         </header>
       )}
 
-      <div className="grid min-w-0 items-start gap-6 ">
-        {/* Sidebar: controls only */}
-        <div className="flex min-w-0 flex-col gap-6 lg:top-6 lg:self-start">
+      {/* gap-8: the row gap between the controls card and the preview cards.
+          24px read as glued once the glass card's shadow filled it. */}
+      <div className="grid min-w-0 items-start gap-12">
+        {/* Sidebar: controls only. `relative z-10` lifts the whole column above
+            the generated-theme cards below it: the glass card's backdrop-filter
+            creates a stacking context, so the Select popover's own z-50 cannot
+            escape it — without this, later siblings painted over the open list. */}
+        <div className="relative z-10 flex min-w-0 flex-col gap-6 lg:top-6 lg:self-start">
           <div className={cn(glassCard, "p-4 sm:p-5")}>
             <label
               htmlFor={seedInputId}
@@ -371,7 +401,7 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                   type="color"
                   value={isValid ? seed : "#6366f1"}
                   onChange={(e) => setSeed(e.target.value)}
-                  className="h-11 w-11 shrink-0 cursor-pointer rounded-xl border border-border bg-transparent p-1 sm:h-12 sm:w-12"
+                  className="h-11 w-11 shrink-0 cursor-pointer rounded-xl border-2 border-border bg-transparent p-1 outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 sm:h-12 sm:w-12"
                   aria-label="Seed color picker"
                 />
                 <input
@@ -379,9 +409,12 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                   value={seed}
                   onChange={(e) => setSeed(e.target.value)}
                   className={cn(
-                    "min-w-36 flex-1 rounded-xl border bg-muted px-3 py-2.5 font-mono text-sm outline-none transition-colors",
-                    "focus:border-ring",
-                    isValid ? "border-border" : "border-red-500/60",
+                    "min-w-36 flex-1 rounded-xl border-2 bg-muted px-3 py-2.5 font-mono text-sm outline-none transition-colors",
+                    // Plain cn() join: the two states must not carry conflicting
+                    // border classes, so the focus styles branch with the color.
+                    isValid
+                      ? "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      : "border-red-500/60 focus:border-red-500/60 focus:ring-2 focus:ring-red-500/20",
                   )}
                   placeholder="#6366f1"
                   spellCheck={false}
@@ -429,10 +462,38 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                 type="text"
                 value={family}
                 onChange={(e) => setFamily(e.target.value)}
-                className="w-full rounded-xl border border-border bg-muted px-3 py-2.5 font-mono text-sm outline-none transition-colors focus:border-ring"
+                className="w-full rounded-xl border-2 border-border bg-muted px-3 py-2.5 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="indigo"
                 spellCheck={false}
               />
+            </label>
+
+            <div className="mt-4 grid gap-1.5 text-sm font-medium">
+              Visual style
+              <Select
+                value={style}
+                onChange={(value) => setStyle(value as GenerationStyle)}
+                label="Visual style"
+                options={GENERATION_STYLES.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                }))}
+              />
+              <span className="text-xs opacity-50 font-normal">
+                Controls the visual language — how saturated, contrasted, and
+                styled the generated palette is.
+              </span>
+            </div>
+
+            <label className="mt-4 flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={withCode}
+                onChange={(e) => setWithCode(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-(--theme-color-primary) cursor-pointer"
+              />
+              <span className="text-sm font-medium">Include syntax tokens</span>
+              <span className="text-xs opacity-50 ml-auto">19 code colors</span>
             </label>
 
             <p
@@ -479,7 +540,7 @@ export const themes = [${baseName}Light, ${baseName}Dark];
         </div>
       </div>
 
-      <div className="mt-6 lg:mt-8">
+      <div className="mt-8">
         {pair ? (
           <>
             {/* Primary Output Actions */}
@@ -621,7 +682,10 @@ export const themes = [${baseName}Light, ${baseName}Dark];
             {/* CSS Variables Output */}
             <div className="code-block overflow-hidden mt-4">
               <div className="code-block-toolbar">
-                <span className="code-block-filename" title="CSS custom properties">
+                <span
+                  className="code-block-filename"
+                  title="CSS custom properties"
+                >
                   CSS Variables
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -629,7 +693,11 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                     :root / .dark
                   </code>
                   <span className="code-block-lang">CSS</span>
-                  <CopyButton text={css} label="Copy" className="code-block-copy" />
+                  <CopyButton
+                    text={css}
+                    label="Copy"
+                    className="code-block-copy"
+                  />
                 </div>
               </div>
               <div
@@ -644,7 +712,10 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                 document the API rather than the seed — the wrong material for a page
                 about experimenting. */}
             {!compact && (
-              <section className="mt-10" aria-labelledby="generate-theme-recipes">
+              <section
+                className="mt-10"
+                aria-labelledby="generate-theme-recipes"
+              >
                 <h2
                   id="generate-theme-recipes"
                   className="text-lg font-semibold tracking-tight mb-1"
@@ -652,16 +723,22 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                   generateTheme() recipes
                 </h2>
                 <p className="text-sm opacity-60 mb-5 max-w-2xl leading-relaxed">
-                  This page exercises one call. These are the rest of the options,
-                  each one run against the shipped function rather than described
-                  from its signature.
+                  This page exercises one call. These are the rest of the
+                  options, each one run against the shipped function rather than
+                  described from its signature.
                 </p>
 
                 <div className="flex flex-col gap-4">
                   {GENERATE_RECIPES.map((recipe) => (
-                    <div key={recipe.title} className="code-block overflow-hidden">
+                    <div
+                      key={recipe.title}
+                      className="code-block overflow-hidden"
+                    >
                       <div className="code-block-toolbar">
-                        <span className="code-block-filename" title={recipe.blurb}>
+                        <span
+                          className="code-block-filename"
+                          title={recipe.blurb}
+                        >
                           {recipe.title}
                         </span>
                         <div className="flex items-center gap-1.5">
@@ -687,7 +764,6 @@ export const themes = [${baseName}Light, ${baseName}Dark];
                 </div>
               </section>
             )}
-
           </>
         ) : (
           <div className="rounded-lg border border-border bg-muted/30 p-6 text-center">

@@ -17,4 +17,5 @@ export {
   useThemeLifecycle,
   useThemePacks,
   useThemeSchedule,
+  useProvidedThemes,
 } from "@themvora/react";

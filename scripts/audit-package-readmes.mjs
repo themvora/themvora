@@ -55,6 +55,14 @@ for (const base of ["packages", "packages/adapters"]) {
  */
 const NO_DIRECT_CORE = new Set(["@themvora/cli", "@themvora/devtools", "@themvora/adapters"]);
 
+/**
+ * Packages that are not distributed via npm, so the audit's "must have an
+ * install command" rule does not apply:
+ *
+ *   - `themvora-vscode` a VS Code extension, installed from the marketplace
+ */
+const NO_INSTALL_CMD = new Set(["themvora-vscode"]);
+
 const problems = [];
 const rows = [];
 
@@ -85,7 +93,9 @@ for (const dir of dirs) {
     }
   }
 
-  const missingSelf = installLines.length === 0 ? "no install command" : named.has(pkg.name) ? null : "does not install itself";
+  const missingSelf = installLines.length === 0
+    ? (NO_INSTALL_CMD.has(pkg.name) ? null : "no install command")
+    : named.has(pkg.name) ? null : "does not install itself";
   const missingCore =
     tvDeps.includes("@themvora/core") && !named.has("@themvora/core") && !NO_DIRECT_CORE.has(pkg.name)
       ? "@themvora/core"

@@ -47,21 +47,29 @@ export function Page() {
 
 ## Style it with Themvora tokens
 
-The adapter has already written the library's variables, so these classes read
-the active theme:
+Themvora emits the active theme's tokens as CSS custom properties, so the
+document itself is themed and your own classes read the same variables without
+any per-theme CSS. The rules use only required semantic colours — spacing,
+typography and layout stay ordinary CSS:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .page {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
 }
 
 .card {
-  background: var(--theme-color-background);
-  color: var(--theme-color-foreground);
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-md);
-  padding: var(--theme-spacing-4);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1rem;
 }
 ```
 
@@ -190,7 +198,6 @@ Register the adapter next to the provider. It writes the library's own CSS
 custom properties from the active theme — no provider of its own.
 
 ```ts
-// uno.config.ts
 import { defineConfig, presetWind3 } from "unocss";
 import { presetThemvora } from "@themvora/unocss";
 
@@ -236,7 +243,6 @@ document.querySelector("button")!.addEventListener("click", () => {
 **Complete example**
 
 ```ts
-// uno.config.ts
 import { defineConfig, presetWind3 } from "unocss";
 import { presetThemvora } from "@themvora/unocss";
 

@@ -135,9 +135,43 @@ describe("validateThemeContrast", () => {
     }
   });
 
-  it("checks all 8 semantic pairs", () => {
+  it("checks all 8 semantic pairs when success and warning are absent", () => {
     const result = validateThemeContrast(passingTheme);
     expect(result.checks).toHaveLength(8);
+    expect(result.passCount).toBe(8);
+    expect(result.totalCount).toBe(8);
+  });
+
+  it("checks 10 semantic pairs when success and warning are defined", () => {
+    const fullTheme = defineTheme({
+      name: "full-contrast",
+      tokens: {
+        colors: {
+          background: "#ffffff",
+          foreground: "#09090b",
+          card: "#ffffff",
+          cardForeground: "#09090b",
+          popover: "#ffffff",
+          popoverForeground: "#09090b",
+          primary: "#18181b",
+          primaryForeground: "#fafafa",
+          secondary: "#f4f4f5",
+          secondaryForeground: "#18181b",
+          muted: "#f4f4f5",
+          mutedForeground: "#63636b",
+          accent: "#f4f4f5",
+          accentForeground: "#18181b",
+          destructive: "#dc2626",
+          destructiveForeground: "#fafafa",
+          success: "#16a34a",
+          successForeground: "#ffffff",
+          warning: "#f59e0b",
+          warningForeground: "#09090b",
+        },
+      },
+    });
+    const result = validateThemeContrast(fullTheme);
+    expect(result.checks).toHaveLength(10);
   });
 
   it("reports individual check details", () => {
@@ -189,5 +223,71 @@ describe("validateThemeContrast", () => {
     const result = validateThemeContrast(child, { themes: [base, child] });
     expect(result.valid).toBe(true);
     expect(result.checks.length).toBeGreaterThan(0);
+  });
+
+  it("includes non-text UI component checks when border/input/ring are defined", () => {
+    const withUi = defineTheme({
+      name: "ui-tokens",
+      tokens: {
+        colors: {
+          background: "#ffffff",
+          foreground: "#09090b",
+          card: "#ffffff",
+          cardForeground: "#09090b",
+          popover: "#ffffff",
+          popoverForeground: "#09090b",
+          primary: "#18181b",
+          primaryForeground: "#fafafa",
+          secondary: "#f4f4f5",
+          secondaryForeground: "#18181b",
+          muted: "#f4f4f5",
+          mutedForeground: "#63636b",
+          accent: "#f4f4f5",
+          accentForeground: "#18181b",
+          destructive: "#dc2626",
+          destructiveForeground: "#fafafa",
+          border: "#778899",
+          input: "#778899",
+          ring: "#3b82f6",
+        },
+      },
+    });
+    const result = validateThemeContrast(withUi);
+    expect(result.nonTextChecks.length).toBeGreaterThan(0);
+    for (const check of result.nonTextChecks) {
+      expect(check.passesNonText).toBe(true);
+    }
+  });
+
+  it("fails when a non-text pair is below 3:1", () => {
+    const lowNonText = defineTheme({
+      name: "low-non-text",
+      tokens: {
+        colors: {
+          background: "#ffffff",
+          foreground: "#09090b",
+          card: "#ffffff",
+          cardForeground: "#09090b",
+          popover: "#ffffff",
+          popoverForeground: "#09090b",
+          primary: "#18181b",
+          primaryForeground: "#fafafa",
+          secondary: "#f4f4f5",
+          secondaryForeground: "#18181b",
+          muted: "#f4f4f5",
+          mutedForeground: "#63636b",
+          accent: "#f4f4f5",
+          accentForeground: "#18181b",
+          destructive: "#dc2626",
+          destructiveForeground: "#fafafa",
+          border: "#f5f5f5",
+          input: "#f5f5f5",
+          ring: "#f5f5f5",
+        },
+      },
+    });
+    const result = validateThemeContrast(lowNonText);
+    const failedNonText = result.nonTextChecks.filter((c) => !c.passesNonText);
+    expect(failedNonText.length).toBeGreaterThan(0);
   });
 });

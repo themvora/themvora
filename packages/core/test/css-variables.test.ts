@@ -116,4 +116,35 @@ store.set(dark);
     binding.destroy();
     document.documentElement.removeAttribute("style");
   });
+  it("survives the suppress-transition style node being detached before the cleanup frame", async () => {
+    // The swap path appends a `<style>` that disables transitions and removes it
+    // on the second animation frame. The callback is outside any caller's
+    // try/catch, so an unguarded `removeChild` on a node whose parent is gone —
+    // a host tearing its document down, a test resetting the DOM — surfaces as
+    // an uncaught `NotFoundError` in whatever environment happens to be running,
+    // not as a failure anyone can attribute. jsdom reports it on `window`.
+    const light = defineTheme({ name: "light", tokens: { colors: { background: "#ffffff" } } });
+    const dark = defineTheme({ name: "dark", tokens: { colors: { background: "#000000" } } });
+    const store = createThemeStore({ initialTheme: light });
+    const binding = createCSSVariablesBinding(store);
+
+    store.set(dark, { suppressTransition: true });
+    expect(document.head.querySelector("style")).not.toBeNull();
+
+    // Detach it the way a document reset would.
+    document.head.innerHTML = "";
+
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => errors.push(event.error ?? event.message);
+    window.addEventListener("error", onError);
+    try {
+      await flushFrames();
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+
+    expect(errors).toEqual([]);
+    binding.destroy();
+    document.documentElement.removeAttribute("style");
+  });
 });

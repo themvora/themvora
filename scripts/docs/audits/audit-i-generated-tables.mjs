@@ -32,7 +32,8 @@
  * Usage: node scripts/docs/audits/audit-i-generated-tables.mjs
  */
 
-import { readFileSync, readdirSync, statSync, realpathSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -45,21 +46,53 @@ const CONTRACT = "docs content → well-formed markdown tables (every row matche
 
 /**
  * Resolve the render pipeline without hardcoding pnpm's content-addressed store
- * paths. `apps/docs` depends on `react-markdown` and `remark-gfm` directly, and
- * pnpm keeps each package's dependency closure beside it — so `unified` and
- * `remark-parse` are siblings of the `react-markdown` symlink target.
+ * paths, and without assuming where `apps/docs`'s dependencies physically live.
+ *
+ * `apps/docs` depends on `react-markdown` and `remark-gfm` directly. `unified`
+ * and `remark-parse` are resolved **from `react-markdown`**, because that is the
+ * closure the real renderer uses — under pnpm's isolated linker they are
+ * siblings of the `react-markdown` symlink target, and under a hoisted or plain
+ * npm install they sit somewhere above it. Resolution asks Node rather than
+ * guessing the layout, so the audit measures the same pipeline the site does in
+ * every install shape.
  */
+function resolvePackageDir(requireFrom, name) {
+  const entry = requireFrom.resolve(name);
+  let dir = dirname(entry);
+  for (;;) {
+    const manifest = join(dir, "package.json");
+    if (existsSync(manifest)) {
+      try {
+        if (JSON.parse(readFileSync(manifest, "utf8")).name === name) return dir;
+      } catch {
+        // keep walking: a malformed manifest is not the package we are after
+      }
+    }
+    const up = dirname(dir);
+    if (up === dir) throw new Error(`cannot locate the ${name} package from ${entry}`);
+    dir = up;
+  }
+}
+
 async function loadPipeline() {
-  const rmLink = join(docsRoot, "node_modules", "react-markdown");
-  const gfmLink = join(docsRoot, "node_modules", "remark-gfm");
-  if (!existsSync(rmLink) || !existsSync(gfmLink)) {
+  const docsRequire = createRequire(join(docsRoot, "package.json"));
+
+  let reactMarkdownDir;
+  let remarkGfmDir;
+  try {
+    reactMarkdownDir = resolvePackageDir(docsRequire, "react-markdown");
+    remarkGfmDir = resolvePackageDir(docsRequire, "remark-gfm");
+  } catch (error) {
     throw new Error(
-      `cannot find react-markdown / remark-gfm in ${join(docsRoot, "node_modules")} — ` +
-        `run the workspace install first`,
+      `cannot find react-markdown / remark-gfm from ${join(docsRoot, "package.json")} — ` +
+        `run the workspace install first (${error.message})`,
     );
   }
-  const closure = dirname(realpathSync(rmLink));
-  const gfmDir = realpathSync(gfmLink);
+
+  // `unified` and `remark-parse` come from react-markdown's own closure.
+  const rendererRequire = createRequire(join(reactMarkdownDir, "package.json"));
+  const unifiedDir = resolvePackageDir(rendererRequire, "unified");
+  const remarkParseDir = resolvePackageDir(rendererRequire, "remark-parse");
 
   const load = async (dir, label) => {
     const entry = join(dir, "index.js");
@@ -67,9 +100,9 @@ async function loadPipeline() {
     return import(pathToFileURL(entry).href);
   };
 
-  const { unified } = await load(join(closure, "unified"), "unified");
-  const { default: remarkParse } = await load(join(closure, "remark-parse"), "remark-parse");
-  const { default: remarkGfm } = await load(gfmDir, "remark-gfm");
+  const { unified } = await load(unifiedDir, "unified");
+  const { default: remarkParse } = await load(remarkParseDir, "remark-parse");
+  const { default: remarkGfm } = await load(remarkGfmDir, "remark-gfm");
 
   return unified().use(remarkParse).use(remarkGfm);
 }

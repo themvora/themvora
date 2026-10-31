@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 128 128">
+  <!--
+    The Themvora mark, reconstructed from media/icon.png so it stays crisp at
+    Activity Bar and editor-title sizes. The artwork is a single indigo
+    (#4F46E5) at three alphas — a rounded-square ring and three discs — which is
+    why this is a faithful trace rather than a redraw: the source PNG uses one
+    colour and varying opacity, not several colours.
+
+    Geometry measured from the 128x128 source: ring outer edge 3–124 with a 7px
+    stroke; discs at r18 / r15 / r11.5, centred (42.5,81.5), (66.5,48.5),
+    (88,75.5).
+  -->
+  <rect x="6.5" y="6.5" width="115" height="115" rx="26" fill="none" stroke="#4F46E5" stroke-width="7"/>
+  <circle cx="42.5" cy="81.5" r="18" fill="#4F46E5"/>
+  <circle cx="66.5" cy="48.5" r="15" fill="#4F46E5" fill-opacity="0.65"/>
+  <circle cx="88" cy="75.5" r="11.5" fill="#4F46E5" fill-opacity="0.35"/>
+</svg>

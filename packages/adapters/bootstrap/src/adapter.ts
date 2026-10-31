@@ -48,7 +48,7 @@ export interface CreateBootstrapAdapterOptions extends BootstrapAdapterOptions {
  * ```ts
  * import { createBootstrapAdapter } from "@themvora/bootstrap";
  *
- * runtime.installAdapter(createBootstrapAdapter());
+ * runtime.adapters.use(createBootstrapAdapter());
  * ```
  *
  * @see {@link useBootstrapTheme}

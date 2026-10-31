@@ -80,9 +80,9 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
       "Token names and the CSS-variable contract match the rest of Themvora, so the same theme works under any framework.",
   },
   astro: {
-    title: "Islands are the theme boundary",
+    title: "A page's script runs once; the document outlives it",
     specific:
-      "The document is themed without any client JavaScript — the integration injects the pre-paint bootstrap and `provider.astro` renders the themed `<html>`. Only interactive state needs an island, and one island containing both the provider and its consumers is the shape that cannot race: Astro hydrates islands in an unspecified order, so a separate consumer island could hydrate before the one that installs the runtime. `ThemeProviderClient` renders nothing, so a consumer must be a sibling in the same island tree, never a child. On a prerendered page there is no request to read cookies from, so the island reads the persisted selection in the browser and the configured `initialMode` decides what a first-time visitor gets.",
+      "The document is themed without any client JavaScript — the integration injects the pre-paint bootstrap and `provider.astro` renders the themed `<html>`. Only interactive state needs an island, and one island containing both the provider and its consumers is the shape that cannot race: Astro hydrates islands in an unspecified order, so a separate consumer island could hydrate before the one that installs the runtime. `ThemeProviderClient` renders nothing, so a consumer must be a sibling in the same island tree, never a child. On a prerendered page there is no request to read cookies from, so the island reads the persisted selection in the browser and the configured `initialMode` decides what a first-time visitor gets. With `<ClientRouter />` the distinction that matters is that a page's module `<script>` is bundled once per page and never re-executed across a navigation, while the `document` survives every swap: bind through the attributes (`data-tv-toggle`, `data-tv-select`, `data-tv-readout`) and one delegated listener, not through `getElementById` in a page script, or the control binds once, matches at most one node, and stops working on the second page.",
     universal:
       "CSS variables are written to `document.documentElement`, so un-hydrated static markup picks up the active theme too.",
     href: "/zero-flash",
@@ -90,7 +90,7 @@ export const frameworkCaveats: Record<string, FrameworkCaveat> = {
   nuxt: {
     title: "Module config owns SSR bootstrap; auto-imports own the API surface",
     specific:
-      "Configure the theme in `nuxt.config` via the module so the server render and the pre-paint script agree. The core composables are auto-imported from the package root — importing them manually can create a second runtime instance.",
+      "Configure the theme in `nuxt.config` via the module so the server render and the pre-paint script agree. The module owns the provider — there is no provider component to mount — and auto-imports the composables and components. Outside the auto-import scope, import them from `@themvora/vue`: Nuxt's import protection rejects a module's entry point in app code.",
     universal:
       "The composable names and the SSR bootstrap behavior match the other server-rendered integrations.",
     href: "/zero-flash",

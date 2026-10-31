@@ -63,7 +63,7 @@ export interface CodeTokens {
 /**
  * Semantic token values consumed by the runtime.
  *
- * Top-level groups map to CSS variable namespaces (`--theme-colors-*`,
+ * Top-level groups map to CSS variable namespaces (`--theme-color-*`,
  * `--theme-spacing-*`, …) when bound to the DOM by the runtime.
  *
  * @see {@link themeToCSSVariables}

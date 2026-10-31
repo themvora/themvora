@@ -45,6 +45,7 @@ const DYNAMIC_SITEMAP_SOURCES = {
   "/packages/:": "lib/packages.tsx (packages)",
   "/libraries/:": "lib/libraries.tsx (libraries)",
   "/framework-guides/:": "lib/frameworks.tsx (frameworks)",
+  "/framework-guides/:/examples": "lib/docs-routes.ts (one per framework)",
 };
 
 /** Recursively collect files matching a predicate. */

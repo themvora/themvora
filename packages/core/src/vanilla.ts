@@ -19,12 +19,20 @@ import { themeToCSSVariables } from "./css";
 import type { ThemePack, ThemeRegistry } from "./registry";
 import type { ThemeSchedule } from "./adapters/schedule";
 import type { ThemeTransitionOptions } from "./transition";
+import { normalizeProvidedThemes, type ProvidedThemeFamily } from "./provided-themes";
+import type { ThemeOverride } from "./theme-override";
 
 export type { ThemeDefinition, ThemeMode } from "./model/theme";
 export type { ThemeTokens } from "./model/tokens";
 export { generateTheme } from "./generate-theme";
 export type { GenerateThemeOptions, GeneratedThemePair } from "./generate-theme";
 export type { ThemePack, ThemeRegistry } from "./registry";
+export type {
+  ProvidedThemeFamily,
+  ProvidedThemeProvenance,
+  ProvidedThemeVariant,
+} from "./provided-themes";
+export type { ThemeOverride, ThemeOverrideSelection } from "./theme-override";
 
 /**
  * Options for creating a {@link Themvora} instance.
@@ -38,6 +46,8 @@ export interface ThemvoraOptions {
   initialMode?: ThemeMode;
   /** Initial family. Ignored if a theme was previously persisted in localStorage. */
   initialFamily?: string;
+  /** Explicit theme override applied over any persisted selection. */
+  themeOverride?: ThemeOverride<string>;
   /** Sunrise/sunset solar scheduling config. Automatically applies light/dark themes at sunrise/sunset. */
   scheduled?: false | ScheduledThemeOptions<ThemeDefinition>;
   /** Target element for CSS custom properties and `data-theme` attributes. Defaults to `document.documentElement`. */
@@ -171,6 +181,32 @@ export class Themvora {
   /** All registered theme definitions. */
   get themes(): readonly ThemeDefinition[] {
     return this._runtime!.themes;
+  }
+
+  /**
+   * The themes this instance was given, grouped by family.
+   *
+   * Derived on read from the live registry (never from a catalog elsewhere), so
+   * a theme registered later appears here. Use `useProvidedThemes()` in a
+   * framework integration for a reactive view.
+   *
+   * @see {@link normalizeProvidedThemes}
+   */
+  get providedThemes(): readonly ProvidedThemeFamily[] {
+    return normalizeProvidedThemes(this._runtime!.themes);
+  }
+
+  /**
+   * Apply an explicit theme override.
+   *
+   * Applies once, outranks a persisted selection, and does not write to storage.
+   * Passing the same value again is a no-op, so a render loop cannot pin the
+   * theme.
+   *
+   * @param override A theme name, a `{ family, mode }` request, or `undefined`.
+   */
+  setThemeOverride(override: ThemeOverride<string> | undefined): void {
+    this._runtime!.configure({ themeOverride: override } as never);
   }
 
   /** Switch to a specific mode. Persisted to localStorage automatically. */

@@ -18,7 +18,7 @@
  * @packageDocumentation
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { findIntegration } from "../frameworks.js";
 import { findAdapter } from "./adapters/index.js";
 import { inspectProject, type ProjectManifest } from "./detect.js";
@@ -87,28 +87,71 @@ export interface ApplyOptions {
 }
 
 /**
+ * The subset of `node:path` {@link resolveInsideProject} needs.
+ *
+ * @remarks
+ * Injected rather than imported directly so the **Windows** rules can be tested
+ * deterministically on any host: `path.win32` can be passed in from a Linux CI
+ * run, where the platform's own `path` is POSIX and a `D:\…` root would be
+ * meaningless.
+ */
+export interface ProjectPathApi {
+  resolve(...segments: string[]): string;
+  relative(from: string, to: string): string;
+  isAbsolute(path: string): boolean;
+  readonly sep: string;
+}
+
+const defaultPathApi: ProjectPathApi = { resolve, relative, isAbsolute, sep };
+
+/**
  * Resolve a project-relative path and refuse anything outside the root.
  *
  * @param projectPath - The project root.
  * @param relativePath - The POSIX-separated path from a plan.
+ * @param pathApi - Path implementation. Defaults to the platform's.
  * @returns The absolute path.
  *
  * @throws {Error} When the path escapes the project root.
+ *
+ * @remarks
+ * Three distinct escapes have to be caught, and the obvious check catches only
+ * the first:
+ *
+ * 1. **An absolute path** — `D:\evil\f.ts` against a `C:\proj` root, or
+ *    `/etc/passwd`. Rejected outright rather than reinterpreted: `resolve()`
+ *    would either return it unchanged (different drive) or silently re-anchor
+ *    it under the root, and both are worse than refusing a plan that was never
+ *    supposed to carry one.
+ * 2. **Same-drive traversal** — `../../etc/passwd`. `relative()` yields a path
+ *    whose first segment is `..`.
+ * 3. **The root itself** — an empty relative path, which would have the caller
+ *    writing to the project directory.
+ *
+ * The containment test is on the **first segment**, not on a `startsWith("..")`
+ * prefix: `..foo/a.ts` is a legitimate in-project path whose first segment
+ * merely begins with two dots, and the prefix test rejected it.
+ *
+ * The `isAbsolute(rel)` test is kept as defence in depth for the different-drive
+ * case: `relative()` cannot express a path between two drives and hands back the
+ * absolute target unchanged.
  */
 export function resolveInsideProject(
   projectPath: string,
   relativePath: string,
+  pathApi: ProjectPathApi = defaultPathApi,
 ): string {
-  const root = resolve(projectPath);
-  const target = resolve(root, ...relativePath.split("/"));
-  const rel = relative(root, target);
+  const root = pathApi.resolve(projectPath);
+  const target = pathApi.resolve(root, ...relativePath.split("/"));
+  const rel = pathApi.relative(root, target);
 
-  if (
+  const escapesRoot =
+    pathApi.isAbsolute(relativePath) ||
     rel === "" ||
-    rel.startsWith("..") ||
-    rel.includes(`..${sep}`) ||
-    resolve(target) === root
-  ) {
+    pathApi.isAbsolute(rel) ||
+    rel.split(pathApi.sep)[0] === "..";
+
+  if (escapesRoot) {
     throw new Error(
       `refusing to write outside the project root: "${relativePath}" resolves to "${target}"`,
     );

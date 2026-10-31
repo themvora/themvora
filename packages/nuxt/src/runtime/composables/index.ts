@@ -1,11 +1,13 @@
 import {
   useTheme as useVueTheme,
   useThemeRuntime as useVueThemeRuntime,
+  useProvidedThemes as useVueProvidedThemes,
   useThemeHistory as useVueThemeHistory,
   useThemeValue as useVueThemeValue,
   useGeneratedTheme as useVueGeneratedTheme,
   useThemeTokens as useVueThemeTokens,
   useThemeMode as useVueThemeMode,
+  useEffectiveThemeMode as useVueEffectiveThemeMode,
   useThemeFamily as useVueThemeFamily,
   useThemeBatch as useVueThemeBatch,
   useThemeSnapshot as useVueThemeSnapshot,
@@ -17,11 +19,13 @@ import {
 
 export const useTheme = useVueTheme;
 export const useThemeRuntime = useVueThemeRuntime;
+export const useProvidedThemes = useVueProvidedThemes;
 export const useThemeHistory = useVueThemeHistory;
 export const useThemeValue = useVueThemeValue;
 export const useGeneratedTheme = useVueGeneratedTheme;
 export const useThemeTokens = useVueThemeTokens;
 export const useThemeMode = useVueThemeMode;
+export const useEffectiveThemeMode = useVueEffectiveThemeMode;
 export const useThemeFamily = useVueThemeFamily;
 export const useThemeBatch = useVueThemeBatch;
 export const useThemeSnapshot = useVueThemeSnapshot;

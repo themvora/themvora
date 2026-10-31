@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
-import { highlightCode } from "../../lib/highlight";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
@@ -289,10 +288,9 @@ export default function MigrationPage() {
               manually editing every theme file.
             </li>
           </ul>
-          <CodeBlock
-            html={highlightCode(whenToMigrateSnippet.code, "ts")}
+          <CodeExample
             code={whenToMigrateSnippet.code}
-            language="ts"
+            lang="ts"
             filename={whenToMigrateSnippet.title}
             className="m-0"
           />
@@ -434,10 +432,9 @@ export default function MigrationPage() {
             <code className="mono text-[0.9em]">migrateTheme</code> is called.
             Register steps at module load so they are available everywhere.
           </p>
-          <CodeBlock
-            html={highlightCode(registerMigrationSnippet.code, "ts")}
+          <CodeExample
             code={registerMigrationSnippet.code}
-            language="ts"
+            lang="ts"
             filename={registerMigrationSnippet.title}
             className="m-0"
           />
@@ -456,10 +453,9 @@ export default function MigrationPage() {
             builds a chain from the theme&apos;s current version to the target
             and applies each step in sequence.
           </p>
-          <CodeBlock
-            html={highlightCode(multiStepSnippet.code, "ts")}
+          <CodeExample
             code={multiStepSnippet.code}
-            language="ts"
+            lang="ts"
             filename={multiStepSnippet.title}
             className="m-0"
           />
@@ -499,10 +495,9 @@ export default function MigrationPage() {
               </div>
             </div>
           </div>
-          <CodeBlock
-            html={highlightCode(remapVsMigrateSnippet.code, "ts")}
+          <CodeExample
             code={remapVsMigrateSnippet.code}
-            language="ts"
+            lang="ts"
             filename={remapVsMigrateSnippet.title}
             className="m-0"
           />
@@ -530,10 +525,9 @@ export default function MigrationPage() {
             result. This prevents shipping themes that haven&apos;t been
             updated for breaking changes.
           </p>
-          <CodeBlock
-            html={highlightCode(ciSnippet.code, "yaml")}
+          <CodeExample
             code={ciSnippet.code}
-            language="yaml"
+            lang="yaml"
             filename={ciSnippet.title}
             className="m-0"
           />

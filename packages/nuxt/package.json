@@ -1,7 +1,7 @@
 {
   "name": "@themvora/nuxt",
   "license": "MIT",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -13,14 +13,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && tsc -p tsconfig.build.json",
     "test": "vitest"
   },
   "peerDependencies": {
-    "nuxt": "^3.10.0",
+    "nuxt": ">=3.10.0",
     "vue": "^3.4.0"
   },
   "dependencies": {
@@ -28,8 +29,8 @@
     "@themvora/vue": "workspace:^"
   },
   "devDependencies": {
-    "@nuxt/kit": "^3.10.0",
-    "@nuxt/schema": "^3.10.0",
+    "@nuxt/kit": "^4.0.0",
+    "@nuxt/schema": "^4.0.0",
     "@types/node": "^26.1.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

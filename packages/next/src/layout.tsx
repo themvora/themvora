@@ -8,14 +8,19 @@ import React, {
 import {
   buildBootstrapPlan,
   createPrePaintScrollbarCSS,
+  darkModeCSSTemplate,
   getBuiltInThemes,
   resolveInitialTheme,
+  resolveSelectedTheme,
   resolveSelectionTheme,
+  resolveThemeOverride,
+  type ThemeOverride,
   serializeThemeBootstrapScript,
   themeToCSSVariables,
   type InitialThemeResolution,
   type PrePaintScrollbarOptions,
   type ThemeDefinition,
+  type ThemeIdentifier,
   type ThemeMode,
 } from "@themvora/core";
 
@@ -64,7 +69,6 @@ export interface ThemeProviderBodyProps extends Omit<
  *
  * @example
  * ```tsx
- * // app/layout.tsx
  * import { ThemeProvider } from "@themvora/next";
  *
  * export default function RootLayout({ children }) {
@@ -110,12 +114,24 @@ export interface ThemeProviderProps<
   /** The lang attribute name the language of the element's content. */
   lang?: string;
   /** Theme to be applied as default.
-   * Pass defaultTheme="light" for the themvora's default neutral light theme.
-   * And defaultTheme="dark" for default neutral dark theme.
+   * Accepts a supplied theme **name** (`"cocoa-light"`) or a **family**
+   * (`"cocoa"`). A family resolves to the variant for the mode in effect, so it
+   * stays light/dark-aware instead of pinning one definition.
    */
-  defaultTheme?: T["name"];
+  defaultTheme?: ThemeIdentifier<T>;
   /** Font family applied to the body element (e.g. "Inter, sans-serif"). */
   font?: string;
+  /**
+   * An explicit theme override applied over any persisted cookie selection.
+   *
+   * Resolved on the server as well as in the browser, so the SSR shell, the
+   * blocking bootstrap and the hydrated runtime all paint the overridden theme —
+   * no correction frame. It is applied once per value and never written to the
+   * theme cookies.
+   *
+   * @see `ThemeRuntimeOptions.themeOverride`
+   */
+  themeOverride?: import("@themvora/core").ThemeOverride<ThemeIdentifier<T>>;
   /** Attributes forwarded to the rendered `<body>` element. */
   body?: ThemeProviderBodyProps;
   /** CSS transition options for theme changes. */
@@ -142,12 +158,11 @@ export interface ThemeProviderProps<
   scrollbar?: boolean | PrePaintScrollbarOptions;
 }
 
-function darkModeCSSTemplate(variables: Record<string, string>): string {
-  const rules = Object.entries(variables)
-    .map(([key, value]) => `  ${key}: ${value};`)
-    .join("\n");
-  return `@media (prefers-color-scheme: dark) {:root {\n${rules}\n}}`;
-}
+// The dark-mode fallback stylesheet is core's `darkModeCSSTemplate`, not a
+// local copy. The copy that used to live here was byte-identical apart from one
+// thing: it did not escape `</`, so a token value containing `</style` closed
+// the `<style>` element it is rendered into. Core's version is escaped for
+// style-element content, and using it keeps the two definitions from drifting.
 
 /**
  * Resolve the shell's theme from the configured default only.
@@ -158,12 +173,26 @@ function darkModeCSSTemplate(variables: Record<string, string>): string {
  */
 function resolveShellInitial<T extends ThemeDefinition>(
   themes: readonly T[],
-  defaultTheme: T["name"] | undefined,
+  defaultTheme: ThemeIdentifier<T> | undefined,
+  themeOverride: ThemeOverride<ThemeIdentifier<T>> | undefined,
 ): InitialThemeResolution<T> {
-  return resolveInitialTheme({
+  const base = resolveInitialTheme({
     themes,
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
   });
+
+  // The shell is what the server paints, so the override has to be part of it —
+  // otherwise the first frame is the default theme and hydration corrects it.
+  const override = resolveThemeOverride(themes, themeOverride, base.selection);
+  if (!override) return base;
+
+  return {
+    selection: override,
+    theme: resolveSelectedTheme(themes, {
+      ...override,
+      mode: override.mode === "system" ? "light" : override.mode,
+    }),
+  };
 }
 
 /**
@@ -176,12 +205,14 @@ function resolveShellInitial<T extends ThemeDefinition>(
 async function ResolvedThemeProvider<T extends ThemeDefinition>({
   themes,
   defaultTheme,
+  themeOverride,
   transition,
   scheduled,
   children,
 }: {
   themes: readonly T[];
-  defaultTheme?: T["name"];
+  defaultTheme?: ThemeIdentifier<T>;
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>>;
   transition?: boolean | import("@themvora/core").ThemeTransitionOptions;
   scheduled?: false | import("@themvora/core").ScheduledThemeOptions<T>;
   children: ReactNode;
@@ -222,18 +253,33 @@ async function ResolvedThemeProvider<T extends ThemeDefinition>({
     // `cookies()` is unavailable outside a Next request (e.g. a unit test).
   }
 
-  const initial = resolveInitialTheme({
+  const baseInitial = resolveInitialTheme({
     themes,
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
     ...(family !== undefined ? { family } : {}),
     ...(mode !== undefined ? { mode } : {}),
   });
 
+  // The override is applied here too, so the `initial` the client hydrates
+  // against is the same selection the shell painted. Resolving it only in the
+  // browser would make hydration disagree with the server HTML.
+  const override = resolveThemeOverride(themes, themeOverride, baseInitial.selection);
+  const initial: InitialThemeResolution<T> = override
+    ? {
+        selection: override,
+        theme: resolveSelectedTheme(themes, {
+          ...override,
+          mode: override.mode === "system" ? "light" : override.mode,
+        }),
+      }
+    : baseInitial;
+
   return (
     <ClientThemeProvider
       themes={themes}
       initial={initial}
       {...(defaultTheme !== undefined ? { defaultTheme } : {})}
+      {...(themeOverride !== undefined ? { themeOverride } : {})}
       {...(transition !== undefined ? { transition } : {})}
       {...(scheduled !== undefined ? { scheduled } : {})}
     >
@@ -254,7 +300,6 @@ async function ResolvedThemeProvider<T extends ThemeDefinition>({
  *
  * @example
  * ```tsx
- * // app/layout.tsx
  * import { ThemeProvider } from "@themvora/next";
  *
  * export default function RootLayout({ children }) {
@@ -290,6 +335,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
   className,
   style,
   font,
+  themeOverride,
   body,
   transition,
   scheduled,
@@ -302,7 +348,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
 
   const currentFingerprint = computeFingerprint(resolvedThemes, defaultTheme);
 
-  const shellInitial = resolveShellInitial(resolvedThemes, defaultTheme);
+  const shellInitial = resolveShellInitial(resolvedThemes, defaultTheme, themeOverride);
 
   const cssVars = themeToCSSVariables(shellInitial.theme);
   const themeMode = shellInitial.selection.mode === "dark" ? "dark" : "light";
@@ -339,6 +385,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
   // flashes the default. Its fallback is the shell's own default selection.
   const bootstrapPlan = buildBootstrapPlan(resolvedThemes, {
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
+    ...(themeOverride !== undefined ? { themeOverride } : {}),
   });
 
   const blockingScript = serializeThemeBootstrapScript(
@@ -410,6 +457,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
           <ResolvedThemeProvider
             themes={resolvedThemes}
             {...(defaultTheme !== undefined ? { defaultTheme } : {})}
+            {...(themeOverride !== undefined ? { themeOverride } : {})}
             {...(transition !== undefined ? { transition } : {})}
             {...(scheduled !== undefined ? { scheduled } : {})}
           >

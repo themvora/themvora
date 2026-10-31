@@ -1,9 +1,12 @@
 import {
   resolveSelection,
+  resolveThemeOverride,
   systemModeCSSTemplate,
   themeToCSSVariables,
   type ThemeDefinition,
+  type ThemeIdentifier,
   type ThemeMode,
+  type ThemeOverride,
 } from "@themvora/core";
 
 /**
@@ -85,6 +88,53 @@ function cssVarsToString(map: Record<string, string>): string {
 }
 
 /**
+ * Serializes a value as a JavaScript expression that is safe to embed in
+ * executable inline script content.
+ *
+ * @remarks
+ * The blocking script is emitted as the body of a `<script>` element, so the
+ * values it carries have to survive two parsers: JavaScript, and the HTML
+ * tokenizer that looks for `</script` first. `JSON.stringify` handles the
+ * first; escaping `<`, `>`, `&` and the U+2028/U+2029 line terminators handles
+ * the second. Inside a JSON string literal the `\uXXXX` forms are equivalent to
+ * the characters they replace, so the value the script sees is unchanged.
+ *
+ * Core keeps its own copy of this in an internal module that is not part of its
+ * public API. Duplicating six lines here is deliberate: exporting it would
+ * widen `@themvora/core`'s public surface for one internal helper, and the
+ * security property is asserted by this package's own output tests either way.
+ */
+function toScriptJson(value: unknown): string {
+  const json = JSON.stringify(value);
+  if (json === undefined) return "null";
+  return json.replace(
+    /[<>&\u2028\u2029]/g,
+    (char) => SCRIPT_ESCAPES[char] ?? char,
+  );
+}
+
+const SCRIPT_ESCAPES: Record<string, string> = {
+  "<": "\\u003c",
+  ">": "\\u003e",
+  "&": "\\u0026",
+  "\u2028": "\\u2028",
+  "\u2029": "\\u2029",
+};
+
+/**
+ * Escapes CSS text for `<style>`-element content.
+ *
+ * @remarks
+ * `</` becomes `<\/`, a CSS escape for `/`, so a value that legitimately
+ * contains `</` inside a string or `url()` still parses to the same characters
+ * while the HTML tokenizer can no longer see an end tag. See
+ * {@link toScriptJson} for why this is a local copy rather than a core import.
+ */
+function toStyleText(css: string): string {
+  return css.replace(/<\//g, "<\\/");
+}
+
+/**
  * Fallback inputs for {@link createBlockingScriptContent}.
  *
  * These must match the options the client runtime is created with. The script
@@ -92,7 +142,9 @@ function cssVarsToString(map: Record<string, string>): string {
  * to one and not the other makes the script paint one theme and the runtime
  * correct it — a visible flash of the wrong theme.
  */
-export interface BlockingScriptOptions {
+export interface BlockingScriptOptions<
+  T extends ThemeDefinition = ThemeDefinition,
+> {
   /**
    * Fallback mode used when no selection is persisted.
    *
@@ -107,9 +159,20 @@ export interface BlockingScriptOptions {
   /**
    * Theme name the fallback family and mode are derived from.
    *
-   * Should match the `defaultTheme` given to `provideTheme`.
+   * Should match the `defaultTheme` given to `provideTheme`. Accepts a theme
+   * **name** (`"cocoa-light"`) or a **family** (`"cocoa"`).
    */
-  defaultTheme?: string;
+  defaultTheme?: ThemeIdentifier<T>;
+
+  /**
+   * An explicit theme override, resolved against `themes` and applied over any
+   * persisted selection.
+   *
+   * Should match the `themeOverride` given to `provideTheme`. Without it the
+   * script paints the saved theme and the runtime corrects it on boot — the
+   * flash the override exists to avoid.
+   */
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>>;
 }
 
 /**
@@ -133,10 +196,12 @@ export interface BlockingScriptOptions {
  * @see {@link BlockingScriptOptions}
  * @see `createThemeBootstrapScript`
  */
-export function createBlockingScriptContent(
-  themes: readonly ThemeDefinition[],
+export function createBlockingScriptContent<
+  T extends ThemeDefinition = ThemeDefinition,
+>(
+  themes: readonly T[],
   savedSelection?: { mode: ThemeMode; family: string } | null,
-  options: BlockingScriptOptions = {},
+  options: BlockingScriptOptions<T> = {},
 ): string {
   const cssMap = buildThemeCSSMap(themes);
 
@@ -154,8 +219,18 @@ export function createBlockingScriptContent(
     ...(options.mode !== undefined ? { initialMode: options.mode } : {}),
   });
 
-  const initialFamily = savedSelection?.family ?? fallback.family;
-  const initialMode = savedSelection?.mode ?? fallback.mode;
+  const savedFamily = savedSelection?.family ?? fallback.family;
+  const savedMode = savedSelection?.mode ?? fallback.mode;
+
+  // The override outranks the persisted selection here exactly as it does in the
+  // runtime, and it is resolved by core's own resolver so the two cannot drift.
+  const override = resolveThemeOverride(themes, options.themeOverride, {
+    family: savedFamily,
+    mode: savedMode,
+  });
+
+  const initialFamily = override?.family ?? savedFamily;
+  const initialMode = override?.mode ?? savedMode;
 
   const lightVars = cssVarsToString(cssMap.light);
   const darkVars = cssVarsToString(cssMap.dark);
@@ -173,24 +248,33 @@ export function createBlockingScriptContent(
   const criticalCSS =
     initialMode === "system"
       ? systemModeCSSTemplate(cssMap.light, cssMap.dark)
-      : `:root{${initialMode === "dark" ? darkVars : lightVars}}`;
+      : toStyleText(`:root{${initialMode === "dark" ? darkVars : lightVars}}`);
 
+  // Values are emitted with `toScriptJson`, never by interpolating into a
+  // single-quoted literal. A theme family is free text and a token value can be
+  // any CSS — `font-family:'Inter', sans-serif` alone produced
+  // `Unexpected identifier 'Inter'` in the old `f='...'` form, which the
+  // surrounding try/catch could not rescue because the script no longer parsed.
+  // The `style.cssText+='...'` lines had the same problem twice over: quotes in
+  // a value ended the literal, and `</script>` in a value ended the element.
   const script = [
     "(function(){",
     "try{",
-    `var m='${initialMode}',f='${initialFamily}';`,
+    `var m=${toScriptJson(initialMode)},f=${toScriptJson(initialFamily)};`,
     "var s=document.getElementById('themvora-state');",
     "if(s){try{var p=JSON.parse(s.textContent||'{}');",
     "if(p.mode)m=p.mode;if(p.family)f=p.family;}catch(e){}}",
     "var ls;try{ls=window.localStorage.getItem('theme-selection');",
     "if(ls){var lp=JSON.parse(ls);if(lp.mode)m=lp.mode;if(lp.family)f=lp.family;}}catch(e){}",
+    // Applied after the persisted reads so a stored selection cannot win.
+    `var o=${toScriptJson(override)};if(o){m=o.mode;f=o.family;}`,
     "if(m!=='system'){document.documentElement.setAttribute('data-theme-mode',m);}",
     "document.documentElement.setAttribute('data-theme-family',f);",
     "if(m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){",
     "document.documentElement.classList.add('dark');",
-    "document.documentElement.style.cssText+='" + darkVars + "';",
+    `document.documentElement.style.cssText+=${toScriptJson(darkVars)};`,
     "}else{",
-    "document.documentElement.style.cssText+='" + lightVars + "';",
+    `document.documentElement.style.cssText+=${toScriptJson(lightVars)};`,
     "}",
     "}catch(e){}",
     "})();",

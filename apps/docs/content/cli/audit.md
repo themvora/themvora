@@ -164,7 +164,7 @@ A failing run still emits the report **and** exits `3`.
 | ---- | ------- |
 | `0`  | Audit passed. |
 | `3`  | Audit failed — a theme failed a check, or a warning under `--strict`. |
-| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON). |
+| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). |
 | `2`  | Usage error: no scope, or an unknown scope. |
 
 ## Next Steps

@@ -26,7 +26,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 ```ts
 import { createDaisyAdapter } from "@themvora/daisyui";
 
-runtime.installAdapter(createDaisyAdapter());
+runtime.adapters.use(createDaisyAdapter());
 ```
 
 ---

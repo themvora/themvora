@@ -31,11 +31,12 @@ import { createBlockingScriptContent } from "./blocking-script";
  *
  * @see {@link provideTheme}
  */
-export type ThemeProviderOptions = ThemeRuntimeOptions<ThemeDefinition> & {
-  /** The DOM element the runtime's DOM and CSS-variable bindings attach to.
-   *  Defaults to `document.documentElement`. */
-  target?: HTMLElement;
-};
+export type ThemeProviderOptions<T extends ThemeDefinition = ThemeDefinition> =
+  ThemeRuntimeOptions<T> & {
+    /** The DOM element the runtime's DOM and CSS-variable bindings attach to.
+     *  Defaults to `document.documentElement`. */
+    target?: HTMLElement;
+  };
 
 /**
  * Provides a Themvora runtime for the current Angular environment injector.
@@ -68,8 +69,8 @@ export type ThemeProviderOptions = ThemeRuntimeOptions<ThemeDefinition> & {
  * @see {@link injectThemeRuntime}
  * @see {@link ThemeProviderOptions}
  */
-export function provideTheme(
-  options: ThemeProviderOptions = {},
+export function provideTheme<T extends ThemeDefinition = ThemeDefinition>(
+  options: ThemeProviderOptions<T> = {},
 ): EnvironmentProviders {
   const { target, ...runtimeOptions } = options;
 
@@ -169,7 +170,21 @@ export function provideTheme(
           const head = document.head;
           if (!head) return;
 
-          const blockingHTML = createBlockingScriptContent(themes, { mode, family });
+          const blockingHTML = createBlockingScriptContent(
+            themes,
+            { mode, family },
+            {
+              ...(runtimeOptions.defaultTheme !== undefined
+                ? { defaultTheme: runtimeOptions.defaultTheme as string }
+                : {}),
+              // The runtime already applied the override to `mode`/`family`;
+              // passing it on keeps the script from letting a persisted
+              // selection win over it before first paint.
+              ...(runtimeOptions.themeOverride !== undefined
+                ? { themeOverride: runtimeOptions.themeOverride }
+                : {}),
+            },
+          );
           const temp = document.createElement("div");
           temp.innerHTML = blockingHTML;
 

@@ -1,4 +1,99 @@
-# @theme-kit/nuxt
+# @themvora/nuxt
+
+## 2.1.0
+
+### Minor Changes
+
+- Add a `themeOverride` module option, stop writing `undefined` runtime-config values, and accept Nuxt 4.
+
+  **`themeOverride`** applies a theme over any persisted selection, without writing to the theme cookies —
+  which is what makes it usable as a preview or a per-environment pin rather than a hidden default.
+
+  ```ts
+  export default defineNuxtConfig({
+    themvora: {
+      defaultTheme: "light",
+      themeOverride: { family: "checkout", mode: "dark" },
+    },
+  });
+  ```
+
+  Because it is a module option it is fixed for the app rather than per page; use
+  `runtime.configure({ themeOverride })` from a plugin when it has to change at runtime.
+
+  **Only defined options are written to `runtimeConfig.public.themvora`.** Nuxt serializes an `undefined`
+  runtime-config value as `""`, which the runtime then reads as an empty theme override or an empty
+  default theme name and warns about on every request. A project that set three of the eight options was
+  getting five spurious warnings per render; now it gets none. Nothing about the values you do set
+  changed.
+
+  **Nuxt 4 is supported** (`peerDependencies.nuxt` widened from `^3.10.0` to `>=3.10.0`). This is a
+  widening of declared support, not a behaviour change on Nuxt 3.
+
+  The module also re-exports the Vue plumbing its auto-import set and SSR bootstrap build on —
+  `provideThemeRuntime`, `ThemeSymbol`, `ThemeScheduleController`, `createVueThemeBootstrapScript`,
+  `useProvidedThemes` and `useEffectiveThemeMode` — so a Nuxt project can use them without adding
+  `@themvora/vue` as a direct dependency.
+
+- Add `useProvidedThemes()` — and `injectProvidedThemes()` for Angular — so a theme picker can be built
+  from the provider itself.
+
+  Building a picker meant reaching past the provider into the preset catalog
+  (`Object.entries(getPresetThemes())`) and hoping the two collections agreed. They do not: an app that
+  supplies three of its own families has a picker that lists the presets and none of its own themes.
+
+  ```tsx
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+  const setMode = useSetThemeMode();
+
+  return families.map((family) => (
+    <fieldset key={family.id}>
+      <legend>{family.name}</legend>
+      {family.variants.map((variant) => (
+        <button
+          key={variant.name}
+          onClick={() => {
+            setFamily(family.family);
+            setMode(variant.mode);
+          }}
+        >
+          {variant.mode}
+        </button>
+      ))}
+    </fieldset>
+  ));
+  ```
+
+  The collection is exactly what the provider was given, grouped by family in supplied order, with each
+  variant's tokens already resolved — `auto()` / `contrast()` / expressions are evaluated, so
+  `variant.tokens.colors?.primary` reads directly. Each variant also keeps the original definition, for
+  anything the grouped view does not model.
+
+  It is reactive: a `themes` prop change, a `runtime.use(pack)` install or a registry mutation
+  re-renders the consumer. Entries keep their identity while their content is unchanged, so `React.memo`
+  and dependency arrays behave — a re-registered catalog whose only difference is the registry's
+  `meta.created` / `meta.updated` stamps is not treated as a change.
+
+  `ProvidedThemeFamily.provenance` reports a _declared_ source only — `{ kind: "generated", algorithm }`
+  from `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light`
+  is not thereby a preset, and nothing is inferred from a name, family or colour.
+
+  Angular follows its own convention: `injectProvidedThemes()` returns a `Signal` of the same collection,
+  because a DI-based framework has no hook call site to subscribe from.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
+  - @themvora/vue@2.1.0
 
 ## 2.0.0
 

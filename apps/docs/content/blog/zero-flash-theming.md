@@ -17,7 +17,6 @@ With `@themvora/next`, the `ThemeProvider` is a server component. It reads the
 resolves the *initial theme before a single byte of HTML is sent*:
 
 ```tsx
-// app/layout.tsx
 import { ThemeProvider } from "@themvora/next";
 
 export default function RootLayout({ children }) {

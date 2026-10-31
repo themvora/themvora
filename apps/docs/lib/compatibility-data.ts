@@ -183,8 +183,8 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
   },
   {
     package: "@themvora/nuxt",
-    framework: "Nuxt 3",
-    frameworkVersion: "^3.10.0",
+    framework: "Nuxt 4",
+    frameworkVersion: ">=3.10.0",
     ssr: "Full",
     zeroFlash: "Auto",
     persistence: "Cookie",

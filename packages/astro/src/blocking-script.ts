@@ -80,6 +80,20 @@ export interface BlockingScriptOptions {
    */
   names?: Record<string, string>;
   /**
+   * Theme-name → human label, so a `data-tv-readout="label"` element can be
+   * given the resolved theme's `meta.label` before the body is painted.
+   *
+   * @remarks
+   * The script cannot derive a label from a name, and the end-of-body readout
+   * script has no registry to look one up in, so the map has to travel with the
+   * payload. Omitting it leaves label readouts showing whatever the server
+   * rendered — which is the settle this contract exists to remove, but only for
+   * pages that use the `label` kind.
+   *
+   * @see {@link buildThemeBootstrapPayload}
+   */
+  labels?: Record<string, string>;
+  /**
    * The fallback family's light/dark variables, registered in the map under
    * `__default-light` / `__default-dark`.
    *
@@ -111,6 +125,7 @@ export function buildThemeBootstrapPayload<T extends ThemeDefinition>(
   family: string,
 ): {
   names: Record<string, string>;
+  labels: Record<string, string>;
   defaults: ThemeBootstrapDefaults;
   family: string;
   families: string[];
@@ -121,6 +136,9 @@ export function buildThemeBootstrapPayload<T extends ThemeDefinition>(
 
   return {
     names: plan.names,
+    // Forwarded so `data-tv-readout="label"` can be resolved before the body is
+    // parsed — see `BlockingScriptOptions.labels`.
+    labels: plan.labels ?? {},
     family: plan.fallbackFamily ?? "",
     // Forwarded to `createBlockingScript` so the inline script can reject a
     // persisted family that is no longer registered — see
@@ -189,6 +207,7 @@ export function createBlockingScript(
     {
       map,
       names,
+      ...(options.labels ? { labels: options.labels } : {}),
       fallbackMode: options.mode ?? "system",
       fallbackFamily: options.family ?? null,
       // Absent means "cannot validate": the core serializer then trusts the

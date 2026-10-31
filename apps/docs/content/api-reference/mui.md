@@ -9,7 +9,7 @@ Bridges a Themvora runtime to MUI's theme: `MuiThemeProvider`,
 
 ## Functions
 
-### `buildMuiThemeOptions(theme): ThemeOptions`
+### `buildMuiThemeOptions(theme, integration): ThemeOptions`
 Builds a Material UI `ThemeOptions` from a resolved Themvora theme.
 
 Maps Themvora semantic tokens (colors, radius, typography, shadows,
@@ -21,6 +21,7 @@ The palette mode follows the resolved theme mode.
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `theme` | `AdapterResolvedTheme` | The resolved theme to map from. |
+| `integration` | `MuiThemeIntegrationOptions` | — |
 
 **Returns** `ThemeOptions` — A Material UI `ThemeOptions` object.
 
@@ -43,7 +44,7 @@ generated theme is available through `getSnapshot` for React consumption.
 ---
 
 
-### `createMuiTheme(source): Theme`
+### `createMuiTheme(source, options): Theme`
 Maps Themvora semantic tokens onto a Material UI theme.
 
 ```ts
@@ -53,9 +54,10 @@ const muiTheme = createMuiTheme(runtime);
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `source` | `AdapterSource` | — |
+| `source` | `AdapterSource` | A runtime, store, theme definition or token object. |
+| `options` | `MuiThemeIntegrationOptions` | Integration options (font family, transition timing). |
 
-**Returns** `Theme`
+**Returns** `Theme` — A MUI `Theme`.
 
 ---
 
@@ -83,13 +85,14 @@ import { MuiThemeProvider } from "@themvora/mui";
 ---
 
 
-### `useMuiTheme<T extends ThemeDefinition<string>>(runtime): Theme`
+### `useMuiTheme<T extends ThemeDefinition<string>>(runtime, options): Theme`
 Subscribes to a Themvora runtime and returns a Material UI theme that is
 rebuilt automatically whenever the active theme changes.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `runtime` | `ThemeRuntime<T>` | — |
+| `options` | `MuiThemeIntegrationOptions` | — |
 
 **Returns** `Theme`
 
@@ -142,13 +145,32 @@ A Material UI adapter that exposes its generated theme synchronously via
 ---
 
 
+### `MuiThemeIntegrationOptions`
+Integration options for createMuiTheme.
+
+**See also:** `createMuiTheme`, `buildMuiThemeOptions`
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `fontFamily` (optional) | `string` | Font family to apply to MUI's typography. Use this when the application loads its font outside the theme (a Google font imported in global CSS) **and** renders `CssBaseline`, whose `body` rule would otherwise inherit from `<html>` instead of the application's `body`. When omitted, the theme's own `typography.fontFamilies` token wins; when the theme defines none, MUI is told to inherit the document font rather than being forced onto `system-ui`. |
+| `transitionDuration` (optional) | `number` | Theme-change duration in milliseconds, mapped onto MUI's own `transitions` scale so MUI-owned animations match Themvora's. Pass the same value as the runtime's `transition.duration` to keep the two engines in step. Defaults to MUI's own scale when omitted. |
+| `transitionEasing` (optional) | `string` | Theme-change easing, mapped onto MUI's `transitions.easing.easeInOut`. Pass the runtime's `transition.easing` to keep the two in step. |
+
+---
+
+
 ### `MuiThemeProviderProps<T extends ThemeDefinition>`
+
+**Extends** `MuiThemeIntegrationOptions`
 Props for MuiThemeProvider.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `children` | `ReactNode` | The React subtree rendered inside MUI's `ThemeProvider`. |
+| `fontFamily` (optional) | `string` | Font family to apply to MUI's typography. Use this when the application loads its font outside the theme (a Google font imported in global CSS) **and** renders `CssBaseline`, whose `body` rule would otherwise inherit from `<html>` instead of the application's `body`. When omitted, the theme's own `typography.fontFamilies` token wins; when the theme defines none, MUI is told to inherit the document font rather than being forced onto `system-ui`. |
 | `runtime` | `ThemeRuntime<T>` | The Themvora runtime whose active theme drives the MUI theme. |
+| `transitionDuration` (optional) | `number` | Theme-change duration in milliseconds, mapped onto MUI's own `transitions` scale so MUI-owned animations match Themvora's. Pass the same value as the runtime's `transition.duration` to keep the two engines in step. Defaults to MUI's own scale when omitted. |
+| `transitionEasing` (optional) | `string` | Theme-change easing, mapped onto MUI's `transitions.easing.easeInOut`. Pass the runtime's `transition.easing` to keep the two in step. |
 
 ---
 
@@ -173,4 +195,5 @@ The adapter id registered by the Material UI adapter.
 
 ## Related docs
 
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Material UI](/libraries/mui) — the adapter integration

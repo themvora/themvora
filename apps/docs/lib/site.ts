@@ -46,7 +46,7 @@ export function sourceUrlForPackage(pkg: string): string {
   return `${GITHUB_URL}/tree/main/${repoPathForPackage(pkg)}`;
 }
 
-export const CONTACT_EMAIL = "themekitproductions@gmail.com";
+export const CONTACT_EMAIL = "themvoraproductions@gmail.com";
 export const CONTACT_URL = `mailto:${CONTACT_EMAIL}`;
 
 export const SITE_URL =

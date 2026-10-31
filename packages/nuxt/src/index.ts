@@ -32,7 +32,6 @@ import type {
  *
  * @example
  * ```ts
- * // nuxt.config.ts
  * export default defineNuxtConfig({
  *   themvora: {
  *     defaultTheme: "light",
@@ -50,6 +49,15 @@ export interface ModuleOptions {
   themes?: ThemeDefinition[];
   /** Fallback theme name when no selection is persisted. */
   defaultTheme?: string;
+  /**
+   * An explicit theme override applied over any persisted selection.
+   *
+   * Applied once per value and never written to the theme cookies. Because it is
+   * a module option it is fixed for the app rather than per page; use
+   * `runtime.configure({ themeOverride })` from a plugin when it has to change
+   * at runtime.
+   */
+  themeOverride?: import("@themvora/core").ThemeOverride<string>;
   /** Initial mode: `"light"`, `"dark"` or `"system"`. Default `"system"`. */
   initialMode?: ThemeMode;
   /** Initial theme family when no selection is persisted. */
@@ -83,11 +91,12 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   meta: {
     name: "@themvora/nuxt",
     configKey: "themvora",
-    compatibility: { nuxt: "^3.10.0" },
+    compatibility: { nuxt: ">=3.10.0" },
   },
   defaults: {
     themes: undefined,
     defaultTheme: undefined,
+    themeOverride: undefined,
     initialMode: "system",
     initialFamily: undefined,
     transition: undefined,
@@ -98,16 +107,21 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
 
-    nuxt.options.runtimeConfig.public.themvora = {
-      themes: options.themes ?? undefined,
-      defaultTheme: options.defaultTheme ?? undefined,
+    // Only defined options are written. Nuxt serializes `undefined` runtime
+    // config values as `""`, which the runtime would then read as an empty
+    // theme override/default and warn about on every request.
+    const publicConfig: Record<string, unknown> = {
       initialMode: options.initialMode ?? "system",
-      initialFamily: options.initialFamily ?? undefined,
-      transition: options.transition ?? undefined,
-      scrollbar: options.scrollbar ?? undefined,
-      storageKey: options.storageKey ?? undefined,
-      scheduled: options.scheduled ?? undefined,
     };
+    if (options.themes !== undefined) publicConfig.themes = options.themes;
+    if (options.defaultTheme !== undefined) publicConfig.defaultTheme = options.defaultTheme;
+    if (options.themeOverride !== undefined) publicConfig.themeOverride = options.themeOverride;
+    if (options.initialFamily !== undefined) publicConfig.initialFamily = options.initialFamily;
+    if (options.transition !== undefined) publicConfig.transition = options.transition;
+    if (options.scrollbar !== undefined) publicConfig.scrollbar = options.scrollbar;
+    if (options.storageKey !== undefined) publicConfig.storageKey = options.storageKey;
+    if (options.scheduled !== undefined) publicConfig.scheduled = options.scheduled;
+    nuxt.options.runtimeConfig.public.themvora = publicConfig;
 
     addImportsDir(resolver.resolve("./runtime/composables"));
     addComponentsDir({ path: resolver.resolve("./runtime/components"), prefix: "" });
@@ -131,11 +145,16 @@ export {
   ThemeScope,
   ThemeScrollbar,
   ThemeInspector,
+  ThemeSymbol,
+  provideThemeRuntime,
+  createVueThemeBootstrapScript,
   useTheme,
   useThemeRuntime,
+  useProvidedThemes,
   useThemeValue,
   useThemeTokens,
   useThemeMode,
+  useEffectiveThemeMode,
   useThemeFamily,
   useThemeHistory,
   useThemeBatch,
@@ -145,7 +164,13 @@ export {
   useThemePacks,
   useThemeSchedule,
 } from "@themvora/vue";
-export type { ThemeProviderProps, ThemeScrollbarProps, ThemeScopeProps, ThemeInspectorProps } from "@themvora/vue";
+export type {
+  ThemeProviderProps,
+  ThemeScrollbarProps,
+  ThemeScopeProps,
+  ThemeInspectorProps,
+  ThemeScheduleController,
+} from "@themvora/vue";
 export * from "@themvora/core";
 
 export {

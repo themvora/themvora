@@ -61,8 +61,12 @@ const PERSISTED_SITE_FAMILIES = new Set(["themvora"]);
  */
 export function ThemeQuickSwitcher({
   variant = "popover",
+  align = "right",
 }: {
   variant?: "popover" | "list";
+  /** Which edge of the trigger the popover aligns to. Left-aligned triggers
+   *  (e.g. the playground workspace bar) need "left" to stay in the viewport. */
+  align?: "left" | "right";
 }) {
   const { theme, family } = useTheme();
   const runtime = useThemeRuntime();
@@ -309,7 +313,11 @@ export function ThemeQuickSwitcher({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-2xl backdrop-blur-xl">
+        <div
+          className={`absolute top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-2xl backdrop-blur-xl ${
+            align === "left" ? "left-0" : "right-0"
+          }`}
+        >
           <div className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest opacity-40">
             Theme family
           </div>

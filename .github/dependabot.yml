@@ -1,0 +1,65 @@
+# Dependency updates.
+#
+# One ecosystem entry per package ecosystem the repository actually uses:
+#
+# - `npm` at `/` covers the whole pnpm workspace, because pnpm keeps a single
+#   lockfile and a single `pnpm-workspace.yaml` at the root. Adding per-package
+#   entries would open overlapping pull requests for the same lockfile, so there
+#   is exactly one.
+# - `github-actions` at `/` covers the pinned workflows in `.github/workflows`.
+#
+# Updates are grouped so a routine week produces a handful of reviewable pull
+# requests instead of dozens of single-package ones.
+
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kathmandu"
+    open-pull-requests-limit: 10
+    # Patch and minor updates are the routine work and are safe to batch.
+    # Majors arrive one at a time: a framework major is a fixture rewrite, not a
+    # version bump, and must not be buried in a group.
+    groups:
+      production-patch-and-minor:
+        applies-to: "version-updates"
+        dependency-type: "production"
+        update-types:
+          - "patch"
+          - "minor"
+      development-patch-and-minor:
+        applies-to: "version-updates"
+        dependency-type: "development"
+        update-types:
+          - "patch"
+          - "minor"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kathmandu"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

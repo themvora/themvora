@@ -14,15 +14,13 @@ export const metadata: Metadata = {
 
 export default function GetStartedPage() {
   return (
-    <DocsLayout>
-      <div className="max-w-3xl">
-        <PageHeader
-          eyebrow="Get Started"
-          title="Get Started with Themvora"
-          description="Choose the guide that fits your needs — from instant setup to advanced framework patterns."
-        />
-        <GetStartedRouter />
-      </div>
+    <DocsLayout wide>
+      <PageHeader
+        eyebrow="Get Started"
+        title="Get Started with Themvora"
+        description="Choose the guide that fits your needs — from instant setup to advanced framework patterns."
+      />
+      <GetStartedRouter />
     </DocsLayout>
   );
 }

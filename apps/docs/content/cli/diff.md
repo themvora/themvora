@@ -202,7 +202,7 @@ nothing in the report depends on the host's locale.
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | Compared successfully — **whether or not differences exist**. |
-| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON, an unresolvable `mode: "system"`). |
+| `1`  | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC, an unresolvable `mode: "system"`). |
 | `2`  | Usage error: an unresolvable source, two sources for one side, `--mode system`, or a mode a source does not have. |
 
 > `diff` exits `0` when the themes differ. A `git diff --exit-code`-style

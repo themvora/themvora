@@ -74,6 +74,7 @@ export function MarkdownDoc({
   description,
   eyebrow,
   icon,
+  codeExamples = true,
 }: {
   content: string;
   title?: string;
@@ -81,6 +82,8 @@ export function MarkdownDoc({
   description?: string;
   eyebrow?: string;
   icon?: ReactNode;
+  /** See {@link Markdown} — off for generated signature listings. */
+  codeExamples?: boolean;
 }) {
   const parsed = splitLeadingHeader(content);
   const headerTitle = title ?? parsed?.title ?? "";
@@ -95,7 +98,10 @@ export function MarkdownDoc({
         title={headerTitle}
       />
       <div className="prose-doc -mt-6">
-        <Markdown content={parsed ? parsed.rest : content} />
+        <Markdown
+          content={parsed ? parsed.rest : content}
+          codeExamples={codeExamples}
+        />
       </div>
     </>
   );

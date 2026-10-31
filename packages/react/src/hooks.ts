@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useSyncExternalStore, useCallback } from "react";
-import type { ThemeDefinition, ThemeFamilies, ThemeModes, ThemeTokens, ThemeRuntime, ThemeRuntimeSnapshot, ThemePack, ThemeLifecycleEventMap, ThemeSchedule, ThemeScheduleState } from "@themvora/core";
+import type { ProvidedThemeFamily, ThemeDefinition, ThemeFamilies, ThemeModes, ThemeTokens, ThemeRuntime, ThemeRuntimeSnapshot, ThemePack, ThemeLifecycleEventMap, ThemeSchedule, ThemeScheduleState } from "@themvora/core";
 import { findGeneratedTheme, resolveGeneratedTheme } from "@themvora/core";
 
-import { useThemeRuntime as useProviderThemeRuntime } from "./provider";
+import { useProvidedThemesSource, useThemeRuntime as useProviderThemeRuntime } from "./provider";
 
 import { EMPTY_THEME_SCHEDULE_STATE } from "@themvora/core";
 
@@ -49,6 +49,53 @@ function useThemeSelector<T>(
     getSnapshot,
     getServerSnapshot ?? getSnapshot,
   );
+}
+
+/**
+ * The themes this provider was given, grouped by family.
+ *
+ * Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+ * the built-in catalog, and not every theme that exists in the project. Build a
+ * theme picker from it instead of enumerating a separate preset source:
+ *
+ * ```tsx
+ * const themes = useProvidedThemes();
+ *
+ * return themes.map((family) => (
+ *   <section key={family.id}>
+ *     <h3>{family.name}</h3>
+ *     {family.variants.map((variant) => (
+ *       <button key={variant.name} onClick={() => setFamily(family.family)}>
+ *         {variant.mode}
+ *       </button>
+ *     ))}
+ *   </section>
+ * ));
+ * ```
+ *
+ * The collection is reactive: a `themes` prop change, a `runtime.use(pack)`
+ * install or a registry mutation re-renders the consumer. Entries keep their
+ * identity while their content is unchanged, so `React.memo` and dependency
+ * arrays behave.
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns The provider's theme families, in supplied order.
+ *
+ * @see {@link useTheme}
+ * @see {@link normalizeProvidedThemes}
+ */
+export function useProvidedThemes<
+  T extends ThemeDefinition = ThemeDefinition,
+>(): readonly ProvidedThemeFamily<T>[] {
+  const source = useProvidedThemesSource<T>();
+
+  return useSyncExternalStore(
+    source.subscribe,
+    source.get,
+    // The server's catalog is the same collection the client starts from, so the
+    // hydration render sees exactly what the server rendered.
+    source.get,
+  ) as readonly ProvidedThemeFamily<T>[];
 }
 
 /**
@@ -242,6 +289,12 @@ export function useGeneratedTheme<T extends ThemeDefinition = ThemeDefinition>()
 /**
  * Subscribe to the current selection mode ("light" | "dark" | "system").
  *
+ * This is the mode the visitor **asked for**. While a sunrise/sunset schedule
+ * is running, or while the selection is `"system"`, the appearance on screen can
+ * differ from it — use {@link useEffectiveThemeMode} to display what is actually
+ * applied.
+ *
+ * @see {@link useEffectiveThemeMode}
  * @see {@link useSetThemeMode}
  */
 export function useThemeMode() {
@@ -250,6 +303,55 @@ export function useThemeMode() {
   return useThemeSelector(
     () => runtime.selection.getSelection().mode,
     () => runtime.initial.selection.mode,
+  );
+}
+
+/**
+ * Subscribe to the mode actually **applied** — `"light"` or `"dark"`, never
+ * `"system"`.
+ *
+ * This is the value a control that says "you are in dark mode" must render.
+ * {@link useThemeMode} reports the request, which is the right thing for a
+ * three-way light/dark/system picker but the wrong thing for a toggle or a
+ * label: with `mode: "system"` it never changes, and with a sunrise/sunset
+ * schedule running it stays on the configured value while the page changes
+ * underneath it.
+ *
+ * Updates for every cause — a click, an OS appearance change, a schedule
+ * transition — because it subscribes to the appearance rather than to the
+ * selection.
+ *
+ * ```tsx
+ * const effectiveMode = useEffectiveThemeMode();
+ * return <span>{effectiveMode === "dark" ? "Dark" : "Light"}</span>;
+ * ```
+ *
+ * @see {@link useThemeMode}
+ * @see {@link useThemeSchedule}
+ */
+export function useEffectiveThemeMode(): "light" | "dark" {
+  const runtime = useProviderThemeRuntime();
+
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const unsubStore = runtime.store.subscribe(listener);
+      const unsubEffective = runtime.selection.subscribeEffective(listener);
+      return () => {
+        unsubStore();
+        unsubEffective();
+      };
+    },
+    [runtime],
+  );
+
+  return useSyncExternalStore(
+    subscribe,
+    () => runtime.selection.getEffectiveMode(),
+    // The server cannot know the appearance: it has no `prefers-color-scheme`
+    // and no clock. `runtime.initial` carries what the server rendered, so the
+    // hydration render matches the HTML and the live value takes over after.
+    () =>
+      runtime.initial.selection.mode === "dark" ? "dark" : "light",
   );
 }
 
@@ -317,6 +419,7 @@ export function useToggleTheme() {
  *
  * @see {@link useThemeValue}
  * @see {@link useThemeMode}
+ * @see {@link useEffectiveThemeMode}
  * @see {@link useThemeFamily}
  */
 export function useTheme<T extends ThemeDefinition = ThemeDefinition>() {
@@ -326,18 +429,20 @@ export function useTheme<T extends ThemeDefinition = ThemeDefinition>() {
 
   const theme = useThemeValue<T>();
   const mode = useThemeMode();
+  const effectiveMode = useEffectiveThemeMode();
   const family = useThemeFamily();
 
   return useMemo(
     () => ({
       theme,
       mode,
+      effectiveMode,
       family,
       setMode: runtime.selection.setMode as (mode: M) => void,
       setFamily: runtime.selection.setFamily as (family: F) => void,
       toggleTheme: runtime.selection.toggleTheme,
     }),
-    [runtime, theme, mode, family],
+    [runtime, theme, mode, effectiveMode, family],
   );
 }
 

@@ -9,7 +9,8 @@
       "@themvora/cli",
       "@themvora/devtools",
       "@themvora/tailwind",
-      "@themvora/adapters"
+      "@themvora/adapters",
+      "themvora-vscode"
     ],
     "framework": [
       "@themvora/react",
@@ -95,6 +96,11 @@
       "allowedPeers": ["tailwindcss"]
     },
     "@themvora/adapters": {
+      "tier": "foundation",
+      "allowedDependencies": ["@themvora/core"],
+      "allowedPeers": []
+    },
+    "themvora-vscode": {
       "tier": "foundation",
       "allowedDependencies": ["@themvora/core"],
       "allowedPeers": []

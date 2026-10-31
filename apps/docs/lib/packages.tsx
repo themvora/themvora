@@ -155,26 +155,26 @@ const result = validateTheme(dark, { themes: [light, dark] });
       },
     ],
     snippet: {
-      title: "App.tsx",
+      title: "src/main.tsx",
       lang: "tsx",
-      code: `import { ThemeProvider, useTheme } from "@themvora/react";
+      code: `import { createRoot } from "react-dom/client";
+import { ThemeProvider, useTheme } from "@themvora/react";
 
-export function App() {
+// Application UI. It reads the runtime the provider above it establishes.
+function App() {
+  const { theme, family } = useTheme();
   return (
-    <ThemeProvider transition={{ enabled: true }}>
-      <ThemeSwitcher />
-    </ThemeProvider>
+    <main>
+      {theme.name} · {family}
+    </main>
   );
 }
 
-function ThemeSwitcher() {
-  const { theme, family, setFamily, toggleTheme } = useTheme();
-  return (
-    <button onClick={toggleTheme}>
-      {theme.name} · {family}
-    </button>
-  );
-}`,
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider transition={{ enabled: true }}>
+    <App />
+  </ThemeProvider>,
+);`,
     },
     snippet2: {
       title: "Scoped.tsx",
@@ -345,7 +345,7 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     snippet: {
       title: "app.svelte",
       lang: "svelte",
-      code: `<script>
+      code: `<script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
 </script>
 
@@ -569,8 +569,8 @@ export default defineConfig({
     icon: icons.nuxt,
     pkg: "@themvora/nuxt",
     tagline:
-      "Nuxt 3 module: SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar.",
-    tags: ["Nuxt 3", "Module", "SSR", "Zero-flash"],
+      "Nuxt 4 module: SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar.",
+    tags: ["Nuxt 4", "Module", "SSR", "Zero-flash"],
     groups: [
       {
         label: "Server",
@@ -606,7 +606,7 @@ export default defineNuxtConfig({
     snippet2: {
       title: "ThemeSwitcher.vue",
       lang: "vue",
-      code: `<script setup>
+      code: `<script setup lang="ts">
 // useTheme, useThemeMode, useThemeFamily are auto-imported by the module
 const { theme, mode, setMode, toggleTheme } = useTheme();
 </script>
@@ -711,7 +711,7 @@ themvora export theme.json --format css`,
       {
         label: "API",
         features: [
-          { name: "createDevToolsPlugin(options)", desc: "Theme-kit plugin exposing an inspector." },
+          { name: "createDevToolsPlugin(options)", desc: "Themvora plugin exposing an inspector." },
           { name: "createDevToolsInspector(options)", desc: "Records theme-change entries, lifecycle performance events and state snapshots." },
           { name: "createDevToolsPanel()", desc: "UI panel." },
           { name: "window.__THEMVORA_DEVTOOLS__", desc: "Exposed inspectors for extension debugging." },

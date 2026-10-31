@@ -1,0 +1,27 @@
+{
+  "name": "themvora-examples",
+  "private": true,
+  "scripts": {
+    "dev:react": "pnpm --filter @themvora/example-react dev",
+    "dev:vue": "pnpm --filter @themvora/example-vue dev",
+    "dev:svelte": "pnpm --filter @themvora/example-svelte dev",
+    "dev:solid": "pnpm --filter @themvora/example-solid dev",
+    "dev:angular": "pnpm --filter @themvora/example-angular dev",
+    "dev:web": "pnpm --filter @themvora/example-web dev",
+    "dev:tailwind": "pnpm --filter @themvora/example-tailwind dev",
+    "dev:astro": "pnpm --filter @themvora/example-astro dev",
+    "dev:nuxt": "pnpm --filter @themvora/example-nuxt dev",
+    "dev:remix": "pnpm --filter @themvora/example-remix dev",
+    "build:react": "pnpm --filter @themvora/example-react build",
+    "build:vue": "pnpm --filter @themvora/example-vue build",
+    "build:svelte": "pnpm --filter @themvora/example-svelte build",
+    "build:solid": "pnpm --filter @themvora/example-solid build",
+    "build:angular": "pnpm --filter @themvora/example-angular build",
+    "build:web": "pnpm --filter @themvora/example-web build",
+    "build:tailwind": "pnpm --filter @themvora/example-tailwind build",
+    "build:astro": "pnpm --filter @themvora/example-astro build",
+    "build:nuxt": "pnpm --filter @themvora/example-nuxt build",
+    "build:remix": "pnpm --filter @themvora/example-remix build",
+    "build:all": "pnpm -r --filter './examples/*' build"
+  }
+}

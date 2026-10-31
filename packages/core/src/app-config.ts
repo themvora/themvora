@@ -25,8 +25,15 @@ import type { ThemeRuntimeOptions } from "./runtime";
  *
  * - the **runtime projection** — everything below, handed to
  *   `createThemeRuntime`;
- * - the **bootstrap projection** — {@link toBootstrapConfig}, the subset the
- *   pre-paint script can act on.
+ * - the **transported projection** — {@link toBootstrapConfig}, the serializable
+ *   subset that crosses to the browser, where the pre-paint script and the
+ *   client runtime both read it.
+ *
+ * The second one is what makes the client runtime honour this file. It is not
+ * only the pre-paint subset: a runtime option left out of it is not ignored, it
+ * is replaced by a default, which is how a declared `transition: { enabled:
+ * false }` still produced a view transition on every theme change. See
+ * {@link ThemeBootstrapConfig}.
  *
  * @see {@link defineThemvoraConfig}
  */
@@ -48,16 +55,23 @@ export interface ThemvoraConfig<T extends ThemeDefinition> {
    * it.
    *
    * @remarks
-   * Runtime-only: the bootstrap projection ignores it. The pre-paint script
-   * *always* reads the persisted selection when one exists, because that is what
-   * the runtime does — disabling persistence is a runtime decision made after the
-   * fact, and hiding it from the script would make the two disagree for one
-   * frame.
+   * **Does not cross to the browser.** An adapter is a live object with
+   * functions, so it cannot be serialized into the transported config; pass it
+   * to the provider instead. The pre-paint script always reads a persisted
+   * selection when one exists, because that is what the runtime does — hiding it
+   * from the script would make the two disagree for one frame.
    */
   persistence?: unknown;
-  /** Transition configuration. Runtime-only. */
+  /**
+   * Transition configuration.
+   *
+   * @remarks
+   * Serializable, so it crosses to the browser with the rest of the config and
+   * is honoured by the client runtime. Setting `{ enabled: false }` makes every
+   * theme change swap synchronously.
+   */
   transition?: unknown;
-  /** Overlay scrollbar options. Runtime-only. */
+  /** Overlay scrollbar options. Serializable, so it crosses to the browser. */
   scrollbar?: unknown;
   /** Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. */
   plugins?: readonly unknown[];
@@ -66,22 +80,42 @@ export interface ThemvoraConfig<T extends ThemeDefinition> {
 }
 
 /**
- * The subset of {@link ThemvoraConfig} the pre-paint bootstrap can act on.
+ * The projection of {@link ThemvoraConfig} that crosses to the browser.
  *
  * @typeParam T - The theme definition type used by the application.
  *
  * @remarks
- * Split out deliberately. The bootstrap runs before any application code and
- * before the runtime exists, so it can only resolve a selection from a
- * registry, a fallback and a persisted key — everything else in the config is a
- * runtime concern. Naming that subset is what keeps the two projections honest
- * instead of letting them grow into each other.
+ * Two consumers read this one object, and it has to satisfy both:
+ *
+ * - the **pre-paint bootstrap**, which runs before any application code and can
+ *   only resolve a selection from a registry, a fallback and a persisted key;
+ * - the **client runtime**, which is built from this global by
+ *   `resolveRuntimeOptions` and therefore sees *only* what is here.
+ *
+ * The second consumer is the reason this is not simply "the bootstrap subset".
+ * When a runtime option was left out, the browser runtime silently used its
+ * default instead — `theme.config.ts` could declare `transition: { enabled:
+ * false }` and the page would still run a `document.startViewTransition` on
+ * every theme change. That is not a cosmetic difference: a view transition
+ * applies the document swap in a **later task**, so a consumer that renders from
+ * the theme store painted the new theme one frame before the document had it.
+ *
+ * So every **serializable** runtime option belongs here. What cannot cross is
+ * excluded explicitly rather than by omission: `plugins` and `adapters` hold
+ * functions, and `persistence` is a live adapter object.
  *
  * @see {@link toBootstrapConfig}
  */
 export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
   ThemvoraConfig<T>,
-  "themes" | "defaultTheme" | "initialMode" | "initialFamily" | "storageKey" | "prefix"
+  | "themes"
+  | "defaultTheme"
+  | "initialMode"
+  | "initialFamily"
+  | "storageKey"
+  | "prefix"
+  | "transition"
+  | "scrollbar"
 >;
 
 /**
@@ -93,7 +127,7 @@ export type ThemeBootstrapConfig<T extends ThemeDefinition> = Pick<
  *
  * @example
  * ```ts
- * // theme.config.ts — at the project root
+ * // At the project root
  * import { defineTheme, defineThemvoraConfig } from "@themvora/core";
  *
  * const themes = [
@@ -136,11 +170,18 @@ export function defineThemvoraConfig<T extends ThemeDefinition>(
 }
 
 /**
- * Projects a {@link ThemvoraConfig} down to what the pre-paint bootstrap needs.
+ * Projects a {@link ThemvoraConfig} down to what crosses to the browser.
  *
  * @typeParam T - The theme definition type used by the application.
  * @param config - The full application configuration.
- * @returns The bootstrap subset.
+ * @returns The transported projection.
+ *
+ * @remarks
+ * Copies the serializable runtime options as well as the bootstrap fields. A
+ * field omitted here is not merely unused in the browser — it is *replaced by a
+ * default*, which is how a declared `transition: { enabled: false }` still
+ * produced a view transition on every theme change. See
+ * {@link ThemeBootstrapConfig}.
  *
  * @see {@link ThemeBootstrapConfig}
  */
@@ -159,6 +200,13 @@ export function toBootstrapConfig<T extends ThemeDefinition>(
     ...(config.storageKey !== undefined ? { storageKey: config.storageKey } : {}),
 
     ...(config.prefix !== undefined ? { prefix: config.prefix } : {}),
+
+    // Serializable runtime options. `undefined` is dropped rather than spread
+    // for the same reason every other field is: `{ transition: undefined }`
+    // would overwrite a provider's own value with nothing.
+    ...(config.transition !== undefined ? { transition: config.transition } : {}),
+
+    ...(config.scrollbar !== undefined ? { scrollbar: config.scrollbar } : {}),
   };
 }
 

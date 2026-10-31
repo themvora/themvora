@@ -132,18 +132,34 @@ export async function getInitialThemeState<T extends ThemeDefinition>(
 
   const cookieHeader = request.headers.get("Cookie") ?? "";
 
+  /**
+   * Decode a percent-encoded cookie value, treating malformed input as absent.
+   *
+   * A theme cookie is not trustworthy: cookie tossing lets a sibling subdomain
+   * plant `theme-mode=%E0%A4%A` on the parent domain, and `decodeURIComponent`
+   * throws `URIError` on it. Unguarded, that throw escaped
+   * `getInitialThemeState` and turned every route into a 500 until the visitor
+   * cleared their cookies. A value that does not decode is "no saved
+   * selection", so the normal fallback applies.
+   */
+  function safeDecode(value: string): string | undefined {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return undefined;
+    }
+  }
+
   function getCookie(name: string): string | undefined {
     const match = cookieHeader.match(
       new RegExp(`(?:^|;\\s*)${encodeURIComponent(name)}=([^;]*)`),
     );
-    return match ? decodeURIComponent(match[1]!) : undefined;
+    return match?.[1] === undefined ? undefined : safeDecode(match[1]);
   }
 
   const mode = getCookie("theme-mode");
   const family = getCookie("theme-family");
   const savedFingerprint = getCookie("theme-fingerprint");
-
-
 
   // Reject a selection written by a *different* theme configuration, exactly as
   // the pre-paint bootstrap script and `provider.astro` do. Without this the

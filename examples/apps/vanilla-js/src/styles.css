@@ -1,0 +1,419 @@
+/*
+ * Plain CSS on the active theme's tokens.
+ *
+ * There is no token fallback block on purpose: `themvoraVitePlugin()` injects
+ * the blocking pre-paint script from `theme.config.ts`, so the first painted
+ * frame already carries the resolved theme's variables. A fallback would be a
+ * second source of truth and would paint the wrong frame.
+ *
+ * The overlay scrollbar's own stylesheet ships with core and is imported here,
+ * so it arrives with this file rather than from JavaScript.
+ */
+@import "@themvora/core/scrollbar.css";
+
+:root {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --page-max: 980px;
+  --page-pad: clamp(20px, 4vw, 40px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- topbar -- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px var(--page-pad);
+  background-color: color-mix(in srgb, var(--theme-color-background) 88%, transparent);
+  border-bottom: 1px solid var(--theme-color-border);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--theme-radius-md);
+  background-color: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font-weight: 700;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-text strong {
+  font-size: 14px;
+}
+
+.brand-sub {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-color-mutedForeground);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.field select {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  color: var(--theme-color-foreground);
+  background-color: var(--theme-color-card);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+}
+
+.field select:focus-visible,
+.icon-button:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--theme-color-foreground);
+  background-color: var(--theme-color-card);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+  cursor: pointer;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* One icon in the markup, chosen by the selection the pre-paint script wrote. */
+.icon-button .icon {
+  display: none;
+}
+
+html[data-theme-selection-mode="light"] .icon-sun,
+html[data-theme-selection-mode="dark"] .icon-moon,
+html[data-theme-selection-mode="system"] .icon-system {
+  display: block;
+}
+
+/* No pre-paint state (a non-Vite host): the sun is the neutral default. */
+html:not([data-theme-selection-mode]) .icon-sun {
+  display: block;
+}
+
+/* ------------------------------------------------------------------ page -- */
+
+.page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--page-pad) 72px;
+}
+
+.hero {
+  padding: 64px 0 8px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--theme-color-mutedForeground);
+}
+
+.hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  max-width: 60ch;
+  margin: 0 0 28px;
+  font-size: 16px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.readouts > div {
+  padding: 12px 14px;
+  background-color: var(--theme-color-card);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+}
+
+.readouts dt {
+  font-size: 11px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.readouts dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- cards -- */
+
+.card {
+  margin-top: 24px;
+  padding: 24px;
+  background-color: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--theme-shadow-sm) 8%, transparent);
+}
+
+.card-head {
+  margin-bottom: 18px;
+}
+
+.card-head h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.card-head p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+/* -------------------------------------------------------------- swatches -- */
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatches li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--theme-radius-sm);
+  border: 1px solid var(--theme-color-border);
+  flex: none;
+}
+
+.swatch-background {
+  background-color: var(--theme-color-background);
+}
+.swatch-card {
+  background-color: var(--theme-color-card);
+}
+.swatch-primary {
+  background-color: var(--theme-color-primary);
+}
+.swatch-secondary {
+  background-color: var(--theme-color-secondary);
+}
+.swatch-muted {
+  background-color: var(--theme-color-muted);
+}
+.swatch-accent {
+  background-color: var(--theme-color-accent);
+}
+.swatch-success {
+  background-color: var(--theme-color-success);
+}
+.swatch-destructive {
+  background-color: var(--theme-color-destructive);
+}
+
+/* ----------------------------------------------------------------- scope -- */
+
+.scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+  border-radius: var(--theme-radius-lg);
+  background-color: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  border: 1px solid var(--theme-color-border);
+}
+
+.scope-body h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.scope-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-color-mutedForeground);
+}
+
+.scope-copy {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.button {
+  flex: none;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 14px;
+  color: var(--theme-color-primaryForeground);
+  background-color: var(--theme-color-primary);
+  border: 1px solid var(--theme-color-primary);
+  border-radius: var(--theme-radius-md);
+  cursor: pointer;
+}
+
+.button[aria-pressed="true"] {
+  color: var(--theme-color-foreground);
+  background-color: var(--theme-color-muted);
+  border-color: var(--theme-color-border);
+}
+
+/* -------------------------------------------------------------- scroller -- */
+
+.scroller {
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 14px 18px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-md);
+  background-color: var(--theme-color-background);
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.scroller p {
+  margin: 0 0 10px;
+}
+
+.scroller p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- footer -- */
+
+.footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--theme-color-border);
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.footer p {
+  margin: 0 0 6px;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .scope {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

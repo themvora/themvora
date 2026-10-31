@@ -31,7 +31,10 @@ export function HistoryTimeline() {
   );
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-label="Theme history">
+    <section
+      className="flex h-full min-h-0 flex-col rounded-xl border border-border bg-card p-5 sm:p-6 sm:h-80"
+      aria-label="Theme history"
+    >
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-semibold">History &amp; time travel</h2>
         <div className="flex gap-1.5">
@@ -58,7 +61,12 @@ export function HistoryTimeline() {
         to that point in time.
       </p>
 
-      <div className="rounded-xl border border-border max-h-64 overflow-auto">
+      {/* The scroll region: on sm+ the section has a definite height (sm:h-80)
+          shared with the Live previews card, so this list flexes to whatever
+          is left and scrolls — the card itself never grows with snapshot
+          count. Below sm the section is auto-height and the list falls back
+          to its own 16rem cap. */}
+      <div className="min-h-0 max-h-64 overflow-auto rounded-xl border border-border sm:max-h-none sm:flex-1">
         {history.length === 0 ? (
           <p className="p-4 text-sm opacity-50">
             No history yet — switch a theme above to begin.

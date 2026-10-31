@@ -32,7 +32,12 @@
  *    not blamed for whatever vue's subtree contains.
  *  - source import boundary: every `@themvora/*` import in src/** must resolve
  *    (subpaths normalized) to the package itself or an allowed dependency
- *    (source-import).
+ *    (source-import). Imports are taken from a parse, not a text scan — a
+ *    specifier inside a string or template literal is generated *output*, not a
+ *    dependency edge, and the CLI and the VS Code extension are both code
+ *    generators (see lib/module-specifiers.mjs). A source file the parser
+ *    cannot read is reported as unreadable-source rather than silently
+ *    contributing no imports.
  *
  * Methodology note: the transitive closure is a BFS over workspace package.json
  * `dependencies`/`optionalDependencies` edges. It does NOT parse pnpm-lock.yaml,
@@ -47,6 +52,7 @@
 import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync, statSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { extractModuleSpecifiers, SUPPORTED_EXTENSIONS } from "./lib/module-specifiers.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(join(here, "..", ".."));
@@ -104,12 +110,9 @@ function walkFiles(dir, out = []) {
 // package requires something it never uses. Peers that a consumer's app supplies
 // at runtime without being imported (react-dom, tailwindcss, ...) are listed in
 // policy.companionPeers with a justification.
-const SPECIFIER_RE = [
-  /\bfrom\s*["']([^"']+)["']/g,
-  /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
-  /\bimport\s+["']([^"']+)["']/g,
-  /\brequire\s*\(\s*["']([^"']+)["']\s*\)/g,
-];
+//
+// Specifiers come from the same parse the boundary check uses, so a peer that
+// only appears inside a generated-code template literal does not count as used.
 
 function collectPeerSpecifiers(dir) {
   const specs = new Set();
@@ -138,9 +141,7 @@ function collectPeerSpecifiers(dir) {
         } catch {
           continue;
         }
-        for (const re of SPECIFIER_RE) {
-          for (const m of txt.matchAll(re)) specs.add(m[1]);
-        }
+        for (const spec of extractModuleSpecifiers(full, txt).specifiers) specs.add(spec);
       }
     }
   }
@@ -408,28 +409,31 @@ function runAudit(policy) {
     const srcDir = join(dir, "src");
     if (existsSync(srcDir)) {
       const importsByBase = new Map(); // base name -> { specs: Set, files: Set }
-      // Match only real module specifiers (import/export/require/dynamic
-      // import), not arbitrary quoted strings such as Angular InjectionToken
-      // descriptions.
-      const IMPORT_RE = [
-        /\bfrom\s*["'](@themvora\/[^"']+)["']/g,
-        /\bimport\s*\(\s*["'](@themvora\/[^"']+)["']\s*\)/g,
-        /\bimport\s+["'](@themvora\/[^"']+)["']/g,
-        /\brequire\s*\(\s*["'](@themvora\/[^"']+)["']\s*\)/g,
-      ];
       for (const file of walkFiles(srcDir)) {
-        if (!/\.(ts|tsx|js|mjs|cjs|svelte|vue|astro)$/.test(file)) continue;
+        const extension = file.slice(file.lastIndexOf(".")).toLowerCase();
+        if (!SUPPORTED_EXTENSIONS.has(extension)) continue;
         const txt = readFileSync(file, "utf8");
-        for (const re of IMPORT_RE) {
-          for (const m of txt.matchAll(re)) {
-            const spec = m[1];
-            const base = basePackageName(spec);
-            if (base === name || allowed.has(base)) continue;
-            const entry = importsByBase.get(base) ?? { specs: new Set(), files: new Set() };
-            entry.specs.add(spec);
-            entry.files.add(relative(dir, file));
-            importsByBase.set(base, entry);
-          }
+        const { specifiers, unparsed } = extractModuleSpecifiers(file, txt);
+
+        // An unreadable file would contribute zero imports and look clean.
+        for (const problem of unparsed) {
+          push(violations, {
+            package: name,
+            type: "unreadable-source",
+            dependency: null,
+            chain: null,
+            detail: `cannot parse ${problem} — the import boundary for this file is unverified`,
+          });
+        }
+
+        for (const spec of specifiers) {
+          if (!spec.startsWith("@themvora/")) continue;
+          const base = basePackageName(spec);
+          if (base === name || allowed.has(base)) continue;
+          const entry = importsByBase.get(base) ?? { specs: new Set(), files: new Set() };
+          entry.specs.add(spec);
+          entry.files.add(relative(dir, file));
+          importsByBase.set(base, entry);
         }
       }
       for (const [base, entry] of [...importsByBase.entries()].sort()) {

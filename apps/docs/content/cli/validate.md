@@ -58,6 +58,39 @@ themvora validate theme.json --json
 
 The file may be a single theme or a `{ light, dark }` pair; both are validated.
 
+### Comments and trailing commas
+
+Theme files may be JSONC. `//` and `/* … */` comments and trailing commas are
+accepted — this is a syntax excerpt, not a complete theme:
+
+```jsonc
+{
+  // The brand colour.
+  "name": "brand-light",
+  "tokens": {
+    "colors": {
+      "primary": "#4f46e5", // trailing commas are fine too
+    },
+  },
+}
+```
+
+The same parser is used by the VS Code extension (`parseThemeJson()` in
+`@themvora/core`), so a commented theme behaves identically in the editor and in
+CI — diagnostics, hovers and colour swatches included.
+
+**Only** comments and trailing commas are tolerated. Unquoted keys, single-quoted
+strings and other JSON5 syntax are not: `JSON.parse` still decides what the values
+are, and the tolerance is applied by blanking the extra syntax first. Package
+manifests such as `package.json` are read as strict JSON and are unaffected.
+
+A genuinely malformed file still fails, and the message says where the parser
+gave up:
+
+```text
+Error: file is not valid JSON or JSONC: themes/broken.json — Expected double-quoted property name in JSON at position 17 (line 3 column 1)
+```
+
 ## What it checks
 
 `validate` reports the layers Themvora core actually provides. Each layer comes
@@ -163,7 +196,7 @@ exits `3`.
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | Theme is valid. |
-| `1`  | File not found, unreadable, or not valid JSON. |
+| `1`  | File not found, unreadable, or not parseable as JSON or JSONC. |
 | `2`  | No theme file supplied (invalid arguments). |
 | `3`  | Validation failed (issues are listed). |
 

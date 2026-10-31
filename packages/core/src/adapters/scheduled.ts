@@ -30,8 +30,9 @@ export interface ScheduledThemeBindingOptions<T> {
    *  @defaultValue `60000` */
   checkInterval?: number;
   /** Override the sunrise/sunset computation. Defaults to
-   *  {@link calculateSunTimes}. */
-  getTimes?: (date: Date, latitude: number, longitude: number) => { sunrise: Date; sunset: Date };
+   *  {@link calculateSunTimes}. A custom implementation may omit `polar`; the
+   *  binding then falls back to the `sunrise <= now < sunset` interval. */
+  getTimes?: (date: Date, latitude: number, longitude: number) => SunTimes;
   /** Ignore schedule-driven applies within this many ms after a manual
    *  selection (e.g. a cross-tab sync). @defaultValue `0` */
   skipApplyMs?: number;
@@ -70,8 +71,45 @@ function computeSolarDec(dayOfYear: number): number {
 export type CalculateSunTimesLocationOptions = SolarLocationInput;
 
 /**
+ * The sunrise/sunset pair for one calendar day at one location.
+ *
+ * @remarks
+ * `sunrise` and `sunset` are absolute instants on the **host's local clock**:
+ * the calendar day is the local day of the `Date` that was passed in, and the
+ * returned instants are the correct local wall-clock times for that day,
+ * daylight-saving transitions included. They are not solar time — see
+ * {@link calculateSunTimes}.
+ *
+ * `polar` is present only when the sun does not rise or does not set that day.
+ * In that case `sunrise`/`sunset` still describe a usable interval — for polar
+ * day the whole local day, for polar night a zero-length day that starts at its
+ * end — so `now >= sunrise && now < sunset` is still correct. Consumers that
+ * want to display "no sunrise today" should read `polar` rather than compare
+ * the two dates.
+ */
+export interface SunTimes {
+  /** Sunrise, as an absolute instant. */
+  sunrise: Date;
+  /** Sunset, as an absolute instant. */
+  sunset: Date;
+  /**
+   * Set when the sun stays up (`"day"`) or stays down (`"night"`) for the whole
+   * day. Absent on an ordinary day, and absent from a custom `getTimes`
+   * implementation that does not model polar conditions.
+   */
+  polar?: "day" | "night";
+}
+
+/** Day of the year (1–366) for a local calendar date. */
+function dayOfYear(year: number, month: number, day: number): number {
+  const startOfYear = Date.UTC(year, 0, 1);
+  const current = Date.UTC(year, month, day);
+  return Math.floor((current - startOfYear) / 86400000) + 1;
+}
+
+/**
  * Compute today's sunrise and sunset using the standard NOAA solar algorithm
- * (zenith-based, corrected for the equation of time).
+ * (zenith-based, corrected for the equation of time and for longitude).
  *
  * `latitude` and `longitude` are optional: when omitted (or when an options
  * object is passed instead), the location is resolved from `timeZone` or the
@@ -89,13 +127,46 @@ export type CalculateSunTimesLocationOptions = SolarLocationInput;
  * // Resolve from an explicit timezone.
  * calculateSunTimes(date, { timeZone: "Asia/Kathmandu" });
  * ```
+ *
+ * @param date - The day to compute for. Its **local** calendar date is used.
+ * @param args - `latitude, longitude[, options]`, or an options bag.
+ * @returns The sunrise/sunset pair as absolute instants (see {@link SunTimes}).
+ *
+ * @remarks
+ * **The local-clock contract.** Both returned `Date`s are absolute instants
+ * computed from the location's longitude and the day's solar declination. Their
+ * local representation is therefore the correct wall-clock time for that day,
+ * and it follows daylight-saving transitions because it is derived from the
+ * real UTC instant rather than from a fixed offset.
+ *
+ * **Longitude matters.** Solar noon at a location occurs at
+ * `720 - 4·longitude - eqTime` minutes UTC (east-positive longitude), and
+ * sunrise/sunset sit `±4·hourAngle` minutes either side of it. Treating that
+ * result as local clock time — which the previous implementation did, because
+ * it never applied the longitude term — put the switch at the wrong hour
+ * wherever the local time-zone meridian differs from the location's longitude.
+ *
+ * **`timeZone` resolves coordinates, not the clock.** It is used only to pick
+ * the latitude/longitude pair; the returned instants are read on the host's own
+ * clock. This API therefore does not support computing "sunrise in Tokyo" on a
+ * server in London: the coordinates would be Tokyo's but the day boundary and
+ * the displayed wall-clock time would be the server's. Pass explicit
+ * coordinates for the visitor's location, or run the calculation in the
+ * visitor's browser.
+ *
+ * **Polar day and polar night** are reported through {@link SunTimes.polar}.
+ * The hour-angle formula has no solution when the sun stays above or below the
+ * horizon, and the previous implementation clamped `cosH` into `[-1, 1]`,
+ * which produced a zero-length day: sunrise equal to sunset, so the
+ * daytime test was never true and a polar-day visitor got the dark theme at
+ * noon.
  */
 export function calculateSunTimes(
   date: Date,
   ...args:
     | [latitude: number, longitude: number, options?: SolarLocationInput]
     | [options?: SolarLocationInput]
-): { sunrise: Date; sunset: Date } {
+): SunTimes {
   // When the first argument is an object (or there's only one argument
   // and it's undefined), treat it as the options bag.
   const first = args[0];
@@ -125,15 +196,14 @@ function calculateSunTimesAt(
   date: Date,
   latitude: number,
   longitude: number,
-): { sunrise: Date; sunset: Date } {
-  const dayOfYear =
-    Math.floor(
-      (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) /
-        86400000,
-    );
+): SunTimes {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
 
-  const eqTime = computeEqTime(dayOfYear);
-  const solarDec = computeSolarDec(dayOfYear);
+  const ordinal = dayOfYear(year, month, day);
+  const eqTime = computeEqTime(ordinal);
+  const solarDec = computeSolarDec(ordinal);
 
   const zenith = 90.833;
 
@@ -142,26 +212,45 @@ function calculateSunTimesAt(
       Math.sin(toRadians(latitude)) * Math.sin(toRadians(solarDec))) /
     (Math.cos(toRadians(latitude)) * Math.cos(toRadians(solarDec)));
 
-  const hourAngle = toDegrees(
-    Math.acos(Math.max(-1, Math.min(1, cosH)))
-  );
-
-  const localMeanTimeRise = 720 - 4 * hourAngle - eqTime;
-  const localMeanTimeSet = 720 + 4 * hourAngle - eqTime;
-
-  function minutesToDate(minutes: number): Date {
-    const totalMinutes = ((minutes % 1440) + 1440) % 1440;
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = Math.floor(totalMinutes % 60);
-    const secs = Math.floor((totalMinutes % 1) * 60);
-    const result = new Date(date);
-    result.setHours(hours, mins, secs, 0);
-    return result;
+  /** The instant `minutes` after 00:00 UTC on the *local* calendar date. */
+  function fromUtcMinutes(minutes: number): Date {
+    return new Date(Date.UTC(year, month, day) + minutes * 60000);
   }
 
+  const startOfLocalDay = new Date(year, month, day, 0, 0, 0, 0);
+  const endOfLocalDay = new Date(year, month, day + 1, 0, 0, 0, 0);
+
+  // `cosH` outside [-1, 1] means the sun never crosses the horizon: above it
+  // all day (polar day) or below it all day (polar night). Clamping it — the
+  // previous behaviour — silently turned both into a zero-length day, so a
+  // polar-day visitor was given the night theme at noon.
+  if (cosH > 1) {
+    return {
+      sunrise: endOfLocalDay,
+      sunset: startOfLocalDay,
+      polar: "night",
+    };
+  }
+
+  if (cosH < -1) {
+    return {
+      sunrise: startOfLocalDay,
+      sunset: endOfLocalDay,
+      polar: "day",
+    };
+  }
+
+  const hourAngle = toDegrees(Math.acos(cosH));
+
+  // Solar noon in UTC minutes, east-positive longitude: 720 − 4·λ − eqTime.
+  // Sunrise/sunset are ±4·H minutes from it. This is the term the previous
+  // implementation omitted, which made the result identical for every
+  // longitude.
+  const solarNoonUtc = 720 - 4 * longitude - eqTime;
+
   return {
-    sunrise: minutesToDate(localMeanTimeRise),
-    sunset: minutesToDate(localMeanTimeSet),
+    sunrise: fromUtcMinutes(solarNoonUtc - 4 * hourAngle),
+    sunset: fromUtcMinutes(solarNoonUtc + 4 * hourAngle),
   };
 }
 
@@ -219,8 +308,16 @@ export function createScheduledThemeBinding<T>(
   let enabled = options.enabled ?? true;
 
   function isDaytime(now: Date): boolean {
-    const { sunrise, sunset } = getTimes(now, location.latitude, location.longitude);
-    return now >= sunrise && now < sunset;
+    const times = getTimes(now, location.latitude, location.longitude);
+
+    // Polar conditions are explicit rather than inferred from the interval. A
+    // clamped hour angle used to make `sunrise` and `sunset` identical, which
+    // made the interval test permanently false — the dark theme at noon above
+    // the Arctic circle in June.
+    if (times.polar === "day") return true;
+    if (times.polar === "night") return false;
+
+    return now >= times.sunrise && now < times.sunset;
   }
 
   function startTimer() {

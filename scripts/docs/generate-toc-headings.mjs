@@ -47,6 +47,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import os from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -67,6 +68,7 @@ const BASE = externalUrl ?? `http://127.0.0.1:${PORT}`;
 const CDP_PORT = PORT + 1000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const require = createRequire(import.meta.url);
 
 // --- Locate headless Chromium (mirrors audit H) -----------------------------
 
@@ -134,6 +136,11 @@ const HEADINGS_EXPR = `(() => {
   const root = document.querySelector('[data-toc-root]');
   if (!root) return [];
   return [...root.querySelectorAll("h2, h3")]
+    // Headings inside a collapsed in-page tab panel are not on the page, so the
+    // rail does not list them. This must match the filter in
+    // apps/docs/components/toc.tsx exactly — the manifest is meant to be the
+    // same list the client scanner produces, not an approximation of it.
+    .filter((h) => !h.closest("[hidden]"))
     .map((h) => ({ text: h.textContent.trim(), level: h.tagName === "H2" ? 2 : 3 }))
     .filter((h) => h.text);
 })()`;
@@ -252,14 +259,29 @@ async function main() {
         "apps/docs/.next/BUILD_ID is missing — run `next build` in apps/docs before using --prod.",
       );
     }
+    // Resolve the Next CLI through Node's resolver rather than assuming
+    // `apps/docs/node_modules/next` exists. Under pnpm the package is hoisted to
+    // the workspace root, so the hardcoded path is absent — the spawn then exits
+    // immediately with its stderr discarded, nothing ever listens, and the
+    // readiness loop times out. The failure surfaced as "the site did not
+    // render, your .next is corrupt", which sent the reader to rebuild a build
+    // that was fine.
+    let nextBin;
+    try {
+      nextBin = join(
+        dirname(require.resolve("next/package.json", { paths: [siteRoot] })),
+        "dist",
+        "bin",
+        "next",
+      );
+    } catch {
+      throw new Error(
+        "Cannot resolve the `next` package from apps/docs — run `pnpm install` before using this script.",
+      );
+    }
     server = spawn(
       process.execPath,
-      [
-        join(siteRoot, "node_modules", "next", "dist", "bin", "next"),
-        prod ? "start" : "dev",
-        "-p",
-        String(PORT),
-      ],
+      [nextBin, prod ? "start" : "dev", "-p", String(PORT)],
       { cwd: siteRoot, stdio: "ignore", env: { ...process.env, NODE_OPTIONS: "" } },
     );
   }

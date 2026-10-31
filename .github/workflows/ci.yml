@@ -3,10 +3,12 @@ name: CI
 # There was no CI in this repository, so every gate below was a script somebody
 # had to remember to run. This wires them to the two events that matter.
 #
-# Two jobs:
+# Three jobs:
 #
-#   workspace   — build, test, lint, and the preset gates.
-#   docs-gate   — the full docs release gate.
+#   workspace          — build, test, lint, the production dependency audit,
+#                        and the preset gates.
+#   docs-gate          — the full docs release gate.
+#   dependency-review  — advisories introduced by a pull request (PRs only).
 #
 # `docs-gate` ran non-blocking while an in-flight workstream had left
 # `apps/docs/lib/libraries.tsx` and its generated mirrors inconsistent. That work
@@ -22,6 +24,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least privilege by default. Ordinary CI only reads the repository: it does not
+# publish packages, create releases, deploy, or write to issues. Jobs that need
+# more declare it themselves.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -30,14 +38,22 @@ jobs:
   workspace:
     name: build · test · preset gates
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to a full commit SHA rather than a mutable major tag, so a
+      # retagged or compromised action cannot change what CI runs. The version
+      # each SHA corresponds to is in the trailing comment.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      # No `version:` here on purpose: the action reads `packageManager` from
+      # package.json. A hardcoded major drifted from the pnpm that generated the
+      # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
+      # `allowBuilds`) that older majors ignore — which would make
+      # `--frozen-lockfile` fail on a clean checkout.
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # pnpm/action-setup v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # actions/setup-node v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -54,10 +70,24 @@ jobs:
       - name: Test
         run: pnpm -r test
 
+      # The root scripts' own tests: `pnpm clean` and the scoped production
+      # audit. Both are small, dependency-free Node test suites.
+      - name: Script self-tests
+        run: pnpm test:scripts
+
       # Correctness lint over the release scripts. No TS parser is installed, so
       # this covers the `.mjs` surface — see eslint.config.mjs.
       - name: Lint
         run: pnpm lint
+
+      # Fails when a production advisory lands inside the published runtime
+      # closure of the `@themvora/*` packages. Advisories in the docs app, the
+      # example fixtures and peer-dependency trees are printed but do not fail:
+      # no consumer of the published packages can reach them, and making them
+      # fail would mean either upgrading framework majors inside the fixtures or
+      # suppressing findings. See scripts/release/audit-production.mjs.
+      - name: Production dependency audit (published surface)
+        run: pnpm audit:prod
 
       - name: Preset quality audit (8/8 semantic contract)
         run: pnpm themvora:audit:presets
@@ -68,14 +98,19 @@ jobs:
   docs-gate:
     name: docs release gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      # No `version:` here on purpose: the action reads `packageManager` from
+      # package.json. A hardcoded major drifted from the pnpm that generated the
+      # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
+      # `allowBuilds`) that older majors ignore — which would make
+      # `--frozen-lockfile` fail on a clean checkout.
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # pnpm/action-setup v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # actions/setup-node v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -91,3 +126,24 @@ jobs:
       # contracts. The `--full` tier adds a docs build and a headless browser.
       - name: Docs release gate
         run: pnpm docs:release-gate
+
+  dependency-review:
+    name: dependency review
+    # Requires the repository's dependency graph (on by default for public
+    # repositories). The action compares the manifests and lockfiles between the
+    # base and head of the pull request.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Only to post the summary comment; the action reads nothing else.
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # actions/dependency-review-action v4.9.0
+        with:
+          # Match the production audit: a high or critical advisory in a
+          # dependency this change introduces fails the pull request.
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

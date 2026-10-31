@@ -8,7 +8,7 @@ npm install @themvora/core @themvora/nuxt nuxt
 
 `@themvora/nuxt` builds on `@themvora/core`, so those are installed explicitly rather than relied on transitively.
 
-Nuxt 3 module with SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar, and auto-imported composables/components.
+Nuxt 4 module with SSR-first theming, zero-flash bootstrap, cookie + localStorage sync, config-driven transitions and scrollbar, and auto-imported composables/components.
 
 ## Set up
 
@@ -53,10 +53,18 @@ const { theme, mode, toggleTheme } = useTheme();
 
 ## Style it with Themvora tokens
 
-Themvora emits one CSS variable per token, so your own classes read the active
-theme without any per-theme CSS:
+Themvora emits the active theme's tokens as CSS custom properties, so the
+document itself is themed and your own classes read the same variables without
+any per-theme CSS. The rules use only required semantic colours — spacing,
+typography and layout stay ordinary CSS:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .page {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
@@ -66,8 +74,8 @@ theme without any per-theme CSS:
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-md);
-  padding: var(--theme-spacing-4);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1rem;
 }
 ```
 
@@ -135,7 +143,7 @@ After hydration, the plugin installs one app-wide runtime (provided to `useTheme
 
 ## Module
 
-- Nuxt 3 module (`configKey: "themvora"`) with `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar` and `storageKey` options.
+- Nuxt 4 module (`configKey: "themvora"`) with `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar` and `storageKey` options.
 - Auto-imports composables, registers `ThemeProvider`, `ThemeScope` and `ThemeScrollbar`, and installs the runtime plugin.
 - Re-exports the Vue integration plus the full `@themvora/core` surface, and the SSR helpers (`resolveThemeFromCookies`, `computeFingerprint`, `parseCookieHeader`, `themvoraCookieNames`, `createNuxtThemeBootstrapScript`).
 

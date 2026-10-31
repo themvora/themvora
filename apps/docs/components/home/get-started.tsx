@@ -1,5 +1,6 @@
 import { highlightCode } from "../../lib/highlight";
 import { CodeBlock } from "../code-block";
+import { compatibilityBadge } from "../../lib/code-variants";
 import Link from "next/link";
 
 const code = `import { ThemeProvider } from "@themvora/next";
@@ -56,6 +57,7 @@ export function GetStarted() {
             code={code}
             language="tsx"
             filename="app/layout.tsx"
+            {...compatibilityBadge(code, "tsx")}
           />
         </div>
       </div>

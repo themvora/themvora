@@ -33,7 +33,7 @@ hand-maintained copy is a bug with a delay fuse.
 | API surface per package | `scripts/generate-api-reference.mjs` (TypeDoc → `content/api-reference/**`) | `api:check` |
 | CLI commands, options, exit codes | `scripts/generate-cli-reference.mjs` (from `packages/cli/src/cli.ts`) | `cli:check` |
 | Package dependencies / used-by / peers / subpaths | `scripts/generate-package-graph.mjs` → `lib/generated/package-graph.ts` | `packages:check` |
-| Example catalogue | `scripts/generate-examples.mjs` (from `examples/**/example.meta.json`) | `examples:check` |
+| Example catalogue | `scripts/generate-examples.mjs` (concepts from `examples/**/example.meta.json`, starters from `examples/apps/*/package.json`) | `examples:check` |
 | Documented API names | `scripts/verify-package-apis.mjs` (against built exports) | `apis:check` |
 | Internal links, duplicate titles, sitemap coverage | `scripts/check-links.mjs` | `links` |
 
@@ -292,8 +292,12 @@ order.
 
 ## 11. Example quality requirements
 
-Every example under `examples/` carries an `example.meta.json`; Audit C validates
-it against the shipped surface and §13 capability coverage.
+Every **concept** example (`examples/<feature>/<framework>/`) carries an
+`example.meta.json`; Audit C validates it against the shipped surface and §13
+capability coverage. The **starter apps** under `examples/apps/` do not — they
+are full applications, described by their own `package.json` and
+`examples/apps/README.md`. Audit C fails on an empty inventory, so a missing
+`examples/` tree cannot read as a clean one.
 
 ```json
 {

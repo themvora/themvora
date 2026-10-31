@@ -22,6 +22,7 @@ import {
   type Complexity,
 } from "../../lib/examples";
 import { highlightCode } from "../../lib/highlight";
+import { compatibilityBadge } from "../../lib/code-variants";
 import { PKG_VERSION } from "../../lib/version";
 import { docsUrl } from "../../lib/site";
 
@@ -118,6 +119,7 @@ function buildConcepts(): ExplorerConcept[] {
       source,
       sourceHtml: highlightCode(source, language),
       language,
+      ...compatibilityBadge(source, language, example.framework),
     };
   });
 }
@@ -172,7 +174,7 @@ export default function ExamplesPage() {
   };
 
   return (
-    <DocsLayout>
+    <DocsLayout wide>
       <div className="max-w-4xl">
         <PageHeader
           eyebrow="Examples"

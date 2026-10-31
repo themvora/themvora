@@ -22,6 +22,7 @@
 
 import { readFileSync, existsSync, mkdirSync, cpSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import { execFileSync, execSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { join, dirname, resolve, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -385,10 +386,25 @@ function runtimeEntryFor(spec, ws) {
 }
 
 /**
- * esbuild's CLI, resolved from the pnpm store (tsup/vitest already bring it in).
- * Version-sorted so a future bump is picked up without editing this file.
+ * esbuild's CLI, wherever this workspace's linker put it (tsup/vitest already
+ * bring it in).
+ *
+ * Node's own resolution is tried first: a hoisted or otherwise flattened
+ * `node_modules` has no `.pnpm` directory at all, and an audit that only knows
+ * how to read an isolated store reports "esbuild not found" for every framework
+ * example on such a host — a toolchain failure dressed up as an example failure.
+ * The store scan stays as the fallback, version-sorted so a future bump is
+ * picked up without editing this file.
  */
 function esbuildBin() {
+  try {
+    const pkgPath = createRequire(join(repoRoot, "package.json")).resolve("esbuild/package.json");
+    const bin = join(dirname(pkgPath), "bin", "esbuild");
+    if (existsSync(bin)) return bin;
+  } catch {
+    /* fall through to the store scan */
+  }
+
   const pnpm = join(repoRoot, "node_modules", ".pnpm");
   if (!existsSync(pnpm)) return null;
   const candidates = readdirSync(pnpm)
@@ -572,13 +588,22 @@ function renderIn(exampleDir, meta, work, _tsconfigPath, usesReact, runtimePaths
   const entryAbs = join(exampleDir, entry).replace(/\\/g, "/");
   const renderEntry = join(work, "render.tsx");
   const resultPath = join(work, "render.json");
+  // The entry file (App.tsx) uses useTheme(), which requires ThemeProvider.
+  // All React examples export `themes` from src/themes.ts. Import and wrap.
+  const themesAbs = join(dirname(entryAbs), "themes.ts").replace(/\\/g, "/");
   writeFileSync(
     renderEntry,
     `import { writeFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ThemeProvider } from "@themvora/react";
 import App from ${JSON.stringify(entryAbs)};
+import { themes } from ${JSON.stringify(themesAbs)};
 
-const html = renderToStaticMarkup(<App />);
+const html = renderToStaticMarkup(
+  <ThemeProvider themes={themes}>
+    <App />
+  </ThemeProvider>
+);
 writeFileSync(
   ${JSON.stringify(resultPath.replace(/\\/g, "/"))},
   JSON.stringify({ chars: html.length, hasElement: html.includes("<") }),

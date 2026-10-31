@@ -26,7 +26,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 ```ts
 import { createShadcnAdapter } from "@themvora/shadcn";
 
-runtime.installAdapter(createShadcnAdapter());
+runtime.adapters.use(createShadcnAdapter());
 ```
 
 ---

@@ -103,10 +103,20 @@ It degrades safely. If the bootstrap is not present (for example
 immediately, the server-rendered fallback stays on screen, and no exception is
 thrown — so this is progressive enhancement, not a hard runtime dependency.
 
-A value that is not one of the three semantic kinds — a resolved CSS variable,
+A value that is not one of the four semantic kinds — a resolved CSS variable,
 say — is not covered here. Use the raw contract for that:
 `data-tv-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
 on the element that renders the value.
+
+**This is the only supported way to display a theme value in a React island.**
+`useTheme()` and its siblings read through `useSyncExternalStore`, so during
+hydration they return `runtime.initial` — the resolution the *server*
+produced, which cannot know the persisted selection or
+`prefers-color-scheme`. Rendering that as text paints a value the document
+does not have and corrects it once hydration commits; the visitor sees the
+same line change from one theme name to another for a frame or three. Values
+from those hooks are for behaviour — comparing, deriving, deciding — and a
+displayed one belongs in a readout.
 
 ```ts
 Active theme <ThemeReadout kind="theme" fallback="—" />
@@ -173,6 +183,17 @@ render rather than a stale theme being returned.
 ---
 
 
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): readonly ProvidedThemeFamily<T>[]`
+Returns the theme families registered with the provider. Client-only;
+re-renders when the registry changes (e.g. `runtime.use(pack)`).
+
+**See also:** `useThemeRuntime`, `useTheme`
+
+**Returns** `readonly ProvidedThemeFamily<T>[]` — The provider's theme families, in supplied order.
+
+---
+
+
 ### `useSetThemeFamily(): __type(nextFamily: string): void`
 Returns a stable setter that changes the theme family. Client-only.
 
@@ -201,6 +222,19 @@ re-renders when any of the reactive values change.
 
 **Returns** `{ family: string; mode: ThemeMode; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: T; toggleTheme: __type(): void }` — An object with `theme`, `mode`, `family`, `setMode`, `setFamily`
 and `toggleTheme`.
+
+**These values are for behaviour, not for display.** `theme`, `mode` and
+`family` are read through `useSyncExternalStore`, so while the island hydrates
+they hold `runtime.initial` — the resolution the *server* produced, which
+cannot know the persisted selection or `prefers-color-scheme`. Rendering one
+of them as text paints a value the document does not have, and corrects it
+once hydration commits: the line visibly changes from one theme name to
+another a few frames in.
+
+Use `ThemeReadout` for anything on screen. It is owned by the pre-paint
+bootstrap contract, so it agrees with `<html>` from the first frame — for
+these same three values. Compare, derive and decide with them; render with a
+readout.
 
 ```ts
 const { theme, mode, setMode, toggleTheme } = useTheme();
@@ -389,13 +423,14 @@ created with.
 | `adapters` (optional) | `ThemeAdapter<T>[]` | DOM adapters (component-library bridges) to install. |
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. Omitted → a `BroadcastChannel` on `"theme-selection"`; `null` disables cross-tab sync. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS custom property binding. Defaults to `{}` (write `--theme-*` on `<html>`). Pass `false` to disable. |
-| `defaultTheme` (optional) | `string` | Fallback theme name when no selection is persisted. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme when no selection is persisted. Accepts a supplied theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`); a family resolves to the variant for the mode in effect. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute binding. Defaults to `{}` (bind `data-theme` on `<html>`). Pass `false` to disable. |
 | `initial` (optional) | `InitialThemeResolution<T>` | The SSR-resolved initial theme state (from `getInitialThemeState`). When provided it wins on first paint, so hydration matches exactly. Omit it on prerendered/static pages (no request available) — the island then reads the persisted selection from storage on the client instead. |
-| `initialFamily` (optional) | `string` | Family used when nothing is persisted. Optional for the same reason as ThemeProviderClientProps.initialMode — the transported configuration already carries it. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Family used when nothing is persisted. Optional for the same reason as ThemeProviderClientProps.initialMode — the transported configuration already carries it. A variant name is accepted and normalised to its family; its mode applies only when `initialMode` is absent. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when nothing is persisted. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Theme plugins to install at runtime creation. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Enables `useThemeSchedule()`; without it that hook returns `null`. `autoDetectLocation` resolves coordinates from the browser, and `timeZone` overrides the detected one. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted selection. Applied once per value and never written to persistence. Pass the same value to the integration's `provider.astro` / `createBlockingScript` for a flash-free override — the island alone can only correct it after mount. |
 | `themes` (optional) | `readonly T[]` | The theme registry the client runtime resolves against. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Animate theme changes. `true` uses the defaults; pass `{ enabled, duration, easing }` to tune, or `false` to disable. The transition itself is applied by the DOM/CSS bindings, so it also needs `dom`/`cssVariables` to be left at their defaults (they are). |
 
@@ -438,14 +473,29 @@ Which bootstrap-owned value a ThemeReadout displays.
 
 **See also:** `ThemeReadout`
 
-`"theme" | "mode" | "family"`
+`"theme" | "label" | "mode" | "family"`
+
+These are exactly the text kinds `data-tv-readout` defines — the same set the
+pre-paint bootstrap and the controller resolve (see `readoutValue` in
+`dom.ts`), plus the raw `var:<custom-property>` form, which this component
+does not wrap.
+
+`"label"` was missing for one release while the contract, the bootstrap and
+the controller all supported it. A React app that wanted the human label
+therefore had to hand-write `data-tv-readout="label"` *and*
+`suppressHydrationWarning` — precisely the pair this component exists so that
+nobody has to know — and the obvious workaround, rendering `useTheme().theme`
+as text, is the one that fluctuates on load. A component that wraps "the
+contract" has to cover it whole, or callers route around it and rediscover
+the bug it was written for.
 
 ---
 
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Astro](/framework-guides/astro) — the framework integration

@@ -11,16 +11,27 @@ import { SectionHeading } from "./ui/section-heading";
 import { Callout } from "./ui/callout";
 import {
   PRESET_KIND_META,
-  DEFAULT_PRESET_SNIPPET,
-  BRAND_PRESET_SNIPPET,
   PresetCard,
   CurrentThemeInspector,
   usePresetGroups,
 } from "./presets";
+import { BRAND_PRESET_SNIPPET, DEFAULT_PRESET_SNIPPET } from "./preset-snippets";
 
 type Tab = "default" | "brand";
 
-export function PresetShowcase() {
+/**
+ * The `/presets` index.
+ *
+ * `labels` carries the compatibility badge of each install snippet, keyed by
+ * source text and derived on the page — this is a client component, so it
+ * cannot ask the compiler itself. Both snippets are plain JavaScript, so both
+ * read `TS / JS` even though they are highlighted with the TypeScript grammar.
+ */
+export function PresetShowcase({
+  labels,
+}: {
+  labels?: Record<string, string> | undefined;
+} = {}) {
   const [activeTab, setActiveTab] = useState<Tab>("default");
   const groups = usePresetGroups(activeTab);
 
@@ -52,11 +63,11 @@ export function PresetShowcase() {
             <>
               Themvora ships with{" "}
               <strong>
-                {defaultCount} curated families + {brandCount} brand
-                presets
+                {defaultCount} curated families and {brandCount} brand families
               </strong>{" "}
-              — each with carefully chosen, WCAG-conscious light and dark
-              variants. Click any preset to apply it to this site live.
+              — {defaultCount * 2} default themes and {brandCount * 2} brand
+              themes, each with a light and a dark variant. Click any preset to
+              apply it to this site live.
             </>
           }
         />
@@ -64,7 +75,7 @@ export function PresetShowcase() {
         <section className="mb-10">
           <SectionHeading
             num={1}
-            desc="Every preset is a complete design system with light and dark token pairs. The nine default families cover warm, cool, and neutral palettes. The five brand presets replicate real-world design languages."
+            desc="Every preset is a full token set, not a colour swap — surfaces, borders, status colours and corner radius come with it. The nine default families run warm to neutral; the five brand families pin a published brand colour and generate the rest around it."
           >
             What&apos;s included
           </SectionHeading>
@@ -73,8 +84,9 @@ export function PresetShowcase() {
               <div className="font-semibold text-sm">Default Presets</div>
               <div className="text-xs opacity-60 mt-1 leading-relaxed">
                 {defaultCount} curated families: oat, berry, mint, citrus, cocoa,
-                plum, iris, sky, graphite. Each ships a light and dark variant
-                with distinct border radii and accent colors.
+                plum, iris, sky, graphite. Each ships a light and a dark variant
+                and carries its own seed, generation style and corner radius
+                (12–18px), so the families differ in feel and not only in hue.
               </div>
               <Link
                 href="/presets/default"
@@ -87,9 +99,11 @@ export function PresetShowcase() {
             <div className="glass-card p-4">
               <div className="font-semibold text-sm">Brand Presets</div>
               <div className="text-xs opacity-60 mt-1 leading-relaxed">
-                {brandCount} real-world palettes: Apple, GitHub, Vercel, Slack,
-                Discord. Faithful reproductions of each brand&apos;s color
-                language, radius, and tone.
+                {brandCount} brand families — Apple, GitHub, Vercel, Slack,
+                Discord — two themes each. The colour the brand publishes is
+                pinned as the primary and the rest is generated around it, so
+                they read as that brand without claiming to be its official
+                theme.
               </div>
               <Link
                 href="/presets/brand"
@@ -162,6 +176,9 @@ export function PresetShowcase() {
             html={highlightCode(DEFAULT_PRESET_SNIPPET, "ts")}
             code={DEFAULT_PRESET_SNIPPET}
             language="ts"
+            {...(labels?.[DEFAULT_PRESET_SNIPPET]
+              ? { displayLanguage: labels[DEFAULT_PRESET_SNIPPET] }
+              : {})}
             className="rounded-lg m-0 mb-4"
           />
 
@@ -172,6 +189,9 @@ export function PresetShowcase() {
             html={highlightCode(BRAND_PRESET_SNIPPET, "ts")}
             code={BRAND_PRESET_SNIPPET}
             language="ts"
+            {...(labels?.[BRAND_PRESET_SNIPPET]
+              ? { displayLanguage: labels[BRAND_PRESET_SNIPPET] }
+              : {})}
             className="rounded-lg m-0"
           />
 

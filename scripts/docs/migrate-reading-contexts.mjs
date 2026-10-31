@@ -35,7 +35,7 @@ const ACTION_HINTS = [
   /role="(?:button|tab|option)"/, /chip-active/, /\bdata-state=/, /\bbtn\b/,
 ];
 const TERNARY_BRANCH = /^\s*[?:]/m;
-const CODE_HINTS = [/highlightCode/, /<code\b/, /<pre\b/, /CodeBlock/, /syntax/i, /mono\b.*text-primary/];
+const CODE_HINTS = [/highlightCode/, /<code\b/, /<pre\b/, /CodeBlock/, /CodeExample/, /syntax/i, /mono\b.*text-primary/];
 const IDENTITY_HINTS = [
   /logo/i, /wordmark/i, /brand/i, /gradient/i, /<Icon/, /icon=/i, /hero-orb/,
   />[✓✗!•←→↗]<\/span>/, /aria-hidden/,

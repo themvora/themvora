@@ -2,6 +2,7 @@ import type { ThemeDefinition, ThemeMode } from "../model";
 import { isThemeMode } from "../diagnostics";
 import { createSystemThemeBinding } from "./system";
 import { emitInvalidModeDiagnostic } from "./mode-diagnostic";
+import { runSyncAdapter } from "./sync-diagnostic";
 import type { ThemeBroadcastAdapter } from "./broadcast";
 import type { ThemePersistenceAdapter } from "./persistence";
 import type { ThemeStore } from "../types";
@@ -50,6 +51,11 @@ export interface ThemeModeControllerOptions<T extends ThemeDefinition> {
  * and broadcast when the corresponding adapters are provided. The returned
  * controller is safe to destroy: after `destroy()` its methods become no-ops
  * and all subscriptions are released.
+ *
+ * A persistence or broadcast adapter that throws does not abort the change: the
+ * resolved theme is still applied and the failure is reported as a
+ * `TV_SYNC_FAILED` diagnostic, so `getMode()` never reports a mode the screen
+ * is not showing.
  *
  * @param options The controller configuration.
  * @returns A controller exposing `getMode`, `setMode` and `destroy`.
@@ -128,8 +134,14 @@ export function createThemeModeController<T extends ThemeDefinition>(
 
     mode = nextMode;
 
-    persistence?.set(nextMode);
-    broadcast?.post(nextMode);
+    // Each adapter is isolated. A blocked `localStorage` write (a full quota, a
+    // sandboxed iframe) or a `BroadcastChannel.postMessage` on a closed channel
+    // used to abort the rest of this function: `mode` was already assigned, so
+    // `getMode()` reported the new mode while `applyResolvedTheme` never ran and
+    // the screen kept the old theme. The failure is reported instead, and the
+    // apply below always happens.
+    runSyncAdapter("setMode", "persistence", () => persistence?.set(nextMode));
+    runSyncAdapter("setMode", "broadcast", () => broadcast?.post(nextMode));
 
     applyResolvedTheme(nextMode);
   }

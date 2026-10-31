@@ -49,7 +49,9 @@ CHANGE API
    ↓
 5. Reclassify the public surface            node scripts/docs/public-api.mjs
    ↓
-6. Update the canonical example             (examples/**  + example.meta.json)
+6. Update the canonical example             (examples/<feature>/<framework>/ + example.meta.json;
+                                             a new directory also needs its `!/examples/<feature>/`
+                                             line in `.gitignore`, or it is invisible to a clone)
    ↓
 7. Update the capability registry           docs/reference/capabilities.ts
    ↓
@@ -169,7 +171,8 @@ example rather than inventing the shape.
 | `docs/reference/baselines/**`            | generated | frozen floors (snippet baseline, Audit G allowlist).              |
 | `apps/docs/{app,lib,content}`            | authored  | the deployed site: prose + code.                                  |
 | `apps/docs/content/api-reference/**`     | generated | **never hand-edit** — regenerate with `generate-api-reference.mjs`. |
-| `examples/**`                            | authored  | canonical examples consumed by docs (each has `example.meta.json`). |
+| `examples/<feature>/<framework>/**`       | authored  | concept examples consumed by docs (each has `example.meta.json`).  |
+| `examples/apps/**`                       | authored  | framework starter apps (described by their own `package.json`).    |
 
 ## Anti-patterns (blocked by CI)
 
@@ -188,7 +191,9 @@ example rather than inventing the shape.
 
 - **Audit A** (floor) — `docs/reference/baselines/snippet-baseline.json`.
 - **Audit B** — `docs/reference/public-api.json` ⇄ generated API pages.
-- **Audit C** — `examples/**/example.meta.json` ⇄ the shipped surface.
+- **Audit C** — `examples/**/example.meta.json` ⇄ the shipped surface, plus §13
+  coverage (every capability has an example). An empty or missing `examples/`
+  fails: with nothing to read, every structural rule would pass vacuously.
 - **Audit D** — `scripts/release/dependency-policy.json` ⇄ the real dependency graph.
 - **Audit E/F** — `docs/reference/capabilities.ts` ⇄ the shipped exports.
 - **Audit G** — the prose surfaces ⇄ the canonical vocabulary

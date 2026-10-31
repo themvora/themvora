@@ -4,9 +4,9 @@ import Link from "next/link";
 import { DocsLayout } from "../../components/docs-layout";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
-import { Callout } from "../../components/ui/callout";
 import { FrameworkTabs, type FrameworkExample } from "../../components/framework-tabs";
 import { highlightCode } from "../../lib/highlight";
+import { compatibilityBadge } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -58,7 +58,7 @@ const svelteSnippet = {
   label: "Svelte",
   lang: "svelte",
   filename: "+layout.svelte",
-  code: `<script>
+  code: `<script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
 </script>
 
@@ -94,6 +94,7 @@ const examples: FrameworkExample[] = [reactSnippet, vueSnippet, svelteSnippet, s
   (s) => ({
     ...s,
     html: highlightCode(s.code, s.lang),
+    ...compatibilityBadge(s.code, s.lang, s.label),
   }),
 );
 
@@ -104,67 +105,38 @@ export default function NoFlashSSRPage() {
         <PageHeader
           eyebrow="Zero Flash"
           title="No Flash SSR"
-          description="Every framework is flash-proof — either the server resolves the theme, or the provider applies it before first paint."
+          description="SPA client providers (React, Vue, Svelte, Solid) are flash-proof out of the box — no vite plugin or manual head script required."
         />
 
-        <section id="out-of-the-box" className="scroll-mt-24 mb-10">
-          <SectionHeading num={1}>Flash-proof out of the box</SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80 mb-4">
-            <strong>SSR integrations</strong> (Next.js, Nuxt, Remix, Astro, Angular) resolve the
-            persisted theme on the server and emit the blocking bootstrap themselves — zero setup.
-            <strong> Client providers</strong> (React, Vue, Svelte, Solid) are now also flash-proof
-            with zero setup: they read the persisted selection, apply the theme before first paint
-            via a layout effect, and inject a blocking bootstrap script. There is no vite plugin or
-            manual <code className="mono text-[0.9em]">&lt;head&gt;</code> script to wire.
-          </p>
-          <Callout variant="neutral" title="One provider, zero overhead">
-            <p className="text-sm leading-relaxed">
-              You don&apos;t need the vite plugin or a manual{" "}
-              <code className="mono text-[0.9em]">createThemeBootstrapScript</code> call anymore —
-              the provider handles it. The plugin remains available if you want the theme applied
-              on the absolute first frame before the bundle even loads.
-            </p>
-          </Callout>
-        </section>
-
-        <section id="mechanism" className="scroll-mt-24 mb-10">
-          <SectionHeading num={2}>The mechanism</SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80 mb-3">
-            Every provider does the same three things on mount, synchronously before the browser
-            paints:
-          </p>
-          <ol className="list-decimal pl-6 space-y-1 text-sm opacity-80">
-            <li>Reads the persisted selection (<code className="mono text-[0.9em]">theme-selection</code>).</li>
-            <li>Injects a blocking <code className="mono text-[0.9em]">&lt;script&gt;</code> into{" "}
-              <code className="mono text-[0.9em]">&lt;head&gt;</code> that resolves the family +
-              effective mode and writes the CSS variables + attributes.</li>
-            <li>Creates the DOM + CSS-variable bindings, which apply the same theme.</li>
-          </ol>
-          <p className="text-sm leading-relaxed opacity-80 mt-3">
-            Hydration matches the pre-paint markup, so there is no flash and no mismatch.
+        <section id="how-it-works" className="scroll-mt-24 mb-10">
+          <SectionHeading num={1}>How it works</SectionHeading>
+          <p className="text-sm leading-relaxed opacity-80">
+            Each client provider reads the persisted theme selection, applies the theme before first
+            paint via a layout effect, and injects a blocking bootstrap script into{" "}
+            <code className="mono text-[0.9em]">&lt;head&gt;</code>. The result is zero flash with
+            zero configuration. See the{" "}
+            <Link href="/zero-flash" className="text-foreground underline hover:decoration-foreground">
+              /zero-flash
+            </Link>{" "}
+            page for the full mechanism and SSR integrations.
           </p>
         </section>
 
         <section id="framework-snippets" className="scroll-mt-24 mb-10">
-          <SectionHeading num={3}>Framework snippets</SectionHeading>
+          <SectionHeading num={2}>Framework snippets</SectionHeading>
           <FrameworkTabs examples={examples} scrollToId="framework-snippets" />
         </section>
 
-        <section id="still-need-bootstrap" className="scroll-mt-24 mb-10">
-          <SectionHeading num={4}>When you still want the bootstrap script</SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80 mb-3">
-            The providers apply the theme before the first paint of the application content. If you
-            want the theme applied on the very first frame — before the JavaScript bundle even
-            loads — add the{" "}
-            <Link href="/vite-plugin" className="text-foreground underline hover:decoration-foreground">
-              Vite plugin
-            </Link>{" "}
-            (build-time, zero runtime cost) or inline{" "}
-            <code className="mono text-[0.9em]">createThemeBootstrapScript</code> output into{" "}
-            <code className="mono text-[0.9em]">index.html</code>. This is optional and only matters
-            for slower bundles.
-          </p>
-        </section>
+        <p className="text-sm leading-relaxed opacity-80">
+          If you want the theme applied on the very first frame before the bundle loads, see the{" "}
+          <Link href="/zero-flash" className="text-foreground underline hover:decoration-foreground">
+            bootstrap script mechanism
+          </Link>{" "}
+          and the{" "}
+          <Link href="/vite-plugin" className="text-foreground underline hover:decoration-foreground">
+            Vite plugin
+          </Link>.
+        </p>
       </div>
     </DocsLayout>
   );

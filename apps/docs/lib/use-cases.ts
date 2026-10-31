@@ -12,6 +12,14 @@ export type UseCase = {
    */
   filename?: string;
   code: string;
+  /**
+   * Hand-authored JavaScript alternative, for snippets whose TypeScript cannot
+   * be mechanically converted. When present, the pipeline uses it instead of
+   * deriving.
+   */
+  js?: string;
+  /** File name for the JavaScript variant, when it differs from the mapped one. */
+  jsFilename?: string;
 };
 
 const react: UseCase[] = [
@@ -121,30 +129,35 @@ export function Telemetry() {
   {
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
+    filename: "src/main.tsx",
     lang: "tsx",
-    code: `import { ThemeProvider } from "@themvora/react";
+    code: `import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "@themvora/react";
 
-export function App() {
-  return (
-    <ThemeProvider
-      transition={{
-        enabled: true,
-        duration: 300,
-        easing: "ease-in-out",
-        properties: [
-          "color",
-          "background-color",
-          "border-color",
-          "border-radius",
-          "font-size",
-          "box-shadow",
-        ],
-      }}
-    >
-      <ThemeSwitcher />
-    </ThemeProvider>
-  );
-}`,
+// Your application root. The provider lives here; App only renders UI.
+function App() {
+  return <main>Your app</main>;
+}
+
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider
+    transition={{
+      enabled: true,
+      duration: 300,
+      easing: "ease-in-out",
+      properties: [
+        "color",
+        "background-color",
+        "border-color",
+        "border-radius",
+        "font-size",
+        "box-shadow",
+      ],
+    }}
+  >
+    <App />
+  </ThemeProvider>,
+);`,
   },
 ];
 
@@ -317,7 +330,7 @@ const vue: UseCase[] = [
     title: "Toggle light / dark",
     desc: "useTheme exposes refs and setters — reactive in templates and scripts.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 import { useTheme } from "@themvora/vue";
 const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
 </script>
@@ -325,7 +338,7 @@ const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
 <template>
   <button @click="toggleTheme">{{ theme.name }} · {{ mode }}</button>
   <button @click="setMode('dark')">Dark</button>
-  <select :value="family" @change="setFamily($event.target.value)">
+  <select :value="family" @change="(e: Event) => setFamily((e.target as HTMLSelectElement).value)">
     <option value="default">Default</option>
     <option value="mint">Mint</option>
   </select>
@@ -335,7 +348,7 @@ const { theme, mode, family, setMode, setFamily, toggleTheme } = useTheme();
     title: "Undo / redo theme changes",
     desc: "History state is reactive; use it to build undo/redo controls.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 import { useThemeHistory, useThemeRuntime } from "@themvora/vue";
 const { undo, redo, canUndo, canRedo } = useThemeHistory();
 const runtime = useThemeRuntime();
@@ -371,7 +384,7 @@ const transition: ThemeTransitionOptions = { duration: 300, easing: "ease" };
     title: "Lifecycle events",
     desc: "Subscribe to typed lifecycle events and react to changes.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 import { onMounted } from "vue";
 import { useThemeLifecycle, useThemePacks } from "@themvora/vue";
 import { getAccessibilityProfiles } from "@themvora/core";
@@ -394,7 +407,7 @@ onMounted(() => {
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 import { ThemeProvider } from "@themvora/vue";
 </script>
 
@@ -413,7 +426,7 @@ const svelte: UseCase[] = [
     title: "Toggle light / dark",
     desc: "useTheme returns readable stores — prefix with $ in Svelte.",
     lang: "svelte",
-    code: `<script>
+    code: `<script lang="ts">
   import { useTheme } from "@themvora/svelte";
   const { theme, mode, setMode, toggleTheme } = useTheme();
 </script>
@@ -425,7 +438,7 @@ const svelte: UseCase[] = [
     title: "Undo / redo theme changes",
     desc: "History stores are reactive, just like the theme state.",
     lang: "svelte",
-    code: `<script>
+    code: `<script lang="ts">
   import { useThemeHistory, useThemeRuntime } from "@themvora/svelte";
   const { undo, redo, canUndo, canRedo } = useThemeHistory();
   const runtime = useThemeRuntime();
@@ -449,7 +462,7 @@ const svelte: UseCase[] = [
     title: "Lifecycle events",
     desc: "Watch every theme change and install packs at runtime.",
     lang: "svelte",
-    code: `<script>
+    code: `<script lang="ts">
   import { onMount } from "svelte";
   import { useThemeLifecycle, useThemePacks } from "@themvora/svelte";
   import { getAccessibilityProfiles } from "@themvora/core";
@@ -466,7 +479,7 @@ const svelte: UseCase[] = [
     title: "Smooth theme transitions",
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "svelte",
-code: `<script>
+code: `<script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
 </script>
 
@@ -899,14 +912,14 @@ export default defineNuxtConfig({
 
 // The module emits, before first paint:
 //   <html data-theme="mint-light" data-theme-mode="light" data-theme-family="mint">
-//   <style>:root{--background:…}</style>
+//   <style>:root{--theme-color-background:…}</style>
 //   <script>/* blocking bootstrap */</script>`,
   },
   {
     title: "Auto-imported composables",
     desc: "useTheme and friends are auto-imported in every component.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 const { theme, mode, setMode, toggleTheme } = useTheme();
 </script>
 
@@ -919,10 +932,11 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
     title: "Components + runtime access",
     desc: "ThemeScope, ThemeScrollbar and the runtime are available everywhere.",
     lang: "vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 const runtime = useThemeRuntime();
 function soften() {
-  runtime.update({ radius: { sm: 8, md: 12 } });
+  // update() takes the tokens it is given; radius values are CSS lengths.
+  runtime.update({ radius: { sm: "8px", md: "12px" } });
 }
 </script>
 
@@ -930,7 +944,7 @@ function soften() {
   <ThemeScope theme="plum-light">
     <DataViz />
   </ThemeScope>
-  <ThemeScrollbar auto-hide />
+  <ThemeScrollbar :behavior="{ autoHide: true }" />
   <button @click="soften">Soften corners</button>
 </template>`,
   },

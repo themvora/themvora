@@ -1,4 +1,36 @@
-# @theme-kit/chakra
+# @themvora/chakra
+
+## 1.3.1
+
+### Patch Changes
+
+- Documentation only: the "Style it with Themvora tokens" examples now use only the tokens a theme is
+  required to define.
+
+  The examples read `--theme-radius-md` and `--theme-spacing-4` alongside the colours. Those variables do
+  exist in the built-in themes, but `spacing` and `radius` are optional groups — a project theme that
+  defines only colours has neither, and the snippet resolved to nothing for exactly the reader most
+  likely to copy it.
+
+  The examples now:
+
+  - theme the **document** as well as the page, with an `html, body` rule — a themed card on an unthemed
+    canvas was the other half of the problem;
+  - use only the required semantic colours (`--theme-color-background`, `-foreground`, `-card`,
+    `-cardForeground`, `-border`);
+  - keep spacing, typography and layout as ordinary CSS, and give the optional radius a fallback
+    (`var(--theme-radius-lg, 12px)`) instead of assuming it is defined.
+
+  No code, types or exports changed — this release exists so the npm landing page shows the corrected
+  example. `@themvora/tailwind`'s README gains the same section it was missing.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
 
 ## 1.3.0
 

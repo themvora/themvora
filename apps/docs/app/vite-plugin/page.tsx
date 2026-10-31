@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { FrameworkTabs } from "../../components/framework-tabs";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
@@ -11,6 +11,7 @@ import { Prerequisites } from "../../components/ui/prerequisites";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { highlightCode } from "../../lib/highlight";
+import { compatibilityBadge } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -159,6 +160,7 @@ export default defineConfig({
 const registrationExamplesWithHtml = registrationExamples.map((example) => ({
   ...example,
   html: highlightCode(example.code, example.lang),
+  ...compatibilityBadge(example.code, example.lang, example.label),
 }));
 
 /**
@@ -284,7 +286,7 @@ const pipelineSteps = [
   {
     label: "themvoraVitePlugin()",
     detail:
-      "Discovers the file and projects it with `toBootstrapConfig` — the six keys the pre-paint script can act on.",
+      "Discovers the file and projects it with `toBootstrapConfig` — the serializable keys, which is what the pre-paint script and the client runtime both read.",
     internal: false,
   },
   {
@@ -357,31 +359,12 @@ const bootstrapSnippet = {
   code: `<!doctype html>
 <html lang="en">
   <head>
-    <!-- injected by themvoraVitePlugin(); the theme tables are collapsed to … -->
+    <!-- injected by themvoraVitePlugin() -->
     <script id="themvora-bootstrap">
-(function(){try{
-  var raw=localStorage.getItem("theme-selection");
-  var sel=null;try{sel=raw?JSON.parse(raw):null;}catch(e){}
-  var mode0=sel&&(sel.mode==='light'||sel.mode==='dark'||sel.mode==='system')?sel.mode:null;
-  var fam0=sel&&typeof sel.family==='string'?sel.family:null;
-  var mode=mode0||"light";   // defaultTheme's own mode, or your initialMode
-  var family=fam0||"default";
-  var sysDark=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-  var eff=mode==='dark'||(mode==='system'&&sysDark)?'dark':'light';
-  var map={ … };             // theme key -> { "--theme-*": value }
-  var names={ … };           // theme key -> data-theme value
-  var key=(family&&map[family+':'+eff])?family+':'+eff:'__default-'+eff;
-  var i=key.indexOf(':');var fam=i>=0?key.slice(0,i):"default";
-  var vars=map[key]||map['__default-light'];
-  var name=names[key]||names['__default-'+eff]||null;
-  var el=document.documentElement;
-  if(eff==='dark'){el.classList.add('dark');}else{el.classList.remove('dark');}
-  el.style.colorScheme=eff;
-  el.setAttribute('data-theme-mode',eff);
-  if(fam){el.setAttribute('data-theme-family',fam);}
-  if(name){el.setAttribute('data-theme',name);}
-  if(vars){for(var p in vars){el.style.setProperty(p,vars[p]);}}
-}catch(e){}})()
+(function () {
+  // ... resolves mode from localStorage + prefers-color-scheme,
+  //     writes CSS variables and data-theme attributes to <html>
+})();
     </script>
     <title>My App</title>
   </head>
@@ -481,123 +464,31 @@ export default function VitePluginPage() {
             Configuration
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            Themvora&apos;s Vite plugin connects your project-level Themvora
-            configuration to Vite&apos;s HTML pipeline. It discovers{" "}
-            <code className="mono text-[0.9em]">theme.config.ts</code> at the
-            project root and injects the pre-paint bootstrap from it, so you do
-            not repeat{" "}
-            <code className="mono text-[0.9em]">themes</code>,{" "}
-            <code className="mono text-[0.9em]">defaultTheme</code>,{" "}
-            <code className="mono text-[0.9em]">initialMode</code> or{" "}
-            <code className="mono text-[0.9em]">initialFamily</code> in{" "}
-            <code className="mono text-[0.9em]">vite.config.ts</code>.
+            Themvora&apos;s Vite plugin discovers{" "}
+            <code className="mono text-[0.9em]">theme.config.ts</code> and
+            injects the bootstrap — see the 7-step pipeline in Section 5.
           </p>
-
-          {/* The mental model, drawn with the page's own tokens rather than an
-              ASCII block in a CodeBlock — a diagram is not copy-pasteable code,
-              so it should not offer a copy button. */}
-          <div className="my-5 rounded-xl border border-border bg-muted/10 p-4">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-full max-w-[16rem] rounded-lg border border-border bg-card px-4 py-2.5 text-center">
-                <div className="mono text-sm font-semibold">theme.config.ts</div>
-                <div className="text-[11px] opacity-55 mt-0.5">
-                  the single declaration
-                </div>
-              </div>
-
-              <span aria-hidden className="text-xs opacity-35 leading-none">
-                ↓
-              </span>
-
-              <div className="grid w-full gap-3 sm:grid-cols-2">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-center">
-                    <div className="text-sm font-semibold">ThemeProvider</div>
-                    <div className="text-[11px] opacity-55 mt-0.5">runtime</div>
-                  </div>
-                  <span aria-hidden className="text-xs opacity-35 leading-none">
-                    ↓
-                  </span>
-                  <div className="w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-center">
-                    <div className="text-sm font-semibold">your app</div>
-                    <div className="text-[11px] opacity-55 mt-0.5">
-                      selection · bindings · persistence
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-center">
-                    <div className="text-sm font-semibold">Vite plugin</div>
-                    <div className="text-[11px] opacity-55 mt-0.5">bootstrap</div>
-                  </div>
-                  <span aria-hidden className="text-xs opacity-35 leading-none">
-                    ↓
-                  </span>
-                  <div className="w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-center">
-                    <div className="text-sm font-semibold">
-                      index.html &lt;head&gt;
-                    </div>
-                    <div className="text-[11px] opacity-55 mt-0.5">
-                      before the first paint
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <span aria-hidden className="text-xs opacity-35 leading-none">
-                ↓
-              </span>
-
-              <div className="rounded-full border border-border bg-card px-4 py-1.5 text-xs font-semibold">
-                one theme model
-              </div>
-            </div>
-          </div>
-
-          <p className="text-sm opacity-80 leading-relaxed mb-3">
-            The left column is the runtime: the provider creates it, owns the
-            reactive selection, applies the DOM and CSS-variable bindings, and
-            handles persistence, transitions, scopes, adapters and plugins. It
-            takes no theme props, because the plugin already put the
-            configuration in the page for it:
-          </p>
-          <CodeBlock
-            html={highlightCode(providerSnippet.code, "tsx")}
+          <CodeExample
             code={providerSnippet.code}
-            language="tsx"
+            lang="tsx"
             filename={providerSnippet.title}
             className="m-0"
           />
           <p className="text-sm opacity-80 leading-relaxed mt-3 mb-3">
-            The right column is the bootstrap: the plugin discovers the
-            configuration, derives the blocking script from it, and injects that
-            script into <code className="mono text-[0.9em]">index.html</code>.
-            Neither reads the other&apos;s state, because neither declares any —
-            both read the file at the top.
+            Declaring the same values twice is the bug this architecture removes:
           </p>
-          <p className="text-sm opacity-80 leading-relaxed mb-3">
-            Declaring the same values twice is therefore not just redundant, it is
-            the bug this architecture removes:
-          </p>
-          <CodeBlock
-            html={highlightCode(antiPatternSnippet.code, "tsx")}
+          <CodeExample
             code={antiPatternSnippet.code}
-            language="tsx"
+            lang="tsx"
             filename={antiPatternSnippet.title}
             className="m-0"
           />
           <p className="text-sm opacity-80 leading-relaxed mt-3 mb-3">
-            The plugin and the provider each keep a copy, and nothing keeps the
-            copies equal. When they drift, the script paints one theme and the
-            runtime corrects it a frame later — the flash you installed the plugin
-            to prevent is exactly what you get. Read the configuration from one
-            place instead:
+            Read the configuration from one place instead:
           </p>
-          <CodeBlock
-            html={highlightCode(declaredOnceSnippet.code, "tsx")}
+          <CodeExample
             code={declaredOnceSnippet.code}
-            language="tsx"
+            lang="tsx"
             filename={declaredOnceSnippet.title}
             className="m-0"
           />
@@ -625,23 +516,19 @@ export default function VitePluginPage() {
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
             Put it at the project root — the same level as{" "}
-            <code className="mono text-[0.9em]">vite.config.ts</code>. It is an
-            ordinary module, so{" "}
+            <code className="mono text-[0.9em]">vite.config.ts</code>.{" "}
             <code className="mono text-[0.9em]">themes</code> can come from
-            anywhere: a local file, a package, or the built-in set. Here it is a
-            local file, which is the usual shape:
+            anywhere: a local file, a package, or the built-in set.
           </p>
-          <CodeBlock
-            html={highlightCode(themeConfigSnippet.code, "ts")}
+          <CodeExample
             code={themeConfigSnippet.code}
-            language="ts"
+            lang="ts"
             filename={themeConfigSnippet.title}
             className="m-0"
           />
-          <CodeBlock
-            html={highlightCode(themesModuleSnippet.code, "ts")}
+          <CodeExample
             code={themesModuleSnippet.code}
-            language="ts"
+            lang="ts"
             filename={themesModuleSnippet.title}
             className="m-0 mt-3"
           />
@@ -677,25 +564,31 @@ export default function VitePluginPage() {
               </table>
             </div>
           </div>
+          <p className="text-xs opacity-60 mt-2">
+            The full config key reference is on the{" "}
+            <Link
+              href="/architecture#configuration"
+              className="text-foreground underline hover:decoration-foreground"
+            >
+              Architecture page
+            </Link>.
+          </p>
           <Callout variant="neutral" className="mt-3" title="Which keys reach the page">
             <p className="text-sm leading-relaxed">
               The bootstrap needs a registry, a fallback theme, an initial
-              mode/family, a storage key and a prefix — and nothing else, because
-              nothing else can affect a frame painted before the runtime exists.
-              Runtime-only keys such as{" "}
+              mode/family, a storage key and a prefix — nothing else can affect
+              a frame painted before the runtime exists. Keys like{" "}
               <code className="mono text-[0.9em]">transition</code>,{" "}
               <code className="mono text-[0.9em]">persistence</code>,{" "}
               <code className="mono text-[0.9em]">scrollbar</code>,{" "}
               <code className="mono text-[0.9em]">plugins</code> and{" "}
               <code className="mono text-[0.9em]">adapters</code> are never
-              serialized into the page. Pass those to the provider directly —
-              they are not serializable, so they cannot make the round trip.
+              serialized — pass them to the provider directly.
             </p>
           </Callout>
           <p className="text-sm opacity-80 leading-relaxed mt-4">
-            No file at all is also valid: with nothing to discover, the plugin and
-            the provider both fall back to the built-in neutral themes. You lose
-            your own registry, not the theming.
+            No file at all is also valid: the plugin and provider both fall back
+            to built-in neutral themes.
           </p>
         </section>
 
@@ -707,12 +600,9 @@ export default function VitePluginPage() {
             Register the Plugin
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            Every framework below hosts its build on Vite, so the registration is
-            the same call in a different config file. Your framework&apos;s own
-            plugin is untouched — Themvora&apos;s is appended to it. Astro and
-            Nuxt register their own integration instead, because their module
-            systems are the canonical configuration surface; both discover the
-            same{" "}
+            Your framework&apos;s own plugin is untouched — Themvora&apos;s is
+            appended. Astro and Nuxt register their own integration instead;
+            both discover the same{" "}
             <code className="mono text-[0.9em]">theme.config.ts</code>.
           </p>
           <FrameworkTabs examples={registrationExamplesWithHtml} />
@@ -764,11 +654,6 @@ export default function VitePluginPage() {
           </Callout>
           <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5">
             <li>
-              <strong>Pre-bundle first frame</strong> — the bootstrap script
-              runs synchronously from <code className="mono text-[0.9em]">index.html</code>{" "}
-              before the bundle loads, so even the raw HTML frame is themed.
-            </li>
-            <li>
               <strong>No runtime overhead</strong> — the script is injected at
               build time and does not ship as a separate chunk. It runs once
               and is never re-evaluated.
@@ -818,53 +703,34 @@ export default function VitePluginPage() {
           >
             What It Does
           </SectionHeading>
-          <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5">
-            <li>
-              Flattens the theme definitions you pass into two inlined tables —
-              every theme&apos;s{" "}
-              <code className="mono text-[0.9em]">--theme-*</code> variables,
-              keyed by theme name and by{" "}
-              <code className="mono text-[0.9em]">family:mode</code>.
-            </li>
-            <li>
-              Generates a self-contained IIFE that reads the persisted selection
-              from{" "}
-              <code className="mono text-[0.9em]">localStorage</code>, resolves
-              the effective mode ({" "}
-              <code className="mono text-[0.9em]">&quot;system&quot;</code>{" "}
-              against{" "}
-              <code className="mono text-[0.9em]">prefers-color-scheme</code>),
-              then writes the variables,{" "}
-              <code className="mono text-[0.9em]">data-theme</code>,{" "}
-              <code className="mono text-[0.9em]">data-theme-mode</code>,{" "}
-              <code className="mono text-[0.9em]">data-theme-family</code>,{" "}
-              <code className="mono text-[0.9em]">color-scheme</code> and the{" "}
-              <code className="mono text-[0.9em]">.dark</code> class onto{" "}
-              <code className="mono text-[0.9em]">&lt;html&gt;</code>.
-            </li>
-            <li>
-              Injects the script as{" "}
-              <code className="mono text-[0.9em]">&lt;head&gt;</code>-prepend
-              with{" "}
-              <code className="mono text-[0.9em]">enforce: "pre"</code> so it
-              runs before any other head scripts.
-            </li>
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
+            The plugin flattens your themes into CSS-variable tables, generates
+            a self-contained IIFE that resolves the theme before any other
+            script runs, and injects it head-prepend with{" "}
+            <code className="mono text-[0.9em]">enforce: &quot;pre&quot;</code>.
+            End to end:
+          </p>
+          <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5 mb-3">
             <li>
               Fills in any element marked{" "}
               <code className="mono text-[0.9em]">
-                data-tv-readout=&quot;theme&quot; | &quot;mode&quot; |
-                &quot;family&quot; | &quot;var:&lt;name&gt;&quot;
+                data-tv-readout=&quot;theme&quot; | &quot;label&quot; |
+                &quot;mode&quot; | &quot;family&quot; | &quot;var:&lt;name&gt;&quot;
               </code>
-              . The script owns that element&apos;s text: it writes the value it
-              resolved, and watches for readouts that appear later so a
-              prerendered label is corrected before it can be painted. Use it
-              for static markup — inside a component that renders its own text,
-              the component and the script will overwrite each other.
+              . The script owns that element&apos;s text and watches for readouts
+              that appear later so a prerendered label is corrected before paint.
+            </li>
+            <li>
+              Reconciles values into elements marked{" "}
+              <code className="mono text-[0.9em]">
+                data-tv-pressed=&quot;mode&quot; | &quot;family&quot;
+              </code>{" "}
+              (as <code className="mono text-[0.9em]">aria-pressed</code>) and
+              any{" "}
+              <code className="mono text-[0.9em]">data-tv-select</code>{" "}
+              <code className="mono text-[0.9em]">&lt;select&gt;</code>.
             </li>
           </ul>
-          <p className="text-sm opacity-80 leading-relaxed mt-4 mb-3">
-            End to end, from your config file to the runtime:
-          </p>
           <ol className="flex flex-col gap-2">
             {pipelineSteps.map((step, i) => (
               <li key={step.label} className="flex gap-3 items-start">
@@ -916,17 +782,11 @@ export default function VitePluginPage() {
             </p>
           </Callout>
           <p className="text-sm opacity-80 leading-relaxed mt-4 mb-3">
-            What ends up in the served HTML is a single inline script, prepended
-            to the head. It carries two inlined tables — every theme&apos;s
-            variables, keyed by name and by{" "}
-            <code className="mono text-[0.9em]">family:mode</code> — which is
-            what makes it tens of kilobytes, and what lets it resolve the right
-            theme without loading anything:
+            What ends up in the served HTML:
           </p>
-          <CodeBlock
-            html={highlightCode(bootstrapSnippet.code, "html")}
+          <CodeExample
             code={bootstrapSnippet.code}
-            language="html"
+            lang="html"
             filename={bootstrapSnippet.title}
             className="m-0 mt-3"
           />
@@ -939,10 +799,9 @@ export default function VitePluginPage() {
           >
             Options
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(optionsSnippet.code, "ts")}
+          <CodeExample
             code={optionsSnippet.code}
-            language="ts"
+            lang="ts"
             filename={optionsSnippet.title}
             className="m-0"
           />
@@ -976,41 +835,9 @@ export default function VitePluginPage() {
             The first render
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            A client-rendered React app can paint one frame — ~33&nbsp;ms —
-            with the root still empty before React commits, which reads as the
-            UI <strong>blinking</strong> on reload. It is not a theming problem:
-            the canvas is already correct (that is what the bootstrap above is
-            for). It is React&apos;s concurrent root scheduling the initial
-            commit.
-          </p>
-          <Callout variant="neutral" title="Why a provider cannot fix it">
-            <p className="text-sm leading-relaxed">
-              That frame is painted <em>before any of your React code runs</em>,
-              so no component, insertion effect or layout effect is in time.
-              It has to happen at the root.{" "}
-              <code className="mono text-[0.9em]">syncFirstRender</code> (on by
-              default) resolves{" "}
-              <code className="mono text-[0.9em]">react-dom/client</code> to a
-              shim that flushes the <strong>first</strong>{" "}
-              <code className="mono text-[0.9em]">render</code> call
-              synchronously. Every later render keeps React&apos;s normal
-              concurrent scheduling,{" "}
-              <code className="mono text-[0.9em]">hydrateRoot</code> is
-              untouched so SSR apps are unaffected, and your application code
-              does not change —{" "}
-              <code className="mono text-[0.9em]">&lt;ThemeProvider&gt;</code>{" "}
-              alone is enough. The alias applies only to imports from{" "}
-              <strong>your own source</strong>: a dependency that creates its
-              own root resolves the real{" "}
-              <code className="mono text-[0.9em]">react-dom/client</code> and is
-              left exactly as it was.
-            </p>
-          </Callout>
-          <p className="text-sm opacity-80 leading-relaxed mt-3">
-            The window <em>before the bundle runs</em> is out of scope for
-            anything library-side: until your entry module executes, the root is
-            empty by definition. A themed canvas keeps that window from reading
-            as a flash, and only a prerendered first paint puts content in it.
+            React&apos;s concurrent scheduling means the first render is
+            synchronous. The plugin&apos;s bootstrap covers the gap between the
+            HTML and the first commit. See the React docs for details.
           </p>
         </section>
 
@@ -1023,22 +850,18 @@ export default function VitePluginPage() {
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
             The Vite plugin only transforms{" "}
-            <code className="mono text-[0.9em]">index.html</code>, which an SSR
-            framework never serves. Those frameworks have their own package that
-            resolves the theme on the server and emits the same bootstrap into
-            the response, so the first server-painted HTML already carries{" "}
-            <code className="mono text-[0.9em]">data-theme</code> and the
-            variables.
+            <code className="mono text-[0.9em]">index.html</code>, which SSR
+            frameworks never serve. Use their own package, which emits the same
+            bootstrap into the server response.
           </p>
           <div className="space-y-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
                 Next.js
               </div>
-              <CodeBlock
-                html={highlightCode(ssrNextSnippet.code, "ts")}
+              <CodeExample
                 code={ssrNextSnippet.code}
-                language="ts"
+                lang="ts"
                 filename={ssrNextSnippet.title}
                 className="m-0"
               />
@@ -1047,10 +870,9 @@ export default function VitePluginPage() {
               <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
                 Nuxt
               </div>
-              <CodeBlock
-                html={highlightCode(ssrNuxtSnippet.code, "ts")}
+              <CodeExample
                 code={ssrNuxtSnippet.code}
-                language="ts"
+                lang="ts"
                 filename={ssrNuxtSnippet.title}
                 className="m-0"
               />
@@ -1059,10 +881,9 @@ export default function VitePluginPage() {
               <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
                 Remix
               </div>
-              <CodeBlock
-                html={highlightCode(ssrRemixSnippet.code, "tsx")}
+              <CodeExample
                 code={ssrRemixSnippet.code}
-                language="tsx"
+                lang="tsx"
                 filename={ssrRemixSnippet.title}
                 className="m-0"
               />
@@ -1109,26 +930,21 @@ export default function VitePluginPage() {
             ))}
           </div>
           <p className="text-sm opacity-80 leading-relaxed mt-4 mb-3">
-            Two warnings are worth recognising on sight. Both come from the
-            loader, and both mean discovery returned{" "}
-            <code className="mono text-[0.9em]">null</code> — so the bootstrap
-            silently fell back to the built-in themes rather than failing the
-            build:
+            Two warnings mean discovery returned{" "}
+            <code className="mono text-[0.9em]">null</code> — the bootstrap
+            silently fell back to built-in themes rather than failing the build:
           </p>
-          <CodeBlock
-            html={highlightCode(discoveryWarnings, "bash")}
+          <CodeExample
             code={discoveryWarnings}
-            language="bash"
+            lang="bash"
             filename="what a failed discovery looks like"
             className="m-0"
           />
           <p className="text-sm opacity-80 leading-relaxed mt-3">
-            The first means Vite could not be resolved from your project, which a
-            TypeScript config needs in order to load — declare{" "}
-            <code className="mono text-[0.9em]">vite</code>, or pass the config
-            object directly. The second means the file was found but Vite rejected
-            its shape, which in practice is a config with only a named export;
-            discovery reads the default export.
+            The first means Vite could not be resolved — declare{" "}
+            <code className="mono text-[0.9em]">vite</code> as a dependency, or
+            pass the config object directly. The second means the file was found
+            but Vite rejected its shape; discovery reads the default export.
           </p>
         </section>
 

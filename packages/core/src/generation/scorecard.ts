@@ -30,9 +30,13 @@ import {
   deltaEOklch,
   hexToOklchMapped,
   hueDistance,
+  oklchToHex,
+  parseColor,
   tryParseColor,
   type Oklch,
 } from "../color";
+import { adjustLightness, gamutMapOklch } from "../color/adjust";
+import { relativeLuminance } from "../color/luminance";
 import { CORE_COLORS, type CoreColor } from "../model/semantic-roles";
 import type { ThemeDefinition } from "../model/theme";
 import { floorFor, SEMANTIC_PAIRS } from "./contract";
@@ -97,6 +101,80 @@ export interface MeasuredPair {
   floor: number;
   /** Whether the floor is met. */
   passes: boolean;
+  /** Which token is too light/dark, when the pair fails. Absent when the pair passes. */
+  readonly direction?: ContrastFailureDirection;
+  /** How far below the floor, when the pair fails. Absent when the pair passes. */
+  readonly severity?: ContrastSeverity;
+}
+
+/**
+ * Which side of a failing contrast pair is responsible.
+ *
+ * Determined from the luminance relationship: if the foreground is lighter than
+ * the background but the ratio still fails, the foreground needs to be darker
+ * (or the background lighter). The direction tells the user which token to
+ * adjust and in which direction.
+ */
+export type ContrastFailureDirection =
+  | "foreground-too-light"
+  | "foreground-too-dark"
+  | "background-too-light"
+  | "background-too-dark";
+
+/**
+ * How far below the floor a contrast pair sits.
+ *
+ * - `near-miss`: within 0.3 of the floor (e.g. 4.2:1 vs 4.5:1).
+ * - `moderate`: 0.3–1.0 below the floor.
+ * - `critical`: more than 1.0 below the floor.
+ */
+export type ContrastSeverity = "near-miss" | "moderate" | "critical";
+
+/**
+ * Classify how far below the floor a ratio sits.
+ *
+ * @param ratio - The measured ratio.
+ * @param floor - The required floor.
+ * @returns The severity, or undefined when the pair passes.
+ */
+export function classifyContrastSeverity(ratio: number, floor: number): ContrastSeverity | undefined {
+  if (ratio >= floor) return undefined;
+  const deficit = floor - ratio;
+  if (deficit <= 0.3) return "near-miss";
+  if (deficit <= 1.0) return "moderate";
+  return "critical";
+}
+
+/**
+ * Determine which side of a failing pair is responsible.
+ *
+ * The direction is derived from the luminance relationship: when the foreground
+ * is lighter than the background and the ratio still fails, the foreground is
+ * "too light" (it needs to be darker to increase contrast). The opposite holds
+ * when the foreground is darker.
+ *
+ * @param fgLuminance - The foreground's relative luminance.
+ * @param bgLuminance - The background's relative luminance.
+ * @param ratio - The measured ratio.
+ * @param floor - The required floor.
+ * @returns The direction, or undefined when the pair passes.
+ */
+export function analyzeContrastDirection(
+  fgLuminance: number,
+  bgLuminance: number,
+  ratio: number,
+  floor: number,
+): ContrastFailureDirection | undefined {
+  if (ratio >= floor) return undefined;
+
+  if (fgLuminance > bgLuminance) {
+    // Foreground is lighter but contrast still fails → foreground is too light
+    // (or background is too light, making them too close).
+    return "foreground-too-light";
+  }
+  // Foreground is darker but contrast still fails → foreground is too dark
+  // (or background is too dark, making them too close).
+  return "foreground-too-dark";
 }
 
 /**
@@ -121,6 +199,18 @@ export function measureThemeContrast(theme: ThemeDefinition): MeasuredPair[] {
 
     const ratio = contrastRatioHex(fg, bg);
     const floor = floorFor(pair.requirement);
+    const passes = ratio >= floor;
+
+    const direction = passes
+      ? undefined
+      : analyzeContrastDirection(
+          relativeLuminance(parseColor(fg)),
+          relativeLuminance(parseColor(bg)),
+          ratio,
+          floor,
+        );
+    const severity = passes ? undefined : classifyContrastSeverity(ratio, floor);
+
     return [
       {
         foreground: pair.foreground,
@@ -128,10 +218,182 @@ export function measureThemeContrast(theme: ThemeDefinition): MeasuredPair[] {
         requirement: pair.requirement,
         ratio,
         floor,
-        passes: ratio >= floor,
+        passes,
+        ...(direction === undefined ? {} : { direction }),
+        ...(severity === undefined ? {} : { severity }),
       },
     ];
   });
+}
+
+/** Safety margin added to the floor when suggesting fixes. */
+const SUGGESTION_SAFETY_MARGIN = 0.25;
+
+/** Maximum lightness adjustment steps for binary search. */
+const SUGGESTION_SEARCH_STEPS = 20;
+
+/**
+ * A suggested fix for a contrast failure.
+ */
+export interface ContrastFixSuggestion {
+  /** The token to adjust. */
+  readonly token: string;
+  /** The suggested new value. */
+  readonly value: string;
+  /** Which other pairs would be affected by this change. */
+  readonly affected: readonly string[];
+  /** Whether this suggestion would break any currently-passing pairs. */
+  readonly breaksExisting: boolean;
+}
+
+/**
+ * Suggest a minimal fix for a contrast failure.
+ *
+ * Evaluates both foreground and background adjustment candidates, selects the
+ * one that breaks fewer existing pairs, and returns the suggestion. Returns
+ * undefined if neither candidate produces a safe result.
+ *
+ * @param theme - The theme containing the failing pair.
+ * @param foreground - The foreground token name.
+ * @param background - The background token name.
+ * @returns A suggestion, or undefined if no safe fix exists.
+ */
+export function suggestContrastFix(
+  theme: ThemeDefinition,
+  foreground: string,
+  background: string,
+): ContrastFixSuggestion | undefined {
+  const colors = (theme.tokens?.colors ?? {}) as Record<string, string | undefined>;
+  const fgValue = colors[foreground];
+  const bgValue = colors[background];
+  if (typeof fgValue !== "string" || typeof bgValue !== "string") return undefined;
+  if (!tryParseColor(fgValue) || !tryParseColor(bgValue)) return undefined;
+
+  // Find the requirement for this pair.
+  const pair = SEMANTIC_PAIRS.find((p) => p.foreground === foreground && p.background === background);
+  if (!pair) return undefined;
+  const floor = floorFor(pair.requirement);
+  const target = floor + SUGGESTION_SAFETY_MARGIN;
+
+  // Check if the pair already passes the target.
+  const currentRatio = contrastRatioHex(fgValue, bgValue);
+  if (currentRatio >= target) return undefined;
+
+  const fgOklch = hexToOklchMapped(fgValue);
+  const bgOklch = hexToOklchMapped(bgValue);
+  const fgLum = relativeLuminance(parseColor(fgValue));
+  const bgLum = relativeLuminance(parseColor(bgValue));
+
+  // Determine adjustment direction: to increase contrast, move the lighter color
+  // lighter and the darker color darker.
+  const fgDirection = fgLum > bgLum ? 1 : -1;
+  const bgDirection = bgLum > fgLum ? 1 : -1;
+
+  // Try adjusting foreground.
+  const fgCandidate = findMinimalAdjustment(fgOklch, fgLum, bgLum, target, fgDirection);
+  // Try adjusting background.
+  const bgCandidate = findMinimalAdjustment(bgOklch, bgLum, fgLum, target, bgDirection);
+
+  // Evaluate which candidate is safer.
+  const fgImpact = fgCandidate ? evaluateImpact(theme, foreground, fgCandidate.value) : null;
+  const bgImpact = bgCandidate ? evaluateImpact(theme, background, bgCandidate.value) : null;
+
+  // Prefer the candidate that breaks fewer pairs.
+  if (fgImpact && bgImpact) {
+    if (fgImpact.breaksExisting === bgImpact.breaksExisting) {
+      // Both break the same number (or none). Prefer the one with fewer affected pairs.
+      return fgImpact.affected.length <= bgImpact.affected.length ? fgImpact : bgImpact;
+    }
+    return fgImpact.breaksExisting ? bgImpact : fgImpact;
+  }
+  if (fgImpact) return fgImpact;
+  if (bgImpact) return bgImpact;
+  return undefined;
+}
+
+/**
+ * Find the minimal lightness adjustment that reaches the target contrast.
+ *
+ * Uses binary search to find the smallest change. Returns the adjusted color
+ * and the new contrast ratio, or undefined if no adjustment within the search
+ * range reaches the target.
+ */
+function findMinimalAdjustment(
+  oklch: Oklch,
+  lum: number,
+  otherLum: number,
+  target: number,
+  direction: number,
+): { value: string; ratio: number } | undefined {
+  let low = 0;
+  let high = 0.5; // Maximum lightness adjustment
+  let best: { value: string; ratio: number } | undefined;
+
+  for (let step = 0; step < SUGGESTION_SEARCH_STEPS; step++) {
+    const mid = (low + high) / 2;
+    const adjusted = gamutMapOklch(adjustLightness(oklch, mid * direction));
+    const adjustedLum = relativeLuminance(parseColor(oklchToHex(adjusted)));
+    const ratio =
+      adjustedLum > otherLum
+        ? (adjustedLum + 0.05) / (otherLum + 0.05)
+        : (otherLum + 0.05) / (adjustedLum + 0.05);
+
+    if (ratio >= target) {
+      best = { value: oklchToHex(adjusted), ratio };
+      high = mid; // Try smaller adjustment
+    } else {
+      low = mid; // Need larger adjustment
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Evaluate the impact of changing a token to a new value.
+ *
+ * Checks all pairs involving the token and reports which would be affected.
+ */
+function evaluateImpact(
+  theme: ThemeDefinition,
+  token: string,
+  newValue: string,
+): ContrastFixSuggestion | undefined {
+  const colors = (theme.tokens?.colors ?? {}) as Record<string, string | undefined>;
+  const affected: string[] = [];
+  let breaksExisting = false;
+
+  for (const pair of SEMANTIC_PAIRS) {
+    if (pair.foreground !== token && pair.background !== token) continue;
+
+    const fg = pair.foreground === token ? newValue : colors[pair.foreground];
+    const bg = pair.background === token ? newValue : colors[pair.background];
+    if (typeof fg !== "string" || typeof bg !== "string") continue;
+    if (!tryParseColor(fg) || !tryParseColor(bg)) continue;
+
+    const oldRatio = contrastRatioHex(
+      colors[pair.foreground] ?? "#000000",
+      colors[pair.background] ?? "#ffffff",
+    );
+    const newRatio = contrastRatioHex(fg, bg);
+    const floor = floorFor(pair.requirement);
+
+    // If this pair was passing and now fails, we're breaking an existing pair.
+    if (oldRatio >= floor && newRatio < floor) {
+      breaksExisting = true;
+    }
+    // If the ratio changed significantly, it's affected.
+    if (Math.abs(newRatio - oldRatio) > 0.1) {
+      affected.push(pair.foreground === token ? pair.background : pair.foreground);
+    }
+  }
+
+  return {
+    token,
+    value: newValue,
+    affected,
+    breaksExisting,
+  };
 }
 
 function toOklch(value: string | undefined): Oklch | null {

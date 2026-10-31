@@ -1,0 +1,31 @@
+/* Framework-independent base styles shared by every example app.
+   Import it after Tailwind and @themvora/tailwind in the app stylesheet. */
+
+* {
+  box-sizing: border-box;
+  font-family: "Geist", sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.page {
+  width: 100%;
+  min-height: 100dvh;
+  padding-inline: clamp(0rem, 1vw, 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Gradient headline stroke for the hero word-mark. Uses the live token so it
+   stays correct across themes and modes without any JS. */
+.hero-title-stroke {
+  -webkit-text-stroke: 0.5px
+    color-mix(in srgb, var(--theme-color-primary) 75%, #000);
+  paint-order: stroke fill;
+}

@@ -42,8 +42,46 @@ function contrastRatio(a: string, b: string): number {
 const INK_CANDIDATES = ["#ffffff", "#0f172a", "#020617", "#000000"] as const;
 
 /**
+ * Darken or lighten a hex color in sRGB space until it achieves the target
+ * contrast ratio against the reference color. Returns the adjusted color, or
+ * the original if no adjustment within 50 steps reaches the target.
+ */
+function adjustBackgroundForContrast(
+  bg: string,
+  fg: string,
+  target: number,
+): string {
+  if (contrastRatio(fg, bg) >= target) return bg;
+
+  const fgLum = relativeLuminance(fg);
+  const bgLum = relativeLuminance(bg);
+  const shouldDarken = bgLum > fgLum;
+
+  const h = bg.replace("#", "");
+  let r = parseInt(h.slice(0, 2), 16);
+  let g = parseInt(h.slice(2, 4), 16);
+  let b = parseInt(h.slice(4, 6), 16);
+
+  for (let i = 0; i < 50; i++) {
+    if (shouldDarken) {
+      r = Math.max(0, r - 5);
+      g = Math.max(0, g - 5);
+      b = Math.max(0, b - 5);
+    } else {
+      r = Math.min(255, r + 5);
+      g = Math.min(255, g + 5);
+      b = Math.min(255, b + 5);
+    }
+    const candidate = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+    if (contrastRatio(fg, candidate) >= target) return candidate;
+  }
+  return bg;
+}
+
+/**
  * Moves a foreground onto the candidate ink with the best contrast when the authored
- * value fails the AA floor.
+ * value fails the AA floor. If no ink candidate reaches 4.5:1, the background is
+ * darkened or lightened until the target is met.
  *
  * ## Why this exists
  *
@@ -63,11 +101,13 @@ const INK_CANDIDATES = ["#ffffff", "#0f172a", "#020617", "#000000"] as const;
  * Fixing 49 sites individually leaves the 50th to break the same way. One pass here
  * makes the contract hold for every built-in theme, including generated ones.
  *
- * ## Only the ink moves
+ * ## Only the ink moves first; the surface moves if it must
  *
- * The surface is left exactly as authored. A brand color is what carries the
- * identity; the foreground is what has to be readable on it. That keeps the brand
- * seed exact, which is the whole point of the brand presets.
+ * The surface is left exactly as authored when a foreground swap suffices. A brand
+ * color is what carries the identity; the foreground is what has to be readable on
+ * it. When no ink candidate reaches 4.5:1 (e.g. a mid-tone red that cannot host
+ * either white or dark text), the background is nudged toward black or white —
+ * whichever direction restores contrast — by the smallest increment that works.
  */
 function ensureReadableContrast<T extends { tokens?: { colors?: Record<string, string> } }>(
   theme: T,
@@ -91,6 +131,10 @@ function ensureReadableContrast<T extends { tokens?: { colors?: Record<string, s
       }
     }
     colors[fgKey] = best;
+
+    if (bestRatio < 4.5) {
+      colors[bgKey] = adjustBackgroundForContrast(bg, best, 4.5);
+    }
   }
   return theme;
 }

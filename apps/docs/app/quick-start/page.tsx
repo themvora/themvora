@@ -5,44 +5,69 @@ import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { QuickStartGuide } from "../../components/quick-start/guide";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { Button } from "../../components/ui/button";
 import type { PackageManager } from "../../components/install-command";
 import { frameworks } from "../../lib/frameworks";
+import type { FrameworkSnippet } from "../../lib/frameworks";
 import { highlightCode } from "../../lib/highlight";
+import { codeContent, type CodeContent } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/quick-start") },
   title: "Quick Start",
   description:
-    "From zero to a themed app with no token definitions: install the core and your framework adapter, wrap your app, and toggle light/dark.",
+    "From zero to a themed app with no token definitions: install the core and your framework adapter, register the runtime, and toggle light/dark.",
 };
 
 const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
 
 type InstallCommandEntry = { code: string; html: string };
 
-// All code highlighting happens here, server-side (Shiki lives in the Node
-// bundle, not the browser). The client guide receives precomputed HTML.
-const frameworkHtml: Record<string, string> = Object.fromEntries(
-  frameworks.map((fw) => [
-    fw.slug,
-    highlightCode(fw.noTheme.code, fw.noTheme.lang),
-  ]),
+/**
+ * Both language forms of a snippet, highlighted here on the server.
+ *
+ * Shiki and the TypeScript compiler both live in the Node bundle, and this page's
+ * guide is a client component, so the markup travels down as data. Every entry
+ * carries `html` for the TypeScript form; `variants` is present only when a
+ * JavaScript form exists, and its absence is what suppresses the selector.
+ *
+ * `html` is not optional. A block whose snippet has no second form is the common
+ * case here — 63 of the 83 snippets in `lib/frameworks.tsx` are already
+ * JavaScript or are not TypeScript at all — and passing `variants` alone left
+ * every one of them with an empty pane.
+ *
+ * `framework` is the entry's own slug, not the snippet's language. Angular's
+ * Quick Start examples are TypeScript-only by decision, so the slug is what keeps
+ * a selector off them; see `TYPESCRIPT_ONLY_FRAMEWORKS`.
+ */
+function contentFor(
+  snippet: FrameworkSnippet,
+  framework: string,
+): CodeContent {
+  return codeContent(
+    { code: snippet.code, lang: snippet.lang, framework, filename: snippet.title },
+    highlightCode,
+  );
+}
+
+const frameworkContent: Record<string, CodeContent> = Object.fromEntries(
+  frameworks.map((fw) => [fw.slug, contentFor(fw.noTheme, fw.slug)]),
 );
 
-const setupExtraHtml: Record<string, string> = Object.fromEntries(
-  frameworks.map((fw) => [
-    fw.slug,
-    fw.setupExtra ? highlightCode(fw.setupExtra.code, fw.setupExtra.lang) : "",
-  ]),
-);
+const setupExtraContent: Record<string, CodeContent | undefined> =
+  Object.fromEntries(
+    frameworks.map((fw) => [
+      fw.slug,
+      fw.setupExtra ? contentFor(fw.setupExtra, fw.slug) : undefined,
+    ]),
+  );
 
-const switchHtml: Record<string, string> = Object.fromEntries(
+const switchContent: Record<string, CodeContent> = Object.fromEntries(
   frameworks.map((fw) => {
     const snippet = fw.switchSnippet ?? fw.snippet;
-    return [fw.slug, highlightCode(snippet.code, snippet.lang)];
+    return [fw.slug, contentFor(snippet, fw.slug)];
   }),
 );
 
@@ -74,8 +99,7 @@ const installCommands: Record<
  *
  * The snippets come from the Astro entry itself — `snippet2` is the
  * framework-free switch, `reactSetup` is the config with the renderer — so the
- * two pages render one definition. Only the highlighting happens here, because
- * Shiki lives in the Node bundle and the guide is a client component.
+ * two pages render one definition.
  */
 const astro = frameworks.find((fw) => fw.slug === "astro");
 
@@ -84,19 +108,35 @@ const astro = frameworks.find((fw) => fw.slug === "astro");
  *
  * Every framework entry points its `styles` slot at the same source — only the
  * file name differs — so this is one string rather than a per-framework map.
- * Highlighting it from the first entry keeps the page reading the same data the
- * guide does, instead of a copy.
+ * It is CSS, so it has no language variants.
  */
 const stylesHtml = highlightCode(
   frameworks[0]!.styles.code,
   frameworks[0]!.styles.lang,
 );
 
+/**
+ * The small themed UI both this page and every guide render.
+ *
+ * Highlighted per framework here because the guide is a client component and
+ * Shiki lives in the Node bundle; the stylesheet is one string because it is
+ * deliberately identical in every framework. Every framework entry defines one
+ * today, but the slot is optional in the type, so the guide omits the block
+ * rather than rendering an empty one.
+ */
+const uiExampleContent: Record<string, CodeContent | undefined> =
+  Object.fromEntries(
+    frameworks.map((fw) => [
+      fw.slug,
+      fw.uiExample ? contentFor(fw.uiExample, fw.slug) : undefined,
+    ]),
+  );
+
 // Astro's setup is three files — `theme.config.ts`, `astro.config.ts` and the
 // layout — so the guide renders them from the entry's own slots rather than the
 // generic `noTheme` + `setupExtra` pair. Keyed by the snippet's title so the
-// component cannot pair the wrong HTML with a snippet if the order changes.
-const astroSetupHtml: Record<string, string> = {};
+// component cannot pair the wrong variants with a snippet if the order changes.
+const astroSetupContent: Record<string, CodeContent | undefined> = {};
 if (astro) {
   for (const snippet of [
     astro.quickStart,
@@ -105,18 +145,18 @@ if (astro) {
     astro.reactSetup,
   ]) {
     if (snippet) {
-      astroSetupHtml[snippet.title] = highlightCode(snippet.code, snippet.lang);
+      astroSetupContent[snippet.title] = contentFor(snippet, astro.slug);
     }
   }
 }
 
-const astroHtml = astro
+const astroContent = astro
   ? {
-      onlySwitch: highlightCode(astro.snippet2.code, astro.snippet2.lang),
+      onlySwitch: contentFor(astro.snippet2, astro.slug),
       reactSetup: astro.reactSetup
-        ? highlightCode(astro.reactSetup.code, astro.reactSetup.lang)
-        : "",
-      setupHtml: astroSetupHtml,
+        ? contentFor(astro.reactSetup, astro.slug)
+        : undefined,
+      setupContent: astroSetupContent,
       reactInstall: Object.fromEntries(
         MANAGERS.map((manager) => {
           const pkgsArg = [
@@ -158,7 +198,7 @@ export default function QuickStartPage() {
         <PageHeader
           eyebrow="Quickstart"
           title="Quick Start"
-          description="The shortest path to a working light/dark theme. No token definitions, no configuration — install, wrap, and toggle."
+          description="The shortest path to a working light/dark theme. No token definitions, no configuration — install, register the runtime, and toggle."
         />
         <Prerequisites
           items={[
@@ -169,12 +209,13 @@ export default function QuickStartPage() {
           className="mb-8"
         />
         <QuickStartGuide
-          frameworkHtml={frameworkHtml}
-          setupExtraHtml={setupExtraHtml}
-          switchHtml={switchHtml}
+          frameworkContent={frameworkContent}
+          setupExtraContent={setupExtraContent}
+          switchContent={switchContent}
           stylesHtml={stylesHtml}
           installCommands={installCommands}
-          astroHtml={astroHtml}
+          astroContent={astroContent}
+          uiExampleContent={uiExampleContent}
         />
 
         <SectionHeading id="real-themes" className="mt-12">
@@ -185,10 +226,9 @@ export default function QuickStartPage() {
           them is a valid choice. When you want your own palette, define a theme
           and pass it in — the built-ins stay available alongside it.
         </p>
-        <CodeBlock
-          html={highlightCode(buildIncludedCode, "ts")}
+        <CodeExample
           code={buildIncludedCode}
-          language="ts"
+          lang="ts"
           filename="your themes alongside the built-in set"
           className="rounded-lg m-0"
         />

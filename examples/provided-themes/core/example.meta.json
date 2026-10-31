@@ -1,0 +1,16 @@
+{
+  "feature": "provided-themes",
+  "framework": "core",
+  "packages": ["@themvora/core"],
+  "peerDependencies": [],
+  "files": ["src/example.ts"],
+  "entry": "src/example.ts",
+  "prerequisites": [],
+  "expectedExportsUsed": [
+    "defineTheme",
+    "normalizeProvidedThemes",
+    "resolveThemeReference",
+    "resolveThemeOverride",
+    "themeOverrideKey"
+  ]
+}

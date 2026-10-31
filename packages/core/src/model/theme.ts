@@ -52,6 +52,54 @@ export interface ThemeDefinition<Name extends ThemeName = ThemeName> {
 }
 
 /**
+ * The literal family union of a **single** theme definition type.
+ *
+ * `ThemeFamilies` below does this for a tuple; the provider's selection props
+ * are typed against the element type, so they need the same derivation one level
+ * down. Resolves to `string` when the definition does not state a literal family
+ * (a `ThemeDefinition[]` variable, a generated catalog), which keeps the
+ * dynamic-input path working.
+ */
+export type ThemeFamilyOf<T extends ThemeDefinition> = [
+  T["meta"] extends { family?: infer F }
+    ? F extends string
+      ? F
+      : never
+    : never,
+] extends [never]
+  ? string
+  : T["meta"] extends { family?: infer F }
+    ? F extends string
+      ? F
+      : string
+    : string;
+
+/**
+ * Every way a caller can name a provided theme.
+ *
+ * A **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`) — the two
+ * forms {@link resolveThemeReference} accepts. Derived from the theme definitions
+ * the caller passes, so a statically known collection autocompletes both; a
+ * dynamically built one widens to `string` rather than becoming unusable.
+ *
+ * @typeParam T - The theme definition type used by the application.
+ *
+ * @example
+ * ```ts
+ * const themes = [
+ *   { name: "oat-light",   meta: { family: "oat",   mode: "light" }, tokens: {} },
+ *   { name: "cocoa-dark",  meta: { family: "cocoa", mode: "dark"  }, tokens: {} },
+ * ] as const;
+ *
+ * // ThemeIdentifier<typeof themes[number]>
+ * //   = "oat-light" | "cocoa-dark" | "oat" | "cocoa"
+ * ```
+ */
+export type ThemeIdentifier<T extends ThemeDefinition> =
+  | T["name"]
+  | ThemeFamilyOf<T>;
+
+/**
  * Extract the literal theme-family union from a tuple of theme definitions.
  * When themes are defined with `as const`, autocomplete shows the available
  * families in `setFamily()` / `initialFamily`:

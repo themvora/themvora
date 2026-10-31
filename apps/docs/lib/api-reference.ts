@@ -64,7 +64,7 @@ export const apiPackages: ApiPackage[] = [
   {
     slug: "nuxt",
     name: "@themvora/nuxt",
-    tagline: "Nuxt 3 module with SSR-first theming, zero-flash bootstrap, cookie sync and auto-imported composables.",
+    tagline: "Nuxt 4 module with SSR-first theming, zero-flash bootstrap, cookie sync and auto-imported composables.",
   },
   {
     slug: "remix",

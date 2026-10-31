@@ -26,4 +26,39 @@ minimumReleaseAgeExclude:
   - "@angular/build@22.2.3"
   - "@angular/cli@22.2.3"
   - "@schematics/angular@22.2.3"
+  - node-forge@1.4.1
+  - postcss@8.5.32
 verifyDepsBeforeRun: false
+
+# Transitive fixes for advisories no direct dependency has released a fix for.
+# Keys are scoped by major so an override cannot silently move a package across
+# a major boundary it was not tested against. `postcss` is the one entry outside
+# the dependent package's pinned range (next pins 8.4.31 exactly); see
+# "Themvora Security & Reliability Remediation.md" for the verification.
+overrides:
+  js-yaml@4: ^4.3.2
+  nanoid@3: ^3.3.18
+  fast-uri@3: ^3.1.9
+  smol-toml@1: ^1.9.0
+  source-map-js@1: ^1.2.2
+  launch-editor@2: ^2.14.2
+  body-parser@1: ^1.20.9
+  serialize-javascript@7: ^7.1.3
+  postcss-selector-parser@7: ^7.1.6
+  http-cache-semantics@4: ^4.3.0
+  node-forge@1: ^1.4.1
+  probe-image-size@7: ^7.4.0
+  svgo@4: ^4.1.0
+  devalue@5: ^5.9.3
+  seroval@1: ^1.6.3
+  shell-quote@1: ^1.11.0
+  "@vue/server-renderer@3": ^3.5.42
+  # One Vue copy for the whole workspace. Nuxt 4 resolves its own Vue for SSR;
+  # a second copy (e.g. 3.5.40 vs 3.5.44) splits Vue's module-level render state,
+  # so a library component's hand-written render function calling an SSR-compiled
+  # slot throws "Cannot read properties of null (reading 'ce')".
+  vue@3: ^3.5.44
+  vite@6: ^6.4.4
+  vite@7: ^7.3.7
+  postcss@8: ^8.5.32
+  sharp@0: ^0.35.5

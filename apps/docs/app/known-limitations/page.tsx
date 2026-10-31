@@ -169,7 +169,7 @@ export default function KnownLimitationsPage() {
             <li><strong>Angular</strong> — the docs app and adapters are verified against the
               standalone <code>provideTheme</code> integration; Angular Universal streaming is not
               verified.</li>
-            <li><strong>Nuxt</strong> — the module targets Nuxt 3.10+; auto-imported composables work
+            <li><strong>Nuxt</strong> — the module targets Nuxt 4 (compatible with 3.10+); auto-imported composables work
               in the app directory, and server utilities are exported from the package root.</li>
           </ul>
           <p className="text-sm opacity-80 leading-relaxed mb-3">

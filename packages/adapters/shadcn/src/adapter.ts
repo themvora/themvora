@@ -48,7 +48,7 @@ export interface CreateShadcnAdapterOptions extends ShadcnAdapterOptions {
  * ```ts
  * import { createShadcnAdapter } from "@themvora/shadcn";
  *
- * runtime.installAdapter(createShadcnAdapter());
+ * runtime.adapters.use(createShadcnAdapter());
  * ```
  *
  * @see {@link useShadcnTheme}

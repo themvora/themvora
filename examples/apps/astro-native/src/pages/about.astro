@@ -1,0 +1,34 @@
+---
+// src/pages/about.astro — a second page, for client-side navigation.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+import themeConfig from "../../theme.config";
+---
+
+<BaseLayout>
+  <main>
+    <h1>About</h1>
+
+    <section class="surface">
+      <p class="muted">
+        A second page with its own copy of the same controls. Navigate between
+        this page and the home page: the theme, the selection, the readouts and
+        both controls stay in sync, because the bindings are delegated from
+        <code>document</code> rather than bound per element.
+      </p>
+
+      <ThemeFamilySelect themes={themeConfig.themes} />
+
+      <ThemeToggle class="btn" label="Toggle light/dark" />
+
+      <p class="muted">
+        family: <span data-tv-readout="family">—</span>
+        · mode: <span data-tv-readout="mode">—</span>
+        · theme: <span data-tv-readout="theme">—</span>
+      </p>
+
+      <p><a href="/">Back home</a></p>
+    </section>
+  </main>
+</BaseLayout>

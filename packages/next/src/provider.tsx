@@ -3,8 +3,11 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import {
   createThemeRuntime,
+  resolveThemeOverride,
   type InitialThemeResolution,
   type ThemeDefinition,
+  type ThemeIdentifier,
+  type ThemeOverride,
   type ThemeRuntime,
 } from "@themvora/core";
 import {
@@ -17,7 +20,16 @@ import { computeFingerprint } from "./fingerprint";
 export interface ClientThemeProviderProps<T extends ThemeDefinition> {
   initial: InitialThemeResolution<T>;
   themes?: readonly T[];
-  defaultTheme?: string;
+  /** Fallback theme when no selection is persisted. Accepts a theme **name**
+   * (`"cocoa-light"`) or a **family** (`"cocoa"`). */
+  defaultTheme?: ThemeIdentifier<T>;
+  /**
+   * An explicit theme override applied over the cookie-backed selection.
+   *
+   * Applied once per value, never written to the theme cookies, and it does not
+   * fight a later manual selection.
+   */
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>> | undefined;
   transition?: boolean | import("@themvora/core").ThemeTransitionOptions;
   /**
    * Sunrise/sunset scheduling. Created client-side only — the server resolves
@@ -44,8 +56,16 @@ function syncDarkClass(theme: ThemeDefinition) {
   document.documentElement.classList.toggle("dark", isDark);
 }
 
-function CookieSync({ fingerprint }: { fingerprint: string }) {
-  const runtime = useThemeRuntime();
+function CookieSync<T extends ThemeDefinition>({
+  fingerprint,
+  themeOverride,
+  themes,
+}: {
+  fingerprint: string;
+  themeOverride?: ThemeOverride<ThemeIdentifier<T>> | undefined;
+  themes?: readonly T[];
+}) {
+  const runtime = useThemeRuntime<T>();
 
   useEffect(() => {
     // Sync from the runtime's *current* theme, never from `initial.theme`.
@@ -58,24 +78,38 @@ function CookieSync({ fingerprint }: { fingerprint: string }) {
     // assumption here would *strip* that class, leaving dark color tokens with
     // light-mode `dark:` variants — a half-themed page. Reading the store is
     // also simply more correct: it is the resolved state, not a stale guess.
-    const current = runtime.store.get();
-    syncDarkClass(current);
+    // An override is a transient preview, not a user choice: a selection that is
+    // exactly the override must not be written to the cookies, or reloading the
+    // page would keep it after the prop is gone. Anything the visitor selects
+    // afterwards differs from the override and persists normally.
+    const isOverrideSelection = () => {
+      if (themeOverride === undefined || !themes) return false;
+      const current = runtime.selection.getSelection();
+      const resolved = resolveThemeOverride(themes, themeOverride, current);
+      return (
+        resolved !== null &&
+        resolved.family === current.family &&
+        resolved.mode === current.mode
+      );
+    };
 
-    writeCookie("theme-family", runtime.selection.getFamily());
-    writeCookie("theme-mode", runtime.selection.getMode());
-    writeCookie("theme-name", String(current.name));
-    writeCookie("theme-fingerprint", fingerprint);
-
-    const unsubscribe = runtime.store.subscribe((theme) => {
+    const persist = (theme: ThemeDefinition) => {
       syncDarkClass(theme);
+      if (isOverrideSelection()) return;
       writeCookie("theme-name", String(theme.name));
       writeCookie("theme-family", runtime.selection.getFamily());
       writeCookie("theme-mode", runtime.selection.getMode());
       writeCookie("theme-fingerprint", fingerprint);
+    };
+
+    persist(runtime.store.get());
+
+    const unsubscribe = runtime.store.subscribe((theme) => {
+      persist(theme);
     });
 
     return unsubscribe;
-  }, [runtime, fingerprint]);
+  }, [runtime, fingerprint, themeOverride, themes]);
 
   return null;
 }
@@ -84,6 +118,7 @@ export function ClientThemeProvider<T extends ThemeDefinition>({
   initial,
    themes,
    defaultTheme,
+   themeOverride,
    transition,
    scheduled,
    adapters,
@@ -122,6 +157,7 @@ export function ClientThemeProvider<T extends ThemeDefinition>({
       ...(defaultTheme !== undefined
         ? { defaultTheme: defaultTheme as T["name"] }
         : {}),
+      ...(themeOverride !== undefined ? { themeOverride } : {}),
       initial,
       readPersistenceOnInit: false,
       persistence,
@@ -161,13 +197,20 @@ export function ClientThemeProvider<T extends ThemeDefinition>({
       initial={initial}
       {...(themes ? { themes } : {})}
       {...(defaultTheme !== undefined ? { defaultTheme: defaultTheme as T["name"] } : {})}
+      // Passed unconditionally: the React provider decides when to forward it,
+      // and it needs the key present to observe a removal.
+      themeOverride={themeOverride}
       readPersistenceOnInit={false}
       persistence={persistence}
       {...(transition !== undefined ? { transition } : {})}
       {...(scheduled !== undefined ? { scheduled } : {})}
       {...(adapters ? { adapters } : {})}
     >
-      <CookieSync fingerprint={fingerprint} />
+      <CookieSync
+        fingerprint={fingerprint}
+        {...(themeOverride !== undefined ? { themeOverride } : {})}
+        {...(themes ? { themes } : {})}
+      />
       {children}
     </ReactThemeProvider>
   );

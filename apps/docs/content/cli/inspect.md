@@ -168,7 +168,7 @@ themvora inspect theme.json --json
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | Inspected successfully. |
-| `1`  | File not found, unreadable, or not valid JSON. |
+| `1`  | File not found, unreadable, or not parseable as JSON or JSONC. |
 | `2`  | No theme file supplied. |
 
 ## Next Steps

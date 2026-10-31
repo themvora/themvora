@@ -28,12 +28,12 @@ export const STATUS_HUES = {
   info: 250,
 } as const;
 
-/** Light-mode status surfaces. */
-const LIGHT_DESTRUCTIVE = { l: 0.55, c: 0.2 } as const;
-const LIGHT_SUCCESS = { l: 0.53, c: 0.15 } as const;
-/** Dark-mode status surfaces. */
-const DARK_DESTRUCTIVE = { l: 0.7, c: 0.16 } as const;
-const DARK_SUCCESS = { l: 0.74, c: 0.15 } as const;
+/** Light-mode status surfaces. Lightness low enough for white text to pass AA 4.5:1. */
+const LIGHT_DESTRUCTIVE = { l: 0.50, c: 0.2 } as const;
+const LIGHT_SUCCESS = { l: 0.50, c: 0.15 } as const;
+/** Dark-mode status surfaces. Lightness low enough for white text to pass AA 4.5:1. */
+const DARK_DESTRUCTIVE = { l: 0.55, c: 0.21 } as const;
+const DARK_SUCCESS = { l: 0.55, c: 0.16 } as const;
 
 /** Generate the status roles for a mode. */
 export function generateStatus(ctx: PaletteContext): StatusRoles {

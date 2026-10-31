@@ -5,7 +5,7 @@ import { ThemeScope as ScopedTheme } from "@themvora/next/client";
 
 const ThemeScope = () => {
   return (
-    <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-label="Theme controls">
+    <section id="scope" className="scroll-mt-24 rounded-xl border border-border bg-card p-5 sm:p-6" aria-label="Theme controls">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <div>
           <h2 className="font-semibold mb-0.5">Theme Scope</h2>

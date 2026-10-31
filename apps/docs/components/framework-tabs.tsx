@@ -11,6 +11,13 @@ export type FrameworkExample = {
   filename?: string;
   /** Precomputed server-side Shiki output for `code`. */
   html: string;
+  /**
+   * The compatibility badge — `TS / JS`, `TSX / JSX`, `TS`, …
+   *
+   * Computed by the server, because it needs the TypeScript compiler. Absent
+   * means "no badge", which is what every non-TypeScript example wants.
+   */
+  displayLanguage?: string;
 };
 
 export function FrameworkTabs({
@@ -51,6 +58,9 @@ export function FrameworkTabs({
         code={current.code}
         language={current.lang}
         filename={current.filename ?? current.label}
+        {...(current.displayLanguage
+          ? { displayLanguage: current.displayLanguage }
+          : {})}
         className="rounded-lg m-0"
       />
     </div>

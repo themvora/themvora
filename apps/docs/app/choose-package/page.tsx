@@ -41,7 +41,7 @@ const decisions: { when: string; pkg: string; href: string; note: string }[] = [
     note: "Provider component, composables and scoped theming.",
   },
   {
-    when: "You're using Nuxt 3",
+    when: "You're using Nuxt 4",
     pkg: "@themvora/nuxt",
     href: "/packages/nuxt",
     note: "A Nuxt module — configure in nuxt.config.ts, composables auto-import.",
@@ -127,104 +127,105 @@ const installCode = `npm install @themvora/core @themvora/next @themvora/mui`;
 
 export default function ChoosePackagePage() {
   return (
-    <DocsLayout>
-      <div className="max-w-3xl">
-        <PageHeader
-          eyebrow="Package decision guide"
-          title="Which package should I install?"
-          description="Start from what you're building. Every framework package pulls the core runtime, so you install the integration, not everything at once."
-        />
+    <DocsLayout wide>
+      <PageHeader
+        eyebrow="Package decision guide"
+        title="Which package should I install?"
+        description="Start from what you're building. Every framework package pulls the core runtime, so you install the integration, not everything at once."
+      />
 
-        <section className="mb-12">
-          <SectionHeading>Pick your entry point</SectionHeading>
-          <div className="flex flex-col gap-2">
-            {decisions.map((d) => (
-              <Link
-                key={d.pkg}
-                href={d.href}
-                className="glass-card card-lift p-4 no-underline flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
+      <section className="mb-12">
+        <SectionHeading>Pick your entry point</SectionHeading>
+        <div className="flex flex-col gap-2">
+          {decisions.map((d) => (
+            <Link
+              key={d.pkg}
+              href={d.href}
+              className="glass-card card-lift p-4 no-underline flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
+            >
+              <div className="sm:w-48 shrink-0 text-sm font-semibold">
+                {d.when}
+              </div>
+              <div
+                className="mono text-xs sm:text-right sm:ml-auto font-semibold shrink-0"
+                style={{ color: "var(--theme-color-primary)" }}
               >
-                <div className="sm:w-48 shrink-0 text-sm font-semibold">
-                  {d.when}
-                </div>
-                <div className="mono text-xs sm:text-right sm:ml-auto font-semibold shrink-0" style={{ color: "var(--theme-color-primary)" }}>
-                  {d.pkg} →
-                </div>
-                <div className="text-xs opacity-60 sm:w-full sm:max-w-md text-left">
-                  {d.note}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+                {d.pkg} →
+              </div>
+              <div className="text-xs opacity-60 sm:w-full sm:max-w-md text-left">
+                {d.note}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        <section className="mb-12">
-          <SectionHeading>Common combinations</SectionHeading>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {combos.map((combo) => (
-              <Link
-                key={combo.name}
-                href={combo.href}
-                className="glass-card card-lift p-4 no-underline flex flex-col gap-2"
-              >
-                <div className="font-semibold text-sm">{combo.name}</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {combo.packages.map((p) => (
-                    <span
-                      key={p}
-                      className="mono text-[10px] px-2 py-0.5 rounded border border-border bg-muted/40"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-            ))}
+      <section className="mb-12">
+        <SectionHeading>Common combinations</SectionHeading>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {combos.map((combo) => (
+            <Link
+              key={combo.name}
+              href={combo.href}
+              className="glass-card card-lift p-4 no-underline flex flex-col gap-2"
+            >
+              <div className="font-semibold text-sm">{combo.name}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {combo.packages.map((p) => (
+                  <span
+                    key={p}
+                    className="mono text-[10px] px-2 py-0.5 rounded border border-border bg-muted/40"
+                  >
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-5">
+          <div className="mb-2 text-sm opacity-70">
+            For example — Next.js with Material UI:
           </div>
-          <div className="mt-5">
-            <div className="mb-2 text-sm opacity-70">
-              For example — Next.js with Material UI:
+          <CodeBlock
+            html={highlightCode(installCode, "bash")}
+            code={installCode}
+            language="bash"
+            filename="terminal"
+            className="m-0"
+          />
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading>Still unsure?</SectionHeading>
+        <div className="flex flex-col gap-2">
+          <Link
+            href="/packages"
+            className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
+          >
+            <div>
+              <div className="font-semibold text-sm">Package map</div>
+              <div className="text-xs opacity-60">
+                Every package with its own install + API page.
+              </div>
             </div>
-            <CodeBlock
-              html={highlightCode(installCode, "bash")}
-              code={installCode}
-              language="bash"
-              filename="terminal"
-              className="m-0"
-            />
-          </div>
-        </section>
-
-        <section>
-          <SectionHeading>Still unsure?</SectionHeading>
-          <div className="flex flex-col gap-2">
-            <Link
-              href="/packages"
-              className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-            >
-              <div>
-                <div className="font-semibold text-sm">Package map</div>
-                <div className="text-xs opacity-60">
-                  Every package with its own install + API page.
-                </div>
+            <span style={{ color: "var(--theme-color-primary)" }}>→</span>
+          </Link>
+          <Link
+            href="/api-reference"
+            className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
+          >
+            <div>
+              <div className="font-semibold text-sm">API reference</div>
+              <div className="text-xs opacity-60">
+                Generated from source — see every export of every package.
               </div>
-              <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-            </Link>
-            <Link
-              href="/api-reference"
-              className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-            >
-              <div>
-                <div className="font-semibold text-sm">API reference</div>
-                <div className="text-xs opacity-60">
-                  Generated from source — see every export of every package.
-                </div>
-              </div>
-              <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-            </Link>
-          </div>
-        </section>
-      </div>
+            </div>
+            <span style={{ color: "var(--theme-color-primary)" }}>→</span>
+          </Link>
+        </div>
+      </section>
     </DocsLayout>
   );
 }

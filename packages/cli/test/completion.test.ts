@@ -45,6 +45,30 @@ function bashPath(): string | null {
   return probe.status === 0 ? "bash" : null;
 }
 
+/**
+ * Budget for a test that executes a generated script.
+ *
+ * Those tests spawn bash, and bash spawns `node dist/cli.cjs` once per registry
+ * it is asked about — four processes for the shared-cache case. That is
+ * inherently slower than the in-process tests the default budget was chosen
+ * for. Measured on the maintainer host: 1.8 s with the suite alone, 4.6 s while
+ * all 24 packages run in parallel. Against the 5 s default that is a 9 % margin,
+ * so the test failed whenever the machine was busy — a timeout that reports
+ * "busy machine" as "broken product". This is deliberately far above the
+ * observed worst case; the inner {@link BASH_TIMEOUT_MS} is what catches a
+ * genuinely wedged shell.
+ */
+const SCRIPT_TEST_TIMEOUT_MS = 60_000;
+
+/**
+ * Budget for a single bash invocation inside a test.
+ *
+ * Without it, a hung driver silently eats the whole test budget and the failure
+ * reads as a bare timeout with no output. With it, the driver is killed and the
+ * assertion below names what happened.
+ */
+const BASH_TIMEOUT_MS = 30_000;
+
 describe("completion output", () => {
   it("renders a script for every supported shell", () => {
     for (const [, render, extension] of SHELLS) {
@@ -137,6 +161,45 @@ describe("the bash script, executed", () => {
   const bash = bashPath();
 
   /**
+   * Run a driver script through bash and return the lines it printed.
+   *
+   * Shared by every test that executes the completion script, so all of them get
+   * the same three guarantees: real file descriptors (this host cannot read a
+   * child's piped stdio), a status check that names the driver instead of
+   * letting a crash surface as a confusing assertion on empty output, and a
+   * timeout.
+   *
+   * @param work - The temp dir the driver and its output file live in.
+   * @param lines - The driver script, one array entry per line.
+   * @returns The non-empty lines the driver printed.
+   */
+  function runDriver(work: TempDir, lines: readonly string[]): string[] {
+    const driverFile = join(work.path, "drive.sh");
+    const outFile = join(work.path, "out.txt");
+    writeFileSync(driverFile, lines.join("\n"), "utf8");
+
+    const fd = openSync(outFile, "w");
+    let result;
+    try {
+      result = spawnSync(bash!, [driverFile], {
+        stdio: ["ignore", fd, fd],
+        timeout: BASH_TIMEOUT_MS,
+      });
+    } finally {
+      closeSync(fd);
+    }
+
+    expect(
+      result.error?.message,
+      `bash driver did not run: ${result.error?.message}`,
+    ).toBeUndefined();
+    expect(result.status, `bash driver exited ${result.status}`).toBe(0);
+
+    const raw = existsSync(outFile) ? readFileSync(outFile, "utf8") : "";
+    return raw.split("\n").filter((line) => line.length > 0);
+  }
+
+  /**
    * Drive the completion function and return what it offered.
    *
    * @param script - The generated completion script.
@@ -146,87 +209,94 @@ describe("the bash script, executed", () => {
    */
   function complete(script: string, words: readonly string[], cword: number): string[] {
     dir = tempDir();
-    const scriptFile = join(dir.path, `themvora.${"bash"}`);
-    const driverFile = join(dir.path, "drive.sh");
-    const outFile = join(dir.path, "out.txt");
-
+    const scriptFile = join(dir.path, "themvora.bash");
     writeFileSync(scriptFile, script, "utf8");
 
     // `themvora` is a shell function rather than a PATH entry, so the test does
     // not depend on the binary being installed. Subshells inherit it, which is
     // what the command substitution inside the script relies on.
     const cliPath = join(process.cwd(), "dist", "cli.cjs");
-    writeFileSync(
-      driverFile,
-      [
-        `themvora() { node ${JSON.stringify(cliPath)} "$@"; }`,
-        `source ${JSON.stringify(scriptFile)}`,
-        `COMP_WORDS=(${words.map((word) => JSON.stringify(word)).join(" ")})`,
-        `COMP_CWORD=${cword}`,
-        `_themvora_complete`,
-        `printf '%s\\n' "\${COMPREPLY[@]}"`,
-      ].join("\n"),
-      "utf8",
-    );
-
-    // Real file descriptors rather than pipes: this host cannot read a child's
-    // piped stdio.
-    const fd = openSync(outFile, "w");
-    try {
-      const result = spawnSync(bash!, [driverFile], { stdio: ["ignore", fd, fd] });
-      expect(result.status, `bash driver exited ${result.status}`).toBe(0);
-    } finally {
-      closeSync(fd);
-    }
-
-    const raw = existsSync(outFile) ? readFileSync(outFile, "utf8") : "";
-    return raw.split("\n").filter((line) => line.length > 0);
+    return runDriver(dir, [
+      `themvora() { node ${JSON.stringify(cliPath)} "$@"; }`,
+      `source ${JSON.stringify(scriptFile)}`,
+      `COMP_WORDS=(${words.map((word) => JSON.stringify(word)).join(" ")})`,
+      `COMP_CWORD=${cword}`,
+      `_themvora_complete`,
+      `printf '%s\\n' "\${COMPREPLY[@]}"`,
+    ]);
   }
 
-  it.skipIf(bash === null)("passes a syntax check", () => {
-    dir = tempDir();
-    const file = join(dir.path, "themvora.bash");
-    writeFileSync(file, renderBash(buildCompletionSpec()), "utf8");
+  it.skipIf(bash === null)(
+    "passes a syntax check",
+    () => {
+      dir = tempDir();
+      const file = join(dir.path, "themvora.bash");
+      writeFileSync(file, renderBash(buildCompletionSpec()), "utf8");
 
-    // No `encoding`: it would imply a piped stdout, which this host cannot spawn.
-    const result = spawnSync(bash!, ["-n", file], { stdio: "ignore" });
-    expect(result.status).toBe(0);
-  });
+      // No `encoding`: it would imply a piped stdout, which this host cannot spawn.
+      const result = spawnSync(bash!, ["-n", file], {
+        stdio: "ignore",
+        timeout: BASH_TIMEOUT_MS,
+      });
+      expect(result.status).toBe(0);
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
-  it.skipIf(bash === null)("completes command names, including aliases", () => {
-    const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, ""], 1);
-    expect(offered).toContain("generate");
-    expect(offered).toContain("init");
-    expect(offered).toContain("gen");
-    expect(offered).toContain("ls");
-  });
+  it.skipIf(bash === null)(
+    "completes command names, including aliases",
+    () => {
+      const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, ""], 1);
+      expect(offered).toContain("generate");
+      expect(offered).toContain("init");
+      expect(offered).toContain("gen");
+      expect(offered).toContain("ls");
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
-  it.skipIf(bash === null)("filters command names by prefix", () => {
-    const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "gen"], 1);
-    expect(offered).toEqual(["generate", "gen"]);
-  });
+  it.skipIf(bash === null)(
+    "filters command names by prefix",
+    () => {
+      const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "gen"], 1);
+      expect(offered).toEqual(["generate", "gen"]);
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
-  it.skipIf(bash === null)("completes a closed value set", () => {
-    const offered = complete(
-      renderBash(buildCompletionSpec()),
-      [PROGRAM, "generate", "--mode", ""],
-      3,
-    );
-    expect(offered).toEqual(["light", "dark", "both"]);
-  });
+  it.skipIf(bash === null)(
+    "completes a closed value set",
+    () => {
+      const offered = complete(
+        renderBash(buildCompletionSpec()),
+        [PROGRAM, "generate", "--mode", ""],
+        3,
+      );
+      expect(offered).toEqual(["light", "dark", "both"]);
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
-  it.skipIf(bash === null)("completes a positional value set", () => {
-    const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "list", ""], 2);
-    expect(offered).toEqual(["brands", "presets", "styles", "frameworks"]);
-  });
+  it.skipIf(bash === null)(
+    "completes a positional value set",
+    () => {
+      const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "list", ""], 2);
+      expect(offered).toEqual(["brands", "presets", "styles", "frameworks"]);
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
-  it.skipIf(bash === null)("completes flags for the current command", () => {
-    const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "init", "--"], 2);
-    expect(offered).toContain("--framework");
-    expect(offered).toContain("--preset");
-    // A flag from another command must not leak in.
-    expect(offered).not.toContain("--strict");
-  });
+  it.skipIf(bash === null)(
+    "completes flags for the current command",
+    () => {
+      const offered = complete(renderBash(buildCompletionSpec()), [PROGRAM, "init", "--"], 2);
+      expect(offered).toContain("--framework");
+      expect(offered).toContain("--preset");
+      // A flag from another command must not leak in.
+      expect(offered).not.toContain("--strict");
+    },
+    SCRIPT_TEST_TIMEOUT_MS,
+  );
 
   it.skipIf(bash === null)(
     "resolves each registry from its own source, with a shared cache",
@@ -237,33 +307,19 @@ describe("the bash script, executed", () => {
       // looked correct.
       dir = tempDir();
       const scriptFile = join(dir.path, "themvora.bash");
-      const driverFile = join(dir.path, "drive.sh");
-      const outFile = join(dir.path, "out.txt");
       writeFileSync(scriptFile, renderBash(buildCompletionSpec()), "utf8");
 
       const cliPath = join(process.cwd(), "dist", "cli.cjs");
-      writeFileSync(
-        driverFile,
-        [
-          `themvora() { node ${JSON.stringify(cliPath)} "$@"; }`,
-          `source ${JSON.stringify(scriptFile)}`,
-          `ask() { COMP_WORDS=(${JSON.stringify(PROGRAM)} "$1" "$2" ""); COMP_CWORD=3; _themvora_complete; printf '%s: %s\\n' "$2" "\${COMPREPLY[*]}"; }`,
-          `ask generate --preset`,
-          `ask generate --brand`,
-          `ask generate --style`,
-          `ask init --framework`,
-        ].join("\n"),
-        "utf8",
-      );
+      const lines = runDriver(dir, [
+        `themvora() { node ${JSON.stringify(cliPath)} "$@"; }`,
+        `source ${JSON.stringify(scriptFile)}`,
+        `ask() { COMP_WORDS=(${JSON.stringify(PROGRAM)} "$1" "$2" ""); COMP_CWORD=3; _themvora_complete; printf '%s: %s\\n' "$2" "\${COMPREPLY[*]}"; }`,
+        `ask generate --preset`,
+        `ask generate --brand`,
+        `ask generate --style`,
+        `ask init --framework`,
+      ]);
 
-      const fd = openSync(outFile, "w");
-      try {
-        spawnSync(bash!, [driverFile], { stdio: ["ignore", fd, fd] });
-      } finally {
-        closeSync(fd);
-      }
-
-      const lines = readFileSync(outFile, "utf8").split("\n").filter(Boolean);
       const byFlag = Object.fromEntries(
         lines.map((line) => [line.slice(0, line.indexOf(":")), line.slice(line.indexOf(":") + 2)]),
       );
@@ -279,5 +335,6 @@ describe("the bash script, executed", () => {
       expect(byFlag["--framework"]).toContain("react");
       expect(byFlag["--framework"]).not.toContain("mint");
     },
+    SCRIPT_TEST_TIMEOUT_MS,
   );
 });

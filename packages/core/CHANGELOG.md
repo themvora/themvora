@@ -1,4 +1,224 @@
-# @theme-kit/core
+# @themvora/core
+
+## 1.5.0
+
+### Minor Changes
+
+- Built-in themes now reach 4.5:1 text contrast in the cases that previously shipped short of it, which
+  changes some preset token values.
+
+  The readability pass over the built-in themes already picked the most readable ink available for each
+  surface. What it did not do was act when the _best_ candidate still fell short of 4.5:1 — the theme
+  shipped and the text was hard to read. It now takes the remaining step: when no foreground candidate
+  reaches the target, the background is moved in sRGB, away from the foreground, until the pair reaches
+  4.5:1. It gives up after 50 steps rather than looping on an unreachable target.
+
+  The consequence is visible: **some built-in preset backgrounds are a slightly different hex value than
+  in 1.4.0.** No API changed and no token name moved, but a snapshot of a preset's `colors.background`
+  taken against 1.4.0 will differ. The theme-generation baselines were regenerated to match, so
+  `scoreTheme()` and `validateThemeContrast()` agree with what ships.
+
+  If you diff rendered output against a pinned 1.4.0 fixture, expect the difference; if you were relying
+  on a preset's exact background hex, read it from the theme rather than hardcoding it.
+
+  `@themvora/web` moves with `@themvora/core` as a fixed release group and gains the symbols through its
+  re-export.
+
+- Add `hideNativeScrollbar()` / `restoreNativeScrollbar()` and the stylesheet identifiers they use.
+
+  Overlay scrollbars need the platform's own bars gone, and until now each integration did that with its
+  own injected `<style>` — which meant two of them on one page fought over the same rule, and a
+  server-rendered page could not tell whether the client had already installed it.
+
+  ```ts
+  import { hideNativeScrollbar, restoreNativeScrollbar } from "@themvora/core";
+
+  const restore = hideNativeScrollbar();
+  // … later, on teardown
+  restore();
+  ```
+
+  `hideNativeScrollbar()` is claim-based and returns the release function for its claim. The marker class
+  and the stylesheet are installed idempotently — a server-rendered class or an identical SSR stylesheet
+  is reused rather than duplicated — and the native bar stays hidden until the _last_ claim is released.
+  That is what makes it safe for two independently mounted scrollbars on one page: the first to unmount
+  does not restore the bar under the second.
+
+  `restoreNativeScrollbar()` is the unconditional teardown, for a path that wants the native bar back
+  regardless of outstanding claims.
+
+  `SCROLLBAR_HIDING_STYLE_ID` and `SCROLLBAR_HIDING_STYLE_ATTR` are exported so a server-rendered
+  document and the client agree on which element to look for rather than each guessing at an id.
+
+  `@themvora/web` moves with `@themvora/core` as a fixed release group and gains the symbols through its
+  re-export.
+
+- Add the provided-themes surface and a one-shot `themeOverride`, so a provider can report what it was
+  actually given and a caller can outrank a saved selection.
+
+  Until now the runtime could only tell you the _selected_ theme. A provider that supplies three families
+  and a caller that wants "dark, but this page is the checkout" had no way to say either thing without
+  mutating persistence.
+
+  ```ts
+  import {
+    createThemeRuntime,
+    createProvidedThemesSource,
+  } from "@themvora/core";
+
+  const runtime = createThemeRuntime({
+    themes,
+    // Applied once per value, and never written to storage.
+    themeOverride: { family: "checkout", mode: "dark" },
+  });
+
+  const provided = createProvidedThemesSource(runtime);
+  provided.get();
+  // [{ family: "checkout", variants: [{ name: "checkout-dark", mode: "dark", tokens, theme }, …],
+  //    provenance: { kind: "pack", pack: "acme" } }, …]
+  ```
+
+  - `createProvidedThemesSource(runtime)` returns `{ get(), subscribe() }` — a stable snapshot plus a
+    subscription, so it can back `useSyncExternalStore` directly. `get()` returns the same array instance
+    until the provider's theme list actually changes, and a re-registered catalog whose only difference
+    is the registry's `meta.created` / `meta.updated` stamps is not treated as a change.
+  - `normalizeProvidedThemes(themes)` is the same grouping without the reactivity, for callers that
+    already have a settled array.
+  - Families are grouped in the order the provider supplied them, and each variant carries its resolved
+    tokens — `auto()` / `contrast()` / expressions already evaluated — plus the original definition for
+    anything the grouped view does not model.
+  - `ProvidedThemeProvenance` is declared, never inferred: `{ kind: "generated", algorithm }` from
+    `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light` is
+    not thereby a preset.
+  - `resolveThemeReference(themes, "cocoa-dark")` resolves a name against a theme list and reports what
+    it matched; `resolveThemeOverride()` and `themeOverrideKey()` make the override idempotent — the
+    runtime applies an override once per _value_, so re-rendering with a freshly allocated object does
+    not re-apply it, and an override never reaches storage.
+
+  `ThemeRuntimeOptions.defaultTheme` and `initialFamily` now accept `ThemeIdentifier<T>` rather than a
+  family name. This is a **widening**: every value that typechecked against 1.4.0 still typechecks, and
+  you can additionally pass a variant name where a family was expected. A variant supplies its own mode
+  unless `initialMode` is given, so the two options cannot silently disagree.
+
+  `@themvora/web` moves with `@themvora/core` as a fixed release group and gains the symbols through its
+  re-export.
+
+- Add `loadThemeRegistry()`, a static reader for the theme registry `themvora init` generates.
+
+  `themvora init` writes `src/themes/themes.ts` (or `themes/themes.ts` for Next) and, for React, Vue,
+  Solid and Svelte, no `theme.config.ts` at all. That module is the canonical theme registry, and until
+  now no consumer could read it without executing workspace TypeScript — which is arbitrary code
+  execution, and something an editor or CI step should never require to show a colour. The result was
+  that every canonically initialized project was unreadable to any tool other than the app itself.
+
+  The loader reads the module **as data**:
+
+  ```ts
+  import { loadThemeRegistry } from "@themvora/core";
+
+  const result = loadThemeRegistry(source);
+  if (result.ok) {
+    result.themes; // every theme the module registers, in its own order
+    result.origins; // "definition" | "catalog", aligned with themes
+    result.selection; // the families it selects
+    result.defaultTheme;
+  } else {
+    result.reason; // "not-a-registry" | "unsupported-construct" | "invalid-theme"
+    result.message; // a sentence, with a line and column where one is known
+  }
+  ```
+
+  It parses the `defineTheme({ … })` literals, reads the `selection` string array, resolves
+  `presetThemes` through `getPresetThemes()` exactly as the module would at runtime, and validates every
+  theme with `validateTheme()`. It does not import, transpile, evaluate or interpret expressions: a
+  computed argument, a spread, or a non-literal `selection` is reported as `unsupported-construct` rather
+  than guessed at.
+
+  `origins` is the per-theme provenance the combined list cannot carry: a generated registry mixes the
+  application's own definitions with the preset families in `selection`, and a consumer that needs to
+  count or label project themes must not count those presets as project-defined.
+
+  The point of putting this in `core` rather than in a consumer is that the interpretation is shared —
+  the VS Code extension uses it today, and the CLI, documentation tooling and future editors can use the
+  same one instead of each growing their own.
+
+  `@themvora/web` moves with `@themvora/core` because they are a fixed release group; it re-exports core
+  and gains the symbol with no code change of its own.
+
+- Add `readThemeDefinitions()`, a static reader for `defineTheme()` definitions in any source file.
+
+  `defineTheme()` returns its argument unchanged — it is a type-level helper, not a transformation — so a
+  readable object literal _is_ the theme. That is what makes a static reader sufficient: there are no
+  defaults to apply, no variants to resolve and no metadata to derive.
+
+  ```ts
+  import { readThemeDefinitions } from "@themvora/core";
+
+  const { definitions, problems } = readThemeDefinitions(source);
+  // definitions: [{ theme, location: { line, column }, binding?, variant?, generateOptions? }, …]
+  // problems:    [{ message, location }, …]
+  ```
+
+  Each definition also reports the declaration it is assigned to (`binding`) and, for a generated pair,
+  which half it is (`variant`) — `export const { light: lightTheme } = generateTheme(…)` reports
+  `lightTheme` / `"light"`. That lets a consumer follow an exported symbol into another module without
+  re-parsing the declaration itself. Both fields are optional; a literal inside an array has no single
+  name standing for it and reports neither.
+
+  Each definition also reports the canonical API that produced it (`origin`: `"definition"`,
+  `"generated"` or `"catalog"`), so a consumer can distinguish an application's own theme from a
+  curated preset without maintaining its own catalog list.
+
+  For a generated pair, the literal options passed to `generateTheme()` are reported as
+  `generateOptions` (`seed`, and any of `family`, `style`, `contrast`, `algorithm`, `withCode` that the
+  call supplied). This is the data the call was given, not an evaluation of it: an identifier, call or
+  spread argument is still refused. A tool can therefore show the inputs that produced a source theme
+  rather than only its resulting tokens.
+
+  `readThemeDefinitions(source, options)` now also accepts `strict`, `bindings` and `namespaces`. In
+  strict mode there are no name defaults: `defineTheme`, `generateTheme` and the catalog functions are
+  canonical only when a verified import binding (or a namespace member from a verified package) says
+  so. A local function called `getPresetThemes` is then not the catalog. The extension uses strict
+  mode with the exports of `@themvora/core`, `@themvora/core/vanilla` and the Nuxt core re-export;
+  standalone callers that omit the options keep the spelling-based defaults. A namespace member call
+  resolves through the documented `{ local: "*" }` binding (or a `namespaces` entry in strict mode).
+
+  Broader than `loadThemeRegistry()`, which requires the canonical registry's `themvora` / `selection` /
+  `sourceThemes` exports. This finds definitions anywhere — a project may keep them in `src/theme/brand.ts`
+  — and returns the candidates it could not read instead of dropping them, so a caller can say why.
+
+  It does not evaluate anything: a spread, a call, a template with interpolation or an identifier argument
+  is reported as a problem, never executed. A `defineTheme(...)` inside a comment or a string is ignored,
+  because that is documentation rather than a definition.
+
+  The VS Code extension uses it to show themes defined outside the generated registry. `@themvora/web`
+  moves with `@themvora/core` as a fixed release group and gains the symbol through its re-export.
+
+- Add `parseThemeJson()` and `themeToCssDocument()`, so a theme can be read from JSON and written back
+  out as CSS without reimplementing either step.
+
+  Both exist because the same two jobs kept being written by hand in different places — the CLI reading a
+  `theme.json`, a build step emitting a stylesheet — and each copy drifted on the details that matter.
+
+  ```ts
+  import { parseThemeJson, themeToCssDocument } from "@themvora/core";
+
+  const { value, source } = parseThemeJson(text);
+
+  // A hand-maintained theme.json is JSONC in practice: comments and trailing commas.
+  // `source` is the same length as `text`, with those regions blanked to spaces, so
+  // any offset you report from a parse error still points at the right character.
+  themeToCssDocument({ light, dark });
+  // ":root { --theme-color-background: …; }\n\n[data-theme=\"dark\"] { … }"
+  ```
+
+  `themeToCssDocument()` accepts a single definition or a `{ light, dark }` pair and emits one block per
+  mode against `CSS_ROOT_SELECTOR` / `CSS_DARK_SELECTOR`, both now exported so a consumer writing its own
+  stylesheet does not hardcode `:root` and `[data-theme="dark"]` and then fall out of step when the
+  runtime's selector changes.
+
+  `@themvora/web` moves with `@themvora/core` as a fixed release group and gains the symbols through its
+  re-export.
 
 ## 1.4.0
 

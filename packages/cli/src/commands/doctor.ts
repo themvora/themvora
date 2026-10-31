@@ -1,6 +1,7 @@
 import { THEMVORA_CONFIG_FILES } from "@themvora/core/config";
 import {
   generateTheme,
+  parseThemeJson,
   validateTheme,
   type ThemeDefinition,
 } from "@themvora/core";
@@ -136,7 +137,8 @@ function recordedAlgorithms(file: string): {
 } {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(file, "utf8"));
+    // Theme files may be JSONC; the same parser the editor uses.
+    parsed = parseThemeJson(readFileSync(file, "utf8")).value;
   } catch {
     return { algorithms: [], error: "not valid JSON" };
   }
@@ -363,7 +365,10 @@ function diagnose(directory: string): DoctorReport {
       }
 
       try {
-        const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
+        // Same parser as `recordedAlgorithms` above. Using `JSON.parse` here
+        // rejected every commented theme one check after accepting it, which
+        // made `doctor` disagree with `validate` about the same file.
+        const parsed = parseThemeJson(readFileSync(file, "utf8")).value;
         const themes: ThemeDefinition[] =
           typeof parsed === "object" &&
           parsed !== null &&
@@ -396,7 +401,7 @@ function diagnose(directory: string): DoctorReport {
             "theme-files",
             "error",
             "Theme files",
-            `${file} — unreadable`,
+            `${file} — could not be read or parsed`,
             "Fix or remove the file.",
           ),
         );

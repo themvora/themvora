@@ -8,11 +8,15 @@ import { CodeBlock } from "./code-block";
 import { highlightCode } from "../lib/highlight";
 import { c, colorsOf } from "../lib/contrast";
 import { ContrastPanel } from "./preset-catalog";
+import { type PresetFamilyGroup, FrameworkSelector } from "./presets";
 import {
-  type PresetFamilyGroup,
-  FrameworkSelector,
+  PRESET_FAMILY_TOKEN,
   getPresetFrameworkSnippet,
-} from "./presets";
+  getPresetFrameworkSnippetUnfiltered,
+  getPresetFrameworkSnippetFamilyPicker,
+} from "./preset-snippets";
+import { pairWithJavaScript } from "../lib/code-language";
+import type { PresetJavaScript } from "../lib/preset-js";
 
 type VariableFormat = "css" | "ts" | "json";
 
@@ -479,15 +483,50 @@ export function TokenDiffTable({ diffs }: { diffs: TokenDiff[] }) {
  * previewed family/mode — every snippet uses the framework package's own
  * shipped API (`ThemeProvider` / `provideTheme` / `themvora()` / …)
  * rather than dropping down to `createThemeRuntime`.
+ *
+ * Renders two snippets: one filtered to the previewed family, and one passing
+ * all presets without filtering.
  */
 function PresetFrameworkSetup({
   family,
   kind,
   mode,
+  jsSources,
+  labels,
+  jsSourcesUnfiltered,
+  labelsUnfiltered,
+  jsSourcesFamilyPicker,
+  labelsFamilyPicker,
 }: {
   family: string;
   kind: "default" | "brand";
   mode: "light" | "dark";
+  /**
+   * Derived JavaScript per `framework:mode`, computed by the page.
+   *
+   * The snippet is generated from the selected family, so the page cannot send
+   * one variant per family. It sends the derivation for a sentinel family
+   * instead, and the real name is substituted back in here — sound because the
+   * family only ever appears inside string literals and comments, which the
+   * erasure leaves untouched.
+   */
+  jsSources?: PresetJavaScript;
+  /**
+   * Compatibility badge per `framework:mode`, also computed by the page.
+   *
+   * The badge is metadata about the source, not about the conversion, so it is
+   * carried separately and never derived from `jsSources`: a snippet can be
+   * valid JavaScript and still have no second variant worth showing.
+   */
+  labels?: Record<string, string>;
+  /** Derived JavaScript for the unfiltered snippet. */
+  jsSourcesUnfiltered?: PresetJavaScript;
+  /** Compatibility badges for the unfiltered snippet. */
+  labelsUnfiltered?: Record<string, string>;
+  /** Derived JavaScript for the family picker snippet. */
+  jsSourcesFamilyPicker?: PresetJavaScript;
+  /** Compatibility badges for the family picker snippet. */
+  labelsFamilyPicker?: Record<string, string>;
 }) {
   // React first — visitors can switch to any framework from here.
   const [framework, setFramework] = useState<string>("react");
@@ -497,16 +536,106 @@ function PresetFrameworkSetup({
     [family, kind, framework, mode]
   );
 
+  const snippetUnfiltered = useMemo(
+    () => getPresetFrameworkSnippetUnfiltered(kind, framework, mode),
+    [kind, framework, mode]
+  );
+
+  const snippetFamilyPicker = useMemo(
+    () => getPresetFrameworkSnippetFamilyPicker(framework),
+    [framework]
+  );
+
+  const variants = useMemo(() => {
+    const template = jsSources?.[`${framework}:${mode}`];
+    if (!template) return undefined;
+    const js = template.split(PRESET_FAMILY_TOKEN).join(family);
+    return pairWithJavaScript(
+      { code: snippet.code, lang: snippet.lang, framework, filename: snippet.title },
+      js,
+    )?.map((variant) => ({
+      ...variant,
+      html: highlightCode(variant.code, variant.lang),
+    }));
+  }, [jsSources, framework, mode, family, snippet]);
+
+  const label = labels?.[`${framework}:${mode}`];
+
+  const variantsUnfiltered = useMemo(() => {
+    const template = jsSourcesUnfiltered?.[`${framework}:${mode}`];
+    if (!template) return undefined;
+    return pairWithJavaScript(
+      { code: snippetUnfiltered.code, lang: snippetUnfiltered.lang, framework, filename: snippetUnfiltered.title },
+      template,
+    )?.map((variant) => ({
+      ...variant,
+      html: highlightCode(variant.code, variant.lang),
+    }));
+  }, [jsSourcesUnfiltered, framework, mode, snippetUnfiltered]);
+
+  const labelUnfiltered = labelsUnfiltered?.[`${framework}:${mode}`];
+
+  const variantsFamilyPicker = useMemo(() => {
+    const template = jsSourcesFamilyPicker?.[framework];
+    if (!template) return undefined;
+    return pairWithJavaScript(
+      { code: snippetFamilyPicker.code, lang: snippetFamilyPicker.lang, framework, filename: snippetFamilyPicker.title },
+      template,
+    )?.map((variant) => ({
+      ...variant,
+      html: highlightCode(variant.code, variant.lang),
+    }));
+  }, [jsSourcesFamilyPicker, framework, snippetFamilyPicker]);
+
+  const labelFamilyPicker = labelsFamilyPicker?.[framework];
+
   return (
     <div className="flex flex-col gap-3">
       <FrameworkSelector selected={framework} onChange={setFramework} />
-      <CodeBlock
-        html={highlightCode(snippet.code, snippet.lang)}
-        code={snippet.code}
-        language={snippet.lang}
-        filename={snippet.title}
-        className="rounded-lg m-0"
-      />
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest opacity-50 mb-2">
+            Filtered to this family
+          </div>
+          <CodeBlock
+            html={highlightCode(snippet.code, snippet.lang)}
+            code={snippet.code}
+            language={snippet.lang}
+            filename={snippet.title}
+            {...(label ? { displayLanguage: label } : {})}
+            {...(variants ? { variants } : {})}
+            className="rounded-lg m-0"
+          />
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest opacity-50 mb-2">
+            All presets (no filtering)
+          </div>
+          <CodeBlock
+            html={highlightCode(snippetUnfiltered.code, snippetUnfiltered.lang)}
+            code={snippetUnfiltered.code}
+            language={snippetUnfiltered.lang}
+            filename={snippetUnfiltered.title}
+            {...(labelUnfiltered ? { displayLanguage: labelUnfiltered } : {})}
+            {...(variantsUnfiltered ? { variants: variantsUnfiltered } : {})}
+            className="rounded-lg m-0"
+          />
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest opacity-50 mb-2">
+            Family picker with useProvidedThemes()
+          </div>
+          <CodeBlock
+            html={highlightCode(snippetFamilyPicker.code, snippetFamilyPicker.lang)}
+            code={snippetFamilyPicker.code}
+            language={snippetFamilyPicker.lang}
+            filename={snippetFamilyPicker.title}
+            {...(labelFamilyPicker ? { displayLanguage: labelFamilyPicker } : {})}
+            {...(variantsFamilyPicker ? { variants: variantsFamilyPicker } : {})}
+            className="rounded-lg m-0"
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -523,11 +652,29 @@ export function PresetComparison({
   groups,
   kind,
   baseline,
+  jsSources,
+  labels,
+  jsSourcesUnfiltered,
+  labelsUnfiltered,
+  jsSourcesFamilyPicker,
+  labelsFamilyPicker,
 }: {
   groups: PresetFamilyGroup[];
   kind: "default" | "brand";
   /** Default-family group used as the "Changes from Default" baseline. */
   baseline?: PresetFamilyGroup;
+  /** Derived JavaScript for the setup snippets; see `PresetFrameworkSetup`. */
+  jsSources?: PresetJavaScript;
+  /** Compatibility badges for the setup snippets; see `PresetFrameworkSetup`. */
+  labels?: Record<string, string>;
+  /** Derived JavaScript for the unfiltered snippet. */
+  jsSourcesUnfiltered?: PresetJavaScript;
+  /** Compatibility badges for the unfiltered snippet. */
+  labelsUnfiltered?: Record<string, string>;
+  /** Derived JavaScript for the family picker snippet. */
+  jsSourcesFamilyPicker?: PresetJavaScript;
+  /** Compatibility badges for the family picker snippet. */
+  labelsFamilyPicker?: Record<string, string>;
 }) {
   const [selectedKey, setSelectedKey] = useState(groups[0]?.key ?? "");
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -612,6 +759,12 @@ export function PresetComparison({
         family={group.family}
         kind={kind}
         mode={mode}
+        {...(jsSources ? { jsSources } : {})}
+        {...(labels ? { labels } : {})}
+        {...(jsSourcesUnfiltered ? { jsSourcesUnfiltered } : {})}
+        {...(labelsUnfiltered ? { labelsUnfiltered } : {})}
+        {...(jsSourcesFamilyPicker ? { jsSourcesFamilyPicker } : {})}
+        {...(labelsFamilyPicker ? { labelsFamilyPicker } : {})}
       />
 
       {baselineTheme && theme ? (

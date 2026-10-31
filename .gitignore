@@ -38,6 +38,10 @@ scripts/**/_*.mjs
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+# The extension package ships a launch configuration so F5 works for anyone who
+# opens the repository; the blanket rule above would otherwise drop it.
+!packages/vscode/.vscode/launch.json
+!packages/vscode/.vscode/tasks.json
 .idea
 
 # OS
@@ -61,11 +65,75 @@ release-test/react-app/package.json
 release-test/cli-app/package.json
 release-test/clean-app/package.json
 
-# Examples (local playgrounds)
+# Examples
+#
+# `examples/apps/*` are the consumer fixture apps — one per documented
+# framework/integration target. They are part of the repository: the docs site
+# links to them by path (`examples/apps/astro`, …), `pnpm apps:build` and
+# `pnpm apps:typecheck` build them, and pnpm-lock.yaml carries one importer per
+# app. Ignoring them made all three of those claims false in a fresh clone.
+#
+# `examples/<feature>/<framework>/` are the canonical concept examples. They are
+# part of the repository for the same reason: `/examples` reads their entry file
+# by path at build time, `docs:audit:c` typechecks and renders them, and
+# `generate-examples.mjs` refuses to run without them. The blanket rule below
+# never retired them — they were tracked at 2.0.0-pre despite it, because
+# `.gitignore` only stops files being *added*. Deleting the trees in 2.0.0 was
+# therefore invisible: nothing showed up as deleted in a fresh checkout, and the
+# one gate that reads them reported a missing inventory rather than a regression.
+#
+# Each concept directory needs its own exception, because a tree that is ignored
+# is a tree a contributor cannot add back. Adding a capability means adding one
+# line here — `docs:audit:c` fails on an inventory it cannot see, which is the
+# guard against forgetting.
+#
+# Anything else placed directly under `examples/` is an ad-hoc local playground
+# and stays untracked.
 /examples/*
-/examples/apps/*
+!/examples/README.md
+!/examples/package.json
+!/examples/apps/
+!/examples/accessibility/
+!/examples/basic-theme/
+!/examples/cli/
+!/examples/custom-scrollbar/
+!/examples/devtools/
+!/examples/diagnostics/
+!/examples/families-modes/
+!/examples/history/
+!/examples/multi-window-sync/
+!/examples/persistence/
+!/examples/plugins/
+!/examples/provided-themes/
+!/examples/runtime/
+!/examples/scheduling/
+!/examples/scopes/
+!/examples/snapshots/
+!/examples/sunrise-sunset/
+!/examples/theme-generation/
+!/examples/theme-scope/
+!/examples/themes/
+!/examples/tokens/
+!/examples/transitions/
+!/examples/zero-flash/
+
+# Build output inside the fixture apps that the shared rules above do not cover.
+/examples/apps/*/.angular/
+/examples/apps/*/.astro/
+/examples/apps/*/.svelte-kit/
+
 # repository documentation
 !/examples/README.md
 
 # Local tooling state — machine-local
 .playwright-mcp/
+
+# Screenshots written by `apps/docs/scripts/shot-badges.mjs` for visual review.
+# Checked-in tool, machine-local output: the script exists so the badges can be
+# looked at, and the images it produces are read once, not shipped.
+/apps/docs/.badges/
+
+# Local redesign scratch space — screenshots, harness pages and pre-redesign
+# tarballs kept for visual comparison. Machine-local: referenced by nobody at
+# build time, so it is preserved on disk but never committed.
+/.redesign-backup/

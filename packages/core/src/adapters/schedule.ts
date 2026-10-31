@@ -258,6 +258,21 @@ export function resolveScheduledThemePair<T extends ThemeDefinition>(
 }
 
 /**
+ * The store surface {@link createThemeSchedule} needs.
+ *
+ * Deliberately narrower than `ThemeStore`: the runtime hands the schedule a
+ * handle whose `set` routes through the selection controller
+ * (`applyAutomaticTheme`) instead of writing the store directly, so a
+ * transition updates the effective mode and cannot be overwritten by the OS
+ * binding. A plain `ThemeStore` still satisfies this shape, so calling the
+ * factory directly keeps working unchanged.
+ */
+export type ThemeScheduleStore<T extends ThemeDefinition> = Pick<
+  ThemeStore<T>,
+  "get" | "set" | "subscribe"
+>;
+
+/**
  * Framework-neutral sunrise/sunset scheduling controller. Wraps the core
  * `createScheduledThemeBinding` engine with an explicit on/off switch and a
  * reactive state snapshot (`sunrise`, `sunset`, `nextTransition`, ...) so
@@ -273,7 +288,7 @@ export function resolveScheduledThemePair<T extends ThemeDefinition>(
  * this single contract.
  */
 export function createThemeSchedule<T extends ThemeDefinition>(
-  store: ThemeStore<T>,
+  store: ThemeScheduleStore<T>,
   themes: readonly T[],
   options: ThemeScheduleOptions<T>,
 ): ThemeSchedule {

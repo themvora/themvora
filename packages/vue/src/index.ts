@@ -20,6 +20,8 @@ import {
   createOverlayScrollbar,
   createPrePaintScrollbarScript,
   createThemeBootstrapScript,
+  providedThemesSourceFor,
+  normalizeProvidedThemes,
   EMPTY_THEME_SCHEDULE_STATE,
   resolveGeneratedTheme,
   type OverlayScrollbarOptions,
@@ -36,6 +38,8 @@ import {
   type ThemeScheduleState,
   type ThemeScheduleSetOptions,
   type ThemeBootstrapScriptOptions,
+  type ProvidedThemeFamily,
+  type ThemeOverride,
 } from "@themvora/core";
 import {
   resolveIconOptions,
@@ -185,6 +189,52 @@ export function useThemeValue<T extends ThemeDefinition>() {
 }
 
 /**
+ * Reactive ref of the themes this provider was given, grouped by family.
+ *
+ * Returns exactly the collection supplied to the nearest `<ThemeProvider>` —
+ * not the built-in catalog, and not every theme in the project. The ref updates
+ * when the provider's `themes` prop changes, when a theme pack is installed, or
+ * when the registry is mutated, and it is cleaned up on unmount.
+ *
+ * ```vue
+ * <script setup>
+ * const families = useProvidedThemes();
+ * </script>
+ *
+ * <template>
+ *   <section v-for="family in families" :key="family.id">
+ *     <h3>{{ family.name }}</h3>
+ *     <button v-for="variant in family.variants" :key="variant.name">
+ *       {{ variant.mode }}
+ *     </button>
+ *   </section>
+ * </template>
+ * ```
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns A ref holding the provider's theme families, in supplied order.
+ *
+ * @see {@link useTheme}
+ */
+export function useProvidedThemes<T extends ThemeDefinition>() {
+  const runtime = useThemeRuntime<T>();
+  const source = providedThemesSourceFor(runtime);
+  const families = ref<readonly ProvidedThemeFamily<T>[]>(
+    source.get() as readonly ProvidedThemeFamily<T>[],
+  ) as Ref<readonly ProvidedThemeFamily<T>[]>;
+
+  onMounted(() => {
+    families.value = source.get() as readonly ProvidedThemeFamily<T>[];
+    const unsub = source.subscribe(() => {
+      families.value = source.get() as readonly ProvidedThemeFamily<T>[];
+    });
+    onUnmounted(unsub);
+  });
+
+  return families;
+}
+
+/**
  * Reactive ref of the active theme's token group.
  *
  * Call inside Vue `setup` scope within a `<ThemeProvider>`. The returned ref
@@ -301,6 +351,43 @@ export function useThemeMode() {
 }
 
 /**
+ * Reactive ref of the mode actually **applied** — `"light"` or `"dark"`, never
+ * `"system"`.
+ *
+ * Render this when a control states the current appearance. {@link useThemeMode}
+ * reports what the visitor asked for, which does not move at a sunrise/sunset
+ * transition and stays `"system"` for as long as that choice stands — so a label
+ * bound to it kept announcing the old mode while the page changed colour.
+ *
+ * Call inside Vue `setup` scope within a `<ThemeProvider>`. Subscribes to the
+ * appearance (store and effective-selection channels) and is cleaned up on
+ * unmount.
+ *
+ * @returns A `Ref` holding the applied mode.
+ *
+ * @see {@link useThemeMode}
+ * @see {@link useThemeSchedule}
+ */
+export function useEffectiveThemeMode(): Ref<"light" | "dark"> {
+  const runtime = useThemeRuntime();
+  const mode: Ref<"light" | "dark"> = ref(runtime.selection.getEffectiveMode());
+
+  onMounted(() => {
+    const sync = () => {
+      mode.value = runtime.selection.getEffectiveMode();
+    };
+    const unsubStore = runtime.store.subscribe(sync);
+    const unsubEffective = runtime.selection.subscribeEffective(sync);
+    onUnmounted(() => {
+      unsubStore();
+      unsubEffective();
+    });
+  });
+
+  return mode;
+}
+
+/**
  * Reactive ref of the current theme family.
  *
  * Call inside Vue `setup` scope within a `<ThemeProvider>`. The returned ref
@@ -350,6 +437,7 @@ export function useThemeFamily() {
  *
  * @see {@link useThemeValue}
  * @see {@link useThemeMode}
+ * @see {@link useEffectiveThemeMode}
  * @see {@link useThemeFamily}
  */
 export function useTheme<T extends ThemeDefinition>() {
@@ -357,14 +445,19 @@ export function useTheme<T extends ThemeDefinition>() {
 
   const theme: Ref<T> = ref(runtime.store.get()) as Ref<T>;
   const mode: Ref<ThemeMode> = ref(runtime.selection.getMode());
+  const effectiveMode: Ref<"light" | "dark"> = ref(
+    runtime.selection.getEffectiveMode(),
+  );
   const family: Ref<string> = ref(runtime.selection.getFamily());
 
   let unsubTheme: (() => void) | null = null;
   let unsubSelection: (() => void) | null = null;
+  let unsubEffective: (() => void) | null = null;
 
   onMounted(() => {
     unsubTheme = runtime.store.subscribe((t) => {
       theme.value = t as T;
+      effectiveMode.value = runtime.selection.getEffectiveMode();
     });
     if (runtime.selection.subscribe) {
       unsubSelection = runtime.selection.subscribe((s) => {
@@ -372,11 +465,15 @@ export function useTheme<T extends ThemeDefinition>() {
         family.value = s.family;
       });
     }
+    unsubEffective = runtime.selection.subscribeEffective(() => {
+      effectiveMode.value = runtime.selection.getEffectiveMode();
+    });
   });
 
   onUnmounted(() => {
     unsubTheme?.();
     unsubSelection?.();
+    unsubEffective?.();
   });
 
   function setMode(nextMode: ThemeMode) {
@@ -394,6 +491,7 @@ export function useTheme<T extends ThemeDefinition>() {
   return {
     theme,
     mode,
+    effectiveMode,
     family,
     setMode,
     setFamily,
@@ -603,6 +701,7 @@ interface Props extends Record<string, any> {
   runtime?: ThemeRuntime<any> | undefined;
   themes?: ThemeDefinition[];
   defaultTheme?: string;
+  themeOverride?: ThemeOverride<string>;
   initialMode?: ThemeMode;
   initialFamily?: string;
   persistence?: any;
@@ -639,6 +738,7 @@ const ThemeProviderBase = defineComponent({
     runtime: { type: Object, required: false, default: undefined },
     themes: { type: Array, required: false },
     defaultTheme: { type: String, required: false },
+    themeOverride: { type: [String, Object], required: false, default: undefined },
     initial: { type: Object, required: false, default: undefined },
     initialMode: { type: String, required: false },
     initialFamily: { type: String, required: false },
@@ -677,6 +777,11 @@ const ThemeProviderBase = defineComponent({
 
     provide(ThemeSymbol, resolvedRuntime);
 
+    // See the React provider: once this provider has supplied `themeOverride` it
+    // owns the input and must report its removal, or the runtime never learns the
+    // prop went away.
+    let overrideSupplied = props.themeOverride !== undefined;
+
     // Live configuration: forward changed props to the runtime, which
     // re-resolves centrally and no-ops when nothing relevant changed. Only
     // *supplied* props are forwarded, so an absent prop cannot reset a value the
@@ -686,6 +791,7 @@ const ThemeProviderBase = defineComponent({
         [
           props.themes,
           props.defaultTheme,
+          props.themeOverride,
           props.initialFamily,
           props.initialMode,
           props.initial,
@@ -696,6 +802,8 @@ const ThemeProviderBase = defineComponent({
         const update: Record<string, unknown> = {};
         if (props.themes !== undefined) update.themes = props.themes;
         if (props.defaultTheme !== undefined) update.defaultTheme = props.defaultTheme;
+        if (props.themeOverride !== undefined) overrideSupplied = true;
+        if (overrideSupplied) update.themeOverride = props.themeOverride;
         if (props.initialFamily !== undefined) update.initialFamily = props.initialFamily;
         if (props.initialMode !== undefined) update.initialMode = props.initialMode;
         if (props.initial !== undefined) update.initial = props.initial;
@@ -741,6 +849,7 @@ const ThemeProviderBase = defineComponent({
           ...(props.defaultTheme !== undefined ? { defaultTheme: props.defaultTheme } : {}),
           ...(props.initialMode !== undefined ? { initialMode: props.initialMode } : {}),
           ...(props.initialFamily !== undefined ? { initialFamily: props.initialFamily } : {}),
+          ...(props.themeOverride !== undefined ? { themeOverride: props.themeOverride } : {}),
         });
         if (bootstrap) {
           const script = document.createElement("script");

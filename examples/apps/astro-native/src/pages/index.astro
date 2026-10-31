@@ -1,0 +1,199 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ThemeToggle from "@themvora/astro/ThemeToggle.astro";
+import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
+import ThemeScope from "@themvora/astro/ThemeScope.astro";
+import themeConfig from "../../theme.config";
+---
+
+<BaseLayout>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">
+        <span class="status-dot"></span>
+        THEME PLAYGROUND
+      </div>
+
+      <h1>Themvora <span class="title-divider">·</span> Astro native</h1>
+
+      <p class="hero-description">
+        One design system. Multiple themes. Native Astro components. Explore
+        theme families, switch colour modes, and preview independently scoped
+        themes.
+      </p>
+
+      <div class="hero-meta">
+        <span>Design tokens</span>
+        <span>·</span>
+        <span>Server-rendered scopes</span>
+        <span>·</span>
+        <span>Accessible controls</span>
+      </div>
+    </header>
+
+    <section class="surface selection-panel" aria-labelledby="selection-title">
+      <div class="section-heading">
+        <div>
+          <span class="section-index">01 / CONFIGURATION</span>
+          <h2 id="selection-title">Make it yours</h2>
+          <p class="section-description">
+            Choose a theme family and switch between light and dark modes.
+          </p>
+        </div>
+
+        <span class="heading-mark" aria-hidden="true">◈</span>
+      </div>
+
+      <div class="control-grid">
+        <div class="control-group">
+          <span class="control-label">THEME FAMILY</span>
+          <ThemeFamilySelect themes={themeConfig.themes} />
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">APPEARANCE</span>
+          <div class="button-row">
+            <ThemeToggle class="btn" label="Toggle light/dark" />
+            <ThemeToggle
+              class="btn btn-secondary"
+              showMode
+              ariaLabel="Toggle colour scheme"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="readout" aria-label="Current theme settings">
+        <div class="readout-item">
+          <span class="readout-label">FAMILY</span>
+          <span class="readout-value" data-tv-readout="family">—</span>
+        </div>
+
+        <div class="readout-item">
+          <span class="readout-label">MODE</span>
+          <span class="readout-value" data-tv-readout="mode">—</span>
+        </div>
+
+        <div class="readout-item">
+          <span class="readout-label">ACTIVE THEME</span>
+          <span class="readout-value" data-tv-readout="theme">—</span>
+        </div>
+      </div>
+
+      <nav class="page-links" aria-label="Related pages">
+        <a href="/about">About Themvora <span aria-hidden="true">↗</span></a>
+        <a href="/two">Explore two controls <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </section>
+
+    <section class="surface token-panel" aria-labelledby="tokens-title">
+      <div class="section-heading">
+        <div>
+          <span class="section-index">02 / DESIGN SYSTEM</span>
+          <h2 id="tokens-title">Semantic tokens</h2>
+          <p class="section-description">
+            Components inherit their appearance from the active theme. No
+            theme-specific CSS required.
+          </p>
+        </div>
+
+        <span class="heading-mark" aria-hidden="true">✳</span>
+      </div>
+
+      <div class="token-demo">
+        <div class="token-swatch">
+          <span class="swatch-icon">Aa</span>
+          <div>
+            <strong>Card surface</strong>
+            <code>--theme-color-card</code>
+          </div>
+        </div>
+
+        <div class="token-swatch">
+          <span class="swatch-icon swatch-border">◇</span>
+          <div>
+            <strong>Semantic border</strong>
+            <code>--theme-color-border</code>
+          </div>
+        </div>
+
+        <div class="token-swatch">
+          <span class="swatch-icon swatch-text">T</span>
+          <div>
+            <strong>Card foreground</strong>
+            <code>--theme-color-cardForeground</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="token-note">
+        <span class="note-icon" aria-hidden="true">↳</span>
+        <p>
+          Change the active theme above. The surface, border, and typography
+          update through semantic CSS variables.
+        </p>
+      </div>
+    </section>
+
+    <section class="scoped-section" aria-labelledby="scoped-title">
+      <div class="section-heading">
+        <div>
+          <span class="section-index">03 / ISOLATED THEMES</span>
+          <h2 id="scoped-title">A different world, in every scope</h2>
+          <p class="section-description">
+            These previews retain their own appearance, independently of your
+            global theme selection.
+          </p>
+        </div>
+      </div>
+
+      <div class="scope-row">
+        <ThemeScope theme="cocoa-dark" class="surface scope-card cocoa-card">
+          <div class="scope-topline">
+            <span class="scope-tag">PREVIEW 01</span>
+            <span class="scope-indicator"></span>
+          </div>
+
+          <div class="scope-content">
+            <span class="scope-symbol">◐</span>
+            <h3>cocoa-dark</h3>
+            <p class="muted">
+              Warm, grounded tones with a dark, understated finish.
+            </p>
+          </div>
+
+          <div class="scope-footer">
+            <span>Independent scope</span>
+            <span>01</span>
+          </div>
+        </ThemeScope>
+
+        <ThemeScope theme="ocean-light" class="surface scope-card ocean-card">
+          <div class="scope-topline">
+            <span class="scope-tag">PREVIEW 02</span>
+            <span class="scope-indicator"></span>
+          </div>
+
+          <div class="scope-content">
+            <span class="scope-symbol">≈</span>
+            <h3>ocean-light</h3>
+            <p class="muted">
+              A fresh, airy palette with a calm and open feel.
+            </p>
+          </div>
+
+          <div class="scope-footer">
+            <span>Independent scope</span>
+            <span>02</span>
+          </div>
+        </ThemeScope>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span>THEMVORA / ASTRO</span>
+      <span>Built with semantic design tokens.</span>
+    </footer>
+  </main>
+</BaseLayout>

@@ -45,6 +45,13 @@ export type ExplorerConcept = {
   /** Pre-highlighted HTML for `source`. */
   sourceHtml: string;
   language: string;
+  /**
+   * The compatibility badge — `TS / JS`, `TSX / JSX`, `TS`, …
+   *
+   * Derived on the server, where the example files are read and the compiler
+   * lives, so the badge describes the real file rather than a guess.
+   */
+  displayLanguage?: string | undefined;
 };
 
 export type ExplorerStarter = {
@@ -197,6 +204,9 @@ function ConceptCard({ example }: { example: ExplorerConcept }) {
               code={example.source}
               language={example.language}
               filename={`examples/${example.dir}/${example.entry}`}
+              {...(example.displayLanguage
+                ? { displayLanguage: example.displayLanguage }
+                : {})}
             />
           </div>
 

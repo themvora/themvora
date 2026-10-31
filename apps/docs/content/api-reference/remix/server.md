@@ -13,10 +13,19 @@ document `<head>`.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `request` | `Request` | — |
-| `options` | `ResolveInitialThemeOptions<T>` | — |
+| `request` | `Request` | The incoming request. |
+| `options` | `ResolveInitialThemeOptions<T>` | The theme registry and fallback selection. |
 
-**Returns** `Promise<InitialThemeResolution<T>>`
+**Returns** `Promise<InitialThemeResolution<T>>` — The resolved initial theme state.
+
+The saved selection is only honoured when the `theme-fingerprint` cookie
+matches the current registry: a cookie written by an older build — different
+themes, or a different `defaultTheme` — is ignored. That is the same rule
+`ThemeHead`'s pre-paint script and `createRemixThemePersistence` apply, and
+without it the server rendered the stale cookie's theme while the client
+rejected it, producing a hydration mismatch and a visible flash for returning
+visitors. A **missing** fingerprint is still accepted, which is the legacy
+cookie contract every integration shares.
 
 ---
 

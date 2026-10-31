@@ -1,4 +1,4 @@
-import type { ThemeDefinition, ThemeMode } from "../model/theme";
+import type { ThemeDefinition, ThemeIdentifier, ThemeMode } from "../model/theme";
 import { type ThemeSelectionState } from "../model";
 
 import { resolveSelection } from "./resolveSelection";
@@ -11,8 +11,8 @@ export interface ResolveInitialThemeOptions<T extends ThemeDefinition> {
   /** Registered themes to resolve within. */
   themes: readonly T[];
 
-  /** Theme name to prefer when no family/mode selection is given. */
-  defaultTheme?: T["name"];
+  /** Theme to prefer when no family/mode selection is given (variant or family). */
+  defaultTheme?: ThemeIdentifier<T>;
 
   /** Initial family. Defaults to the fallback theme's family. */
   family?: string;

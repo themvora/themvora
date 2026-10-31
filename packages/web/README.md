@@ -49,14 +49,22 @@ SvelteKit): registration is skipped when `customElements` is unavailable.
 ```
 
 Nothing is re-rendered on a switch: the variables change and the styles follow.
+The document itself is themed too — it takes the active theme's `background`
+and `foreground`, and the scoped card reads the same tokens:
 
 ```css
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
 .card {
   background: var(--theme-color-card);
   color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg);
-  padding: var(--theme-spacing-6);
+  border-radius: var(--theme-radius-lg, 12px);
+  padding: 1.5rem;
 }
 ```
 

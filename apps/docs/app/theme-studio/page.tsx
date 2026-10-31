@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function ThemeStudioPage() {
   return (
-    <DocsLayout>
+    <DocsLayout wide>
       <ThemeStudio />
 
       {/*

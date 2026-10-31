@@ -48,7 +48,7 @@ export interface CreateOpenPropsAdapterOptions extends OpenPropsAdapterOptions {
  * ```ts
  * import { createOpenPropsAdapter } from "@themvora/open-props";
  *
- * runtime.installAdapter(createOpenPropsAdapter());
+ * runtime.adapters.use(createOpenPropsAdapter());
  * ```
  *
  * @see {@link useOpenPropsTheme}

@@ -38,7 +38,13 @@ import { ThemvoraScrollbar } from "./scrollbar";
 import { ThemvoraInspector } from "./inspector";
 import { findProviderRuntime } from "./utils";
 import { injectComponentStyles } from "./styles";
-import { PRE_PAINT_SCROLLBAR_CSS, resolveGeneratedTheme } from "@themvora/core";
+import {
+  normalizeProvidedThemes,
+  PRE_PAINT_SCROLLBAR_CSS,
+  resolveGeneratedTheme,
+  type ProvidedThemeFamily,
+  type ThemeEffectiveSelection,
+} from "@themvora/core";
 
 export { ThemvoraProvider } from "./provider";
 export { getProviderRuntime } from "./utils";
@@ -158,6 +164,31 @@ export function useGeneratedTheme() {
 }
 
 /**
+ * Returns the themes the active `<themvora-provider>` was given, grouped by
+ * family.
+ *
+ * Framework-free (vanilla JS). Reads live on every call, so a theme registered
+ * after the provider initialized appears immediately — the vanilla surface has
+ * no reactive wrapper by design, matching {@link useThemeValue}. For a push
+ * notification, listen for the provider's `themes-change` event.
+ *
+ * ```js
+ * const families = useProvidedThemes();
+ * families.forEach((family) => {
+ *   console.log(family.family, family.variants.map((v) => v.mode));
+ * });
+ * ```
+ *
+ * @returns The provider's theme families, in supplied order.
+ *
+ * @see {@link useThemeRuntime}
+ * @see {@link normalizeProvidedThemes}
+ */
+export function useProvidedThemes(): readonly ProvidedThemeFamily[] {
+  return normalizeProvidedThemes(useThemeRuntime().themes);
+}
+
+/**
  * Returns the active theme's token group from the active runtime.
  *
  * Framework-free (vanilla JS). Requires an initialized `<themvora-provider>`.
@@ -183,6 +214,54 @@ export function useThemeTokens() {
  */
 export function useThemeMode() {
   return useThemeRuntime().selection.getMode();
+}
+
+/**
+ * Returns the mode actually **applied** — `"light"` or `"dark"`, never
+ * `"system"`.
+ *
+ * Framework-free (vanilla JS). Requires an initialized `<themvora-provider>`.
+ *
+ * Use this when a control states the current appearance. {@link useThemeMode}
+ * reports what the visitor asked for: it stays `"system"` while that choice
+ * stands and it does not move at a sunrise/sunset transition, so a label bound
+ * to it kept announcing the old mode while the page changed colour.
+ *
+ * Pair it with {@link observeEffectiveThemeMode} to re-render on change.
+ *
+ * @returns The applied mode.
+ *
+ * @see {@link useThemeMode}
+ * @see {@link observeEffectiveThemeMode}
+ */
+export function useEffectiveThemeMode(): "light" | "dark" {
+  return useThemeRuntime().selection.getEffectiveMode();
+}
+
+/**
+ * Calls `listener` whenever the applied mode changes, and returns an
+ * unsubscribe function.
+ *
+ * Framework-free (vanilla JS). Requires an initialized `<themvora-provider>`.
+ * The listener is **not** called once up front — read
+ * {@link useEffectiveThemeMode} for the current value and call it again from the
+ * listener.
+ *
+ * ```ts
+ * const stop = observeEffectiveThemeMode(() => {
+ *   label.textContent = useEffectiveThemeMode();
+ * });
+ * ```
+ *
+ * @param listener Called after the applied mode changes.
+ * @returns An unsubscribe function.
+ *
+ * @see {@link useEffectiveThemeMode}
+ */
+export function observeEffectiveThemeMode(
+  listener: (selection: ThemeEffectiveSelection) => void,
+): () => void {
+  return useThemeRuntime().selection.subscribeEffective(listener);
 }
 
 /**

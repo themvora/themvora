@@ -23,7 +23,7 @@ The `family` parameter controls the theme name prefix (`"indigo-light"` / `"indi
 
 ## Theme Validation
 
-`validateTheme()` checks that every required semantic color token is defined. Pass a theme list to resolve `extends` chains before validation.
+`validateTheme()` checks that every required semantic color token is defined and resolves `extends` chains before validation. See the [/accessibility](/accessibility) page for the full contrast-checking guide, CI integration, and the complete list of required color keys.
 
 ```ts
 import { validateTheme } from "@themvora/core";
@@ -32,27 +32,9 @@ const result = validateTheme(childTheme, { themes: [baseTheme, childTheme] });
 // { valid: boolean, issues: [{ type: "missing", path: "colors.destructive", message: "..." }] }
 ```
 
-The required color keys are: `background`, `foreground`, `card`, `cardForeground`, `popover`, `popoverForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `success`, `successForeground`, `border`, `input`, `ring`.
-
-Use in CI:
-
-```ts
-import { getBuiltInThemes, validateTheme } from "@themvora/core";
-
-const themes = getBuiltInThemes();
-const failures = themes
-  .map((t) => ({ name: t.name, ...validateTheme(t) }))
-  .filter((r) => !r.valid);
-
-if (failures.length > 0) {
-  console.error("Validation failures:", failures);
-  process.exit(1);
-}
-```
-
 ## Theme Migration
 
-Version your themes with a linear migration chain. `registerMigration()` declares a step between two versions; `migrateTheme()` walks the chain from the current version to the target.
+Themes are versioned with a linear migration chain. `registerMigration()` declares a step between two versions; `migrateTheme()` walks the chain from the current version to the target. See the [/migration](/migration) page for the full guide with examples, CI integration, and checklists.
 
 ```ts
 import { registerMigration, migrateTheme } from "@themvora/core";
@@ -64,29 +46,10 @@ registerMigration({
   remapColors: [{ from: "primaryColor", to: "primary" }],
 });
 
-registerMigration({
-  from: "2.0.0",
-  to: "3.0.0",
-  description: "Add success token",
-  migrate(theme) {
-    return {
-      ...theme,
-      tokens: {
-        ...theme.tokens,
-        colors: {
-          ...theme.tokens?.colors,
-          success: "#22c55e",
-          successForeground: "#ffffff",
-        },
-      },
-    };
-  },
-});
-
-const migrated = migrateTheme(oldTheme, { targetVersion: "3.0.0" });
+const migrated = migrateTheme(oldTheme, { targetVersion: "2.0.0" });
 ```
 
-`remapColors` handles simple key renames; `migrate` handles arbitrary transforms. The chain is walked linearly (max 20 steps) — the `from` version of each step must equal the `to` of the previous one.
+`remapColors` handles simple key renames; for arbitrary transforms, pass a `migrate` function instead. The chain is walked linearly (max 20 steps).
 
 ## Token Resolution Deep Dive
 
@@ -202,13 +165,11 @@ This triggers the full lifecycle: `beforeThemeChange` → store update → `befo
 Capture the entire runtime state — current theme, selection, history, and registry — then restore it later. Useful for undo/redo implementations, test fixtures, or time-travel debugging.
 
 ```ts
-// capture
 const snap = runtime.snapshot();
 // snap: { theme, selection: { mode, family }, history: [...], registry: { themes: [...] } }
 
 // ... user makes changes ...
 
-// restore
 runtime.restore(snap);
 ```
 
@@ -244,7 +205,6 @@ const brandPack = {
 
 runtime.use(brandPack);
 
-// themes are now available for selection
 runtime.selection.setFamily("brand");
 runtime.selection.setMode("dark");
 ```
@@ -253,47 +213,16 @@ Under the hood, `runtime.use()` delegates to `registry.use()`, which registers e
 
 ## Accessibility Profiles
 
-`getAccessibilityProfiles()` returns pre-built high-contrast and large-text themes. `simulateCVD()` and `simulateThemeForCVD()` model how a theme appears under color vision deficiencies.
+`getAccessibilityProfiles()` returns pre-built high-contrast and large-text themes. `validateThemeContrast()` audits a theme's WCAG contrast ratios, and `simulateCVD()` models how colors appear under color vision deficiencies. See the [/accessibility](/accessibility) page for the full guide including CVD simulation, CI integration, and all available profiles.
 
 ```ts
-import {
-  getAccessibilityProfiles,
-  simulateCVD,
-  simulateThemeForCVD,
-  validateThemeContrast,
-} from "@themvora/core";
+import { getAccessibilityProfiles, validateThemeContrast } from "@themvora/core";
 
-// pre-built accessibility themes
 const profiles = getAccessibilityProfiles();
 // [high-contrast-light, high-contrast-dark, large-text-light, large-text-dark]
 
-// simulate how a color looks under deuteranopia
-const simulated = simulateCVD("#6366f1", "deuteranopia");
-
-// simulate an entire theme
-const deutTheme = simulateThemeForCVD(myTheme, "deuteranopia");
-
-// audit every foreground/background pair
 const audit = validateThemeContrast(myTheme);
-// { valid: boolean, checks: [{ foregroundToken, backgroundToken, ratio,
-//   passesAANormal, passesAALarge, passesAAANormal, passesAAALarge }] }
-```
-
-CVD types: `"protanopia"` (red-blind), `"deuteranopia"` (green-blind), `"tritanopia"` (blue-blind), `"achromatopsia"` (total color blindness).
-
-Use `validateThemeContrast` in CI to catch regressions:
-
-```ts
-const result = validateThemeContrast(theme);
-if (!result.valid) {
-  for (const check of result.checks.filter((c) => !c.passesAALarge)) {
-    console.error(
-      `${check.foregroundToken} on ${check.backgroundToken}: ` +
-        `${check.ratio.toFixed(2)}:1 (fails AA large text)`,
-    );
-  }
-  process.exit(1);
-}
+// { valid: boolean, checks: [{ foregroundToken, backgroundToken, ratio, passesAANormal, ... }] }
 ```
 
 ## Live runtime configuration
@@ -311,16 +240,7 @@ reset a transition configured at creation.
 
 ### Reactivity
 
-| Configuration | Scope | Applies live | When it takes effect | SSR / bootstrap | Validation |
-| --- | --- | --- | --- | --- | --- |
-| `themes` | provider | Yes | Immediately after the change is observed; selection is re-resolved atomically | Initial catalog is resolved on the server | Empty/all-invalid → neutral fallback + `TV_THEME_NEUTRAL_FALLBACK` |
-| `defaultTheme` | provider | Yes | Immediately (only when the selection has to be re-resolved) | Server resolves it for first paint | Unknown name resolves to the fallback |
-| `initialFamily` / `initialMode` | provider | Yes | Immediately | Server resolves them for first paint | Unknown family → `TV_THEME_FAMILY_UNKNOWN` |
-| `initial` | provider | Yes | Immediately (an SSR-resolved selection) | Read on the server to render the first paint | Unresolvable selection is ignored |
-| `transition` | provider (runtime) | Yes | The **next** theme change; the current theme is not re-applied | Client-only — never part of bootstrap | `duration` must be a finite number `>= 0`; `easing` a non-empty string, else `TV_CONFIG_OPTION_INVALID` and the previous setting is kept |
-| `scheduled` | provider (runtime) | Yes | Immediately: installs, reconfigures in place, or tears down | Disabled on the server (no `window`) | `checkInterval > 0`, `skipApplyMs >= 0`, `latitude ∈ [-90, 90]`, `longitude ∈ [-180, 180]`; else `TV_CONFIG_OPTION_INVALID`. Unregistered theme names → `TV_SCHEDULE_THEME_UNRESOLVED` |
-| `ThemeScrollbar` options | component | Yes | The overlay is rebuilt with the new options | Client-only | Passed through to the overlay engine |
-| `ThemeScope` props (`theme`, `family`, `mode`, `transition`, …) | component | Yes | Immediately | The scope's variables are emitted into SSR markup | Same rules as the provider |
+Every configuration is fully reactive — changes apply live without remounting. See the dedicated pages for [transition](/transition), [schedule](/sunrise-sunset), and [scrollbar](/scrollbar) for details on when each takes effect.
 
 ### Precedence between the selection inputs
 
@@ -355,31 +275,11 @@ that captured `runtime.themes` sees later changes rather than a snapshot.
 
 ### Enabling and disabling after mount
 
-```tsx
-// React — the same prop names exist on every provider.
-<ThemeProvider transition={{ enabled: false, duration: 600 }}>
-  <App />
-</ThemeProvider>
+Transitions, schedules, and scrollbar can all be enabled, disabled, or reconfigured after mount without a reload or remount. See [/animation](/animation) for transition and schedule toggling, and [/sunrise-sunset](/sunrise-sunset) for schedule installation and removal.
 
-// Later, without a reload or remount: turn transitions on.
-<ThemeProvider transition={{ duration: 600 }}>
-  <App />
-</ThemeProvider>
-```
+### Reading the mode a schedule produced
 
-- **Disable transitions:** `transition={false}` (or `transition={{ enabled: false }}`). The next theme change is instant, and the persistent `:root` transition rule is removed so later variable swaps cannot interpolate through it.
-- **Re-enable:** pass `transition` again — the next theme change animates.
-- **Remove a schedule:** `scheduled={false}`. `runtime.schedule` becomes `null` and every timer/listener the schedule owned is disposed.
-- **Install a schedule after mount:** pass `scheduled={{ … }}`; it is created once and reconfigured in place on later changes.
-- **Remove the scrollbar feature:** unmount `<ThemeScrollbar />`; the overlay, its observers and its DOM nodes are removed with it (the native scrollbar returns).
-
-### Invalid input
-
-An unusable transition/scheduling option skips **only its own subsystem** and
-keeps the previous setting there — a defined state — and reports a
-`TV_CONFIG_OPTION_INVALID` warning naming the option and the value. Unrelated
-subsystems in the same update still apply. Diagnostics are deduplicated, so a
-provider that forwards the same invalid value on every render logs it once.
+A scheduled transition changes the **applied** appearance, not the visitor's standing choice. See [/sunrise-sunset](/sunrise-sunset) for `useEffectiveThemeMode()`, `selection.subscribeEffective`, and the precedence between automatic drivers.
 
 ### Imperative configuration
 
@@ -392,6 +292,290 @@ runtime.configure({ scheduled: false });
 runtime.transition; // live view of the current transition options
 runtime.schedule;   // live view of the schedule controller (or null)
 ```
+
+## Discovering the provider's themes
+
+A provider knows exactly which themes it was given. `useProvidedThemes()` returns
+that collection — grouped by family, with each variant's metadata and resolved
+tokens — so a theme picker never has to enumerate a second source:
+
+```tsx
+import { useProvidedThemes, useSetThemeFamily } from "@themvora/react";
+
+function ThemePicker() {
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+
+  return (
+    <fieldset>
+      {families.map((family) => (
+        <section key={family.id}>
+          <h3>{family.name}</h3>
+          {family.variants.map((variant) => (
+            <button key={variant.name} onClick={() => setFamily(family.family)}>
+              {variant.mode} — {variant.tokens.colors?.background}
+            </button>
+          ))}
+        </section>
+      ))}
+    </fieldset>
+  );
+}
+```
+
+Each entry is `{ id, family, name, meta, provenance, variants }`, and each
+variant is `{ name, mode, meta, tokens, theme }`. `variants[].meta` and
+`variants[].tokens` are authoritative; the family-level `meta` is a roll-up of
+the first variant that carries one.
+
+The same data contract is exposed with each framework's own reactivity:
+
+| Framework | Surface | Shape |
+| --- | --- | --- |
+| React | `useProvidedThemes()` | array (re-renders on change) |
+| Vue | `useProvidedThemes()` | `Ref` |
+| Svelte | `useProvidedThemes()` | readable store |
+| Solid | `useProvidedThemes()` | accessor |
+| Angular | `injectProvidedThemes()` | `Signal` |
+| Web Components | `useProvidedThemes()` | live read + `themes-change` event |
+| Framework-free | `Themvora#providedThemes` | getter |
+
+Three properties are worth knowing:
+
+- **Exactly what the provider received.** Built-in or preset themes the provider
+  was not given are absent, and two providers never share a collection.
+- **Reactive.** A `themes` prop change, `runtime.use(pack)` or a registry
+  mutation updates the collection. Entries whose content did not change keep
+  their identity, so `React.memo` and dependency arrays behave.
+- **No provenance guessing.** `provenance` is filled only from markers the
+  library writes (`meta.generation.kind === "generated"`, a `pack:<name>` tag).
+  A theme named `mint-dark` is not thereby a preset.
+
+## Naming a theme: family or variant
+
+Every selection prop — `defaultTheme`, `themeOverride`, `initialFamily` — accepts
+the same two forms, resolved by one function against the themes *your provider was
+given*:
+
+| Form | Example | What it selects |
+| --- | --- | --- |
+| **Variant** | `"cocoa-dark"` | that exact definition, with its own mode |
+| **Family** | `"cocoa"` | the family's variant for the mode in effect |
+
+```tsx
+// `themes` is the registry your provider is given.
+const themes = [cocoaLight, cocoaDark, oatLight, oatDark];
+
+// An exact variant: this is the theme, whatever the visitor's mode is.
+<ThemeProvider themes={themes} defaultTheme="cocoa-light">
+  <App />
+</ThemeProvider>
+
+// A family: `initialMode` picks the variant, and the visitor can still toggle.
+<ThemeProvider themes={themes} defaultTheme="oat" initialMode="light">
+  <App />
+</ThemeProvider>
+```
+
+A family never resolves to "whichever variant happens to come first in the
+object": it uses the mode in effect, then the configured initial mode, then the
+family's light variant. So `defaultTheme="oat"` with `initialMode="dark"` is
+`oat-dark`, and a visitor who toggles to light gets `oat-light` — the family is the
+default, not a lock.
+
+`initialFamily` takes a family. A variant name is accepted too and normalised to
+its family; its mode is used **only when `initialMode` is absent**, so the two
+props can never silently disagree:
+
+```tsx
+const themes = [cocoaLight, cocoaDark, oatLight, oatDark];
+
+<ThemeProvider themes={themes} initialFamily="cocoa-dark">
+  {/* cocoa, dark */}
+</ThemeProvider>
+
+<ThemeProvider themes={themes} initialFamily="cocoa-dark" initialMode="light">
+  {/* cocoa, light — the explicit mode wins */}
+</ThemeProvider>
+```
+
+A name that is not in the provider's collection is reported
+(`TV_THEME_OVERRIDE_UNRESOLVED` for an override, `TV_THEME_FAMILY_UNKNOWN` for
+`initialFamily`) and ignored. Themvora never falls back to a same-named theme from
+the global preset catalog.
+
+### Autocomplete from your own collection
+
+The props are typed from the `themes` you pass, so a statically known collection
+completes both forms — no separate union to maintain:
+
+```tsx
+const themes = [
+  defineTheme({ name: "oat-light", meta: { family: "oat", mode: "light" }, tokens: {} }),
+  defineTheme({ name: "oat-dark", meta: { family: "oat", mode: "dark" }, tokens: {} }),
+  defineTheme({ name: "cocoa-light", meta: { family: "cocoa", mode: "light" }, tokens: {} }),
+  defineTheme({ name: "cocoa-dark", meta: { family: "cocoa", mode: "dark" }, tokens: {} }),
+] as const;
+
+// defaultTheme:   "oat-light" | "oat-dark" | "cocoa-light" | "cocoa-dark" | "oat" | "cocoa"
+// initialFamily:  "oat" | "cocoa"
+<ThemeProvider themes={themes} defaultTheme="cocoa">…</ThemeProvider>
+```
+
+`defineTheme` preserves the literal names and families, and `as const` keeps the
+collection literal. A collection built at runtime (`generateTheme()`, a fetched
+catalog) is a `ThemeDefinition[]`, whose values cannot be known at compile time —
+the props widen to `string` there rather than becoming unusable.
+
+Which surfaces infer the union from `themes`:
+
+| Surface | Completion from `themes` |
+| --- | --- |
+| React `ThemeProvider` | yes — `defaultTheme`, `themeOverride`, `initialFamily` |
+| Svelte / Solid `ThemeProvider` | yes (their props extend the core options) |
+| Next.js `ThemeProvider` | yes |
+| Remix `ThemeProvider` / `ThemeHead` | yes |
+| Astro `ThemeProviderClient` | yes |
+| Angular `provideTheme` / `createBlockingScriptContent` | yes |
+| Vue `ThemeProviderProps<T>` | yes, via the exported type |
+| `<themvora-provider>` element | no — attributes are strings; type a wrapper against `ThemvoraProviderProps<T>` |
+| Nuxt module options | no — build-time configuration, not a `themes` prop |
+
+Two surfaces need a word of explanation, because the union exists but the
+component cannot show it:
+
+- **Vue's `<ThemeProvider>`** declares its props at runtime (`type: String`), and
+  Vue cannot infer a component's prop union from another prop outside an SFC with
+  `generic="…"`. The exported `ThemeProviderProps<T>` carries the narrowed union,
+  so annotate a wrapper with it if you want template completion:
+
+  ```ts
+  import type { ThemeProviderProps } from "@themvora/vue";
+  import { defineTheme } from "@themvora/core";
+
+  const themes = [
+    defineTheme({ name: "cocoa-light", meta: { family: "cocoa", mode: "light" }, tokens: {} }),
+  ];
+
+  type Props = ThemeProviderProps<(typeof themes)[number]>;
+  ```
+
+- **Nuxt's module options** are fixed at build time and never receive the theme
+  array, so they stay `string`. Pass `themes` to the module and use
+  `runtime.configure({ themeOverride })` for a value that changes at runtime.
+
+## Explicit theme override
+
+`defaultTheme` is a **fallback**: it applies only when nothing else selected a
+theme. Previewing a theme — or driving one from a prop — needs the opposite, so
+the provider accepts `themeOverride`:
+
+```tsx
+const themes = [cocoaLight, cocoaDark, oatLight, oatDark];
+
+<ThemeProvider themes={themes} themeOverride={preview ?? undefined}>
+  <App />
+</ThemeProvider>
+```
+
+```ts
+type ThemeOverride<Name extends string = string> =
+  | Name                                  // "cocoa-dark" or "cocoa"
+  | { family?: string; mode?: ThemeMode }; // { family: "cocoa", mode: "dark" }
+```
+
+Semantics, identical in every integration:
+
+1. It outranks a saved selection (`localStorage`, cookies) and an SSR-resolved
+   `initial`, because it is the most explicit request.
+2. It applies **once per value**. Changing the prop applies the new value;
+   re-rendering with the same value does nothing, so it never fights a manual
+   selection the visitor made afterwards.
+3. **Removing it restores the selection it covered**, in the same commit — no
+   reload, no remount. If the visitor picked a theme themselves while the override
+   was active, that newer choice is kept instead of the snapshot.
+4. It does **not** write persistence. An override is a transient preview; a
+   later manual selection persists normally.
+5. An unresolvable value is reported as `TV_THEME_OVERRIDE_UNRESOLVED` and
+   ignored — it is retried if the catalog later gains that theme.
+
+```tsx
+const themes = [cocoaLight, cocoaDark, oatLight, oatDark];
+
+// Preview a theme while the visitor's own selection stays untouched underneath.
+<ThemeProvider themes={themes} themeOverride={preview}>…</ThemeProvider>
+// Set `preview` back to `undefined` and the previous selection reappears.
+```
+
+Precedence, in order:
+
+```
+themeOverride  >  initial (SSR handoff)  >  persisted  >  defaultTheme / initialFamily / initialMode  >  fallback
+```
+
+`themeOverride` is a layer over that list rather than an entry in it: it is applied
+over whatever the rest resolves to, and removing it reveals that layer again.
+
+**Initial paint.** Every integration that owns a pre-paint bootstrap
+(`createThemeBootstrapScript`, the Next shell, the Remix `ThemeHead`, the Angular
+blocking script, the Nuxt plugin) resolves the override into that script — family
+form included — so the first frame is already the overridden theme rather than the
+saved one corrected after mount. Astro's client island applies it after mount; pass
+the same value to `provider.astro` / `createBlockingScript` for a flash-free
+override there.
+
+**Change detection** is semantic, not referential: `"cocoa-dark"`, `"cocoa"` and
+`{ family: "cocoa", mode: "dark" }` each identify a request, and a freshly
+allocated object per render is not a change.
+
+### What gets persisted
+
+Only the **selection identity** is stored — `{ family, mode }` — never a theme
+definition, its tokens or its metadata:
+
+```json
+{ "family": "brand", "mode": "dark" }
+```
+
+That is why a user-defined or generated theme persists exactly like a preset: the
+identity resolves against whatever the provider supplies on the next load, and an
+identity whose family is gone falls back safely. An override never writes it, and
+neither does restoring one.
+
+## Keeping a UI library in step
+
+Themvora applies a theme change as one update: the resolved tokens, the DOM
+attributes and the `--theme-*` variables commit together, inside one animation
+window. A UI library that mirrors tokens into its own theme object participates
+only as far as its own API allows.
+
+- **MUI typography.** MUI's typography rules carry their own `font-family`, so a
+  font loaded through global CSS on `body` does not reach MUI components by
+  inheritance. `@themvora/mui` writes the theme's `typography.fontFamilies` token
+  when there is one and `"inherit"` when there is not — so MUI follows the
+  document font instead of being forced onto `system-ui`. If you render
+  `CssBaseline`, its `body` rule inherits from `<html>`; pass the family
+  explicitly: `<MuiThemeProvider runtime={runtime} fontFamily="Inter, sans-serif">`.
+- **MUI `className`.** MUI forwards `className` to the component's root slot, so
+  the class is present and its rule is in the cascade. When it appears not to
+  apply, the cause is usually order or specificity: Emotion appends its
+  stylesheet after a `<link>`ed application stylesheet, and `.brand-button` and
+  `.MuiButton-root` have the same specificity, so MUI wins. `style` works because
+  inline declarations outrank every stylesheet rule. Use MUI's supported escape
+  hatches — `sx`, `&&` to raise specificity, or `components.styleOverrides` for a
+  nested slot — rather than `!important`.
+- **MUI transitions.** MUI's own animations use its `transitions` scale. Pass
+  `transitionDuration` / `transitionEasing` to `MuiThemeProvider` (the same
+  values as the runtime's `transition`) so both engines use one timing. During a
+  theme change Themvora mutes descendant transitions for the length of the swap —
+  on both the View Transition path and the CSS-property path — so a component
+  that also eases its own `background-color` cannot lag behind the page. Measured
+  on the React + MUI fixture: without it the document switched in one frame while
+  a MUI `Button` took ~540 ms and a MUI `Paper` snapped, i.e. three timings for
+  one change.
+- **shadcn/Tailwind.** These components read the CSS variables the adapter
+  writes (`--background`, `--primary`, …), so they follow the same swap. Nothing
+  else is required; the variables are rewritten on every selection change.
 
 ## API reference
 

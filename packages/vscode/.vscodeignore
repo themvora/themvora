@@ -1,0 +1,37 @@
+# Everything not shipped in the .vsix.
+#
+# vsce includes the whole folder unless told otherwise, so the source, the tests
+# and the build configuration are excluded explicitly rather than relying on
+# `files` in package.json — vsce reads this file, not that field.
+
+src/**
+test/**
+scripts/**
+
+# The webview's source; the built assets in dist/webview are what ship.
+webview/**
+
+# Editor configuration for working *on* this extension: launch.json and
+# tasks.json reference `pnpm` scripts and a preLaunchTask that only exist in the
+# development checkout, so they mean nothing to an installed user.
+.vscode/**
+
+tsconfig.json
+tsconfig.webview.json
+tsconfig.build.json
+tsup.config.ts
+vitest.config.ts
+
+node_modules/**
+dist/**/*.map
+*.vsix
+.gitignore
+.vscodeignore
+
+# Contributor documentation. `architecture.md` and the archived milestone
+# records describe how the package is built, not how it is used, so they belong
+# in the repository and not in every user's extension directory. The README,
+# CHANGELOG and LICENSE are deliberately absent from this list: vsce reads them
+# as the listing's own documents.
+architecture.md
+docs/**

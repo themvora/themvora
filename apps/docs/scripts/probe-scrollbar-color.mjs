@@ -10,14 +10,14 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { chromium, CHROME, NODE, probePort } from "./lib/probe-env.mjs";
+import { chromium, CHROME, NODE, probePort, nextBin } from "./lib/probe-env.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = probePort(4570);
 
 const proc = spawn(
   NODE,
-  ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT)],
+  [nextBin, "dev", "-p", String(PORT)],
   {
     cwd: path.dirname(here),
     stdio: ["ignore", "pipe", "pipe"],

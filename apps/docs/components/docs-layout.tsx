@@ -18,6 +18,7 @@ import { buildPageHeadings, type TocItem } from "../lib/toc";
 import { GENERATED_TOC_HEADINGS } from "../lib/generated/toc-headings";
 import { useFocusTrap } from "./ui/use-focus-trap";
 import { centerActiveSidebarLink } from "../lib/sidebar-scroll";
+import { CodeLanguageProvider } from "./code-language";
 
 
 const frameworkLinks = [
@@ -32,6 +33,29 @@ const frameworkLinks = [
   { href: "/framework-guides/astro", label: "Astro" },
   { href: "/framework-guides/nuxt", label: "Nuxt" },
   { href: "/framework-guides/remix", label: "Remix" },
+];
+
+/**
+ * The examples page that belongs to each guide, keyed by the guide's href.
+ *
+ * Kept as a separate list with literal `href:` values rather than derived as
+ * `` `/framework-guides/${slug}/examples` `` because the §3.4 sidebar-coverage
+ * audit reads this file's link arrays as text — a computed href is invisible to
+ * it, and an invisible link is exactly the failure mode that audit exists to
+ * catch (eleven CLI pages once had routes, pages and no way to reach them).
+ */
+const frameworkExampleLinks = [
+  { href: "/framework-guides/react/examples", guide: "/framework-guides/react" },
+  { href: "/framework-guides/next/examples", guide: "/framework-guides/next" },
+  { href: "/framework-guides/vue/examples", guide: "/framework-guides/vue" },
+  { href: "/framework-guides/svelte/examples", guide: "/framework-guides/svelte" },
+  { href: "/framework-guides/solid/examples", guide: "/framework-guides/solid" },
+  { href: "/framework-guides/angular/examples", guide: "/framework-guides/angular" },
+  { href: "/framework-guides/web/examples", guide: "/framework-guides/web" },
+  { href: "/framework-guides/tailwind/examples", guide: "/framework-guides/tailwind" },
+  { href: "/framework-guides/astro/examples", guide: "/framework-guides/astro" },
+  { href: "/framework-guides/nuxt/examples", guide: "/framework-guides/nuxt" },
+  { href: "/framework-guides/remix/examples", guide: "/framework-guides/remix" },
 ];
 
 const libraryLinks = [
@@ -152,6 +176,7 @@ const sections: SidebarSection[] = [
       { href: "/packages", label: "Packages" },
       { href: "/api-reference", label: "API Reference" },
       { href: "/devtools", label: "DevTools" },
+      { href: "/vscode", label: "VS Code" },
       { href: "/reference/diagnostics", label: "Diagnostics" },
       { href: "/troubleshooting", label: "Troubleshooting" },
       { href: "/known-limitations", label: "Known Limitations" },
@@ -282,15 +307,34 @@ function FrameworkGuidesGroup({ pathname }: { pathname: string }) {
       pathname={pathname}
       inSection={pathname.startsWith("/framework-guides")}
     >
-      {frameworkLinks.map((link) => (
-        <NavLink
-          key={link.href}
-          href={link.href}
-          label={link.label}
-          subtle
-          active={pathname === link.href}
-        />
-      ))}
+      {frameworkLinks.map((link) => {
+        // The examples page is a child of its guide, not a sibling: showing it
+        // only while that guide is the current one keeps the rail at eleven
+        // entries instead of twenty-two, and it is exactly where a reader
+        // looking for more code is already standing.
+        const onExamples = pathname === `${link.href}/examples`;
+        const examples = frameworkExampleLinks.find((l) => l.guide === link.href);
+        return (
+          <div key={link.href} className="flex flex-col gap-0.5">
+            <NavLink
+              href={link.href}
+              label={link.label}
+              subtle
+              active={pathname === link.href}
+            />
+            {examples && (pathname === link.href || onExamples) ? (
+              <div className="pl-3">
+                <NavLink
+                  href={examples.href}
+                  label="Examples"
+                  subtle
+                  active={onExamples}
+                />
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </NavGroup>
   );
 }
@@ -516,6 +560,7 @@ function SidebarContent({ pathname }: { pathname: string }) {
 export function DocsLayout({
   children,
   headings,
+  wide = false,
 }: {
   children: ReactNode;
   /** Server-provided TOC items. Pages whose headings render inside (or
@@ -524,6 +569,15 @@ export function DocsLayout({
    * headings here to make the rail visible from the initial SSR HTML. The
    * client scan in `Toc` remains authoritative for the live list. */
   headings?: TocItem[];
+  /**
+   * Drop the "On this page" rail and give its column to the content.
+   *
+   * For product pages built around large screenshots, where the reading column
+   * is the constraint and a rail of six anchors is not worth a third of the
+   * width. Documentation pages keep the rail. The grid's third column is `auto`,
+   * so omitting the rail collapses it and the content column takes the space.
+   */
+  wide?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -660,7 +714,11 @@ export function DocsLayout({
   }, [open]);
 
   return (
-    <>
+    // One language choice per page: every paired code block inside the article
+    // reads the same preference, so switching the provider example also switches
+    // the toggle that consumes it. Mounted here (not in the root layout) because
+    // the choice is about *this* page's examples and resets on navigation.
+    <CodeLanguageProvider>
       <div className="docs-bg" aria-hidden />
       <div className="max-w-6xl mx-auto px-6 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_auto] lg:items-start">
         {/* The sidebar is purely navigation, so it is a <nav> landmark rather
@@ -764,14 +822,16 @@ export function DocsLayout({
           </div>
         </div>
 
-        <div
-          data-toc-rail
-          className="hidden xl:block xl:sticky xl:top-(--site-header-height) xl:max-h-[calc(100vh-var(--site-header-height))] xl:overflow-y-auto py-10 xl:w-64 xl:shrink-0"
-          style={{ display: hasToc ? undefined : "none" }}
-        >
-          <Toc initialItems={items} onHasToc={setHasToc} />
-        </div>
+        {wide ? null : (
+          <div
+            data-toc-rail
+            className="hidden xl:block xl:sticky xl:top-(--site-header-height) xl:max-h-[calc(100vh-var(--site-header-height))] xl:overflow-y-auto py-10 xl:w-64 xl:shrink-0"
+            style={{ display: hasToc ? undefined : "none" }}
+          >
+            <Toc initialItems={items} onHasToc={setHasToc} />
+          </div>
+        )}
       </div>
-    </>
+    </CodeLanguageProvider>
   );
 }

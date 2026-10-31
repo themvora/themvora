@@ -14,6 +14,10 @@
           "description": "The theme used when nothing is persisted. Supplies both the fallback theme's family and its mode. Changing it re-resolves the selection; removing it does not disturb the live selection. An unknown name resolves to the catalog's first theme."
         },
         {
+          "name": "theme-override",
+          "description": "An explicit theme applied over any persisted selection. Either a theme name (`theme-override=\"mint-dark\"`) or a JSON family/mode request (`theme-override='{\"family\":\"mint\",\"mode\":\"dark\"}'`). Applied once per value, so re-setting the same value is not a new request, and it never writes to localStorage. Removing the attribute stops the request; it does not revert the theme. An unresolvable value is reported with TV_THEME_OVERRIDE_UNRESOLVED and ignored."
+        },
+        {
           "name": "initial-mode",
           "description": "The mode used when nothing is persisted. `system` follows `prefers-color-scheme`. Overrides the mode that `default-theme` would imply; an invalid value is reported (TV_CONFIG_OPTION_INVALID) and ignored.",
           "values": [

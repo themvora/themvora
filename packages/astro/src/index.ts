@@ -21,7 +21,9 @@
  * | ----- | ------ | ---------------- |
  * | Declare the configuration once | `@themvora/astro/provider.astro` | none |
  * | Toggle the theme | `@themvora/astro/ThemeToggle.astro` | none |
- * | Custom browser interaction | `getThemeController()` | none |
+ * | Select a theme family | `@themvora/astro/ThemeFamilySelect.astro` | none |
+ * | Scope a subtree to its own theme | `@themvora/astro/ThemeScope.astro` | none |
+ * | Custom browser interaction | `installThemeBindings()` / `getThemeController()` | none |
  * | React components inside Astro | `@themvora/astro/client` | React (optional) |
  *
  * @packageDocumentation
@@ -59,3 +61,23 @@ export type {
   ThemeControllerOptions,
   ThemeControllerState,
 } from "./controller";
+
+/**
+ * The DOM contracts, and the one call that wires them.
+ *
+ * `installThemeBindings()` registers the delegated `click` / `change` listeners
+ * for `[data-tv-toggle]` and `[data-tv-select]` once per document. The Themvora
+ * components call it for you; call it yourself when the markup is hand-written.
+ *
+ * @see {@link THEME_SELECTION_ATTRIBUTE}
+ * @see {@link THEME_TOGGLE_ATTRIBUTE}
+ * @see {@link THEME_PRESSED_ATTRIBUTE}
+ */
+export { installThemeBindings } from "./bindings";
+export {
+  THEME_PRESSED_ATTRIBUTE,
+  THEME_PRESSED_VALUE_ATTRIBUTE,
+  THEME_READOUT_ATTRIBUTE,
+  THEME_SELECTION_ATTRIBUTE,
+  THEME_TOGGLE_ATTRIBUTE,
+} from "./attributes";

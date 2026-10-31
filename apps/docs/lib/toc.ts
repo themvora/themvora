@@ -28,6 +28,29 @@ export function allocateId(seen: Map<string, number>, text: string): string {
 }
 
 /**
+ * Resolve the id for one heading.
+ *
+ * A heading that carries an explicit `id` is a *published anchor* — pages link
+ * to it by hand (`/framework-guides/react/examples#theme-provider`), so it must
+ * survive the TOC pass verbatim. Both the server collector and the client
+ * scanner resolve through here, so they agree on the result and on what is
+ * already taken: an explicit id is registered in `seen` so a later heading
+ * whose text slugifies to the same string gets `-1` instead of silently
+ * stealing the anchor.
+ */
+export function resolveHeadingId(
+  seen: Map<string, number>,
+  text: string,
+  explicit?: string | null,
+): string {
+  if (explicit && !seen.has(explicit)) {
+    seen.set(explicit, 1);
+    return explicit;
+  }
+  return allocateId(seen, text);
+}
+
+/**
  * Build TOC items from plain heading text, allocating ids exactly as the
  * client-side scanner does (`stripNumberPrefix` + `allocateId`). Pages whose
  * headings render inside client components (or SectionHeading) aren't visible
@@ -40,15 +63,15 @@ export function allocateId(seen: Map<string, number>, text: string): string {
  * label changes on hydration.
  */
 export function buildPageHeadings(
-  entries: Array<{ text: string; level: 2 | 3 }>,
+  entries: Array<{ text: string; level: 2 | 3; id?: string }>,
 ): TocItem[] {
   const seen = new Map<string, number>();
-  return entries.map(({ text, level }) => {
+  return entries.map(({ text, level, id }) => {
     const label = stripNumberPrefix(text);
     return {
       text: label,
       level,
-      id: allocateId(seen, label),
+      id: resolveHeadingId(seen, label, id),
     };
   });
 }

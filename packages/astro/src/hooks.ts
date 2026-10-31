@@ -9,8 +9,9 @@ import type {
   ThemeSchedule,
   ThemeScheduleSetOptions,
   ThemeScheduleState,
+  ProvidedThemeFamily,
 } from "@themvora/core";
-import { EMPTY_THEME_SCHEDULE_STATE, findGeneratedTheme, resolveGeneratedTheme } from "@themvora/core";
+import { EMPTY_THEME_SCHEDULE_STATE, findGeneratedTheme, resolveGeneratedTheme, providedThemesSourceFor } from "@themvora/core";
 import { requireGlobalRuntime } from "./shared-runtime";
 
 /**
@@ -264,6 +265,20 @@ export function useToggleTheme() {
  * const { theme, mode, setMode, toggleTheme } = useTheme();
  * ```
  *
+ * @remarks
+ * **These values are for behaviour, not for display.** `theme`, `mode` and
+ * `family` are read through `useSyncExternalStore`, so while the island hydrates
+ * they hold `runtime.initial` — the resolution the *server* produced, which
+ * cannot know the persisted selection or `prefers-color-scheme`. Rendering one
+ * of them as text paints a value the document does not have, and corrects it
+ * once hydration commits: the line visibly changes from one theme name to
+ * another a few frames in.
+ *
+ * Use `ThemeReadout` for anything on screen. It is owned by the pre-paint
+ * bootstrap contract, so it agrees with `<html>` from the first frame — for
+ * these same three values. Compare, derive and decide with them; render with a
+ * readout.
+ *
  * @see {@link useThemeRuntime}
  * @see {@link useThemeValue}
  * @see {@link useThemeMode}
@@ -466,6 +481,31 @@ export function useThemeSchedule(): ThemeSchedule | null {
     () => (schedule ? withReactiveScheduleState(schedule, state) : null),
     [schedule, state],
   );
+}
+
+/**
+ * Returns the theme families registered with the provider. Client-only;
+ * re-renders when the registry changes (e.g. `runtime.use(pack)`).
+ *
+ * @typeParam T - The theme definition type used by the application.
+ * @returns The provider's theme families, in supplied order.
+ *
+ * @see {@link useThemeRuntime}
+ * @see {@link useTheme}
+ */
+export function useProvidedThemes<
+  T extends ThemeDefinition = ThemeDefinition,
+>(): readonly ProvidedThemeFamily<T>[] {
+  const runtime = requireGlobalRuntime<T>();
+  const source = useMemo(() => providedThemesSourceFor(runtime), [runtime]);
+
+  return useSyncExternalStore(
+    source.subscribe,
+    source.get,
+    // The server's catalog is the same collection the client starts from, so the
+    // hydration render sees exactly what the server rendered.
+    source.get,
+  ) as readonly ProvidedThemeFamily<T>[];
 }
 
 /**

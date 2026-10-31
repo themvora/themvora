@@ -386,7 +386,11 @@ export function moduleKey(fileName) {
  * `moduleKey()` over the bundle's declared file names.
  */
 export function resolveLocal(specifier, declaredKeys) {
+  // Vite's asset suffixes (`./styles.css?url`, `?raw`) name the same file the
+  // snippet declares. Strip the query before matching so a standard Remix/Vite
+  // stylesheet import does not read as a file nobody declared.
   const base = specifier
+    .split("?")[0]
     .replace(/^\.\//, "")
     .replace(/^(?:\.\.\/)+/, "")
     .replace(/^.*\//, "")

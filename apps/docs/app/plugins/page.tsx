@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -35,51 +34,6 @@ const myPlugin: ThemePlugin = {
 
   onAfterThemeChange({ theme }) {
     console.log("Theme changed to", theme.name);
-  },
-};`,
-};
-
-const hooksSnippet = {
-  lang: "ts",
-  title: "plugin hooks",
-  code: `import type { ThemePlugin } from "@themvora/core";
-
-const logger: ThemePlugin = {
-  name: "logger",
-
-  onRuntimeCreated(runtime) {
-    // Called once when createThemeRuntime() finishes.
-    // Return a teardown function to run on destroy().
-    return () => console.log("runtime destroyed");
-  },
-
-  onBeforeThemeChange({ current, next }) {
-    // Fires before the active theme switches.
-    console.log(\`\${current.name} → \${next.name}\`);
-  },
-
-  onAfterThemeChange({ theme }) {
-    // Fires after the new theme is active.
-  },
-
-  onBeforePersist({ selection }) {
-    // Before the selection is saved to the persistence adapter.
-  },
-
-  onAfterPersist({ selection }) {
-    // After the selection has been persisted.
-  },
-
-  onBeforeApply({ theme }) {
-    // Before CSS variables are written to the DOM.
-  },
-
-  onAfterApply({ theme }) {
-    // After CSS variables have been applied.
-  },
-
-  onDestroy() {
-    // Cleanup when the runtime is destroyed.
   },
 };`,
 };
@@ -273,10 +227,9 @@ export default function PluginsPage() {
             runtime is created and can be managed dynamically via the{" "}
             <code className="mono text-[0.9em]">PluginManager</code>.
           </p>
-          <CodeBlock
-            html={highlightCode(basicPluginSnippet.code, "ts")}
+          <CodeExample
             code={basicPluginSnippet.code}
-            language="ts"
+            lang="ts"
             filename={basicPluginSnippet.title}
             className="m-0"
           />
@@ -334,13 +287,6 @@ export default function PluginsPage() {
               </div>
             ))}
           </div>
-          <CodeBlock
-            html={highlightCode(hooksSnippet.code, "ts")}
-            code={hooksSnippet.code}
-            language="ts"
-            filename={hooksSnippet.title}
-            className="m-0"
-          />
           <Callout className="mt-3">
             <strong>onRuntimeCreated can return a teardown</strong>{" "}
             <span className="mx-1 opacity-40">|</span>
@@ -362,10 +308,9 @@ export default function PluginsPage() {
             return the (potentially modified) tokens. Multiple transform plugins
             chain in priority order — each receives the output of the previous.
           </p>
-          <CodeBlock
-            html={highlightCode(transformSnippet.code, "ts")}
+          <CodeExample
             code={transformSnippet.code}
-            language="ts"
+            lang="ts"
             filename={transformSnippet.title}
             className="m-0"
           />
@@ -396,10 +341,9 @@ export default function PluginsPage() {
               chain in priority order — each plugin sees the previous output.
             </li>
           </ul>
-          <CodeBlock
-            html={highlightCode(prioritySnippet.code, "ts")}
+          <CodeExample
             code={prioritySnippet.code}
-            language="ts"
+            lang="ts"
             filename={prioritySnippet.title}
             className="m-0"
           />
@@ -421,10 +365,9 @@ export default function PluginsPage() {
             <code className="mono text-[0.9em]">runtime.destroy()</code> to
             tear down all registered plugins.
           </p>
-          <CodeBlock
-            html={highlightCode(runtimeSnippet.code, "ts")}
+          <CodeExample
             code={runtimeSnippet.code}
-            language="ts"
+            lang="ts"
             filename={runtimeSnippet.title}
             className="m-0"
           />
@@ -443,10 +386,9 @@ export default function PluginsPage() {
           >
             Full Example
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(fullExampleSnippet.code, "ts")}
+          <CodeExample
             code={fullExampleSnippet.code}
-            language="ts"
+            lang="ts"
             filename={fullExampleSnippet.title}
             className="m-0"
           />

@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Components, ExtraProps } from "react-markdown";
 
 import { highlightCode } from "../lib/highlight";
+import { compatibilityLabel, highlightedVariants } from "../lib/code-variants";
 import { CodeBlock } from "./code-block";
 
 function extractLanguage(className?: string): string | undefined {
@@ -53,37 +54,83 @@ function parseMeta(meta?: string): {
   return { highlightLines, filename };
 }
 
-const components: Components = {
-  pre({ children }) {
-    const child = Children.toArray(children)[0];
+/**
+ * The renderer for fenced blocks.
+ *
+ * Two variants rather than a boolean threaded through `pre`: `components` is a
+ * stable object identity, and `react-markdown` re-creates the whole tree when it
+ * changes. Building both once keeps that identity fixed per mode.
+ */
+function createComponents(withLanguageChoice: boolean): Components {
+  return {
+    pre({ children }) {
+      const child = Children.toArray(children)[0];
 
-    if (isValidElement(child) && child.type === Code) {
-      const { className, children: codeChildren, node } = child.props as CodeProps;
-      const language = extractLanguage(className);
-      const raw = String(codeChildren ?? "").replace(/\n$/, "");
-      const meta = node?.data?.meta as string | undefined;
-      const { highlightLines, filename } = parseMeta(meta);
-      const html = highlightCode(raw, language, { highlightLines });
+      if (isValidElement(child) && child.type === Code) {
+        const { className, children: codeChildren, node } = child.props as CodeProps;
+        const language = extractLanguage(className);
+        const raw = String(codeChildren ?? "").replace(/\n$/, "");
+        const meta = node?.data?.meta as string | undefined;
+        const { highlightLines, filename } = parseMeta(meta);
+        const html = highlightCode(raw, language, { highlightLines });
+        // Fenced blocks in the guides are the same application code the pages
+        // show in components, so they get the same treatment: both languages
+        // when both exist, no selector when only one does. Highlighted lines are
+        // preserved in both, because the mark applies to the same lines in
+        // either language — only the annotations were removed.
+        const variants = withLanguageChoice
+          ? highlightedVariants(
+              {
+                code: raw,
+                lang: language ?? "text",
+                ...(filename ? { filename } : {}),
+              },
+              (source, lang) => highlightCode(source, lang, { highlightLines }),
+            )
+          : undefined;
 
-      return (
-        <CodeBlock
-          html={html}
-          code={raw}
-          language={language ?? "text"}
-          {...(filename ? { filename } : {})}
-        />
-      );
-    }
+        const label = compatibilityLabel(raw, language ?? "text");
 
-    return <pre>{children}</pre>;
-  },
-  code: Code,
-};
+        return (
+          <CodeBlock
+            html={variants?.[0]?.html ?? html}
+            code={raw}
+            language={language ?? "text"}
+            {...(filename ? { filename } : {})}
+            {...(variants ? { variants } : {})}
+            {...(label ? { displayLanguage: label } : {})}
+          />
+        );
+      }
 
-export function Markdown({ content }: { content: string }) {
+      return <pre>{children}</pre>;
+    },
+    code: Code,
+  };
+}
+
+const components = createComponents(true);
+const signatureComponents = createComponents(false);
+
+export function Markdown({
+  content,
+  codeExamples = true,
+}: {
+  content: string;
+  /**
+   * Whether fenced TypeScript blocks get a JavaScript alternative.
+   *
+   * Off for the generated API reference, whose `ts` fences are *signatures* —
+   * `function setTheme(theme: Theme): void` — not code a reader pastes into an
+   * application. A JavaScript rendering of a signature is a syntax error, so the
+   * honest answer there is TypeScript only.
+   */
+  codeExamples?: boolean;
+}) {
+  const active = codeExamples ? components : signatureComponents;
   return (
     <div className="prose-doc">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={active}>
         {content}
       </ReactMarkdown>
     </div>

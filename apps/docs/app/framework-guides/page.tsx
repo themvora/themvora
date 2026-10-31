@@ -23,11 +23,15 @@ export default function FrameworkGuidesPage() {
           title="Framework Guides"
           description={
             <>
-              Each integration re-exports the full{" "}
-              <code className="mono text-[0.9em]">@themvora/core</code> surface
-              and adds framework-native providers, hooks, stores, signals, or
-              directives. Pick a framework to see its complete feature set, API
-              reference, and copy-paste examples.
+              One runtime from{" "}
+              <code className="mono text-[0.9em]">@themvora/core</code>, wrapped
+              in the shape each framework actually uses — a provider and hooks in
+              React, DI tokens, providers and{" "}
+              <code className="mono text-[0.9em]">injectTheme*</code> functions in
+              Angular, a readable store in Svelte, signals in Solid, and for
+              Tailwind a build-time plugin with no runtime at all. Every guide has
+              two halves: the setup walkthrough, and an examples page that shows
+              each export against the problem it solves.
             </>
           }
         />
@@ -42,12 +46,14 @@ export default function FrameworkGuidesPage() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           {frameworks.map((framework) => (
-            <Link
+            <div
               key={framework.slug}
-              href={`/framework-guides/${framework.slug}`}
-              className="glass-card card-lift p-4 flex items-start gap-3 no-underline flex-col group"
+              className="glass-card card-lift p-4 flex items-start gap-3 flex-col group"
             >
-              <span className="flex items-center gap-3 w-full">
+              <Link
+                href={`/framework-guides/${framework.slug}`}
+                className="flex items-center gap-3 w-full no-underline"
+              >
                 <span
                   className="w-10 h-10 shrink-0 rounded-lg grid place-items-center font-bold text-sm select-none"
                   style={{
@@ -71,8 +77,8 @@ export default function FrameworkGuidesPage() {
                   {framework.featureCount} feature
                   {framework.featureCount === 1 ? "" : "s"}
                 </span>
-              </span>
-              <span className="flex flex-wrap gap-1.5">
+              </Link>
+              <span className="flex flex-wrap items-center gap-1.5">
                 {framework.tags.map((tag) => (
                   <span
                     key={tag}
@@ -81,8 +87,17 @@ export default function FrameworkGuidesPage() {
                     {tag}
                   </span>
                 ))}
+                {/* The examples page is the second half of every guide, so it
+                    gets a link on the index rather than being reachable only
+                    after opening the guide. */}
+                <Link
+                  href={`/framework-guides/${framework.slug}/examples`}
+                  className="ml-auto text-[11px] font-medium text-foreground no-underline whitespace-nowrap"
+                >
+                  Examples →
+                </Link>
               </span>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

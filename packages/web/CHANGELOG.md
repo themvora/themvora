@@ -1,4 +1,135 @@
-# @theme-kit/web
+# @themvora/web
+
+## 1.5.0
+
+### Minor Changes
+
+- Add `useEffectiveThemeMode()` — `injectEffectiveThemeMode()` in Angular — which reports the mode
+  actually applied rather than the mode that was requested.
+
+  `useThemeMode()` returns the _request_, which is what a three-way light/dark/system picker needs. It is
+  the wrong value for a toggle or a label, and quietly so: with `mode: "system"` it never changes, and
+  with a sunrise/sunset schedule running it stays on the configured value while the page changes
+  underneath it.
+
+  ```tsx
+  const effectiveMode = useEffectiveThemeMode();
+  return <span>{effectiveMode === "dark" ? "Dark" : "Light"}</span>;
+  ```
+
+  It returns `"light" | "dark"` — never `"system"` — and updates for every cause: a click, an OS
+  appearance change, a schedule transition. That is because it subscribes to the appearance rather than
+  to the selection.
+
+  `@themvora/web` additionally gets `observeEffectiveThemeMode(listener)`, the same subscription without
+  a component runtime, returning an unsubscribe function:
+
+  ```ts
+  const stop = observeEffectiveThemeMode(() => {
+    label.textContent = useEffectiveThemeMode();
+  });
+  ```
+
+- Add `loadThemeRegistry()`, a static reader for the theme registry `themvora init` generates.
+
+  `themvora init` writes `src/themes/themes.ts` (or `themes/themes.ts` for Next) and, for React, Vue,
+  Solid and Svelte, no `theme.config.ts` at all. That module is the canonical theme registry, and until
+  now no consumer could read it without executing workspace TypeScript — which is arbitrary code
+  execution, and something an editor or CI step should never require to show a colour. The result was
+  that every canonically initialized project was unreadable to any tool other than the app itself.
+
+  The loader reads the module **as data**:
+
+  ```ts
+  import { loadThemeRegistry } from "@themvora/core";
+
+  const result = loadThemeRegistry(source);
+  if (result.ok) {
+    result.themes; // every theme the module registers, in its own order
+    result.origins; // "definition" | "catalog", aligned with themes
+    result.selection; // the families it selects
+    result.defaultTheme;
+  } else {
+    result.reason; // "not-a-registry" | "unsupported-construct" | "invalid-theme"
+    result.message; // a sentence, with a line and column where one is known
+  }
+  ```
+
+  It parses the `defineTheme({ … })` literals, reads the `selection` string array, resolves
+  `presetThemes` through `getPresetThemes()` exactly as the module would at runtime, and validates every
+  theme with `validateTheme()`. It does not import, transpile, evaluate or interpret expressions: a
+  computed argument, a spread, or a non-literal `selection` is reported as `unsupported-construct` rather
+  than guessed at.
+
+  `origins` is the per-theme provenance the combined list cannot carry: a generated registry mixes the
+  application's own definitions with the preset families in `selection`, and a consumer that needs to
+  count or label project themes must not count those presets as project-defined.
+
+  The point of putting this in `core` rather than in a consumer is that the interpretation is shared —
+  the VS Code extension uses it today, and the CLI, documentation tooling and future editors can use the
+  same one instead of each growing their own.
+
+  `@themvora/web` moves with `@themvora/core` because they are a fixed release group; it re-exports core
+  and gains the symbol with no code change of its own.
+
+- Add `readThemeDefinitions()`, a static reader for `defineTheme()` definitions in any source file.
+
+  `defineTheme()` returns its argument unchanged — it is a type-level helper, not a transformation — so a
+  readable object literal _is_ the theme. That is what makes a static reader sufficient: there are no
+  defaults to apply, no variants to resolve and no metadata to derive.
+
+  ```ts
+  import { readThemeDefinitions } from "@themvora/core";
+
+  const { definitions, problems } = readThemeDefinitions(source);
+  // definitions: [{ theme, location: { line, column }, binding?, variant?, generateOptions? }, …]
+  // problems:    [{ message, location }, …]
+  ```
+
+  Each definition also reports the declaration it is assigned to (`binding`) and, for a generated pair,
+  which half it is (`variant`) — `export const { light: lightTheme } = generateTheme(…)` reports
+  `lightTheme` / `"light"`. That lets a consumer follow an exported symbol into another module without
+  re-parsing the declaration itself. Both fields are optional; a literal inside an array has no single
+  name standing for it and reports neither.
+
+  Each definition also reports the canonical API that produced it (`origin`: `"definition"`,
+  `"generated"` or `"catalog"`), so a consumer can distinguish an application's own theme from a
+  curated preset without maintaining its own catalog list.
+
+  For a generated pair, the literal options passed to `generateTheme()` are reported as
+  `generateOptions` (`seed`, and any of `family`, `style`, `contrast`, `algorithm`, `withCode` that the
+  call supplied). This is the data the call was given, not an evaluation of it: an identifier, call or
+  spread argument is still refused. A tool can therefore show the inputs that produced a source theme
+  rather than only its resulting tokens.
+
+  `readThemeDefinitions(source, options)` now also accepts `strict`, `bindings` and `namespaces`. In
+  strict mode there are no name defaults: `defineTheme`, `generateTheme` and the catalog functions are
+  canonical only when a verified import binding (or a namespace member from a verified package) says
+  so. A local function called `getPresetThemes` is then not the catalog. The extension uses strict
+  mode with the exports of `@themvora/core`, `@themvora/core/vanilla` and the Nuxt core re-export;
+  standalone callers that omit the options keep the spelling-based defaults. A namespace member call
+  resolves through the documented `{ local: "*" }` binding (or a `namespaces` entry in strict mode).
+
+  Broader than `loadThemeRegistry()`, which requires the canonical registry's `themvora` / `selection` /
+  `sourceThemes` exports. This finds definitions anywhere — a project may keep them in `src/theme/brand.ts`
+  — and returns the candidates it could not read instead of dropping them, so a caller can say why.
+
+  It does not evaluate anything: a spread, a call, a template with interpolation or an identifier argument
+  is reported as a problem, never executed. A `defineTheme(...)` inside a comment or a string is ignored,
+  because that is documentation rather than a definition.
+
+  The VS Code extension uses it to show themes defined outside the generated registry. `@themvora/web`
+  moves with `@themvora/core` as a fixed release group and gains the symbol through its re-export.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
 
 ## 1.4.0
 

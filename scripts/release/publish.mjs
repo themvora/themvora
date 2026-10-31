@@ -10,7 +10,7 @@
  *   node scripts/release/publish.mjs --tag=next       # same thing
  *   node scripts/release/publish.mjs --otp 123456     # one-time password for 2FA
  *   node scripts/release/publish.mjs --allow-dirty    # permit publishing an uncommitted tree
- *   node scripts/release/publish.mjs --verify         # run the release gates first
+ *   node scripts/release/publish.mjs --verify         # run the release gates first (audit + pack + api:check)
  *
  * Releases are **not lockstep** (see `VERSIONING.md`): one release legitimately
  * ships several versions side by side, so the plan prints `name@version` and a
@@ -25,12 +25,16 @@
  *    break every dependent.
  *  - Skips a version that is already on the registry, so an interrupted run can
  *    be resumed without 403s.
- *  - Does NOT build. It *verifies* that `dist/` exists and that the built
- *    `dist/package.json` version matches the source, but run the build first.
+ *  - Does NOT build. It *verifies* that `dist/` exists, that `dist/` is not
+ *    older than `src/`, and that the built `dist/package.json` version matches
+ *    the source — but run the build first.
+ *
+ * Exit codes: `--dry-run` exits non-zero when the preflight finds a blocker, so
+ * a scripted rehearsal fails instead of printing problems and reporting success.
  */
 
 import { execSync } from "node:child_process";
-import { readFileSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, rmSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -74,6 +78,33 @@ function capture(cmd, cwd = repoRoot) {
   }
   return { ok, out };
 }
+
+/**
+ * Newest modification time of a file matching `test`, under `dir` (recursive).
+ *
+ * Used by the stale-build guard. Returns `0` when the directory is absent, so a
+ * package without `src` cannot produce a false positive.
+ */
+function newestMtime(dir, test) {
+  let newest = 0;
+  const walk = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules") continue;
+        walk(full);
+      } else if (entry.isFile() && test(entry.name)) {
+        const { mtimeMs } = statSync(full);
+        if (mtimeMs > newest) newest = mtimeMs;
+      }
+    }
+  };
+  if (existsSync(dir)) walk(dir);
+  return newest;
+}
+
+const SOURCE_FILE = (name) => /\.(ts|tsx|mts|cts)$/.test(name);
+const BUILD_FILE = (name) => /\.(js|cjs|mjs|d\.ts)$/.test(name);
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -242,6 +273,25 @@ for (const pkg of ordered) {
     failures.push(
       `${pkg.name}: no build output at ${pkg.dir}/dist — run the build first`,
     );
+  } else {
+    // 1b. …and it must be *current*. "dist exists" is not "dist matches src":
+    //     editing a source file and forgetting to rebuild ships the previous
+    //     code under the new version, which no downstream check can detect.
+    //     Compared by mtime rather than a hash manifest because the build tools
+    //     here do not emit one. Scoped to `src` on purpose — a changed build
+    //     config (tsup/tsconfig) also invalidates dist, but flagging that here
+    //     would fail on configs that legitimately predate a rebuild.
+    const srcNewest = newestMtime(join(pkg.dir, "src"), SOURCE_FILE);
+    const distNewest = newestMtime(distDir, BUILD_FILE);
+    // Only compare when both sides produced a timestamp: a dist with no
+    // recognisable build output cannot be judged "stale", and reporting it as
+    // such would be a false positive on an unusual layout.
+    if (distNewest > 0 && srcNewest > distNewest) {
+      failures.push(
+        `${pkg.name}: dist is older than src (src ${new Date(srcNewest).toISOString()} > ` +
+          `dist ${new Date(distNewest).toISOString()}) — rebuild before publishing`,
+      );
+    }
   }
 
   // 2. A package that emits its own manifest (ng-packagr) must agree on the
@@ -374,8 +424,12 @@ if (failures.length) {
   console.log("\nPreflight failures:");
   for (const f of failures) console.log(`  ✗ ${f}`);
   if (isDryRun) {
-    console.log("\nDry run — the failures above would block a real publish.");
-    process.exit(0);
+    // Exit non-zero: `--dry-run` is the rehearsal the release checklist gates
+    // on, so a scripted or CI run must fail here rather than print the problems
+    // and report success. A rehearsal that passes while listing blockers is
+    // worse than no rehearsal — it manufactures confidence.
+    console.error("\nDry run — the failures above would block a real publish.");
+    process.exit(1);
   }
   console.error("\nAborting — fix the preflight failures above.");
   process.exit(1);
@@ -392,7 +446,16 @@ if (isDryRun) {
 
 if (runVerify) {
   console.log("\nRunning the release gates (--verify)...\n");
-  for (const cmd of ["npm run release:audit", "npm run docs:api:check"]) {
+  // `release:audit` validates manifests, dependency policy, the export
+  // inventory, the breaking contract and JSDoc; `release:pack` is what actually
+  // inspects the tarballs (exports/bin targets resolve inside the tarball, no
+  // src/test leakage, no `workspace:*`). Without it, `--verify` could pass on
+  // packages whose published contents are wrong.
+  for (const cmd of [
+    "npm run release:audit",
+    "npm run release:pack",
+    "npm run docs:api:check",
+  ]) {
     try {
       execSync(cmd, { cwd: repoRoot, stdio: "inherit" });
       console.log(`✓ ${cmd}`);

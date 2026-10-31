@@ -15,6 +15,7 @@ import { RelatedLinks } from "../../../components/ui/related-links";
 import { InlineCode } from "../../../components/ui/inline-code";
 import { packages } from "../../../lib/packages";
 import { highlightCode } from "../../../lib/highlight";
+import { compatibilityBadge } from "../../../lib/code-variants";
 import { docsUrl, npmPackageUrl, sourceUrlForPackage } from "../../../lib/site";
 import { PKG_VERSION } from "../../../lib/version";
 
@@ -157,6 +158,7 @@ export default async function PackagePage({ params }: PageProps) {
             code={pkg.snippet.code}
             language={pkg.snippet.lang}
             filename={pkg.snippet.title}
+            {...compatibilityBadge(pkg.snippet.code, pkg.snippet.lang, pkg.slug)}
             className="rounded-lg"
           />
         </section>
@@ -174,6 +176,7 @@ export default async function PackagePage({ params }: PageProps) {
               code={pkg.snippet2.code}
               language={pkg.snippet2.lang}
               filename={pkg.snippet2.title}
+              {...compatibilityBadge(pkg.snippet2.code, pkg.snippet2.lang, pkg.slug)}
               className="rounded-lg m-0"
             />
           </section>

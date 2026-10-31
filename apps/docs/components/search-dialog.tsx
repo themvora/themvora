@@ -337,7 +337,7 @@ export function SearchProvider({
             <input
               ref={inputRef}
               value={query}
-              className="search-dialog-input flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-foreground/40"
+              className="search-dialog-input min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-foreground/40"
               aria-label="Search documentation"
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -466,8 +466,18 @@ export function SearchProvider({
                               : "hover:bg-muted"
                           }`}
                         >
-                          <span className="flex w-full items-center gap-2 text-sm font-semibold">
-                            {highlight(entry.title, query)}
+                          <span className="flex w-full min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm font-semibold">
+                            {/* The highlighted fragments are inline runs, not
+                                flex items. Putting `highlight()` directly in a
+                                flex row turned every fragment into its own item
+                                and `gap-x` inserted a space at each query
+                                boundary ("useThem eFamily()"). */}
+                            <span
+                              className="min-w-0 break-words"
+                              style={{ overflowWrap: "anywhere" }}
+                            >
+                              {highlight(entry.title, query)}
+                            </span>
 
                             <span
                               className="ml-auto shrink-0 mono text-[10px] opacity-40"

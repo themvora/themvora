@@ -139,7 +139,66 @@ function fakeRoot(initialClasses: string[] = []): FakeRoot {
   };
 }
 
-interface FakeDocument {
+/** A `[data-tv-readout]` element, as far as the navigation script uses one. */
+interface FakeReadout {
+  kind: string;
+  text: string;
+}
+
+/** A `[data-tv-select]` control, as far as the navigation script uses one. */
+interface FakeSelect {
+  kind: string;
+  options: string[];
+  value: string;
+}
+
+/** The body nodes a page rendered, as the script sees them via selectors. */
+interface FakeBody {
+  readouts?: FakeReadout[];
+  selects?: FakeSelect[];
+}
+
+/**
+ * Builds the minimal element surface the navigation script touches.
+ *
+ * Deliberately not jsdom: the script is emitted as an inline string and
+ * evaluated with `eval`, so what matters is which properties it reads — a real
+ * DOM would hide a script that reached for something the browser guarantees but
+ * this contract does not.
+ */
+function fakeBody({ readouts = [], selects = [] }: FakeBody) {
+  const readoutEls = readouts.map((entry) => ({
+    getAttribute: (name: string) =>
+      name === "data-tv-readout" ? entry.kind : null,
+    get textContent(): string {
+      return entry.text;
+    },
+    set textContent(value: string) {
+      entry.text = value;
+    },
+  }));
+
+  const selectEls = selects.map((entry) => ({
+    getAttribute: (name: string) => (name === "data-tv-select" ? entry.kind : null),
+    options: entry.options.map((value) => ({ value })),
+    get value(): string {
+      return entry.value;
+    },
+    set value(next: string) {
+      entry.value = next;
+    },
+  }));
+
+  return {
+    querySelectorAll(selector: string) {
+      if (selector === "[data-tv-readout]") return readoutEls;
+      if (selector === "[data-tv-select]") return selectEls;
+      return [];
+    },
+  };
+}
+
+interface FakeDocument extends ReturnType<typeof fakeBody> {
   documentElement: FakeRoot;
   root: FakeRoot;
   headChildren: unknown[];
@@ -149,6 +208,7 @@ interface FakeDocument {
 function fakeDocument(
   initialClasses: string[] = [],
   withHead = true,
+  body: FakeBody = {},
 ): FakeDocument {
   const root = fakeRoot(initialClasses);
   const headChildren: unknown[] = [];
@@ -159,6 +219,7 @@ function fakeDocument(
     headChildren,
     getElementById: () => null,
     importNode: (node: unknown) => node,
+    ...fakeBody(body),
   } as unknown as FakeDocument;
 
   if (withHead) {
@@ -172,7 +233,7 @@ function fakeDocument(
   return doc;
 }
 
-interface LiveState {
+interface LiveState extends FakeBody {
   classes: string[];
   attributes?: Record<string, string>;
   style?: string | null;
@@ -207,6 +268,7 @@ function dispatchBeforeSwap(live: LiveState, next: unknown) {
     addEventListener: (type: string, handler: (event: unknown) => void) => {
       if (type === "astro:before-swap") handlers.push(handler);
     },
+    ...fakeBody(live),
   };
 
   try {
@@ -287,5 +349,136 @@ describe("createNavigationScript — client-side navigation", () => {
     expect(() =>
       dispatchBeforeSwap({ classes: [] }, fakeDocument([], false)),
     ).not.toThrow();
+  });
+
+  /**
+   * The selection attributes are what a `[data-tv-select]` control reads, and
+   * they are not derivable from `data-theme` — a `"system"` selection and a
+   * resolved `dark` mode are different facts. Carrying only the resolved pair
+   * left every navigation showing the first option of every control.
+   */
+  it("carries the selection attributes alongside the resolved ones", () => {
+    const next = fakeDocument();
+
+    dispatchBeforeSwap(
+      {
+        classes: [],
+        attributes: {
+          "data-theme": "cocoa-dark",
+          "data-theme-mode": "dark",
+          "data-theme-family": "cocoa",
+          "data-theme-selection-mode": "system",
+          "data-theme-selection-family": "cocoa",
+        },
+      },
+      next,
+    );
+
+    expect(next.root.attributes["data-theme-selection-mode"]).toBe("system");
+    expect(next.root.attributes["data-theme-selection-family"]).toBe("cocoa");
+  });
+
+  it("carries readout text by kind, not by position", () => {
+    const next = fakeDocument([], true, {
+      readouts: [
+        // Deliberately in the opposite order from the live document: an
+        // index-based copy would swap the two labels.
+        { kind: "family", text: "mint" },
+        { kind: "theme", text: "mint-light" },
+        { kind: "mode", text: "light" },
+      ],
+    });
+
+    dispatchBeforeSwap(
+      {
+        classes: [],
+        attributes: {
+          "data-theme": "cocoa-dark",
+          "data-theme-selection-family": "cocoa",
+          "data-theme-selection-mode": "system",
+        },
+        readouts: [
+          { kind: "theme", text: "cocoa-dark" },
+          { kind: "mode", text: "system" },
+          { kind: "family", text: "cocoa" },
+        ],
+      },
+      next,
+    );
+
+    const rendered = next.querySelectorAll("[data-tv-readout]");
+    expect(
+      Object.fromEntries(
+        rendered.map((el) => [el.getAttribute("data-tv-readout"), el.textContent]),
+      ),
+    ).toEqual({ theme: "cocoa-dark", mode: "system", family: "cocoa" });
+  });
+
+  it("carries a readout kind the destination page does not render", () => {
+    // A page can render a subset. The script must copy what matches and leave
+    // the rest — no exception, no blank node.
+    const next = fakeDocument([], true, {
+      readouts: [{ kind: "theme", text: "mint-light" }],
+    });
+
+    expect(() =>
+      dispatchBeforeSwap(
+        {
+          classes: [],
+          readouts: [
+            { kind: "theme", text: "ocean-dark" },
+            { kind: "family", text: "ocean" },
+          ],
+        },
+        next,
+      ),
+    ).not.toThrow();
+
+    expect(next.querySelectorAll("[data-tv-readout]")[0]!.textContent).toBe("ocean-dark");
+  });
+
+  it("selects the incoming control to the live selection", () => {
+    const next = fakeDocument([], true, {
+      selects: [
+        { kind: "family", options: ["mint", "cocoa", "ocean"], value: "mint" },
+        { kind: "mode", options: ["light", "dark", "system"], value: "light" },
+      ],
+    });
+
+    dispatchBeforeSwap(
+      {
+        classes: [],
+        attributes: {
+          "data-theme-selection-family": "ocean",
+          "data-theme-selection-mode": "system",
+        },
+      },
+      next,
+    );
+
+    const selects = next.querySelectorAll("[data-tv-select]");
+    expect(selects[0]!.value).toBe("ocean");
+    // `system` is a selection, not a resolved mode: it must be selectable even
+    // though the document is painted `dark`.
+    expect(selects[1]!.value).toBe("system");
+  });
+
+  it("leaves a control alone when the selection has no matching option", () => {
+    const next = fakeDocument([], true, {
+      selects: [{ kind: "family", options: ["mint", "cocoa"], value: "mint" }],
+    });
+
+    dispatchBeforeSwap(
+      {
+        classes: [],
+        attributes: { "data-theme-selection-family": "ocean" },
+      },
+      next,
+    );
+
+    // The live selection is stale relative to the destination page's registry.
+    // Forcing `select.value = "ocean"` would blank the control, which is worse
+    // than leaving it on a value that at least exists.
+    expect(next.querySelectorAll("[data-tv-select]")[0]!.value).toBe("mint");
   });
 });

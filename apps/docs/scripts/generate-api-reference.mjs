@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -569,6 +570,49 @@ async function backlinksFor(pkgName, entry) {
   return links;
 }
 
+/**
+ * Absolute path to typedoc's CLI entry point.
+ *
+ * Resolved rather than hardcoded: `apps/docs/node_modules/typedoc/bin/typedoc`
+ * only exists under pnpm's isolated `node_modules` layout. With `node-linker:
+ * hoisted` — which is what a Windows checkout with long-path trouble needs —
+ * typedoc is installed at the workspace root and the hardcoded path does not
+ * exist, so every entry failed with `MODULE_NOT_FOUND` and the gate reported
+ * "0 drifted" only because it could not read anything. Resolving from the docs
+ * package finds the binary under either layout.
+ */
+const typedocBin = (() => {
+  const requireFromDocs = createRequire(join(docsDir, "package.json"));
+  const fallback = join(docsDir, "node_modules", "typedoc", "bin", "typedoc");
+
+  let dir;
+  try {
+    // `typedoc`'s `exports` map does not expose `./bin/typedoc`, so resolve the
+    // package entry and walk up to the package root instead.
+    dir = dirname(requireFromDocs.resolve("typedoc"));
+  } catch {
+    return fallback;
+  }
+
+  for (let depth = 0; depth < 6; depth += 1) {
+    const manifest = join(dir, "package.json");
+    if (existsSync(manifest)) {
+      try {
+        if (JSON.parse(readFileSync(manifest, "utf8")).name === "typedoc") {
+          return join(dir, "bin", "typedoc");
+        }
+      } catch {
+        /* keep walking */
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  return fallback;
+})();
+
 async function generateEntry(pkg, entry, tmpJson) {
   // `dir` addresses packages that do not live directly under `packages/`
   // (the adapters live under `packages/adapters/*`).
@@ -576,7 +620,7 @@ async function generateEntry(pkg, entry, tmpJson) {
   const entryAbs = join(pkgDir, entry.entry).replace(/\\/g, "/");
   const tsconfig = join(pkgDir, "tsconfig.json").replace(/\\/g, "/");
   const args = [
-    join(docsDir, "node_modules", "typedoc", "bin", "typedoc"),
+    typedocBin,
     "--tsconfig",
     tsconfig,
     "--entryPoints",

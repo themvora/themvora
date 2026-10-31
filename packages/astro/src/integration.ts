@@ -24,6 +24,40 @@ import { createNavigationScript } from "./navigation-script";
 import { computeFingerprint } from "./fingerprint";
 
 /**
+ * Serializes a value for embedding in executable inline script content.
+ *
+ * @param value - The value to serialize.
+ * @returns A JSON literal that is also a valid JavaScript expression.
+ *
+ * @remarks
+ * `head-inline` injects the string as the **body of a `<script>` element**, so
+ * a `</script` sequence anywhere in the theme data ends the element and turns
+ * the rest of it into markup. `JSON.stringify` does not escape markup
+ * delimiters, so they are replaced with `\uXXXX` escapes here — equivalent
+ * inside a JSON string literal, inert to the HTML tokenizer. U+2028/U+2029 are
+ * included because they were JavaScript line terminators before ES2019.
+ *
+ * Core keeps an internal copy of this for its own script builders; it is not
+ * part of its public API, so this package carries its own rather than importing
+ * a private module.
+ */
+function serializeScriptJson(value: unknown): string {
+  const json = JSON.stringify(value);
+  if (json === undefined) return "null";
+  return json.replace(/[<>&\u2028\u2029]/g, (char) =>
+    char === "<"
+      ? "\\u003c"
+      : char === ">"
+        ? "\\u003e"
+        : char === "&"
+          ? "\\u0026"
+          : char === "\u2028"
+            ? "\\u2028"
+            : "\\u2029",
+  );
+}
+
+/**
  * Options for {@link themvora}. Configures the theme registry the injected
  * bootstrap resolves against and the fallback selection used when no
  * persisted cookie is present.
@@ -83,9 +117,17 @@ export interface ThemvoraIntegrationOptions {
    *
    * `true` hides it on fine-pointer (desktop) devices; pass
    * `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to
-   * `false` — only enable it when the page actually mounts `ThemeScrollbar`.
+   * `false`.
    *
    * @remarks
+   * This half only *hides* the bar — `<ThemeScrollbar />` draws the
+   * replacement — so it is only meaningful on a page that mounts the overlay.
+   * Enabling it without the overlay used to leave the page with no scrollbar at
+   * all; the hiding is now released when the overlay unmounts, and
+   * `provider.astro` additionally hands the native bar back at the end of
+   * `<body>` if no overlay element was rendered. A misconfiguration therefore
+   * degrades to a native scrollbar rather than to nothing.
+   *
    * The injected script keeps native scrollbars on coarse-pointer devices
    * unless `touch` is set. Pass `scrollbar` to `provider.astro` instead when
    * you want the `tv-scrollbar` class in the server-rendered HTML (no script,
@@ -135,6 +177,7 @@ function buildBootstrap(
   // omitted `mode` painted one theme and corrected to another.
   const {
     names,
+    labels,
     defaults,
     family: fallbackFamily,
     families,
@@ -153,6 +196,7 @@ function buildBootstrap(
     // family with no variables behind it.
     families,
     names,
+    labels,
     defaults,
   });
 
@@ -176,7 +220,7 @@ function buildBootstrap(
     `if(document.querySelector('style[data-themvora="system"]'))return;` +
     `var s=document.createElement("style");` +
     `s.setAttribute("data-themvora","system");` +
-    `s.textContent=${JSON.stringify(systemCss)};` +
+    `s.textContent=${serializeScriptJson(systemCss)};` +
     `document.head.appendChild(s)` +
     `}catch(e){}})()`
   );
@@ -192,7 +236,7 @@ function buildBootstrap(
  *
  * @example
  * ```ts
- * // astro.config.ts — register the integration. No theme data.
+ * // Register the integration. No theme data.
  * import { defineConfig } from "astro/config";
  * import themvora from "@themvora/astro";
  *
@@ -337,7 +381,7 @@ export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegra
           injectScript(
             "head-inline",
             "window.__THEMVORA_CONFIG__=" +
-              JSON.stringify(toBootstrapConfig(discovered)).replace(/</g, "\\u003c") +
+              serializeScriptJson(toBootstrapConfig(discovered)) +
               ";",
           );
         }

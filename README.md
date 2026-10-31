@@ -23,8 +23,12 @@ npm install @themvora/core @themvora/next
 npm install -g @themvora/cli
 ```
 
-> Themvora packages ship **zero runtime dependencies** — frameworks are peer
-> dependencies. Install only what your application actually uses.
+> Themvora packages have **no third-party runtime dependencies**, with one
+> exception: `@themvora/angular` depends on `tslib`. Framework packages also
+> depend on other `@themvora/*` packages (`@themvora/core`, and
+> `@themvora/web` for the framework bindings). Frameworks themselves are peer
+> dependencies. Install only what your application actually uses, and see each
+> package's `package.json` (or its npm page) for the exact list.
 
 ## Quick Start
 
@@ -149,6 +153,48 @@ Generate from a seed colour, a canonical preset, or a brand-inspired recipe;
 then compare, explain, audit, inspect, and export. See the
 [CLI documentation](https://themvora-dev.vercel.app/cli) for the full command
 reference.
+
+## Themvora for VS Code
+
+The same theme tooling, inside the editor: a theme library, a live preview
+canvas, a token inspector with contrast measurements, and a generator — for the
+themes in **your application**, not your editor's colour theme.
+
+![Themvora Theme Studio in VS Code: a theme library on the left, a live dashboard preview in the centre, and a token inspector listing colour values and contrast ratios on the right.](apps/docs/public/vscode/studio-overview-light.png)
+
+- **Explore** project themes, catalog presets and drafts as cards with swatch
+  strips, family, mode, origin, registration evidence and source file.
+- **Preview** a dashboard or component gallery rendered from the selected
+  tokens, with light/dark comparison when a family has both variants.
+- **Inspect** every colour token's value, CSS custom property and measured
+  contrast — failures name the token, the ratio, the floor and which side is
+  wrong.
+- **Create** a theme from a seed, a preset or an existing family, with live
+  validation before anything is written, then save as JSON, TypeScript with
+  `defineTheme()`, or CSS variables.
+- **Validate** JSON theme documents, and get diagnostics, role hovers and colour
+  swatches inline while editing them.
+
+The extension reads your project's themes statically and never executes your
+code, makes no network request, and collects no telemetry.
+
+The extension is **not yet published to the Visual Studio Marketplace**, so
+there is no listing to install from yet. Build and install the `.vsix`:
+
+```bash
+pnpm install
+pnpm --filter themvora-vscode build
+
+cd packages/vscode
+pnpm package                      # -> themvora-vscode-0.1.0.vsix
+code --install-extension themvora-vscode-0.1.0.vsix
+```
+
+[Extension documentation](https://themvora-dev.vercel.app/vscode) ·
+[Package](packages/vscode) ·
+[Architecture](packages/vscode/architecture.md) ·
+[README](packages/vscode/README.md) ·
+[Issues](https://github.com/themvora/themvora/issues)
 
 ## Documentation
 

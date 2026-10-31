@@ -1,4 +1,69 @@
-# @theme-kit/next
+# @themvora/next
+
+## 2.1.0
+
+### Minor Changes
+
+- Add `useProvidedThemes()` — and `injectProvidedThemes()` for Angular — so a theme picker can be built
+  from the provider itself.
+
+  Building a picker meant reaching past the provider into the preset catalog
+  (`Object.entries(getPresetThemes())`) and hoping the two collections agreed. They do not: an app that
+  supplies three of its own families has a picker that lists the presets and none of its own themes.
+
+  ```tsx
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+  const setMode = useSetThemeMode();
+
+  return families.map((family) => (
+    <fieldset key={family.id}>
+      <legend>{family.name}</legend>
+      {family.variants.map((variant) => (
+        <button
+          key={variant.name}
+          onClick={() => {
+            setFamily(family.family);
+            setMode(variant.mode);
+          }}
+        >
+          {variant.mode}
+        </button>
+      ))}
+    </fieldset>
+  ));
+  ```
+
+  The collection is exactly what the provider was given, grouped by family in supplied order, with each
+  variant's tokens already resolved — `auto()` / `contrast()` / expressions are evaluated, so
+  `variant.tokens.colors?.primary` reads directly. Each variant also keeps the original definition, for
+  anything the grouped view does not model.
+
+  It is reactive: a `themes` prop change, a `runtime.use(pack)` install or a registry mutation
+  re-renders the consumer. Entries keep their identity while their content is unchanged, so `React.memo`
+  and dependency arrays behave — a re-registered catalog whose only difference is the registry's
+  `meta.created` / `meta.updated` stamps is not treated as a change.
+
+  `ProvidedThemeFamily.provenance` reports a _declared_ source only — `{ kind: "generated", algorithm }`
+  from `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light`
+  is not thereby a preset, and nothing is inferred from a name, family or colour.
+
+  Angular follows its own convention: `injectProvidedThemes()` returns a `Signal` of the same collection,
+  because a DI-based framework has no hook call site to subscribe from.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
+  - @themvora/react@1.4.0
 
 ## 2.0.0
 

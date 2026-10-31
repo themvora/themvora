@@ -13,6 +13,7 @@ import { highlightCode } from "../../lib/highlight";
 import { frameworks } from "../../lib/frameworks";
 import { c, colorsOf, contrastRatio } from "../../lib/contrast";
 import { HeroScene } from "./hero-scene";
+import { HERO_SNIPPET_LANG, heroSnippet } from "./hero-snippet";
 import { PKG_VERSION_BADGE } from "../../lib/version";
 
 /** Tiny inline trend line for the stat tiles — decorative, token-colored. */
@@ -309,31 +310,25 @@ const MODE_LABELS = {
  * via the chips below, mode via the top-navigation toggle), so the visible
  * result and the code that produced it stay in sync.
  */
-function LiveCodeSample() {
+function LiveCodeSample({ label }: { label?: string | undefined }) {
   const { family, mode, theme } = useTheme();
   const currentFamily = family ?? "default";
   const themeName = theme?.name ?? `${currentFamily}-${mode}`;
   const currentMode = mode in MODE_LABELS ? mode : "light";
 
   const code = useMemo(
-    () =>
-      `import { createThemeRuntime } from "@themvora/core";
-
-// Applied on this page right now: ${themeName}
-const runtime = createThemeRuntime();
-
-runtime.selection.setFamily("${currentFamily}"); // swap the palette
-runtime.selection.setMode("${currentMode}");      // swap light/dark`,
+    () => heroSnippet(currentFamily, currentMode, themeName),
     [themeName, currentFamily, currentMode],
   );
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <CodeBlock
-        html={highlightCode(code, "tsx", { lineNumbers: false })}
+        html={highlightCode(code, HERO_SNIPPET_LANG)}
         code={code}
-        language="tsx"
+        language={HERO_SNIPPET_LANG}
         filename={`Live · ${currentFamily} · ${currentMode}`}
+        {...(label ? { displayLanguage: label } : {})}
         className="rounded-xl m-0!"
       />
     </div>
@@ -352,7 +347,7 @@ const PARTICLES = [
   { left: "93%", size: 2, dur: 12, delay: 2.2, x: 14, o: 0.25 },
 ];
 
-export function Hero() {
+export function Hero({ snippetLabel }: { snippetLabel?: string | undefined }) {
   return (
     <section className="relative overflow-hidden">
       <div className="hero-bg" aria-hidden />
@@ -417,7 +412,9 @@ export function Hero() {
 
             <h1 className="fade-up fade-up-2 text-4xl sm:text-6xl font-bold tracking-tight mb-5 text-balance">
               The theming runtime{" "}
-              <span className="hero-accent">for modern applications.</span>
+              <span className="hero-accent block">
+                for modern applications.
+              </span>
             </h1>
 
             <p className="fade-up fade-up-3 mx-auto lg:mx-0 max-w-2xl lg:max-w-xl text-base sm:text-lg opacity-70 mb-8 leading-relaxed text-balance">
@@ -482,7 +479,7 @@ export function Hero() {
           <p className="text-xs uppercase tracking-widest opacity-40 font-semibold mb-3 text-center">
             Try changing the theme, and see the code reflect it live
           </p>
-          <LiveCodeSample />
+          <LiveCodeSample label={snippetLabel} />
         </div>
 
         <div className="fade-up fade-up-5 mt-10 pt-8 border-t border-border">

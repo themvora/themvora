@@ -26,7 +26,7 @@ On uninstall it removes the injected styles and unsubscribes from the store.
 ```ts
 import { createBootstrapAdapter } from "@themvora/bootstrap";
 
-runtime.installAdapter(createBootstrapAdapter());
+runtime.adapters.use(createBootstrapAdapter());
 ```
 
 ---

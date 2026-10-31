@@ -1,4 +1,8 @@
-import type { ThemeDefinition, ThemeMode } from "../model";
+import type {
+  ThemeDefinition,
+  ThemeEffectiveSelection,
+  ThemeMode,
+} from "../model";
 import {
   getThemeFamilies,
   getThemeFamily,
@@ -11,6 +15,7 @@ import { createSystemThemeBinding } from "./system";
 import type { ThemeStore } from "../types";
 import { isThemeMode } from "../diagnostics";
 import { emitInvalidModeDiagnostic } from "./mode-diagnostic";
+import { runSyncAdapter } from "./sync-diagnostic";
 
 export interface ThemeSelectionPersistenceAdapter {
   get(): ThemeSelectionState | null;
@@ -74,7 +79,34 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
   let unsubscribeStore: (() => void) | null = null;
   let destroyed = false;
   let applyingFromController = false;
+  /**
+   * Whether an automatic driver other than the OS — the sunrise/sunset
+   * schedule — is currently deciding the appearance.
+   *
+   * Both drivers write the same store, so without this flag they take turns
+   * overwriting each other: the schedule applied the night theme during
+   * construction and the OS binding immediately replaced it with the daytime
+   * one, so a visitor with `mode: "system"` saw the wrong theme until the next
+   * schedule tick. While an external driver is active the OS binding is not
+   * created, and the OS preference cannot move the store.
+   */
+  let externalAutomaticDriver = false;
+
   const selectionListeners = new Set<(selection: ThemeSelectionState) => void>();
+  const effectiveListeners = new Set<
+    (selection: ThemeEffectiveSelection) => void
+  >();
+
+  /** The appearance the store currently holds. */
+  function deriveEffective(): ThemeEffectiveSelection {
+    const theme = options.store.get();
+    return {
+      family: getThemeFamily(theme),
+      mode: getThemeMode(theme) === "dark" ? "dark" : "light",
+    };
+  }
+
+  let effective: ThemeEffectiveSelection = deriveEffective();
 
   function notifySelectionListeners() {
     const current = { ...state };
@@ -83,60 +115,117 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
     }
   }
 
+  /**
+   * Publish the appearance actually on screen, if it moved.
+   *
+   * A separate channel from {@link notifySelectionListeners} on purpose: the
+   * configured selection and the effective one change for different reasons.
+   * An OS appearance change, or a schedule transition, moves the effective mode
+   * while the visitor's choice stands — and a consumer that treats "the
+   * selection changed" as "the visitor just chose something" (the runtime's
+   * manual-override bookkeeping does) must not be woken by it.
+   */
+  function publishEffective(next: ThemeEffectiveSelection = deriveEffective()) {
+    if (next.family === effective.family && next.mode === effective.mode) {
+      return;
+    }
+    effective = next;
+    for (const listener of effectiveListeners) {
+      listener({ ...effective });
+    }
+  }
+
   function stopSystemBinding() {
     systemBinding?.destroy();
     systemBinding = null;
   }
 
-  function applySelection(nextState: ThemeSelectionState, sync = true) {
+  /**
+   * Follow `prefers-color-scheme` for `nextState.family`.
+   *
+   * `applyOnCreate` is what makes handing the appearance back from a schedule
+   * safe: re-creating the binding with the initial apply suppressed resumes
+   * listening without changing the theme the schedule left behind.
+   */
+  function bindSystemTheme(nextState: ThemeSelectionState, applyOnCreate = true) {
+    systemBinding = createSystemThemeBinding(options.store, {
+      lightTheme: resolveSelectionTheme({
+        themes: options.themes,
+        selection: {
+          family: nextState.family,
+          mode: "light",
+        },
+      }).theme,
+
+      darkTheme: resolveSelectionTheme({
+        themes: options.themes,
+        selection: {
+          family: nextState.family,
+          mode: "dark",
+        },
+      }).theme,
+
+      applyOnCreate,
+      ...(options.view ? { view: options.view } : {}),
+    });
+
+    return systemBinding !== null;
+  }
+
+  function applySelection(
+    nextState: ThemeSelectionState,
+    sync = true,
+    api = "applyState",
+    // A configuration-driven change (`sync: false`) is not a user action and is
+    // applied without animating by default. An explicit override *is* a visible
+    // theme change, so the runtime can ask for the transition to run while still
+    // keeping persistence and broadcast out of it.
+    suppressTransition = !sync,
+  ) {
     // After destroy() the controller is a safe no-op: setMode/setFamily/toggle
     // must not touch persistence or the (now closed) broadcast channel.
     if (destroyed) return;
     stopSystemBinding();
 
     if (sync) {
-      persistence?.set(nextState);
-      broadcast?.post(nextState);
+      // Isolated per adapter, and *before* the notify/apply below, so neither a
+      // blocked storage write nor a closed broadcast channel can skip them.
+      // Previously an exception here left the controller half-updated: `state`
+      // had already been replaced by the caller, so `getSelection()` reported
+      // the new selection while the store still held the old theme and no
+      // listener had fired — React kept rendering the old theme until something
+      // else triggered a render.
+      runSyncAdapter(api, "persistence", () => persistence?.set(nextState));
+      runSyncAdapter(api, "broadcast", () => broadcast?.post(nextState));
     }
 
     notifySelectionListeners();
 
     if (nextState.mode === "system") {
-      systemBinding = createSystemThemeBinding(options.store, {
-        lightTheme: resolveSelectionTheme({
-          themes: options.themes,
-          selection: {
-            family: nextState.family,
-            mode: "light",
-          },
-        }).theme,
+      // An external automatic driver (the schedule) owns the appearance while
+      // it runs. Creating the OS binding here would apply `prefers-color-scheme`
+      // over whatever the schedule just chose, which is exactly the bug that
+      // made a `"system"` visitor see the daytime theme at night.
+      if (!externalAutomaticDriver) {
+        const bound = bindSystemTheme(nextState);
 
-        darkTheme: resolveSelectionTheme({
-          themes: options.themes,
-          selection: {
-            family: nextState.family,
-            mode: "dark",
-          },
-        }).theme,
-
-        ...(options.view ? { view: options.view } : {}),
-      });
-
-      if (!systemBinding) {
-        applyingFromController = true;
-        options.store.set(
-          resolveSelectionTheme({
-            themes: options.themes,
-            selection: {
-              family: nextState.family,
-              mode: "light",
-            },
-          }).theme,
-          { suppressTransition: !sync },
-        );
-        applyingFromController = false;
+        if (!bound) {
+          applyingFromController = true;
+          options.store.set(
+            resolveSelectionTheme({
+              themes: options.themes,
+              selection: {
+                family: nextState.family,
+                mode: "light",
+              },
+            }).theme,
+            { suppressTransition },
+          );
+          applyingFromController = false;
+        }
       }
 
+      publishEffective();
       return;
     }
 
@@ -146,8 +235,10 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
     });
 
     applyingFromController = true;
-    options.store.set(resolution.theme, { suppressTransition: !sync });
+    options.store.set(resolution.theme, { suppressTransition });
     applyingFromController = false;
+
+    publishEffective();
   }
 
   function setMode(nextMode: ThemeMode) {
@@ -172,7 +263,7 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
       mode: nextMode,
     };
 
-    applySelection(state, true);
+    applySelection(state, true, "setMode");
   }
 
   function setFamily(nextFamily: string) {
@@ -193,7 +284,7 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
       family: nextFamily,
     };
 
-    applySelection(state, true);
+    applySelection(state, true, "setFamily");
   }
 
   function getAppliedMode(): "light" | "dark" {
@@ -211,7 +302,10 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
    * family/mode to a different theme object — and it does not persist by
    * default, because a configuration-driven change is not a user choice.
    */
-  function applyState(nextState: ThemeSelectionState, opts: { persist?: boolean } = {}) {
+  function applyState(
+    nextState: ThemeSelectionState,
+    opts: { persist?: boolean; suppressTransition?: boolean } = {},
+  ) {
     if (destroyed) return;
     if (!isThemeMode(nextState.mode)) {
       emitInvalidModeDiagnostic(nextState.mode);
@@ -219,10 +313,80 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
     }
     const family = normalizeThemeFamily(options.themes, nextState.family, options.themes[0]);
     state = { family, mode: nextState.mode };
-    applySelection(state, opts.persist ?? false);
+    const persist = opts.persist ?? false;
+    applySelection(state, persist, "applyState", opts.suppressTransition ?? !persist);
   }
 
   const onSyncApply = options.onSyncApply ?? null;
+
+  /**
+   * Apply a theme chosen by an **automatic** driver — the sunrise/sunset
+   * schedule — without rewriting the visitor's selection.
+   *
+   * This is the one entry point an automatic driver may use. It differs from
+   * every other apply path in four ways, each of which the schedule previously
+   * got wrong by writing to the store directly:
+   *
+   * - The configured selection is untouched. A schedule decides which
+   *   appearance is on screen *now*; it does not decide what the visitor asked
+   *   for. Previously a sunset transition rewrote `mode` from `light` to
+   *   `dark`, so the visitor's explicit choice was destroyed and the control
+   *   that reads it silently changed under them.
+   * - Nothing is persisted. An automatic change is not a choice, so saving it
+   *   would freeze the visitor on the scheduled mode the next time they load
+   *   the page with the schedule gone.
+   * - Nothing is broadcast. Cross-tab peers run their own schedule from their
+   *   own clock; announcing this as a selection would hand them a manual choice
+   *   they never made.
+   * - The OS binding is released, because two automatic drivers writing one
+   *   store is what made the schedule lose at load time.
+   *
+   * The effective mode is published to {@link subscribeEffective}, which is what
+   * lets a control showing "the current mode" follow a transition.
+   */
+  function applyAutomaticTheme(
+    theme: T,
+    opts: { suppressTransition?: boolean } = {},
+  ) {
+    if (destroyed) return;
+
+    stopSystemBinding();
+
+    applyingFromController = true;
+    try {
+      options.store.set(theme, {
+        suppressTransition: opts.suppressTransition ?? false,
+      });
+    } finally {
+      applyingFromController = false;
+    }
+
+    publishEffective();
+  }
+
+  /**
+   * Hand the appearance to, or take it back from, an external automatic driver.
+   *
+   * `active: true` releases the OS binding so the schedule's writes survive.
+   * `active: false` re-creates it **without** applying it, so turning the
+   * schedule off does not itself change the theme — the next real
+   * `prefers-color-scheme` change does.
+   */
+  function setAutomaticDriverActive(active: boolean) {
+    if (destroyed) return;
+    if (active === externalAutomaticDriver) return;
+
+    externalAutomaticDriver = active;
+
+    if (active) {
+      stopSystemBinding();
+      return;
+    }
+
+    if (state.mode === "system") {
+      bindSystemTheme(state, false);
+    }
+  }
 
   function handleSyncUpdate(nextState: ThemeSelectionState) {
     applySelection(nextState, false);
@@ -256,25 +420,42 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
   unsubscribeStore = options.store.subscribe((theme) => {
     if (applyingFromController) return;
     const themeFamily = getThemeFamily(theme);
-    const themeMode = theme.meta?.mode as ThemeMode | undefined;
+    const themeMode = getThemeMode(theme);
+    const applied: ThemeEffectiveSelection = {
+      family: themeFamily,
+      mode: themeMode === "dark" ? "dark" : "light",
+    };
 
     // While "system" is selected the store legitimately resolves to the
     // family's light or dark theme as the OS preference changes. That is not
     // a mode switch — keep the explicit "system" selection and its binding,
     // otherwise every OS change would silently downgrade the choice to
     // light/dark and leave the toggle stuck on a concrete mode.
-    if (state.mode === "system") {
-      return;
-    }
-
     if (
       themeMode &&
+      state.mode !== "system" &&
       (themeFamily !== state.family || themeMode !== state.mode)
     ) {
       state = { family: themeFamily, mode: themeMode };
-      persistence?.set(state);
-      broadcast?.post(state);
+      // The store was changed from outside the controller (a theme object
+      // applied directly). Mirror it, but do not let a failing adapter escape
+      // into the store's own subscriber list — that would surface as a failure
+      // of `store.set()` to a caller who only changed a theme.
+      runSyncAdapter("storeSync", "persistence", () => persistence?.set(state));
+      runSyncAdapter("storeSync", "broadcast", () => broadcast?.post(state));
+      // The configured selection moved, and it moved without passing through
+      // `applySelection`, so nothing has told subscribers yet. Without this the
+      // documented `subscribe` channel went silent for every out-of-controller
+      // change: `getMode()` reported the new value while every listener kept
+      // the old one, and only a re-read (or a reload) revealed the difference.
+      notifySelectionListeners();
     }
+
+    // The appearance moved even when the configured selection did not — an OS
+    // change or a schedule transition while `mode` is `"system"`. That is
+    // precisely the state a control displaying "the current mode" has to see,
+    // so it is published on its own channel.
+    publishEffective(applied);
   });
 
   applySelection(state, false);
@@ -294,11 +475,52 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
       };
     },
 
+    /**
+     * The appearance actually applied — `"light"` or `"dark"`, never
+     * `"system"`.
+     *
+     * Differs from {@link getMode} while an automatic driver is deciding the
+     * appearance: `mode` stays `"system"` because that is what the visitor
+     * asked for, while this reports what is on screen. Read this to display the
+     * current mode; read `mode` to edit the choice.
+     *
+     * Computed from the store on every read rather than cached, so it cannot go
+     * stale between the store's notification and this controller's own.
+     */
+    getEffectiveMode(): "light" | "dark" {
+      return deriveEffective().mode;
+    },
+
+    /** The applied family and mode, as one snapshot. */
+    getEffectiveSelection(): ThemeEffectiveSelection {
+      return deriveEffective();
+    },
+
+    /**
+     * Subscribe to changes in the appearance actually applied.
+     *
+     * Fires whenever the store resolves to a different family or mode — a
+     * manual change, an OS appearance change while the selection is `"system"`,
+     * or a schedule transition. Separate from {@link subscribe}, which reports
+     * the configured selection and therefore stays quiet through an automatic
+     * change.
+     */
+    subscribeEffective(listener: (selection: ThemeEffectiveSelection) => void) {
+      effectiveListeners.add(listener);
+      return () => {
+        effectiveListeners.delete(listener);
+      };
+    },
+
     setMode,
 
     setFamily,
 
     applyState,
+
+    applyAutomaticTheme,
+
+    setAutomaticDriverActive,
 
     toggleTheme,
 
@@ -328,6 +550,9 @@ export function createThemeSelectionController<T extends ThemeDefinition>(
 
       unsubscribeStore?.();
       unsubscribeStore = null;
+
+      selectionListeners.clear();
+      effectiveListeners.clear();
     },
   };
 }

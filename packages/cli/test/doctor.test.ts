@@ -267,6 +267,31 @@ describe("doctor — theme files", () => {
     const found = await findings(dir);
     expect(found.some((item) => item.id === "theme-files" && item.detail.includes("not valid JSON"))).toBe(true);
   });
+
+  it("accepts a commented theme file, as validate does", async () => {
+    // Regression: `doctor` read theme files twice with different parsers, so a
+    // commented theme passed the generation-algorithm check and then failed the
+    // token check, reported as "unreadable". It now agrees with `validate`.
+    dir = healthyProject();
+    const body = JSON.stringify(generateTheme({ seed: "#3366ff" }), null, 2);
+    // Insert a line comment after the opening brace and a trailing comma before
+    // the closing one — both legal JSONC, neither legal JSON.
+    const commented = `{\n  // hand-authored, comments are allowed\n${body
+      .slice(2)
+      .replace(/\n}$/, ",\n}\n")}`;
+    dir.write("themes/commented.json", commented);
+
+    const validated = await cli("validate", join(dir.path, "themes/commented.json"));
+    expect(validated.code).toBe(0);
+
+    await cli("doctor", dir.path);
+    const found = await findings(dir);
+
+    const rejected = found.filter(
+      (item) => item.id === "theme-files" && item.detail.includes("commented.json"),
+    );
+    expect(rejected).toEqual([]);
+  });
 });
 
 describe("doctor — exit codes", () => {

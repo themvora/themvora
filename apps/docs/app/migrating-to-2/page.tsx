@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { Callout } from "../../components/ui/callout";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 import { PKG_VERSION } from "../../lib/version";
 
@@ -20,13 +19,7 @@ export const metadata: Metadata = {
 
 function Snippet({ code, title }: { code: string; title: string }) {
   return (
-    <CodeBlock
-      html={highlightCode(code, "ts")}
-      code={code}
-      language="ts"
-      filename={title}
-      className="m-0"
-    />
+    <CodeExample code={code} lang="ts" filename={title} className="m-0" />
   );
 }
 

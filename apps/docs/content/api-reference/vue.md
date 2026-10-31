@@ -47,6 +47,26 @@ descendant composables can resolve it via useThemeRuntime.
 ---
 
 
+### `useEffectiveThemeMode(): Ref<"light" | "dark">`
+Reactive ref of the mode actually **applied** — `"light"` or `"dark"`, never
+`"system"`.
+
+Render this when a control states the current appearance. useThemeMode
+reports what the visitor asked for, which does not move at a sunrise/sunset
+transition and stays `"system"` for as long as that choice stands — so a label
+bound to it kept announcing the old mode while the page changed colour.
+
+Call inside Vue `setup` scope within a `<ThemeProvider>`. Subscribes to the
+appearance (store and effective-selection channels) and is cleaned up on
+unmount.
+
+**See also:** `useThemeMode`, `useThemeSchedule`
+
+**Returns** `Ref<"light" | "dark">` — A `Ref` holding the applied mode.
+
+---
+
+
 ### `useGeneratedTheme<T extends ThemeDefinition<string>>(): Ref<T>`
 Reactive ref of the theme produced by `generateTheme()` and registered with
 the provider.
@@ -73,7 +93,37 @@ reactive read rather than a stale theme being returned.
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }`
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): Ref<readonly ProvidedThemeFamily<T>[], readonly ProvidedThemeFamily<T>[]>`
+Reactive ref of the themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `<ThemeProvider>` —
+not the built-in catalog, and not every theme in the project. The ref updates
+when the provider's `themes` prop changes, when a theme pack is installed, or
+when the registry is mutated, and it is cleaned up on unmount.
+
+```vue
+<script setup>
+const families = useProvidedThemes();
+</script>
+
+<template>
+  <section v-for="family in families" :key="family.id">
+    <h3>{{ family.name }}</h3>
+    <button v-for="variant in family.variants" :key="variant.name">
+      {{ variant.mode }}
+    </button>
+  </section>
+</template>
+```
+
+**See also:** `useTheme`
+
+**Returns** `Ref<readonly ProvidedThemeFamily<T>[], readonly ProvidedThemeFamily<T>[]>` — A ref holding the provider's theme families, in supplied order.
+
+---
+
+
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: Ref<"light" | "dark", "light" | "dark">; family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }`
 Reactive access to the active theme, mode, and family plus selection
 controls.
 
@@ -81,9 +131,9 @@ Call inside Vue `setup` scope within a `<ThemeProvider>`. Returns reactive
 refs for `theme`, `mode`, and `family`, along with `setMode`, `setFamily`,
 and `toggleTheme` helpers that operate on the runtime's selection.
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
 
-**Returns** `{ family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }` — An object of reactive state and selection helpers.
+**Returns** `{ effectiveMode: Ref<"light" | "dark", "light" | "dark">; family: Ref<string, string>; mode: Ref<ThemeMode, ThemeMode>; setFamily: __type(nextFamily: string): void; setMode: __type(nextMode: ThemeMode): void; theme: Ref<T, T>; toggleTheme: __type(): void }` — An object of reactive state and selection helpers.
 
 ```ts
 const { theme, mode, family, setMode, toggleTheme } = useTheme();
@@ -287,16 +337,17 @@ remaining props and destroys it on unmount.
 | `adapters` (optional) | `ThemeAdapter<T>[]` | Library adapters installed when the runtime is created. The runtime owns the registry and notifies every adapter whenever the theme changes; it never knows anything about the libraries themselves. |
 | `broadcast` (optional) | `ThemeSelectionBroadcastAdapter \| null` | Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based adapter on channel `"theme-selection"` is created; pass `null` to disable cross-tab sync. |
 | `cssVariables` (optional) | `false \| CSSVariablesOptions` | CSS-variable binding configuration. `false` disables the binding. |
-| `defaultTheme` (optional) | `T["name"]` | Theme name to activate when no persisted or explicit selection exists. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to activate when no persisted or explicit selection exists. Accepts a **variant** name (`"cocoa-dark"`) or a **family** name (`"cocoa"`); a family resolves to the variant the mode contract picks (see resolveThemeReference). A variant also supplies its own mode unless `initialMode` is given. |
 | `dom` (optional) | `false \| DOMBindingOptions` | DOM attribute/class binding configuration. `false` disables the binding. |
 | `initial` (optional) | `InitialThemeResolution<T>` | Explicit initial theme resolution, bypassing default + persistence based resolution. |
-| `initialFamily` (optional) | `string` | Initial family used when nothing else is given. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Initial family used when nothing else is given. A **variant** name is also accepted and normalised to its family; the variant's own mode is used only when initialMode is absent, so an explicit mode always wins and the two props cannot silently disagree. |
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | An existing runtime to provide. When omitted, the provider creates and owns a runtime from the other props. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
 | `view` (optional) | `Window` | The `window` to bind to. Defaults to the global `window` when available; omit (or pass `undefined`) in SSR environments. |
@@ -381,7 +432,7 @@ The owned runtime is destroyed on unmount. Can be registered globally via
 
 **See also:** `ThemeProviderProps`, `useThemeRuntime`, `ThemeScope`
 
-`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; transition: boolean | Record<string, any> }, object, string, object, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
+`ComponentPublicInstanceConstructor<CreateComponentPublicInstanceWithMixins<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themeOverride?: ThemeOverride<string>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, PublicProps, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; themeOverride: string | Record<string, any>; transition: boolean | Record<string, any> }, true, object, object, GlobalComponents, GlobalDirectives, string, object, any, ComponentProvideOptions, OptionTypesType<object, object, object, object, object, object>, Readonly<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themeOverride?: ThemeOverride<string>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }> & Readonly<object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; themeOverride: string | Record<string, any>; transition: boolean | Record<string, any> }>, any, any, any, ComputedOptions, MethodOptions> & ComponentOptionsBase<ToResolvedProps<{ broadcast?: any; cssVariables?: false | CSSVariablesOptions; defaultTheme?: string; dom?: false | DOMBindingOptions; initialFamily?: string; initialMode?: ThemeMode; persistence?: any; readPersistenceOnInit?: boolean; runtime?: ThemeRuntime<any>; scheduled?: false | ScheduledThemeOptions<ThemeDefinition<string>>; themeOverride?: ThemeOverride<string>; themes?: ThemeDefinition<string>[]; transition?: boolean | ThemeTransitionOptions; view?: Window }, object>, __type(): VNode<RendererNode, RendererElement, { [key: string]: any }>[] | undefined, object, object, object, ComponentOptionsMixin, ComponentOptionsMixin, object, string, { cssVariables: boolean | Record<string, any>; dom: boolean | Record<string, any>; initial: Record<string, any>; readPersistenceOnInit: boolean; runtime: Record<string, any>; scheduled: boolean | Record<string, any>; themeOverride: string | Record<string, any>; transition: boolean | Record<string, any> }, object, string, object, GlobalComponents, GlobalDirectives, string, ComponentProvideOptions> & VNodeProps & AllowedComponentProps & ComponentCustomProps & { install: void }`
 
 ---
 
@@ -430,10 +481,11 @@ Vue `InjectionKey` used to provide and inject the active Themvora runtime.
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
 - [Persistence](/persistence) — Persist the selection across reloads and requests, with fingerprint validation, storage adapters and theme migrations.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Plugins](/plugins) — Extend the runtime through a first-class plugin manager and adapter registry; theme packs install ready-made behaviour.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.

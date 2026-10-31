@@ -4,6 +4,7 @@ import { use } from "react";
 
 import { DocsLayout } from "../../../components/docs-layout";
 import { CodeBlock } from "../../../components/code-block";
+import { CodeExample } from "../../../components/code-example";
 import { ApiExplorer } from "../../../components/api-explorer";
 import type { PackageManager } from "../../../components/install-command";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -20,6 +21,11 @@ import { InlineCode } from "../../../components/ui/inline-code";
 import { libraries } from "../../../lib/libraries";
 import { libraryUseCases } from "../../../lib/use-cases-libraries";
 import { highlightCode } from "../../../lib/highlight";
+import {
+  highlightedVariants,
+  compatibilityBadge,
+  type CodeVariant,
+} from "../../../lib/code-variants";
 import { LibraryFrameworkGuide } from "../../../components/library-framework-guide";
 import { PKG_VERSION } from "../../../lib/version";
 import { docsUrl } from "../../../lib/site";
@@ -80,7 +86,16 @@ function managerBlocks(commands: string[]): Record<
 
 
 /** One file inside a recipe snippet. */
-export type RecipeFile = { filename?: string | undefined; code: string; html: string; lang: string };
+export type RecipeFile = {
+  filename?: string | undefined;
+  code: string;
+  html: string;
+  lang: string;
+  /** Both language forms, when the snippet has a JavaScript counterpart. */
+  variants?: CodeVariant[] | undefined;
+  /** The compatibility badge — `TS / JS`, `TSX / JSX`, `TS`, … */
+  displayLanguage?: string | undefined;
+};
 
 /** A snippet, as one or more files. */
 export type RecipeBlock = { lang: string; files: RecipeFile[] };
@@ -91,7 +106,11 @@ export type RecipeBlock = { lang: string; files: RecipeFile[] };
  */
 const FILE_BANNER = /^(?:\/\/|<!--)\s*-{3,}\s*([\w./@-]+\.[a-z]{2,6})\s*(?:-->)?$/;
 
-function splitRecipeFiles(code: string, lang: string): RecipeFile[] {
+function splitRecipeFiles(
+  code: string,
+  lang: string,
+  framework?: string,
+): RecipeFile[] {
   const lines = code.split("\n");
   type Chunk = { filename?: string | undefined; body: string[] };
   const chunks: Chunk[] = [];
@@ -138,7 +157,25 @@ function splitRecipeFiles(code: string, lang: string): RecipeFile[] {
 
   return chunks.map((c) => {
     const body = c.body.join("\n").replace(/^\n+|\n+$/g, "");
-    return { filename: c.filename, code: body, html: highlightCode(body, lang), lang };
+    const variants = highlightedVariants(
+      {
+        code: body,
+        lang,
+        ...(framework ? { framework } : {}),
+        ...(c.filename ? { filename: c.filename } : {}),
+      },
+      highlightCode,
+    );
+    return {
+      filename: c.filename,
+      code: body,
+      html: variants?.[0]?.html ?? highlightCode(body, lang),
+      lang,
+      // The badge describes this file's own source, so it is derived per chunk
+      // rather than per authored snippet: two files in one snippet can differ.
+      ...compatibilityBadge(body, lang, framework),
+      ...(variants ? { variants } : {}),
+    };
   });
 }
 
@@ -200,8 +237,6 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
     ]),
   ) as Record<PackageManager, { code: string; html: string }>;
 
-  const snippet2Html = highlightCode(lib.snippet2.code, lib.snippet2.lang);
-
   // Both install steps, in every package manager — one picker drives both.
   const libraryBlocks = managerBlocks(lib.install.library);
   const themvoraBlocks = managerBlocks(lib.install.themvora);
@@ -220,20 +255,40 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
     return match?.[1];
   };
 
-  const hl = (snippet?: { lang: string; code: string }): RecipeBlock | undefined =>
+  // `framework` is the recipe's own framework, and it is what makes Angular's
+  // snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`). The library-level
+  // fallbacks below have no framework of their own — they are React snippets the
+  // recipe rewrites per selection — so they pass none, and the snippet's own
+  // source decides.
+  const hl = (
+    snippet: { lang: string; code: string } | undefined,
+    framework?: string,
+  ): RecipeBlock | undefined =>
     snippet
-      ? { lang: snippet.lang, files: splitRecipeFiles(snippet.code, snippet.lang) }
+      ? { lang: snippet.lang, files: splitRecipeFiles(snippet.code, snippet.lang, framework) }
       : undefined;
 
   const frameworkExamples: RecipeFrameworkExample[] = (lib.frameworks ?? []).map((f) => ({
     ...f,
     filename: filenameOf(f.code),
     codeHtml: highlightCode(f.code, f.lang),
-    mountProvider: hl(f.mountProvider),
-    completeExample: hl(f.completeExample),
-    componentExample: hl(f.componentExample),
-    themeSwitchExample: hl(f.themeSwitchExample),
-    beforeExample: hl(f.beforeExample),
+    // `f.label` is the framework identity — "Angular" reaches the policy the same
+    // way the slug does everywhere else.
+    ...compatibilityBadge(f.code, f.lang, f.label),
+    codeVariants: highlightedVariants(
+      {
+        code: f.code,
+        lang: f.lang,
+        framework: f.label,
+        ...(filenameOf(f.code) ? { filename: filenameOf(f.code)! } : {}),
+      },
+      highlightCode,
+    ),
+    mountProvider: hl(f.mountProvider, f.label),
+    completeExample: hl(f.completeExample, f.label),
+    componentExample: hl(f.componentExample, f.label),
+    themeSwitchExample: hl(f.themeSwitchExample, f.label),
+    beforeExample: hl(f.beforeExample, f.label),
   }));
 
 
@@ -245,11 +300,6 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
   const cssImportHtml = lib.css ? highlightCode(cssImportCode, "ts") : "";
 
   const useCases = libraryUseCases[lib.slug] ?? [];
-  const useCaseHtml = useCases.map((useCase) => ({
-    html: highlightCode(useCase.code, useCase.lang),
-    useCase,
-  }));
-
   const content = (
     <article className="min-w-0 max-w-3xl">
           <PageHeader
@@ -373,6 +423,7 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
                 code={cssImportCode}
                 language="ts"
                 filename="main.ts"
+                {...compatibilityBadge(cssImportCode, "ts")}
                 className="rounded-lg m-0"
               />
             </section>
@@ -400,7 +451,7 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
                 into your app.
               </p>
               <div className="flex flex-col gap-8">
-                {useCaseHtml.map(({ html, useCase }) => (
+                {useCases.map((useCase) => (
                   <div key={useCase.title}>
                     <h3 className="text-sm font-semibold mb-0.5">
                       {useCase.title}
@@ -408,10 +459,9 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
                     <p className="text-xs opacity-60 mb-2">
                       <InlineCode>{useCase.desc}</InlineCode>
                     </p>
-                    <CodeBlock
-                      html={html}
+                    <CodeExample
                       code={useCase.code}
-                      language={useCase.lang}
+                      lang={useCase.lang}
                       filename={useCase.title}
                       className="rounded-lg m-0"
                     />
@@ -432,10 +482,9 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
                   ? "Static themes generated from concrete tokens, and runtime subscriptions."
                   : "Static UnoCSS theme objects for build-time generation."}
             </p>
-            <CodeBlock
-              html={snippet2Html}
+            <CodeExample
               code={lib.snippet2.code}
-              language={lib.snippet2.lang}
+              lang={lib.snippet2.lang}
               filename={lib.snippet2.title}
               className="rounded-lg m-0"
             />

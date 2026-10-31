@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
 import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { FrameworkTabs } from "../../components/framework-tabs";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
@@ -9,6 +10,7 @@ import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { highlightCode } from "../../lib/highlight";
+import { compatibilityBadge } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -49,7 +51,7 @@ export function SiteToolbar() {
     label: "Vue",
     lang: "vue",
     title: "App.vue",
-    code: `<script setup>
+    code: `<script setup lang="ts">
 import { ThemeProvider, ThemeInspector } from "@themvora/vue";
 </script>
 
@@ -64,7 +66,7 @@ import { ThemeProvider, ThemeInspector } from "@themvora/vue";
     label: "Svelte",
     lang: "svelte",
     title: "App.svelte",
-    code: `<script>
+    code: `<script lang="ts">
   import { ThemeProvider } from "@themvora/svelte";
   import { themeInspector } from "@themvora/svelte";
 </script>
@@ -171,13 +173,15 @@ export default function App() {
 };
 
 // Precompute Shiki HTML server-side; the client tab switcher renders only the
-// selected framework's snippet.
+// selected framework's snippet. The compatibility badge is precomputed here for
+// the same reason — it needs the TypeScript compiler, which stays on the server.
 const frameworkExamples = Object.entries(snippets).map(([key, snippet]) => ({
   label: snippet.label,
   lang: snippet.lang,
   code: snippet.code,
   filename: `${key} — ${snippet.title}`,
   html: highlightCode(snippet.code, snippet.lang),
+  ...compatibilityBadge(snippet.code, snippet.lang, snippet.label),
 }));
 
 const propsRows = [
@@ -354,10 +358,9 @@ themvora-inspector::part(inspector-panel) {
           >
             Web component API
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(snippets.vanilla!.code, "html")}
+          <CodeExample
             code={snippets.vanilla!.code}
-            language="html"
+            lang="html"
             filename="vanilla — index.html"
             className="rounded-lg m-0"
           />

@@ -57,7 +57,7 @@
  * Requires: headless Chromium (Playwright's, or `THEMVORA_CHROME`) and `ws`.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
@@ -71,14 +71,48 @@ import os from "node:os";
 const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const exampleRoot = join(repoRoot, "examples", "apps", "astro");
 const distDir = join(exampleRoot, "dist");
-const astroJs = join(exampleRoot, "node_modules", "astro", "astro.js");
+
+/**
+ * The example's Astro CLI.
+ *
+ * Resolved from the package's own `bin` field, not from a hardcoded
+ * `node_modules/astro/astro.js`. Astro 7 moved that entry point to
+ * `bin/astro.mjs`, and the hardcoded path is why this gate had been failing
+ * closed with "the example's Astro CLI is missing" ever since — a gate that
+ * cannot run does not guard anything, and the contract it describes looked
+ * green only because nobody could start it. `verify-astro-interaction.mjs`
+ * documents the same trap.
+ */
+function resolveAstroCli() {
+  const conventional = join(exampleRoot, "node_modules", "astro", "astro.js");
+  try {
+    const pkgPath = createRequire(join(exampleRoot, "package.json")).resolve(
+      "astro/package.json",
+    );
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+    const bin = typeof pkg.bin === "string" ? pkg.bin : pkg.bin?.astro;
+    if (bin) return join(dirname(pkgPath), bin);
+  } catch {
+    // Fall through: the existence check below reports the conventional path.
+  }
+  return conventional;
+}
+
+const astroJs = resolveAstroCli();
 const skipBuild = process.argv.includes("--skip-build");
 
-/** One case per persisted/OS combination, run against every page. */
-const PAGES = [
-  { label: "native", path: "/" },
-  { label: "island", path: "/island/" },
-];
+/**
+ * One row per page the matrix runs against.
+ *
+ * The React-island page used to live here as `/island/`. It moved to
+ * `examples/apps/astro-react` when the examples were split by framework, and
+ * this matrix was never retargeted — so the fixture check below failed on a
+ * page that had not existed for two releases. Island coverage is
+ * `verify-astro-interaction.mjs`'s job (it drives `astro-native` and
+ * `astro-react`); this gate covers the framework-free page, which is the one
+ * that has to be correct without a client framework.
+ */
+const PAGES = [{ label: "native", path: "/" }];
 
 class GateError extends Error {
   constructor(message, detail) {
@@ -120,6 +154,17 @@ function findChrome() {
 }
 
 function findWs() {
+  // Resolve it the way Node would, first. The `.pnpm` scan below assumes the
+  // default linker, and this workspace is installed hoisted
+  // (`--config.node-linker=hoisted`) — so the scan finds nothing and the gate
+  // reported "the `ws` package is not installed" on a machine where it is.
+  try {
+    return dirname(
+      createRequire(join(repoRoot, "package.json")).resolve("ws/package.json"),
+    );
+  } catch {
+    // fall through to the pnpm store layout
+  }
   const pnpm = join(repoRoot, "node_modules", ".pnpm");
   if (!existsSync(pnpm)) return null;
   const dirs = readdirSync(pnpm).filter((d) => /^ws@\d+\.\d+\.\d+$/.test(d)).sort();
@@ -164,11 +209,28 @@ const RECORDER = `(function(){
     var el = document.querySelector('[data-tv-readout="' + kind + '"]');
     return el ? (el.textContent || "").trim() : null;
   }
+  // Every pressed option the page rendered, as kind -> value -> "true"/"false".
+  // Recorded per frame rather than once at the end: the defect is a *frame
+  // order*, and a control that was briefly unpressed leaves no trace in the
+  // settled DOM.
+  function pressed(){
+    var out = {};
+    var els = document.querySelectorAll('[data-tv-pressed]');
+    for (var i = 0; i < els.length; i++) {
+      var kind = els[i].getAttribute('data-tv-pressed');
+      var value = els[i].getAttribute('data-tv-value');
+      if (!kind || value == null) continue;
+      (out[kind] || (out[kind] = {}))[value] = els[i].getAttribute('aria-pressed');
+    }
+    return out;
+  }
   function snap(){
     var de = document.documentElement;
     var f = {
       t: Math.round(performance.now()),
+      label: txt("label"),
       theme: txt("theme"), mode: txt("mode"), family: txt("family"),
+      pressed: pressed(),
       count: document.querySelectorAll("[data-tv-readout]").length,
       dt: de.getAttribute("data-theme"),
       dm: de.getAttribute("data-theme-mode"),
@@ -178,7 +240,7 @@ const RECORDER = `(function(){
       ready: de.getAttribute("data-theme-ready"),
       dark: de.classList.contains("dark")
     };
-    var sig = JSON.stringify([f.theme, f.mode, f.family, f.count,
+    var sig = JSON.stringify([f.label, f.theme, f.mode, f.family, f.pressed, f.count,
       f.dt, f.dm, f.df, f.dsm, f.dsf, f.ready, f.dark]);
     if (sig !== last) { last = sig; window.__tvFrames.push(f); }
   }
@@ -218,7 +280,6 @@ async function main() {
 
   // --- 2. fixtures ----------------------------------------------------------
   const indexPath = join(distDir, "index.html");
-  const islandPath = join(distDir, "island", "index.html");
   if (!existsSync(indexPath)) {
     fail(
       `${indexPath} not found`,
@@ -227,21 +288,31 @@ async function main() {
         "server entry to boot.",
     );
   }
-  if (!existsSync(islandPath)) {
-    fail(
-      `${islandPath} not found`,
-      "The React-island page is part of the matrix; `astro build` must " +
-        "prerender src/pages/island.astro.",
-    );
-  }
 
   const indexHtml = await readFile(indexPath, "utf8");
-  const readoutElements = (indexHtml.match(/data-tv-readout/g) ?? []).length;
-  if (readoutElements < 3) {
+  const readoutKinds = new Set(
+    [...indexHtml.matchAll(/data-tv-readout="([^"]+)"/g)].map((m) => m[1]),
+  );
+  // The page declares the kinds it renders; the matrix asserts those and only
+  // those. Counting elements instead would break every time the page adds or
+  // removes a readout — which is how this check ended up asserting "at least 3"
+  // against a page that now renders 2.
+  for (const kind of ["label", "mode"]) {
+    if (!readoutKinds.has(kind)) {
+      fail(
+        `dist/index.html renders no [data-tv-readout="${kind}"] element`,
+        "The hero pill is two bootstrap readouts (label · mode). If the example " +
+          "stopped rendering them, the matrix has nothing to verify.",
+      );
+    }
+  }
+  const pressedCount = (indexHtml.match(/data-tv-pressed=/g) ?? []).length;
+  if (pressedCount === 0) {
     fail(
-      `dist/index.html has ${readoutElements} [data-tv-readout] element(s), expected at least 3`,
-      "The matrix asserts the theme/mode/family readouts. If the example " +
-        "stopped rendering them, the gate has nothing to verify.",
+      "dist/index.html renders no [data-tv-pressed] element",
+      "The mode segment and the preset chips opt into the pressed contract. " +
+        "Without them this gate cannot assert that a server-rendered control " +
+        "agrees with the theme it is drawn on.",
     );
   }
 
@@ -259,7 +330,11 @@ async function main() {
   const families = JSON.parse(literal(bootstrap, /var fams=(\[[^\]]*\])/, "the registered families"));
   const fallbackFamily = literal(bootstrap, /indexOf\(fam0\)!==-1\?fam0:"([^"]*)"/, "the fallback family");
   const fingerprint = literal(bootstrap, /fp!=="([^"]*)"/, "the selection fingerprint");
-  const names = JSON.parse(literal(bootstrap, /var names=(\{[\s\S]*?\});var key=/, "the theme-name map"));
+  const names = JSON.parse(literal(bootstrap, /var names=(\{[\s\S]*?\});var (?:lbl|key)=/, "the theme-name map"));
+  // Theme **name** → human label. The pill's first readout is the label, and the
+  // pre-paint script can only resolve it from this map — a name cannot be turned
+  // into a label by rule.
+  const labels = JSON.parse(literal(bootstrap, /var lbl=(\{[\s\S]*?\});var key=/, "the theme-label map"));
   // The mode a first-time visitor gets. A `system` case is only meaningful when
   // the *selection mode* is `system`, which a returning visitor expresses with a
   // `theme-mode=system` cookie — the configured default here is `light`, so the
@@ -506,21 +581,32 @@ async function main() {
       const frames = JSON.parse((await evaluate("JSON.stringify(window.__tvFrames)")) || "[]");
       const problems = [];
       const present = (v) => v !== null && v !== undefined;
-      const complete = frames.filter(
-        (f) => present(f.theme) && present(f.mode) && present(f.family),
-      );
+      // The readouts this page declares. `theme`/`family` are not rendered here,
+      // so they are asserted only when present — a page that later adds them
+      // gets the stronger checks for free.
+      const complete = frames.filter((f) => present(f.mode) && present(f.label));
 
       if (!frames.length) {
         problems.push("the recorder captured no frames at all");
       }
       if (!complete.length) {
-        problems.push("no frame ever contained all three readouts");
+        problems.push("no frame ever contained both the label and mode readouts");
+      }
+
+      // The pill is `label · mode`, and the label is the resolved theme's
+      // `meta.label` — not its machine name. Derived from the built bootstrap so
+      // the expectation follows the registry rather than a hardcoded string.
+      const expectedLabel = labels[c.expect.theme];
+      if (!expectedLabel) {
+        problems.push(`no meta.label for theme "${c.expect.theme}" in the built bootstrap`);
       }
 
       for (const f of frames) {
         // Only assert on readouts that exist: the body is parsed element by
         // element, so an early frame may legitimately hold a subset. What is not
         // legitimate is a readout that exists and is not yet patched.
+        if (present(f.label) && expectedLabel && f.label !== expectedLabel)
+          problems.push(`@${f.t}ms readout label="${f.label}", expected "${expectedLabel}"`);
         if (present(f.theme) && f.theme !== c.expect.theme)
           problems.push(`@${f.t}ms readout theme="${f.theme}", expected "${c.expect.theme}"`);
         if (present(f.mode) && f.mode !== c.expect.mode)
@@ -536,6 +622,39 @@ async function main() {
           problems.push(`@${f.t}ms readout family="${f.family}" disagrees with data-theme-family="${f.df}"`);
         if (present(f.mode) && f.mode !== f.dsm)
           problems.push(`@${f.t}ms readout mode="${f.mode}" disagrees with data-theme-selection-mode="${f.dsm}"`);
+
+        // The selection controls. A server-rendered segment asserts whatever the
+        // prerender rendered — usually "nothing selected" — on a page the
+        // bootstrap has already painted in the visitor's theme, and corrects
+        // itself once the runtime mounts. That is the reported "the mode toggle
+        // flickers between light and dark" symptom, and it is invisible in the
+        // settled DOM, so it is asserted per frame.
+        for (const [kind, expected] of [
+          ["mode", c.expect.mode],
+          ["family", fallbackFamily],
+        ]) {
+          const group = f.pressed?.[kind];
+          if (!group) continue;
+          const values = Object.keys(group);
+          if (!values.length) continue;
+          const on = values.filter((v) => group[v] === "true");
+          if (on.length !== 1) {
+            problems.push(
+              `@${f.t}ms ${kind} controls pressed=[${on.join(",") || "none"}], expected exactly one (${expected})`,
+            );
+          } else if (on[0] !== expected) {
+            problems.push(`@${f.t}ms ${kind} control pressed="${on[0]}", expected "${expected}"`);
+          }
+          // Anything not chosen must be an explicit "false", not a missing
+          // attribute: a control that never had `aria-pressed` written is a
+          // control the contract skipped.
+          for (const v of values) {
+            if (group[v] !== "true" && group[v] !== "false") {
+              problems.push(`@${f.t}ms ${kind} control "${v}" has aria-pressed=${group[v]}`);
+            }
+          }
+        }
+
         if (f.dt !== c.expect.theme)
           problems.push(`@${f.t}ms data-theme="${f.dt}", expected "${c.expect.theme}"`);
         if (f.dm !== c.expect.eff)
@@ -552,7 +671,7 @@ async function main() {
       // wall of per-frame messages.
       const timeline = [];
       for (const f of complete) {
-        const k = `${f.theme}/${f.mode}/${f.family}`;
+        const k = `${f.label}/${f.mode}`;
         if (timeline[timeline.length - 1] !== k) timeline.push(k);
       }
       if (timeline.length > 1) {
@@ -562,8 +681,8 @@ async function main() {
       const status = problems.length ? "FAIL" : "PASS";
       const first = complete[0];
       console.log(
-        `  ${status}  ${label.padEnd(30)} theme=${first?.theme ?? "-"} mode=${first?.mode ?? "-"} ` +
-          `family=${first?.family ?? "-"} frames=${frames.length}`,
+        `  ${status}  ${label.padEnd(30)} label=${first?.label ?? "-"} mode=${first?.mode ?? "-"} ` +
+          `pressed=${JSON.stringify(first?.pressed?.mode ?? {})} frames=${frames.length}`,
       );
       for (const p of [...new Set(problems)].slice(0, 8)) {
         console.log(`        ${p}`);

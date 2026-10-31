@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
@@ -13,12 +11,16 @@ import {
   ScrollbarFrameworkProvider,
   ScrollbarFrameworkSelector,
   ScrollbarFrameworkCode,
+} from "../../components/custom-scrollbar/scrollbar-framework";
+import {
   MOUNT_SNIPPETS,
   OPTIONS_SNIPPETS,
   FLASHFREE_SNIPPETS,
   ARROW_SNIPPETS,
   CONTAINER_SNIPPETS,
-} from "../../components/custom-scrollbar/scrollbar-framework";
+  type ScrollbarExample,
+} from "../../components/custom-scrollbar/snippets";
+import { compatibilityLabels, javascriptSources } from "../../lib/code-variants";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -30,10 +32,9 @@ export const metadata: Metadata = {
 
 function snippetBlock(snippet: { lang: string; title: string; code: string }) {
   return (
-    <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
+    <CodeExample
       code={snippet.code}
-      language={snippet.lang}
+      lang={snippet.lang}
       className="rounded-lg m-0"
     />
   );
@@ -43,34 +44,6 @@ const cssImportSnippet = {
   lang: "css",
   title: "globals.css / app.css / style.css",
   code: `@import "@themvora/core/scrollbar.css";`,
-};
-
-const prePaintCSS = {
-  lang: "css",
-  title: "How it works",
-  code: `/* Phase 1 — Bootstrap (before first paint):
-   The @themvora/next ThemeProvider (or the bootstrap
-   script in vanilla JS) adds the \`tv-scrollbar\` class
-   to <html> and inlines this
-   <style data-themvora-pre-paint="scrollbar"> in
-   <head>. This hides native scrollbars immediately —
-   no flash:
-
-     html.tv-scrollbar,
-     html.tv-scrollbar * {
-       scrollbar-width: none;
-       -ms-overflow-style: none;
-     }
-     html.tv-scrollbar *::-webkit-scrollbar {
-       width: 0; height: 0;
-     }
-
-   Phase 2 — the engine: every managed container also gets
-     data-themvora-scrollbar="overlay"
-   so its native track is hidden while the custom overlay
-   strips (position: fixed, marked data-themvora-host)
-   are drawn over it. The browser still performs all
-   scrolling; the overlay only represents it. */`,
 };
 
 const prePaintSnippet = {
@@ -135,10 +108,56 @@ const handle = createThemeScrollbar(runtime.store, {
 runtime.selection.setMode("dark");`,
 };
 
+/**
+ * Every framework snippet the guide can render, in one place.
+ *
+ * Both derivations below read this list, so a snippet can never be paired
+ * without also being labelled — or the other way round. Three of the five maps
+ * are `Partial` — a framework without a zero-flash hook has no snippet — so
+ * `undefined` entries are dropped before derivation.
+ *
+ * The framework key is carried onto each entry rather than dropped: it is what
+ * keeps Angular's snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`),
+ * and `Object.values` would have discarded the only copy of it.
+ */
+const snippets = [
+  MOUNT_SNIPPETS,
+  OPTIONS_SNIPPETS,
+  FLASHFREE_SNIPPETS,
+  ARROW_SNIPPETS,
+  CONTAINER_SNIPPETS,
+]
+  .flatMap((map) =>
+    Object.entries(map).map(([framework, snippet]) => ({ framework, snippet })),
+  )
+  .filter(
+    (entry): entry is { framework: string; snippet: ScrollbarExample } =>
+      entry.snippet !== undefined,
+  )
+  .map(({ framework, snippet }) => ({ ...snippet, framework }));
+
+/**
+ * The JavaScript counterpart of every framework snippet the guide can render.
+ *
+ * Derived here, on the server, because the framework picker is a client
+ * component and the TypeScript compiler cannot be shipped to the browser. The
+ * picker highlights the result with its own Shiki instance, so only the source
+ * crosses the boundary.
+ */
+const jsSources = javascriptSources(snippets);
+
+/**
+ * The compatibility badge of every snippet — `TS / JS`, `TS`, and so on.
+ *
+ * Separate from `jsSources` because a label is metadata, not source: a snippet
+ * highlighted with the TypeScript grammar may still be valid JavaScript.
+ */
+const labels = compatibilityLabels(snippets);
+
 export default function CustomScrollbarPage() {
   return (
     <DocsLayout>
-      <ScrollbarFrameworkProvider>
+      <ScrollbarFrameworkProvider jsSources={jsSources} labels={labels}>
         <div className="max-w-3xl">
           <PageHeader
           icon={
@@ -229,7 +248,7 @@ export default function CustomScrollbarPage() {
         <section id="recommended-setup" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={3}
-            desc="Where to place ThemeScrollbar, what configuration to use, and how it integrates with your theme."
+            desc="Two things have to be right: one mount in the root layout, and the CSS import in your global stylesheet so the native bar is hidden before the first paint. The rest is tuning."
           >
             Recommended setup
           </SectionHeading>
@@ -296,12 +315,18 @@ export default function CustomScrollbarPage() {
             How it integrates with your theme
           </h3>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            The overlay strips inherit your theme&apos;s colors automatically
-            via CSS custom properties. No extra configuration is needed — the
-            thumb, track, and arrows all pick up{" "}
-            <code className="mono text-[0.9em]">--theme-color-*</code> tokens
-            from the active theme. When you switch themes, the scrollbar
-            updates instantly without re-mounting.
+            The thumb is the only surface that takes a theme color, and you
+            never set it. On mount the engine tries{" "}
+            <code className="mono text-[0.9em]">primary</code>, then{" "}
+            <code className="mono text-[0.9em]">accent</code>, then{" "}
+            <code className="mono text-[0.9em]">foreground</code>, keeps the
+            first that contrasts with{" "}
+            <code className="mono text-[0.9em]">background</code>, and writes it
+            to <code className="mono text-[0.9em]">--tv-scrollbar-thumb</code>;
+            hover and active are derived from it. The track is transparent and
+            the arrows inherit <code className="mono text-[0.9em]">currentColor</code>,
+            so switching themes only ever moves the thumb — no re-mount, and
+            nothing else to configure.
           </p>
 
           <h3 className="text-base font-semibold mt-6 mb-3">
@@ -309,26 +334,61 @@ export default function CustomScrollbarPage() {
           </h3>
           <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1 mb-4">
             <li>
-              Don&apos;t manually hide native scrollbars with{" "}
-              <code className="mono text-[0.9em]">overflow: hidden</code> or{" "}
-              <code className="mono text-[0.9em]">::-webkit-scrollbar</code>{" "}
-              CSS — the bootstrap handles this automatically via the{" "}
-              <code className="mono text-[0.9em]">tv-scrollbar</code> class.
-            </li>
-            <li>
-              Use <code className="mono text-[0.9em]">include</code> to scope
-              the overlay to specific containers instead of the window when you
-              only want custom scrollbars in certain areas.
-            </li>
-            <li>
-              Use <code className="mono text-[0.9em]">scope.include</code>{" "}
-              and <code className="mono text-[0.9em]">scope.exclude</code>{" "}
-              for per-scrollbar configuration.
+              Scope the overlay with{" "}
+              <code className="mono text-[0.9em]">include</code> /{" "}
+              <code className="mono text-[0.9em]">exclude</code> — CSS selectors
+              for inner scrollables; the document is always tracked. The
+              framework components group the same pair under{" "}
+              <code className="mono text-[0.9em]">scope</code>, so there it is{" "}
+              <code className="mono text-[0.9em]">
+                scope={"{{"} include: [&quot;.panel&quot;] {"}}"}
+              </code>{" "}
+              rather than a top-level prop.
             </li>
             <li>
               Pass custom arrow icons via the{" "}
               <code className="mono text-[0.9em]">icons</code> group for
               framework-owned rendering (JSX, VNodes, etc.).
+            </li>
+          </ul>
+        </section>
+
+        <section id="lifecycle" className="scroll-mt-24 mb-10">
+          <h3 className="text-base font-semibold mt-6 mb-3">
+            Lifecycle and reactivity
+          </h3>
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
+            The overlay owns the native bar for exactly as long as it is
+            mounted, and every option is live.
+          </p>
+          <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1 mb-4">
+            <li>
+              <strong>Every prop is reactive.</strong> Changing one — on the
+              component, or by setting the matching attribute on{" "}
+              <code className="mono text-[0.9em]">themvora-scrollbar</code>{" "}
+              directly — rebuilds the overlay in place. The replacement is
+              created before the incumbent is destroyed, so the page never
+              passes through a frame with the native bar back and nothing
+              drawing.
+            </li>
+            <li>
+              <strong>Unmounting restores the native scrollbar.</strong> The
+              overlay, its observers and its DOM nodes go away with the
+              component, and so does the native-bar hiding — the platform
+              scrollbar returns. Removing the element is therefore a supported
+              way to turn the feature off, not a way to break the page.
+            </li>
+            <li>
+              <strong>The SSR pre-paint hiding is provisional.</strong> A
+              server-rendered{" "}
+              <code className="mono text-[0.9em]">tv-scrollbar</code> class only
+              hides the native bar; the overlay is what replaces it. If a page
+              enables pre-paint hiding but renders no overlay element — the
+              component was omitted, or commented out — the class and the hiding
+              stylesheet are removed at the end of{" "}
+              <code className="mono text-[0.9em]">&lt;body&gt;</code> and the
+              native scrollbar comes back. A mismatch degrades to a native
+              scrollbar, never to no scrollbar at all.
             </li>
           </ul>
         </section>
@@ -375,24 +435,6 @@ export default function CustomScrollbarPage() {
             class + hiding CSS if none is present. The engine is self-sufficient;
             you only need the pre-paint script when you want to prevent the
             initial flash on a server-rendered page.
-          </Callout>
-          <Callout className="mt-3">
-            <strong>Arrow glyph size</strong>
-            <span className="mx-1 opacity-40">|</span>
-            <code className="mono text-[0.9em]">icons.size</code> sets the size of
-            all four glyphs in CSS px. It is clamped to the arrow button's
-            usable area (and floored at 8px while space allows), so a large
-            value can never overflow a thin scrollbar.
-          </Callout>
-          <Callout className="mt-3">
-            <strong>Built-in arrow icons</strong>
-            <span className="mx-1 opacity-40">|</span>
-            When no custom arrow icons are passed, the engine renders CSS
-            triangle glyphs via <code className="mono text-[0.9em]">::before</code>{" "}
-            pseudo-elements. Pass <code className="mono text-[0.9em]">icons</code>{" "}
-            (or flat <code className="mono text-[0.9em]">arrowUpIcon</code> /{" "}
-            <code className="mono text-[0.9em]">arrowDownIcon</code>) to replace
-            them with your own SVG / HTML.
           </Callout>
         </section>
 
@@ -474,6 +516,20 @@ export default function CustomScrollbarPage() {
           >
             Arrow icons
           </SectionHeading>
+          <Callout className="mb-3">
+            <strong>Built-in arrow icons</strong>
+            <span className="mx-1 opacity-40">|</span>
+            When no custom arrow icons are passed, the engine renders CSS
+            triangle glyphs via <code className="mono text-[0.9em]">::before</code>{" "}
+            pseudo-elements. Pass <code className="mono text-[0.9em]">icons</code>{" "}
+            (or flat <code className="mono text-[0.9em]">arrowUpIcon</code> /{" "}
+            <code className="mono text-[0.9em]">arrowDownIcon</code>) to replace
+            them with your own SVG / HTML.
+            <code className="mono text-[0.9em]">icons.size</code> sets the size of
+            all four glyphs in CSS px — clamped to the arrow button&apos;s
+            usable area (floored at 8px while space allows), so a large
+            value can never overflow a thin scrollbar.
+          </Callout>
           <ScrollbarFrameworkCode map={ARROW_SNIPPETS} />
         </section>
 
@@ -499,17 +555,11 @@ export default function CustomScrollbarPage() {
             Programmatic mount
           </h3>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            Create a theme store and pass it — plus the same options you&apos;d
-            give <code className="mono text-[0.9em]">ThemeScrollbar</code> — to{" "}
-            <code className="mono text-[0.9em]">createThemeScrollbar</code>.
-            It returns an{" "}
-            <code className="mono text-[0.9em]">OverlayScrollbarHandle</code>{" "}
-            (or <code className="mono text-[0.9em]">null</code> when running on
-            the server or on a coarse-pointer device where native bars are
-            kept). <code className="mono text-[0.9em]">createThemeScrollbar</code>{" "}
-            is the public alias for{" "}
-            <code className="mono text-[0.9em]">createOverlayScrollbar</code> —
-            use whichever reads best in your codebase.
+            Create a theme store and pass it to{" "}
+            <code className="mono text-[0.9em]">createThemeScrollbar</code>{" "}
+            (alias for <code className="mono text-[0.9em]">createOverlayScrollbar</code>).
+            Returns an <code className="mono text-[0.9em]">OverlayScrollbarHandle</code>{" "}
+            or <code className="mono text-[0.9em]">null</code> on SSR/coarse-pointer devices.
           </p>
           {snippetBlock(vanillaSnippet)}
 
@@ -535,63 +585,6 @@ export default function CustomScrollbarPage() {
             blocking script, no hydration mismatch.
           </p>
           {snippetBlock(ssrCssSnippet)}
-        </section>
-
-        <section id="how-it-works" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={10}
-            desc="The overlay never replaces native scrolling. It renders theme-colored strips that represent the scrollbar, while the browser handles the actual scroll physics."
-          >
-            How it works
-          </SectionHeading>
-          {snippetBlock(prePaintCSS)}
-        </section>
-
-        <section id="next" className="scroll-mt-24 mb-10">
-<SectionHeading
-            num={11}
-            desc="Now that you have a custom scrollbar, theme it with your own tokens or explore the full API."
-          >
-            What&apos;s next
-          </SectionHeading>
-          <div className="flex flex-col gap-2">
-            <Link
-              href="/api-reference"
-              className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-            >
-              <div>
-                <div className="font-semibold">API Reference</div>
-                <div className="text-xs opacity-60">
-                  Full reference for every OverlayScrollbarOptions type.
-                </div>
-              </div>
-              <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-            </Link>
-            <Link
-              href="/custom-themes"
-              className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-            >
-              <div>
-                <div className="font-semibold">Custom Themes</div>
-                <div className="text-xs opacity-60">
-                  Theme the scrollbar with your own design tokens.
-                </div>
-              </div>
-              <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-            </Link>
-            <Link
-              href="/core-concepts"
-              className="glass-card card-lift p-4 no-underline flex items-center justify-between gap-3"
-            >
-              <div>
-                <div className="font-semibold">Core Concepts</div>
-                <div className="text-xs opacity-60">
-                  Theme families, semantic tokens, and the runtime.
-                </div>
-              </div>
-              <span style={{ color: "var(--theme-color-primary)" }}>→</span>
-            </Link>
-          </div>
         </section>
 
         <RelatedLinks

@@ -1,4 +1,4 @@
-# @theme-kit/adapters
+# @themvora/adapters
 
 ## 1.3.0
 

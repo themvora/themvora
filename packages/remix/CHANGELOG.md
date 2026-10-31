@@ -1,4 +1,109 @@
-# @theme-kit/remix
+# @themvora/remix
+
+## 2.1.0
+
+### Minor Changes
+
+- Add `getThemeShellProps()`, which fixes the hydration mismatch a Remix app gets on `<html>`.
+
+  The blocking script in `<ThemeHead>` writes seven attributes onto the document element before first
+  paint — `data-theme`, `data-theme-mode`, `data-theme-family`, `data-theme-selection-mode`,
+  `data-theme-selection-family`, `data-theme-ready` and `style`. A route that renders a bare
+  `<html lang="en">` therefore hydrates against a document that already disagrees with the virtual DOM,
+  and React reports "some attributes of the server rendered HTML didn't match the client properties" on
+  every load. React never patches attributes up, so the disagreement lasts the whole session.
+
+  `getThemeShellProps(initial)` returns the server's resolution as props, so the virtual DOM starts out
+  agreeing:
+
+  ```tsx
+  import { ThemeHead, getThemeShellProps } from "@themvora/remix";
+
+  export function Layout({ children }: { children: ReactNode }) {
+    const { initial } = useLoaderData<typeof loader>();
+    return (
+      <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
+        <head>
+          <ThemeHead themes={themes} defaultTheme="light" scrollbar />
+        </head>
+        <body>{children}</body>
+      </html>
+    );
+  }
+  ```
+
+  It returns `ThemeShellProps`: the theme attributes, the CSS variables as an inline `style`,
+  `data-theme-ready`, an optional `className` (plus `tv-scrollbar` when `scrollbar` is requested), and
+  `suppressHydrationWarning`.
+
+  That last one is deliberate and scoped. Six of the seven attributes are removed by rendering the
+  snapshot; `data-theme-mode` cannot be, by construction — it is the _resolved_ mode, so a `"system"`
+  selection resolved against a dark `prefers-color-scheme` legitimately differs from the server's
+  `"light"`. The suppression covers the `<html>` element's own attributes only; a genuine hydration bug
+  in a route still reports.
+
+  `@themvora/remix` also gains `useProvidedThemes()` for building a picker from the provider.
+
+- Add `useProvidedThemes()` — and `injectProvidedThemes()` for Angular — so a theme picker can be built
+  from the provider itself.
+
+  Building a picker meant reaching past the provider into the preset catalog
+  (`Object.entries(getPresetThemes())`) and hoping the two collections agreed. They do not: an app that
+  supplies three of its own families has a picker that lists the presets and none of its own themes.
+
+  ```tsx
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+  const setMode = useSetThemeMode();
+
+  return families.map((family) => (
+    <fieldset key={family.id}>
+      <legend>{family.name}</legend>
+      {family.variants.map((variant) => (
+        <button
+          key={variant.name}
+          onClick={() => {
+            setFamily(family.family);
+            setMode(variant.mode);
+          }}
+        >
+          {variant.mode}
+        </button>
+      ))}
+    </fieldset>
+  ));
+  ```
+
+  The collection is exactly what the provider was given, grouped by family in supplied order, with each
+  variant's tokens already resolved — `auto()` / `contrast()` / expressions are evaluated, so
+  `variant.tokens.colors?.primary` reads directly. Each variant also keeps the original definition, for
+  anything the grouped view does not model.
+
+  It is reactive: a `themes` prop change, a `runtime.use(pack)` install or a registry mutation
+  re-renders the consumer. Entries keep their identity while their content is unchanged, so `React.memo`
+  and dependency arrays behave — a re-registered catalog whose only difference is the registry's
+  `meta.created` / `meta.updated` stamps is not treated as a change.
+
+  `ProvidedThemeFamily.provenance` reports a _declared_ source only — `{ kind: "generated", algorithm }`
+  from `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light`
+  is not thereby a preset, and nothing is inferred from a name, family or colour.
+
+  Angular follows its own convention: `injectProvidedThemes()` returns a `Signal` of the same collection,
+  because a DI-based framework has no hook call site to subscribe from.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
+  - @themvora/react@1.4.0
 
 ## 2.0.0
 

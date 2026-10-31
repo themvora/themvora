@@ -1,4 +1,46 @@
-# @theme-kit/cli
+# @themvora/cli
+
+## 1.3.1
+
+### Patch Changes
+
+- Fix three path and parsing defects: `init` could write outside the project, `export` produced CSS that
+  disagreed with the editor, and `theme.json` comments were rejected.
+
+  **`init` refuses a plan that escapes the project root.** The containment check caught `../` traversal
+  but not the two other ways out: an **absolute** path (`D:\evil\f.ts` against a `C:\proj` root, or
+  `/etc/passwd`) and the **root itself** (an empty relative path, which would have the caller writing to
+  the project directory). An absolute path is now rejected outright rather than reinterpreted —
+  `resolve()` would either return it unchanged, on a different drive, or silently re-anchor it under the
+  root, and both are worse than refusing a plan that was never supposed to carry one.
+
+  The check is also no longer a `startsWith("..")` prefix test. `..foo/a.ts` is a legitimate in-project
+  path whose first segment merely begins with two dots, and the prefix test rejected it; containment is
+  now decided on the first path segment. The Windows rules are testable on any host, because the path
+  implementation is injected rather than imported.
+
+  **`export` emits the same CSS the editor copies.** The CSS document is now produced by core's
+  `themeToCssDocument()` instead of a local `cssBlock()` helper, so `themvora export --format css` and the
+  VS Code extension's Copy CSS Variables command produce byte-identical output. The local helper had its
+  own copy of the two selectors and its own idea of trailing newlines; the values happen to agree today,
+  which is exactly the kind of agreement that stops holding the first time one side is edited.
+
+  **`theme.json` may contain comments and trailing commas.** A hand-maintained theme file is JSONC in
+  practice, and `JSON.parse` rejected it. The CLI now reads it through core's `parseThemeJson()`, the same
+  reader the editor uses, and a genuinely broken file still reports the position the parser gave up at
+  rather than a bare "not valid JSON".
+
+  That change also fixed a `doctor` inconsistency it did not set out to fix: `doctor` accepted a commented
+  theme file in one check and rejected it in the next, because only one of the two called `JSON.parse`.
+  The two now agree with each other and with `validate`.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
 
 ## 1.3.0
 

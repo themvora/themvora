@@ -1,7 +1,7 @@
 {
   "name": "@themvora/web",
   "license": "MIT",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -15,7 +15,8 @@
   },
   "files": [
     "dist",
-    "html-data.json"
+    "html-data.json",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && tsc -p tsconfig.build.json",

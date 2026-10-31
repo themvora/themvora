@@ -12,12 +12,13 @@ import {
   type ThemeRuntime,
   type ThemeScheduleOptions,
   type ThemeTransitionOptions,
+  type ThemeOverride,
 } from "@themvora/core";
 import { ThemeSymbol } from "@themvora/vue";
 import { toRaw } from "vue";
 import {
   defineNuxtPlugin,
-  useHead,
+  useServerHead,
   useRequestHeaders,
   useState,
   useRuntimeConfig,
@@ -37,6 +38,7 @@ import { createNuxtThemePersistence } from "../utils/persistence";
 export interface ThemvoraRuntimeConfig {
   themes?: ThemeDefinition[];
   defaultTheme?: string;
+  themeOverride?: ThemeOverride<string>;
   initialMode?: ThemeMode;
   initialFamily?: string;
   transition?: boolean | ThemeTransitionOptions;
@@ -68,6 +70,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       : (getBuiltInThemes() as ThemeDefinition[]),
   ) as ThemeDefinition[];
   const defaultTheme = themeConfig.defaultTheme;
+  const themeOverride = themeConfig.themeOverride;
   const initialMode: ThemeMode = themeConfig.initialMode ?? "system";
   const initialFamily = themeConfig.initialFamily;
   const transition = themeConfig.transition;
@@ -102,6 +105,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     const blockingScript = createNuxtThemeBootstrapScript({
       themes,
       ...(defaultTheme !== undefined ? { defaultTheme } : {}),
+      ...(themeOverride !== undefined ? { themeOverride } : {}),
       initialMode,
       ...(initialFamily !== undefined ? { initialFamily } : {}),
     });
@@ -135,7 +139,13 @@ export default defineNuxtPlugin((nuxtApp) => {
       colorScheme = effMode;
     }
 
-    const styleEntries: Array<{ innerHTML: string; tagPriority?: string }> = [
+    // `tagPriority` is declared with the literal Nuxt accepts rather than
+    // `string`: `useHead` types it as a closed union (number | "critical" |
+    // "high" | "low" | `before:${string}` | `after:${string}`), so a `string`
+    // annotation here makes the whole entry unassignable. This file is excluded
+    // from `tsconfig.build.json` (it imports the `#app` virtual module), which is
+    // why nothing caught it until it was checked against Nuxt's generated types.
+    const styleEntries: Array<{ innerHTML: string; tagPriority?: "critical" }> = [
       {
         innerHTML: `${themeStyle}html{color-scheme:${colorScheme}}`,
         tagPriority: "critical",
@@ -180,26 +190,28 @@ export default defineNuxtPlugin((nuxtApp) => {
         : "tv-scrollbar";
     }
 
-    useHead(
-      {
-        htmlAttrs,
-        style: styleEntries,
-        script: [
-          {
-            innerHTML: blockingScript,
-            type: "text/javascript",
-            tagPriority: "critical",
-          },
-        ],
-      },
-      { mode: "server" },
-    );
+    // Server-only: the blocking script and the pre-paint styles must be in the
+    // SSR document and must not be re-registered on the client. Unhead v2
+    // removed the `mode: "server"` option this used to pass — `useServerHead`
+    // is its replacement, and the option no longer type-checks.
+    useServerHead({
+      htmlAttrs,
+      style: styleEntries,
+      script: [
+        {
+          innerHTML: blockingScript,
+          type: "text/javascript",
+          tagPriority: "critical",
+        },
+      ],
+    });
 
     // Provide a runtime during SSR so components calling useTheme()/useThemeRuntime()
     // render without throwing. Bindings stay off; they attach on the client.
     const ssrRuntime = createThemeRuntime<ThemeDefinition>({
       themes,
       initial,
+      ...(themeOverride !== undefined ? { themeOverride } : {}),
       readPersistenceOnInit: false,
       dom: false,
       cssVariables: false,
@@ -229,6 +241,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     themes,
     ...(initial ? { initial } : {}),
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
+    ...(themeOverride !== undefined ? { themeOverride } : {}),
     initialMode,
     ...(initialFamily !== undefined ? { initialFamily } : {}),
     // SSR state wins on first paint so hydration matches exactly; localStorage

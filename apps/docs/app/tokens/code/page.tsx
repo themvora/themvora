@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../../components/docs-layout";
-import { CodeBlock } from "../../../components/code-block";
+import { CodeExample } from "../../../components/code-example";
 import { PageHeader } from "../../../components/ui/page-header";
 import { SectionHeading } from "../../../components/ui/section-heading";
-import { highlightCode } from "../../../lib/highlight";
 import { docsUrl } from "../../../lib/site";
 
 export const metadata: Metadata = {
@@ -128,10 +127,9 @@ export default function CodeTokensPage() {
           >
             Define code tokens in your theme
           </SectionHeading>
-          <CodeBlock
-            html={highlightCode(codeTokensSnippet.code, codeTokensSnippet.lang)}
+          <CodeExample
             code={codeTokensSnippet.code}
-            language={codeTokensSnippet.lang}
+            lang={codeTokensSnippet.lang}
             className="rounded-lg m-0"
           />
           <p className="mt-3 text-sm opacity-70 leading-relaxed">
@@ -373,13 +371,9 @@ export default function CodeTokensPage() {
             <code className="mono">--theme-code-*</code>
             variables. Here's the pattern to connect any highlighter:
           </p>
-          <CodeBlock
-            html={highlightCode(
-              enableCodeTokensSnippet.code,
-              enableCodeTokensSnippet.lang,
-            )}
+          <CodeExample
             code={enableCodeTokensSnippet.code}
-            language={enableCodeTokensSnippet.lang}
+            lang={enableCodeTokensSnippet.lang}
             className="rounded-lg m-0"
           />
         </section>
@@ -404,43 +398,7 @@ export default function CodeTokensPage() {
               <code className="mono">extendTheme</code>
               to share the base and override just the code group:
             </p>
-            <CodeBlock
-              html={highlightCode(
-                `const base = defineTheme({
-  name: "base",
-  tokens: {
-    code: {
-      comment: "#6a737d",
-      keyword: "#d73a49",
-      string: "#032f62",
-      // ...shared tokens
-    },
-  },
-});
-
-const light = extendTheme("brand-light", base, {
-  meta: { mode: "light" },
-  tokens: {
-    code: {
-      background: "#f6f8fa",
-      foreground: "#24292e",
-      selection: "rgba(0, 0, 0, 0.1)",
-    },
-  },
-});
-
-const dark = extendTheme("brand-dark", base, {
-  meta: { mode: "dark" },
-  tokens: {
-    code: {
-      background: "#161b22",
-      foreground: "#e6edf3",
-      selection: "rgba(88, 166, 255, 0.3)",
-    },
-  },
-});`,
-                "typescript",
-              )}
+            <CodeExample
               code={`const base = defineTheme({
   name: "base",
   tokens: {
@@ -474,7 +432,7 @@ const dark = extendTheme("brand-dark", base, {
     },
   },
 });`}
-              language="typescript"
+              lang="typescript"
               className="rounded m-0 mt-3 text-[11px]"
             />
 
@@ -483,57 +441,27 @@ const dark = extendTheme("brand-dark", base, {
             </h4>
             <p className="text-sm opacity-70">
               Always provide fallbacks using semantic color tokens so code
-              blocks stay readable even if a theme doesn't define code tokens:
+              blocks stay readable even if a theme doesn't define code tokens.
+              The CSS mapping in Section 3 demonstrates the pattern — each{" "}
+              <code className="mono">--tv-syntax-*</code> variable falls back to
+              a <code className="mono">--theme-color-*</code> token via{" "}
+              <code className="mono">var()</code> or{" "}
+              <code className="mono">color-mix()</code>.
             </p>
-            <CodeBlock
-              html={highlightCode(
-                `.code-block {
-  --tv-code-bg: var(--theme-code-background, var(--theme-color-muted));
-  --tv-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
-  --tv-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
-  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
-  /* ... */
-}`,
-                "css",
-              )}
-              code={`.code-block {
-  --tv-code-bg: var(--theme-code-background, var(--theme-color-muted));
-  --tv-syntax-plain: var(--theme-code-foreground, var(--theme-color-foreground));
-  --tv-syntax-comment: var(--theme-code-comment, color-mix(in srgb, var(--theme-color-foreground) 55%, transparent));
-  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
-  /* ... */
-}`}
-              language="css"
-              className="rounded m-0 mt-3 text-[11px]"
-            />
 
             <h4 className="font-semibold mb-2">Generate from a seed color</h4>
             <p className="text-sm opacity-70">
               Use <code className="mono">generateTheme</code> to create a
               complete theme pair (including harmonized code tokens) from a
-              single brand color:
+              single brand color. See the{" "}
+              <Link
+                href="/custom-themes"
+                className="text-primary underline underline-offset-4"
+              >
+                Custom Themes guide
+              </Link>{" "}
+              for the full generation API.
             </p>
-            <CodeBlock
-              html={highlightCode(
-                `import { generateTheme } from "@themvora/core";
-
-const { light, dark } = generateTheme({
-  seed: "#6366f1",      // Your brand color
-  family: "brand",      // Family name
-  // Code tokens are auto-generated with WCAG-compliant contrast
-});`,
-                "typescript",
-              )}
-              code={`import { generateTheme } from "@themvora/core";
-
-const { light, dark } = generateTheme({
-  seed: "#6366f1",      // Your brand color
-  family: "brand",      // Family name
-  // Code tokens are auto-generated with WCAG-compliant contrast
-});`}
-              language="typescript"
-              className="rounded m-0 mt-3 text-[11px]"
-            />
           </div>
         </section>
 

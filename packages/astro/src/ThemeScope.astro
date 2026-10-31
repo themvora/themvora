@@ -1,0 +1,217 @@
+---
+import {
+  getBuiltInThemes,
+  getThemeMode,
+  readTransportedConfig,
+  resolveTheme,
+  themeToCSSVariables,
+  type ThemeDefinition,
+  type ThemeTransitionOptions,
+} from "@themvora/core";
+
+/**
+ * Scoped theme, as an Astro component — a subtree painted with a theme of its
+ * own, independent of the app-wide selection.
+ *
+ * ```astro
+ * ---
+ * import ThemeScope from "@themvora/astro/ThemeScope.astro";
+ * ---
+ *
+ * <ThemeScope theme="cocoa-dark">
+ *   <p>Always cocoa-dark, whatever the visitor selects.</p>
+ * </ThemeScope>
+ * ```
+ *
+ * @remarks
+ * The variables are resolved in the **frontmatter**, so they are in the
+ * server-rendered markup. That is the whole point of a native scope: an
+ * implementation that applied them from a `<script>` would emit a bare wrapper,
+ * and everything inside would paint with the page theme and then be repainted —
+ * a visible colour change on every load. Resolving during render means the
+ * first frame is already the scoped one.
+ *
+ * The registry comes from the provider: `provider.astro` publishes the app's
+ * `theme.config.ts` before its slot renders, so a scope nested inside it needs
+ * no theme data of its own. Pass {@link Props.themes} when the scope lives
+ * outside a provider, or when it should resolve against a different registry.
+ *
+ * The component ships **no client JavaScript unless a runtime already exists**.
+ * A scoped theme is static markup, so the script only does the two things
+ * static markup cannot: refresh the scope when the runtime's registry is
+ * reconfigured, and honour {@link Props.transition}. It never creates a
+ * runtime — a page that only displays a scoped panel stays a page with no
+ * client framework on it.
+ *
+ * @see {@link Props}
+ */
+interface Props {
+  /** The theme name applied to this subtree. Must be in the registry. */
+  theme: string;
+  /**
+   * The registry to resolve {@link Props.theme} against.
+   *
+   * @remarks
+   * Defaults to the configuration `provider.astro` published, then to the
+   * built-in themes. Passing it is only necessary outside a provider.
+   */
+  themes?: readonly ThemeDefinition[];
+  /** Element to render as the scope's wrapper. Defaults to `"div"`. */
+  as?: string;
+  /** Class applied to the wrapper. `dark` is added when the theme is dark. */
+  class?: string;
+  /** `id` applied to the wrapper. */
+  id?: string;
+  /**
+   * Transition applied when the scope's theme changes.
+   *
+   * @remarks
+   * Only used once a runtime exists on the page, since a static scope has no
+   * theme changes of its own. Serialized into the markup, so it must be plain
+   * data — the same shape `@themvora/astro/client`'s `ThemeScope` takes.
+   */
+  transition?: ThemeTransitionOptions;
+}
+
+const {
+  theme,
+  themes,
+  as = "div",
+  class: className,
+  id,
+  transition,
+} = Astro.props as Props;
+
+// The provider publishes the app configuration from its frontmatter, which
+// Astro renders before its slot — so a scope anywhere inside `<Provider>` sees
+// the same registry the document and the runtime use.
+const registry =
+  themes?.length
+    ? themes
+    : (readTransportedConfig<ThemeDefinition>()?.themes ??
+      getBuiltInThemes()) as readonly ThemeDefinition[];
+
+let scoped: ThemeDefinition;
+try {
+  scoped = resolveTheme(registry, theme as ThemeDefinition["name"]);
+} catch {
+  throw new Error(
+    `ThemeScope: theme "${theme}" is not in the registry ` +
+      `(${registry.map((entry) => String(entry.name)).join(", ")}). ` +
+      "Pass `themes` when the scope is rendered outside a provider, or fix the name.",
+  );
+}
+
+const variables = themeToCSSVariables(scoped);
+const isDark = getThemeMode(scoped) === "dark";
+
+// One attribute carries the theme name — the script needs it, and the element
+// is the marker too, so a page can have any number of scopes without an id.
+const attrs: Record<string, string> = { "data-tv-scope": theme };
+if (id) attrs.id = id;
+if (transition) attrs["data-tv-scope-transition"] = JSON.stringify(transition);
+
+// Dynamic tag so the wrapper can be a `<section>`, an `<aside>`, a `<li>` — the
+// element a scope wraps is the caller's decision, not the component's.
+const Tag = as as keyof HTMLElementTagNameMap;
+---
+
+<Tag {...attrs} class:list={[className, isDark && "dark"]} style={variables}>
+  <slot />
+</Tag>
+
+<script>
+  // `@themvora/astro/runtime` for the runtime, `@themvora/core` for the binding:
+  // the same two modules a `<script>` in the application would use, so the
+  // component is a convenience over the public API rather than a parallel
+  // implementation of it.
+  import {
+    createScopedThemeBinding,
+    type ThemeDefinition,
+    type ThemeTransitionOptions,
+  } from "@themvora/core";
+  import { getGlobalRuntime } from "@themvora/astro/runtime";
+
+  const BOUND = "data-tv-scope-bound";
+
+  /**
+   * The live bindings, keyed by their element.
+   *
+   * @remarks
+   * A client-side navigation replaces the body, so the previous page's scopes
+   * are detached while their registry subscriptions are still live. Dropping
+   * them on the next bind keeps that from accumulating one leak per navigation.
+   */
+  const bindings = new Map<
+    Element,
+    { binding: { destroy(): void }; unsubscribe: () => void }
+  >();
+
+  /**
+   * Binds every scope on the page that has not been bound yet.
+   *
+   * @remarks
+   * Iterating `[data-tv-scope]` rather than taking an id is what makes several
+   * scopes on one page work: this module runs once per document, so it cannot
+   * know how many the page rendered. Re-running on `theme-ready` and
+   * `astro:after-swap` is what makes a scope added later — by a navigation, or
+   * by a runtime appearing after the page loaded — work at all.
+   */
+  const bind = () => {
+    for (const [el, entry] of bindings) {
+      if (el.isConnected) continue;
+      // Order matters: the subscription is dropped before the binding it calls
+      // into, so a registry change racing this teardown cannot reach a
+      // destroyed binding.
+      entry.unsubscribe();
+      entry.binding.destroy();
+      bindings.delete(el);
+    }
+
+    // No runtime, no binding: a static scope needs none, and creating one here
+    // would put the theme runtime on pages that never use it.
+    const runtime = getGlobalRuntime<ThemeDefinition>();
+    if (!runtime) return;
+
+    const scopes = document.querySelectorAll<HTMLElement>(`[data-tv-scope]`);
+    for (const el of scopes) {
+      if (el.hasAttribute(BOUND)) continue;
+      el.setAttribute(BOUND, "");
+
+      const name = el.getAttribute("data-tv-scope");
+      if (!name) continue;
+
+      let transition: ThemeTransitionOptions | undefined;
+      const raw = el.getAttribute("data-tv-scope-transition");
+      if (raw) {
+        try {
+          transition = JSON.parse(raw) as ThemeTransitionOptions;
+        } catch {
+          // Malformed data is not worth taking the page down for: the scope is
+          // already painted correctly by the server, and only the animation
+          // is lost.
+          transition = undefined;
+        }
+      }
+
+      const binding = createScopedThemeBinding(runtime.themes, el, name, {
+        ...(transition ? { transition } : {}),
+      });
+
+      // The catalog is not the theme: a registry change that preserves the
+      // active selection never reaches the store, so without this the scope
+      // keeps the variables of a theme the runtime has dropped.
+      const unsubscribe = runtime.registry.subscribe(() => binding.refresh());
+      bindings.set(el, { binding, unsubscribe });
+    }
+  };
+
+  bind();
+  // Dispatched by `setGlobalRuntime`, so a runtime created *after* this script
+  // ran — the visitor's first interaction with a control — still reaches the
+  // scopes on the page.
+  document.addEventListener("theme-ready", bind);
+  // Astro keeps the same document across navigations, so this listener
+  // outlives the body it was registered against.
+  document.addEventListener("astro:after-swap", bind);
+</script>

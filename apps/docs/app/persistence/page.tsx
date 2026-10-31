@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -319,10 +318,9 @@ export default function PersistencePage() {
             Only the selection metadata is stored — the actual theme tokens
             stay in your bundle and are resolved at runtime.
           </p>
-          <CodeBlock
-            html={highlightCode(howItWorksSnippet.code, "ts")}
+          <CodeExample
             code={howItWorksSnippet.code}
-            language="ts"
+            lang="ts"
             filename={howItWorksSnippet.title}
             className="m-0"
           />
@@ -350,10 +348,9 @@ export default function PersistencePage() {
             storage key. If multiple Themvora apps run on the same origin,
             pass a unique key to each one.
           </p>
-          <CodeBlock
-            html={highlightCode(storageKeySnippet.code, "ts")}
+          <CodeExample
             code={storageKeySnippet.code}
-            language="ts"
+            lang="ts"
             filename={storageKeySnippet.title}
             className="m-0"
           />
@@ -382,10 +379,9 @@ export default function PersistencePage() {
           <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
             sessionStorage — tab-scoped, cleared on close
           </div>
-          <CodeBlock
-            html={highlightCode(customAdapterSnippet.code, "ts")}
+          <CodeExample
             code={customAdapterSnippet.code}
-            language="ts"
+            lang="ts"
             filename={customAdapterSnippet.title}
             className="m-0"
           />
@@ -393,10 +389,9 @@ export default function PersistencePage() {
           <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mt-6 mb-2">
             Cookies — survives incognito, works server-side
           </div>
-          <CodeBlock
-            html={highlightCode(cookiesAdapterSnippet.code, "ts")}
+          <CodeExample
             code={cookiesAdapterSnippet.code}
-            language="ts"
+            lang="ts"
             filename={cookiesAdapterSnippet.title}
             className="m-0"
           />
@@ -404,10 +399,9 @@ export default function PersistencePage() {
           <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mt-6 mb-2">
             URL hash — shareable, bookmarkable
           </div>
-          <CodeBlock
-            html={highlightCode(urlHashSnippet.code, "ts")}
+          <CodeExample
             code={urlHashSnippet.code}
-            language="ts"
+            lang="ts"
             filename={urlHashSnippet.title}
             className="m-0"
           />
@@ -426,10 +420,9 @@ export default function PersistencePage() {
             a cookie lets the server read it, apply the correct theme on the
             first paint, and pass it to the client runtime.
           </p>
-          <CodeBlock
-            html={highlightCode(serverSideSnippet.code, "tsx")}
+          <CodeExample
             code={serverSideSnippet.code}
-            language="tsx"
+            lang="tsx"
             filename={serverSideSnippet.title}
             className="m-0"
           />
@@ -455,10 +448,9 @@ export default function PersistencePage() {
             persistence by passing{" "}
             <code className="mono text-[0.9em]">null</code> to the runtime.
           </p>
-          <CodeBlock
-            html={highlightCode(disableSnippet.code, "ts")}
+          <CodeExample
             code={disableSnippet.code}
-            language="ts"
+            lang="ts"
             filename={disableSnippet.title}
             className="m-0"
           />
@@ -471,57 +463,19 @@ export default function PersistencePage() {
           >
             Persistence vs. sync
           </SectionHeading>
-          <div className="grid gap-3 sm:grid-cols-2 mb-3">
-            <div className="rounded-xl border border-border p-4">
-              <div className="text-sm font-semibold mb-2">Persistence</div>
-              <ul className="text-xs opacity-60 leading-relaxed list-disc pl-4 space-y-1">
-                <li>Same browser, across visits</li>
-                <li>Writes to storage on every change</li>
-                <li>Read once on init</li>
-                <li>Survives tab close and restart</li>
-                <li>Backed by localStorage, cookies, etc.</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-border p-4">
-              <div className="text-sm font-semibold mb-2">Sync (broadcast)</div>
-              <ul className="text-xs opacity-60 leading-relaxed list-disc pl-4 space-y-1">
-                <li>Same browser, same moment</li>
-                <li>No storage writes — in-memory messages</li>
-                <li>Real-time across open tabs</li>
-                <li>Lost on tab close</li>
-                <li>Backed by BroadcastChannel</li>
-              </ul>
-            </div>
-          </div>
-          <CodeBlock
-            html={highlightCode(vsSyncSnippet.code, "ts")}
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
+            Persistence remembers the user&apos;s choice across visits. Sync (broadcast) propagates changes across open tabs in real-time. Use both together — they don&apos;t conflict. See the{" "}
+            <Link href="/multi-window-sync" className="underline font-semibold" style={{ color: "var(--theme-color-primary)" }}>
+              multi-window sync guide
+            </Link>{" "}
+            for details.
+          </p>
+          <CodeExample
             code={vsSyncSnippet.code}
-            language="ts"
+            lang="ts"
             filename={vsSyncSnippet.title}
             className="m-0"
           />
-          <Callout className="mt-3">
-            <strong>Use both together</strong>{" "}
-            <span className="mx-1 opacity-40">|</span>
-            Broadcast syncs open tabs instantly; persistence makes the choice
-            stick when a tab closes and reopens. They don't conflict.
-          </Callout>
-        </section>
-        <section id="api-reference" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={7}
-            desc="Every export used on this page is documented in the generated reference — this guide links it rather than duplicating it."
-          >
-            API reference
-          </SectionHeading>
-          <p className="text-sm leading-relaxed opacity-80">
-            The full surface, generated from source JSDoc:
-          </p>
-          <p className="mt-3 text-sm">
-            <Link href="/api-reference/core" className="underline">
-              @themvora/core API reference
-            </Link>
-          </p>
         </section>
 
         <NextSteps

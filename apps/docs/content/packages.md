@@ -12,7 +12,7 @@
 | `@themvora/web`          | Web Components — `<themvora-provider>`, toggle, select, scope |
 | `@themvora/tailwind`     | Tailwind CSS v4 `@theme` mapping                               |
 | `@themvora/astro`        | Astro islands + blocking script                                |
-| `@themvora/nuxt`         | Nuxt 3 module + auto-imports                                   |
+| `@themvora/nuxt`         | Nuxt 4 module + auto-imports                                   |
 | `@themvora/remix`        | Remix loader-based SSR theming                                 |
 | `@themvora/cli`          | Generate, validate, migrate, inspect, export themes            |
 | `@themvora/devtools`     | Runtime inspector panel + plugin                               |

@@ -5,9 +5,24 @@ import { useThemeFamily, useThemeMode, useThemeValue } from "./hooks";
 /**
  * Which bootstrap-owned value a {@link ThemeReadout} displays.
  *
+ * @remarks
+ * These are exactly the text kinds `data-tv-readout` defines — the same set the
+ * pre-paint bootstrap and the controller resolve (see `readoutValue` in
+ * `dom.ts`), plus the raw `var:<custom-property>` form, which this component
+ * does not wrap.
+ *
+ * `"label"` was missing for one release while the contract, the bootstrap and
+ * the controller all supported it. A React app that wanted the human label
+ * therefore had to hand-write `data-tv-readout="label"` *and*
+ * `suppressHydrationWarning` — precisely the pair this component exists so that
+ * nobody has to know — and the obvious workaround, rendering `useTheme().theme`
+ * as text, is the one that fluctuates on load. A component that wraps "the
+ * contract" has to cover it whole, or callers route around it and rediscover
+ * the bug it was written for.
+ *
  * @see {@link ThemeReadout}
  */
-export type ThemeReadoutKind = "theme" | "mode" | "family";
+export type ThemeReadoutKind = "theme" | "label" | "mode" | "family";
 
 /**
  * Props for {@link ThemeReadout}.
@@ -63,10 +78,20 @@ export interface ThemeReadoutProps {
  * immediately, the server-rendered fallback stays on screen, and no exception is
  * thrown — so this is progressive enhancement, not a hard runtime dependency.
  *
- * A value that is not one of the three semantic kinds — a resolved CSS variable,
+ * A value that is not one of the four semantic kinds — a resolved CSS variable,
  * say — is not covered here. Use the raw contract for that:
  * `data-tv-readout="var:--theme-color-primary"` plus `suppressHydrationWarning`
  * on the element that renders the value.
+ *
+ * **This is the only supported way to display a theme value in a React island.**
+ * `useTheme()` and its siblings read through `useSyncExternalStore`, so during
+ * hydration they return `runtime.initial` — the resolution the *server*
+ * produced, which cannot know the persisted selection or
+ * `prefers-color-scheme`. Rendering that as text paints a value the document
+ * does not have and corrects it once hydration commits; the visitor sees the
+ * same line change from one theme name to another for a frame or three. Values
+ * from those hooks are for behaviour — comparing, deriving, deciding — and a
+ * displayed one belongs in a readout.
  *
  * @see {@link ThemeReadoutKind}
  * @see {@link ThemeReadoutProps}
@@ -77,7 +102,20 @@ export function ThemeReadout({ kind, fallback = null, className }: ThemeReadoutP
   const family = useThemeFamily();
 
   const value =
-    kind === "theme" ? String(theme.name) : kind === "mode" ? mode : family;
+    kind === "theme"
+      ? String(theme.name)
+      : kind === "label"
+        ? // The same rule `readoutValue` applies, because both writers must
+          // agree: the pre-paint script patches this element from the theme's
+          // `meta.label`, and a theme with none leaves the element alone. Falling
+          // back to the machine name here would turn "no label" into a silent
+          // content change the moment hydration took over.
+          typeof theme.meta?.label === "string" && theme.meta.label
+          ? theme.meta.label
+          : null
+        : kind === "mode"
+          ? mode
+          : family;
 
   return (
     <span className={className} data-tv-readout={kind} suppressHydrationWarning>

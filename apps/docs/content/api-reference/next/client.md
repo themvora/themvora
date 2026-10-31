@@ -10,13 +10,28 @@
 
 
 ### `createNextThemePersistence(themes?, defaultTheme?, options): ThemeSelectionPersistenceAdapter | null`
+Client-side persistence for Next.js: mirrors the selection to
+`localStorage` (cross-tab sync, offline) and to the theme cookies the server
+reads on the next request.
+
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `themes` | `readonly ThemeDefinition<string>[]` (optional) | — |
-| `defaultTheme` | `string` (optional) | — |
-| `options` | `NextThemePersistenceOptions` | — |
+| `themes` | `readonly ThemeDefinition<string>[]` (optional) | The registry used to compute the configuration fingerprint. |
+| `defaultTheme` | `string` (optional) | Fallback theme name used in the fingerprint. |
+| `options` | `NextThemePersistenceOptions` | Storage key and backing storage. |
 
-**Returns** `ThemeSelectionPersistenceAdapter | null`
+**Returns** `ThemeSelectionPersistenceAdapter | null` — A persistence adapter, or `null` during SSR.
+
+**Blocked storage degrades, it does not throw.** `window.localStorage` can
+throw on access, and `setItem` throws when the quota is full. Both are
+treated as "this browser cannot remember the selection": the adapter still
+exists, so the cookie mirror keeps working and the server still resolves the
+same theme, and nothing is thrown into a render. This matters in Next
+specifically because `ClientThemeProvider` creates the adapter inside
+`useMemo` during render — a throw there failed the whole client tree.
+
+The `null` return is reserved for "not in a browser", which is the contract
+every caller already handles.
 
 ---
 
@@ -53,12 +68,23 @@ duration for its own fade.
 A minimal demo-style button that cycles the theme mode:
 `light → dark → system → light`.
 
-Renders a `<button>` whose label is the current mode. Use it for demos and
-prototypes, or build your own control with useTheme.
+Renders a `<button>` whose label is the mode **actually applied**, with the
+configured mode shown alongside it while that is `"system"`. Cycling always
+follows the configured mode, so a visitor who picked "system" stays on it.
 
-**See also:** `useTheme`, `useThemeMode`
+Use it for demos and prototypes, or build your own control with
+useTheme.
+
+**See also:** `useTheme`, `useEffectiveThemeMode`
 
 **Returns** `Element`
+
+The label reads useEffectiveThemeMode rather than useThemeMode
+on purpose. With a sunrise/sunset schedule running, the configured mode is the
+visitor's standing request — `"system"`, or whichever mode they last picked —
+and it does not move at sunset. A label bound to it therefore kept announcing
+the old mode while the page changed colour. The effective mode moves with the
+page.
 
 ```ts
 <ThemeModeButton />
@@ -127,6 +153,40 @@ render rather than a stale theme being returned.
 ---
 
 
+### `useProvidedThemes<T extends ThemeDefinition<string>>(): readonly ProvidedThemeFamily<T>[]`
+The themes this provider was given, grouped by family.
+
+Returns exactly the collection supplied to the nearest `ThemeProvider` — not
+the built-in catalog, and not every theme that exists in the project. Build a
+theme picker from it instead of enumerating a separate preset source:
+
+```tsx
+const themes = useProvidedThemes();
+
+return themes.map((family) => (
+  <section key={family.id}>
+    <h3>{family.name}</h3>
+    {family.variants.map((variant) => (
+      <button key={variant.name} onClick={() => setFamily(family.family)}>
+        {variant.mode}
+      </button>
+    ))}
+  </section>
+));
+```
+
+The collection is reactive: a `themes` prop change, a `runtime.use(pack)`
+install or a registry mutation re-renders the consumer. Entries keep their
+identity while their content is unchanged, so `React.memo` and dependency
+arrays behave.
+
+**See also:** `useTheme`, `normalizeProvidedThemes`
+
+**Returns** `readonly ProvidedThemeFamily<T>[]` — The provider's theme families, in supplied order.
+
+---
+
+
 ### `useScopedTheme(ref, selection, transition?): RefObject<{ destroy: void; getTheme: void; refresh: void; setLocalThemes: void; setTransition: void; update: void } | null>`
 Headless scoped-theming hook: applies a scoped theme selection to an
 arbitrary element (by ref) without rendering a wrapper component.
@@ -174,7 +234,7 @@ Get a stable `setMode` function (does not re-render on change).
 ---
 
 
-### `useTheme<T extends ThemeDefinition<string>>(): { family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
+### `useTheme<T extends ThemeDefinition<string>>(): { effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
 The primary Themvora hook. Returns the current theme, mode, family and
    the selection controls.
 
@@ -191,9 +251,9 @@ The primary Themvora hook. Returns the current theme, mode, family and
    setMode("dark");
    ```
 
-**See also:** `useThemeValue`, `useThemeMode`, `useThemeFamily`
+**See also:** `useThemeValue`, `useThemeMode`, `useEffectiveThemeMode`, `useThemeFamily`
 
-**Returns** `{ family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
+**Returns** `{ effectiveMode: "light" | "dark"; family: string; mode: ThemeMode; setFamily: __type(family: ThemeFamilies<readonly T[]>): void; setMode: __type(mode: ModesOf<T>): void; theme: T; toggleTheme: __type(): void }`
 
 ---
 
@@ -246,7 +306,12 @@ gives you the theme definitions rather than `unknown` — the same precision
 ### `useThemeMode(): ThemeMode`
 Subscribe to the current selection mode ("light" | "dark" | "system").
 
-**See also:** `useSetThemeMode`
+This is the mode the visitor **asked for**. While a sunrise/sunset schedule
+is running, or while the selection is `"system"`, the appearance on screen can
+differ from it — use useEffectiveThemeMode to display what is actually
+applied.
+
+**See also:** `useEffectiveThemeMode`, `useSetThemeMode`
 
 **Returns** `ThemeMode`
 
@@ -380,9 +445,10 @@ Get a stable `toggleTheme` function (flips light ⇄ dark).
 | ------ | ---- | ----------- |
 | `adapters` (optional) | `ThemeAdapter<T>[]` | Library adapters installed onto the created runtime. Each adapter keeps its own injected `<style>` in sync as the theme changes. |
 | `children` | `ReactNode` | — |
-| `defaultTheme` (optional) | `string` | — |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme when no selection is persisted. Accepts a theme **name** (`"cocoa-light"`) or a **family** (`"cocoa"`). |
 | `initial` | `InitialThemeResolution<T>` | — |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Created client-side only — the server resolves the initial theme (zero-flash) and the client schedule takes over activation. Configure via `useThemeSchedule()`. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over the cookie-backed selection. Applied once per value, never written to the theme cookies, and it does not fight a later manual selection. |
 | `themes` (optional) | `readonly T[]` | — |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | — |
 
@@ -409,9 +475,10 @@ Get a stable `toggleTheme` function (flips light ⇄ dark).
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
+- [Theme Discovery & Overrides](/advanced-features) — A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.
 - [Runtime](/architecture) — One runtime per app owns the store, selection, registry, history, lifecycle and adapters; every framework binding is a thin view over it.
 - [ThemeScope](/scoped-theme) — Apply a different family/mode (or a local theme definition) to a subtree, with scoped CSS variables and pre-paint support.
-- [Scheduling](/advanced-features) — Switch family/mode on a time-of-day schedule, with an explicit binding between the schedule state and the runtime selection.
+- [Theme generation](/theme-studio) — Generate a complete, accessible light/dark theme pair from a single seed color, ready to drop into the runtime.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [DevTools](/devtools) — Inspect and drive the live runtime from a panel: adapters, history, snapshots and performance entries.
 - [Next.js](/framework-guides/next) — the framework integration

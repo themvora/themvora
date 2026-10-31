@@ -46,7 +46,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/angular",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "angular",
     repoDir: "packages/angular",
     description: "Angular integration for Themvora",
@@ -58,7 +58,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/antd",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "adapters/antd",
     repoDir: "packages/adapters/antd",
     description: "Ant Design adapter for Themvora.",
@@ -70,19 +70,19 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/astro",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "astro",
     repoDir: "packages/astro",
     description: "Astro integration for Themvora.",
     internalDeps: ["@themvora/core", "@themvora/web"],
     usedBy: [],
     externalPeers: ["astro", "react", "react-dom"],
-    subpaths: ["./ThemeInspector.astro", "./ThemeScrollbar.astro", "./ThemeToggle.astro", "./client", "./provider.astro", "./runtime"],
+    subpaths: ["./ThemeFamilySelect.astro", "./ThemeInspector.astro", "./ThemeScope.astro", "./ThemeScrollbar.astro", "./ThemeToggle.astro", "./client", "./provider.astro", "./runtime"],
     hasBin: false,
   },
   {
     name: "@themvora/bootstrap",
-    version: "2.0.0",
+    version: "2.0.1",
     dir: "adapters/bootstrap",
     repoDir: "packages/adapters/bootstrap",
     description: "Bootstrap adapter for Themvora.",
@@ -94,7 +94,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/chakra",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "adapters/chakra",
     repoDir: "packages/adapters/chakra",
     description: "Chakra UI adapter for Themvora.",
@@ -106,7 +106,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/cli",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "cli",
     repoDir: "packages/cli",
     description: "Themvora CLI: generate, validate, inspect, and migrate themes.",
@@ -118,7 +118,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/core",
-    version: "1.4.0",
+    version: "1.5.0",
     dir: "core",
     repoDir: "packages/core",
     description: "Framework-agnostic theming engine: theme store, runtime, transitions, scheduling, accessibility, and DOM adapters.",
@@ -130,7 +130,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/daisyui",
-    version: "2.0.0",
+    version: "2.0.1",
     dir: "adapters/daisyui",
     repoDir: "packages/adapters/daisyui",
     description: "DaisyUI adapter for Themvora.",
@@ -142,7 +142,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/devtools",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "devtools",
     repoDir: "packages/devtools",
     description: "Development tools and runtime inspector for Themvora.",
@@ -154,7 +154,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/mantine",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "adapters/mantine",
     repoDir: "packages/adapters/mantine",
     description: "Mantine adapter for Themvora.",
@@ -166,7 +166,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/mui",
-    version: "1.3.0",
+    version: "1.4.0",
     dir: "adapters/mui",
     repoDir: "packages/adapters/mui",
     description: "MUI adapter for Themvora.",
@@ -178,7 +178,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/next",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "next",
     repoDir: "packages/next",
     description: "Next.js integration for Themvora with SSR-first theming and zero-flash bootstrapping.",
@@ -190,7 +190,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/nuxt",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "nuxt",
     repoDir: "packages/nuxt",
     description: "Nuxt module for Themvora: SSR, cookies, and zero-flash theming.",
@@ -202,7 +202,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/open-props",
-    version: "2.0.0",
+    version: "2.0.1",
     dir: "adapters/open-props",
     repoDir: "packages/adapters/open-props",
     description: "Open Props adapter for Themvora.",
@@ -214,7 +214,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/react",
-    version: "1.3.1",
+    version: "1.4.0",
     dir: "react",
     repoDir: "packages/react",
     description: "React bindings for Themvora: provider, hooks, and runtime access.",
@@ -226,7 +226,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/remix",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "remix",
     repoDir: "packages/remix",
     description: "Remix integration for Themvora.",
@@ -238,7 +238,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/shadcn",
-    version: "2.0.0",
+    version: "2.0.1",
     dir: "adapters/shadcn",
     repoDir: "packages/adapters/shadcn",
     description: "shadcn/ui adapter for Themvora.",
@@ -250,7 +250,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/solid",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "solid",
     repoDir: "packages/solid",
     description: "SolidJS bindings for Themvora.",
@@ -262,7 +262,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/svelte",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "svelte",
     repoDir: "packages/svelte",
     description: "Svelte 5 bindings for Themvora.",
@@ -274,7 +274,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/tailwind",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "tailwind",
     repoDir: "packages/tailwind",
     description: "Tailwind CSS v4 plugin that maps Themvora tokens to Tailwind theme variables.",
@@ -286,7 +286,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/unocss",
-    version: "1.3.0",
+    version: "1.3.1",
     dir: "adapters/unocss",
     repoDir: "packages/adapters/unocss",
     description: "UnoCSS adapter for Themvora.",
@@ -298,7 +298,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/vue",
-    version: "2.0.0",
+    version: "2.1.0",
     dir: "vue",
     repoDir: "packages/vue",
     description: "Vue 3 bindings for Themvora.",
@@ -310,12 +310,24 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "@themvora/web",
-    version: "1.4.0",
+    version: "1.5.0",
     dir: "web",
     repoDir: "packages/web",
     description: "HTML-first theme components for any page: custom elements, CSS variables and live configuration with no framework.",
     internalDeps: ["@themvora/core"],
     usedBy: ["@themvora/angular", "@themvora/astro", "@themvora/solid", "@themvora/svelte", "@themvora/vue"],
+    externalPeers: [],
+    subpaths: [],
+    hasBin: false,
+  },
+  {
+    name: "themvora-vscode",
+    version: "0.1.0",
+    dir: "vscode",
+    repoDir: "packages/vscode",
+    description: "Explore, preview, create and validate your Themvora themes without leaving VS Code.",
+    internalDeps: [],
+    usedBy: [],
     externalPeers: [],
     subpaths: [],
     hasBin: false,

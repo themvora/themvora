@@ -57,7 +57,7 @@ discovered, the plugin warns and falls back to the built-in themes rather than
 failing the build.
 
 ```ts
-// vite.config.ts — nothing to configure beyond registering the plugin.
+// Nothing to configure beyond registering the plugin.
 import { themvoraVitePlugin } from "@themvora/core/vite";
 
 export default defineConfig({

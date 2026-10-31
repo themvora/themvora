@@ -128,6 +128,24 @@ export const capabilities: Record<string, Capability> = {
         "resolveThemeRegistry",
         "ThemeRegistry",
         "ThemeRegistryOptions",
+        // Registry loading + theme-JSON parsing (`src/registry.ts`, `src/parse.ts`).
+        "loadThemeRegistry",
+        "RegistryLoadResult",
+        "RegistryLoadSuccess",
+        "RegistryLoadFailure",
+        "RegistryFailureReason",
+        "RegistrySourceLocation",
+        "readThemeDefinitions",
+        "ThemeDefinitionSource",
+        "ThemeDefinitionOrigin",
+        "ThemeDefinitionProblem",
+        "ThemeDefinitionReadOptions",
+        "ThemeDefinitionReadResult",
+        "normalizeThemeCatalog",
+        "parseThemeJson",
+        "ParsedThemeJson",
+        "themeToCssDocument",
+        "ThemeCssPair",
       ],
       "@themvora/core/vanilla": ["ThemeDefinition", "ThemeRegistry"],
     },
@@ -176,6 +194,9 @@ export const capabilities: Record<string, Capability> = {
         "ThemeToCSSVariablesOptions",
         "BuildThemeCssMapOptions",
         "CSSVariablesOptions",
+        // The two selector constants the token layer emits against.
+        "CSS_ROOT_SELECTOR",
+        "CSS_DARK_SELECTOR",
       ],
       "@themvora/angular": ["buildThemeCSSMap", "ThemeCSSMap", "BlockingScriptOptions"],
       "@themvora/astro": ["buildThemeCssMap"],
@@ -205,11 +226,14 @@ export const capabilities: Record<string, Capability> = {
         "ResolveSelectionOptions",
         "ResolveSelectionThemeOptions",
         "SelectionThemeResolution",
+        "ThemeEffectiveSelection",
+        "isSelectionResolvable",
         "createSystemThemeBinding",
         "SystemThemeBindingOptions",
       ],
       "@themvora/react": [
         "useThemeMode",
+        "useEffectiveThemeMode",
         "useThemeFamily",
         "useSetThemeMode",
         "useSetThemeFamily",
@@ -222,14 +246,19 @@ export const capabilities: Record<string, Capability> = {
         "useSetThemeFamily",
         "useToggleTheme",
       ],
-      "@themvora/vue": ["useThemeMode", "useThemeFamily"],
-      // @themvora/nuxt does not ship the dedicated mode/family composables;
-      // its auto-imported set is read through `useTheme`. (Reported as a
-      // framework-parity gap — see docs/reference/README.md.)
-      "@themvora/nuxt": ["useTheme"],
-      "@themvora/svelte": ["useThemeMode", "useThemeFamily"],
-      "@themvora/solid": ["useThemeMode", "useThemeFamily"],
-      "@themvora/angular": ["ThemeState", "injectTheme"],
+      "@themvora/vue": ["useThemeMode", "useEffectiveThemeMode", "useThemeFamily"],
+      // @themvora/nuxt re-exports `useEffectiveThemeMode` from `@themvora/vue`
+      // but not the dedicated mode/family setters; its auto-imported set is read
+      // through `useTheme`. (Reported as a framework-parity gap — see
+      // docs/reference/README.md.)
+      "@themvora/nuxt": ["useTheme", "useEffectiveThemeMode"],
+      "@themvora/svelte": ["useThemeMode", "useEffectiveThemeMode", "useThemeFamily"],
+      "@themvora/solid": ["useThemeMode", "useEffectiveThemeMode", "useThemeFamily"],
+      "@themvora/angular": [
+        "ThemeState",
+        "injectTheme",
+        "injectEffectiveThemeMode",
+      ],
       "@themvora/astro/client": [
         "useThemeMode",
         "useThemeFamily",
@@ -237,12 +266,61 @@ export const capabilities: Record<string, Capability> = {
         "useSetThemeFamily",
         "useToggleTheme",
       ],
+      // @themvora/remix re-exports the React hook set minus the standalone
+      // `useEffectiveThemeMode`; the same reading is `useTheme().effectiveMode`.
       "@themvora/remix": ["useThemeMode", "useThemeFamily", "useSetThemeMode", "useSetThemeFamily", "useToggleTheme"],
-      "@themvora/web": ["useThemeMode", "useThemeFamily"],
+      "@themvora/web": [
+        "useThemeMode",
+        "useEffectiveThemeMode",
+        "observeEffectiveThemeMode",
+        "useThemeFamily",
+      ],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
     guide: "/core-concepts",
+  },
+  providedThemes: {
+    slug: "provided-themes",
+    title: "Theme Discovery & Overrides",
+    category: "concept",
+    summary:
+      "A provider exposes exactly the themes it was given — grouped by family, with variants and resolved tokens — and accepts an explicit one-shot themeOverride that outranks a saved selection.",
+    packages: {
+      "@themvora/core": [
+        "normalizeProvidedThemes",
+        "createProvidedThemesSource",
+        "resolveThemeReference",
+        "ResolvedThemeReference",
+        "ResolveThemeReferenceOptions",
+        "ThemeIdentifier",
+        "ThemeFamilyOf",
+        "ProvidedThemeFamily",
+        "ProvidedThemeVariant",
+        "ProvidedThemeProvenance",
+        "ProvidedThemesSource",
+        "resolveThemeOverride",
+        "themeOverrideKey",
+        "ThemeOverride",
+        "ThemeOverrideSelection",
+      ],
+      "@themvora/core/vanilla": ["Themvora"],
+      "@themvora/react": ["useProvidedThemes", "ThemeProviderProps"],
+      "@themvora/next": ["ThemeProviderProps"],
+      "@themvora/next/client": ["ClientThemeProviderProps", "useProvidedThemes"],
+      "@themvora/vue": ["useProvidedThemes"],
+      "@themvora/nuxt": ["useProvidedThemes"],
+      "@themvora/svelte": ["useProvidedThemes"],
+      "@themvora/solid": ["useProvidedThemes"],
+      "@themvora/angular": ["injectProvidedThemes"],
+      "@themvora/remix": ["ThemeProviderProps", "ThemeHeadProps", "useProvidedThemes"],
+      "@themvora/astro/client": ["ThemeProviderClientProps", "useProvidedThemes"],
+      "@themvora/web": ["useProvidedThemes"],
+      "@themvora/mui": ["MuiThemeIntegrationOptions"],
+    },
+    frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
+    apiReference: "/api-reference/core",
+    guide: "/advanced-features",
   },
   runtime: {
     slug: "runtime",
@@ -267,6 +345,13 @@ export const capabilities: Record<string, Capability> = {
         "createDOMBinding",
         "DOMBindingOptions",
         "isSettled",
+        // Configuration resolution (`src/configuration.ts`) — how the runtime
+        // turns scattered options into the configuration it actually runs.
+        "EffectiveConfiguration",
+        "resolveEffectiveConfiguration",
+        "ThemeConfigurationUpdate",
+        "isUsableTheme",
+        "getFallbackThemes",
       ],
       "@themvora/core/vanilla": ["Themvora", "ThemvoraOptions"],
       "@themvora/react": [
@@ -292,7 +377,15 @@ export const capabilities: Record<string, Capability> = {
         "useThemeTokens",
       ],
       "@themvora/vue": ["provideThemeRuntime", "ThemeProvider", "useThemeRuntime", "useThemeValue", "useThemeTokens"],
-      "@themvora/nuxt": ["ThemeProvider", "ThemeProviderProps", "useTheme", "useThemeRuntime", "useThemeBatch"],
+      "@themvora/nuxt": [
+        "ThemeProvider",
+        "ThemeProviderProps",
+        "useTheme",
+        "useThemeRuntime",
+        "useThemeBatch",
+        "provideThemeRuntime",
+        "ThemeSymbol",
+      ],
       "@themvora/svelte": [
         "ThemeProvider",
         "getThemeRuntime",
@@ -328,6 +421,15 @@ export const capabilities: Record<string, Capability> = {
         "getProviderRuntime",
         "useThemeRuntime",
         "useThemeTokens",
+        // The custom-element DOM contract: the events a provider dispatches and
+        // the stylesheet the built-in elements share.
+        "THEME_READY_EVENT",
+        "THEMES_CHANGE_EVENT",
+        "ThemvoraThemesChangeDetail",
+        "ThemvoraRuntimeConsumer",
+        "COMPONENT_STYLE_ID",
+        "COMPONENT_CSS",
+        "injectComponentStyles",
       ],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
@@ -422,6 +524,9 @@ export const capabilities: Record<string, Capability> = {
         "ANIMATED_GROUP_KEYS",
         "AnimatedGroupKey",
         "prefersReducedMotion",
+        // Teardown for the injected transition stylesheet, so a disposed
+        // runtime does not leave animation CSS behind.
+        "disposeThemeTransitionStyles",
       ],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
@@ -533,11 +638,14 @@ export const capabilities: Record<string, Capability> = {
         "ScheduledPluginOptions",
         "DEFAULT_SCHEDULED_LIGHT_THEME",
         "DEFAULT_SCHEDULED_DARK_THEME",
+        // The narrow store a scheduled binding needs; useful when a caller
+        // supplies its own scheduler instead of the built-in one.
+        "ThemeScheduleStore",
       ],
       "@themvora/react": ["useThemeSchedule"],
       "@themvora/next/client": ["useThemeSchedule"],
       "@themvora/vue": ["useThemeSchedule", "ThemeScheduleController"],
-      "@themvora/nuxt": ["useThemeSchedule"],
+      "@themvora/nuxt": ["useThemeSchedule", "ThemeScheduleController"],
       "@themvora/svelte": ["useThemeSchedule", "getThemeSchedule"],
       "@themvora/solid": ["useThemeSchedule"],
       "@themvora/angular": ["injectThemeSchedule", "ThemeScheduleController"],
@@ -558,6 +666,7 @@ export const capabilities: Record<string, Capability> = {
     packages: {
       "@themvora/core": [
         "calculateSunTimes",
+        "SunTimes",
         "CalculateSunTimesLocationOptions",
         "resolveSolarLocation",
         "SolarLocationInput",
@@ -601,6 +710,9 @@ export const capabilities: Record<string, Capability> = {
         "ValidateThemeOptions",
         "ValidationIssue",
         "ValidationResult",
+        // Non-text contrast: the UI-component/boundary checks that sit beside
+        // the text-contrast pairs in `validateThemeContrast`.
+        "NonTextCheck",
       ],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
@@ -651,8 +763,26 @@ export const capabilities: Record<string, Capability> = {
         "LevelIssue",
         "ValidateThemeLevelsOptions",
         "MeasuredPair",
+        // Reading back a generated theme: the pair a `generateTheme` call
+        // produced, and how to look it up from the runtime.
+        "ThemeGenerationInput",
+        "GeneratedThemeStatus",
+        "GeneratedThemeLookup",
+        "GENERATED_THEME_KIND",
+        "isGeneratedTheme",
+        "findGeneratedTheme",
+        "resolveGeneratedTheme",
       ],
       "@themvora/core/vanilla": ["generateTheme", "GenerateThemeOptions", "GeneratedThemePair"],
+      "@themvora/react": ["useGeneratedTheme"],
+      "@themvora/next/client": ["useGeneratedTheme"],
+      "@themvora/vue": ["useGeneratedTheme"],
+      "@themvora/svelte": ["useGeneratedTheme"],
+      "@themvora/solid": ["useGeneratedTheme"],
+      "@themvora/angular": ["injectGeneratedTheme"],
+      "@themvora/astro/client": ["useGeneratedTheme"],
+      "@themvora/remix": ["useGeneratedTheme"],
+      "@themvora/web": ["useGeneratedTheme", "resolveGeneratedTheme"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     apiReference: "/api-reference/core",
@@ -776,6 +906,12 @@ export const capabilities: Record<string, Capability> = {
         "EmitDiagnosticOptions",
         "DiagnosticSink",
         "ThemeErrorOptions",
+        // The typed reasons the runtime itself raises, and their emitters.
+        "InvalidOption",
+        "emitInvalidOptionDiagnostic",
+        "emitUnknownFamilyDiagnostic",
+        "emitNeutralFallbackDiagnostic",
+        "emitScheduledThemeUnresolvedDiagnostic",
       ],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
@@ -852,9 +988,19 @@ export const capabilities: Record<string, Capability> = {
         "injectPrePaintScrollbarCSS",
         "systemModeCSSTemplate",
       ],
-      "@themvora/remix": ["ThemeHead", "ThemeHeadProps", "getInitialThemeState"],
+      "@themvora/remix": [
+        "ThemeHead",
+        "ThemeHeadProps",
+        "getInitialThemeState",
+        // The shell half of the same contract: the attributes and CSS variables
+        // the blocking script writes, rendered by the app because Remix owns
+        // `<html>`.
+        "getThemeShellProps",
+        "ThemeShellProps",
+      ],
       "@themvora/nuxt": [
         "createNuxtThemeBootstrapScript",
+        "createVueThemeBootstrapScript",
         "NuxtThemeBootstrapOptions",
         "ResolveThemeFromCookiesOptions",
         "ModuleOptions",
@@ -888,10 +1034,27 @@ export const capabilities: Record<string, Capability> = {
         "createPrePaintScrollbarScript",
         "PRE_PAINT_SCROLLBAR_CSS",
         "PrePaintScrollbarOptions",
+        // Option resolution for each scrollbar layer, plus the native-hiding
+        // fallback the runtime installs when overlay painting is unavailable.
+        "resolveScrollbarOptions",
+        "ScrollbarAppearanceOptions",
+        "ScrollbarBehaviorOptions",
+        "ScrollbarIconOptions",
+        "ScrollbarScopeOptions",
+        "ScrollbarFlatOptions",
+        "ScrollbarGroupedOptions",
+        "ScrollbarOffset",
+        "ScrollbarOffsetSides",
+        "resolveIconOptions",
+        "hideNativeScrollbar",
+        "restoreNativeScrollbar",
+        "SCROLLBAR_HIDING_STYLE_ID",
+        "SCROLLBAR_HIDING_STYLE_ATTR",
       ],
       "@themvora/react": [
         "ThemeScrollbar",
         "ThemeScrollbarProps",
+        "ThemeScrollbarScope",
         "ThemeScrollbarAppearance",
         "ThemeScrollbarBehavior",
         "ThemeScrollbarIcons",
@@ -1025,7 +1188,10 @@ export const integrations: Record<string, Integration> = {
         "useThemeValue",
         "useThemeTokens",
         "useThemeMode",
+        "useEffectiveThemeMode",
         "useThemeFamily",
+        "useProvidedThemes",
+        "useGeneratedTheme",
         "useSetThemeMode",
         "useSetThemeFamily",
         "useToggleTheme",
@@ -1129,11 +1295,10 @@ export const integrations: Record<string, Integration> = {
     kind: "framework",
     guide: "/framework-guides/nuxt",
     peerPackages: ["nuxt", "vue"],
-    // `@themvora/nuxt` re-exports the whole core surface plus its own
-    // auto-imported module surface. It does NOT re-export Vue-internal
-    // plumbing that has no Nuxt meaning: `ThemeSymbol`,
-    // `ThemeScheduleController`, `createVueThemeBootstrapScript`,
-    // `provideThemeRuntime`.
+    // `@themvora/nuxt` re-exports the whole core surface (`export * from
+    // "@themvora/core"`) plus a named subset of `@themvora/vue`. Only the
+    // latter is enumerated below; mirroring core keeps the list from copying
+    // several hundred names.
     mirrors: ["@themvora/core"],
     packages: {
       "@themvora/nuxt": [
@@ -1141,6 +1306,11 @@ export const integrations: Record<string, Integration> = {
         "NuxtThemeBootstrapOptions",
         "ResolveThemeFromCookiesOptions",
         "createNuxtThemeBootstrapScript",
+        // Re-exported verbatim from `@themvora/vue`. The rest of the Vue
+        // surface Nuxt re-exports (`provideThemeRuntime`, `ThemeSymbol`,
+        // `ThemeScheduleController`, `useProvidedThemes`,
+        // `useEffectiveThemeMode`) is registered under the capability that owns
+        // it, so it is not repeated here.
         "computeFingerprint",
         "parseCookieHeader",
         "resolveThemeFromCookies",
@@ -1375,9 +1545,21 @@ export const integrations: Record<string, Integration> = {
         "ThemeController",
         "ThemeControllerOptions",
         "ThemeControllerState",
+        // The DOM contract: one delegated listener per document, which is the
+        // only shape that survives a `<ClientRouter />` navigation — Astro
+        // bundles a page's module scripts and never re-executes them.
+        "installThemeBindings",
         "injectPrePaintScrollbarCSS",
         "ThemvoraScrollbar",
         "ThemvoraInspector",
+        // The same DOM contract as the browser entry below, re-exported from the
+        // package root so an `.astro` component can import the attribute names
+        // without reaching into `@themvora/astro/runtime`.
+        "THEME_READOUT_ATTRIBUTE",
+        "THEME_TOGGLE_ATTRIBUTE",
+        "THEME_SELECTION_ATTRIBUTE",
+        "THEME_PRESSED_ATTRIBUTE",
+        "THEME_PRESSED_VALUE_ATTRIBUTE",
       ],
       "@themvora/astro/client": [
         "ThemeProviderClient",
@@ -1422,6 +1604,12 @@ export const integrations: Record<string, Integration> = {
         // agree on these attribute names, so they are part of the public API.
         "THEME_READOUT_ATTRIBUTE",
         "THEME_TOGGLE_ATTRIBUTE",
+        "THEME_SELECTION_ATTRIBUTE",
+        "THEME_PRESSED_ATTRIBUTE",
+        "THEME_PRESSED_VALUE_ATTRIBUTE",
+        // Installs the delegated listeners. A page that writes
+        // `<select data-tv-select>` by hand calls this instead of a component.
+        "installThemeBindings",
       ],
     },
   },
@@ -1439,6 +1627,11 @@ export const integrations: Record<string, Integration> = {
         "ThemeScrollbarProps",
         "ThemeHead",
         "ThemeHeadProps",
+        // The `<html>` element Remix owns. Hand-writing its attributes is what
+        // produced the hydration mismatch this helper exists to prevent.
+        "getThemeShellProps",
+        "ThemeShellProps",
+        "ThemeShellOptions",
         "ThemeInspector",
         "ThemeInspectorProps",
         "createRemixThemePersistence",

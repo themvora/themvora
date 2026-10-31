@@ -1,0 +1,96 @@
+{
+  "light": {
+    "name": "brand-light",
+    "meta": {
+      "family": "brand",
+      "mode": "light",
+      "label": "Brand Light",
+      "order": 10,
+      "generation": {
+        "kind": "generated",
+        "algorithm": "semantic-v2",
+        "seed": "#4f46e5",
+        "contrast": {
+          "text": 4.5,
+          "largeText": 3,
+          "ui": 3
+        }
+      }
+    },
+    "tokens": {
+      "colors": {
+        "background": "#f1f1f6",
+        "foreground": "#191a1f",
+        "muted": "#e7e7ec",
+        "mutedForeground": "#646569",
+        "card": "#fafbff",
+        "cardForeground": "#191a1f",
+        "popover": "#f5f6fb",
+        "popoverForeground": "#191a1f",
+        "primary": "#4f46e5",
+        "primaryForeground": "#fbfbff",
+        "secondary": "#e2e3ea",
+        "secondaryForeground": "#232428",
+        "accent": "#a95dde",
+        "accentForeground": "#101116",
+        "destructive": "#cc2827",
+        "destructiveForeground": "#fbfbff",
+        "success": "#0a8234",
+        "successForeground": "#fbfbff",
+        "border": "#d8d9de",
+        "input": "#86878c",
+        "ring": "#4f46e5"
+      },
+      "radius": {
+        "lg": "8px"
+      }
+    }
+  },
+  "dark": {
+    "name": "brand-dark",
+    "meta": {
+      "family": "brand",
+      "mode": "dark",
+      "label": "Brand Dark",
+      "order": 20,
+      "generation": {
+        "kind": "generated",
+        "algorithm": "semantic-v2",
+        "seed": "#4f46e5",
+        "contrast": {
+          "text": 4.5,
+          "largeText": 3,
+          "ui": 3
+        }
+      }
+    },
+    "tokens": {
+      "colors": {
+        "background": "#0d0d10",
+        "foreground": "#edeef3",
+        "muted": "#232427",
+        "mutedForeground": "#a3a4a8",
+        "card": "#1a1a1d",
+        "cardForeground": "#edeef3",
+        "popover": "#1e1f22",
+        "popoverForeground": "#edeef3",
+        "primary": "#808aff",
+        "primaryForeground": "#101116",
+        "secondary": "#26272c",
+        "secondaryForeground": "#e7e7ec",
+        "accent": "#b27ddc",
+        "accentForeground": "#101116",
+        "destructive": "#f27166",
+        "destructiveForeground": "#101116",
+        "success": "#60c473",
+        "successForeground": "#101116",
+        "border": "#323337",
+        "input": "#696a6e",
+        "ring": "#808aff"
+      },
+      "radius": {
+        "lg": "8px"
+      }
+    }
+  }
+}

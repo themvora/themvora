@@ -7,6 +7,7 @@ import {
 } from "./dom/transition";
 import { createDOMWriteBatch } from "./dom/batch";
 import {
+  beginDescendantTransitionSuppression,
   createThemeDiff,
   createTransitionPlan,
   disposeThemeTransitionStyles,
@@ -143,10 +144,20 @@ export function createCSSVariablesBinding(
     if (suppressTransition) {
       applyNow();
     } else if (useViewTransition) {
+      // Mute descendant transitions for the crossfade, exactly as the CSS-property
+      // run does. The snapshot the browser fades out already carries the old
+      // palette; without this, any component that eases its own colour eases
+      // *again* underneath the fade and lands well after the page has switched.
+      // Measured before the fix on this repo's React + MUI fixture: the document
+      // swapped in 1 frame while MUI's Button needed 30 (540 ms), and MUI's own
+      // Paper had already snapped — three different timings for one change.
+      const releaseSuppression = beginDescendantTransitionSuppression(element!);
+
       const viewTransition = (document as any).startViewTransition(() => {
         applyNow();
         return Promise.resolve();
       });
+
       // A skipped transition is normal — a second toggle in the same frame, a
       // provider removed mid-swap, a tab going hidden — and the API reports it
       // by rejecting `ready` / `finished` with `AbortError`. Nothing awaits
@@ -154,6 +165,15 @@ export function createCSSVariablesBinding(
       // page's console (and in an error-reporting tool, as a crash).
       viewTransition?.ready?.catch?.(() => {});
       viewTransition?.finished?.catch?.(() => {});
+
+      // The window ends when the crossfade does. `finished` rejects on an
+      // aborted transition, so the release runs on both outcomes; the disposer
+      // is idempotent, so the double call is harmless.
+      if (viewTransition?.finished?.then) {
+        viewTransition.finished.then(releaseSuppression, releaseSuppression);
+      } else {
+        releaseSuppression();
+      }
     } else {
       const plan = createTransitionPlan(
         createThemeDiff(appliedVariables, variables),
@@ -178,7 +198,16 @@ export function createCSSVariablesBinding(
       }
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          document.head.removeChild(cssNode!);
+          // Guarded: the document can be replaced between scheduling this and
+          // running it — a host tearing its document down, a test resetting the
+          // DOM. `removeChild` on a node whose parent is gone throws
+          // `NotFoundError`, and a frame callback sits outside any caller's
+          // try/catch, so that becomes an uncaught exception rather than a
+          // failed assertion. `contains` is the same guard the synchronous
+          // removals above already use.
+          if (cssNode && document.head.contains(cssNode)) {
+            document.head.removeChild(cssNode);
+          }
         });
       });
     }

@@ -22,15 +22,20 @@ import { THEME_READOUT_ATTRIBUTE, THEME_TOGGLE_ATTRIBUTE } from "./attributes";
  * For custom UI, drop to the controller — the same runtime, still no React:
  *
  * ```astro
- * <button id="theme-toggle">Toggle theme</button>
+ * <button data-tv-toggle>Toggle theme</button>
+ *
  * <script>
- *   import { getThemeController } from "@themvora/astro/runtime";
- *   const theme = getThemeController();
- *   document
- *     .querySelector("#theme-toggle")
- *     ?.addEventListener("click", () => theme.toggleTheme());
+ *   import { installThemeBindings } from "@themvora/astro/runtime";
+ *   installThemeBindings();
  * </script>
  * ```
+ *
+ * @remarks
+ * The attribute is the contract, not the component: `data-tv-toggle` on your own
+ * `<button>` gets the behaviour, and so does a button a client-side navigation
+ * swapped in later. `installThemeBindings()` is what wires it — one delegated
+ * listener per document, installed once, so it survives navigation where a
+ * per-element `querySelector` binding does not.
  */
 interface Props {
   /**
@@ -107,18 +112,14 @@ const attrs: Record<string, string> = {
   // `@themvora/astro/runtime`, not `@themvora/astro`: this is a *browser*
   // bundle, and the root entry also exports the build integration, which reads
   // `theme.config.ts` from disk and would drag `node:url` into the bundle.
-  import {
-    getThemeController,
-    THEME_TOGGLE_ATTRIBUTE,
-  } from "@themvora/astro/runtime";
+  import { installThemeBindings } from "@themvora/astro/runtime";
 
   // Delegated, not per-element: Astro bundles and de-duplicates a component's
   // `<script>` once per page, so this module cannot know how many toggles the
   // page rendered — and a per-element listener would miss any added later by a
-  // client-side navigation.
-  document.addEventListener("click", (event) => {
-    const target = event.target as Element | null;
-    if (!target?.closest?.(`[${THEME_TOGGLE_ATTRIBUTE}]`)) return;
-    getThemeController().toggleTheme();
-  });
+  // client-side navigation, which does not re-run this module.
+  //
+  // The same call wires `[data-tv-select]`, so a page that renders
+  // `<ThemeToggle />` and a family select needs no script of its own.
+  installThemeBindings();
 </script>

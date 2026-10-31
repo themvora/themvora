@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 
 import { DocsLayout } from "../../components/docs-layout";
-import { CodeBlock } from "../../components/code-block";
+import { CodeExample } from "../../components/code-example";
 import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { Prerequisites } from "../../components/ui/prerequisites";
 import { NextSteps } from "../../components/ui/next-step-card";
 import { RelatedLinks } from "../../components/ui/related-links";
-import { highlightCode } from "../../lib/highlight";
 import { docsUrl } from "../../lib/site";
 
 export const metadata: Metadata = {
@@ -224,10 +223,9 @@ export default function TokenResolutionPage() {
             after the base theme and extends are merged, so you can override a
             single source and every reference follows.
           </p>
-          <CodeBlock
-            html={highlightCode(tokenRefCode, "ts")}
+          <CodeExample
             code={tokenRefCode}
-            language="ts"
+            lang="ts"
             filename="core — token references"
             className="m-0"
           />
@@ -255,10 +253,9 @@ export default function TokenResolutionPage() {
             <code className="mono text-[0.9em]">/</code>, and parentheses. Units
             are preserved through evaluation.
           </p>
-          <CodeBlock
-            html={highlightCode(expressionsCode, "ts")}
+          <CodeExample
             code={expressionsCode}
-            language="ts"
+            lang="ts"
             filename="core — expressions"
             className="m-0"
           />
@@ -281,10 +278,9 @@ export default function TokenResolutionPage() {
             <code className="mono text-[0.9em]">contrast()</code> explicitly with
             a hex value.
           </p>
-          <CodeBlock
-            html={highlightCode(derivedCode, "ts")}
+          <CodeExample
             code={derivedCode}
-            language="ts"
+            lang="ts"
             filename="core — derived colors"
             className="m-0"
           />
@@ -363,10 +359,9 @@ export default function TokenResolutionPage() {
               ))}
             </ol>
           </div>
-          <CodeBlock
-            html={highlightCode(resolutionOrderCode, "ts")}
+          <CodeExample
             code={resolutionOrderCode}
-            language="ts"
+            lang="ts"
             filename="core — resolution order"
             className="m-0"
           />
@@ -390,10 +385,9 @@ export default function TokenResolutionPage() {
                 object and returns a new object with all references, expressions,
                 and derived tokens fully resolved.
               </p>
-              <CodeBlock
-                html={highlightCode(apiResolveCode, "ts")}
+              <CodeExample
                 code={apiResolveCode}
-                language="ts"
+                lang="ts"
                 filename="resolveTokens()"
                 className="m-0"
               />
@@ -409,10 +403,9 @@ export default function TokenResolutionPage() {
                 into a dot-separated flat map. Useful for building lookup
                 tables or custom resolution logic.
               </p>
-              <CodeBlock
-                html={highlightCode(apiFlattenCode, "ts")}
+              <CodeExample
                 code={apiFlattenCode}
-                language="ts"
+                lang="ts"
                 filename="flattenTokens()"
                 className="m-0"
               />
@@ -427,10 +420,9 @@ export default function TokenResolutionPage() {
                 string contains a <code className="mono text-[0.9em]">$</code> or{" "}
                 <code className="mono text-[0.9em]">{`{}`}</code> token reference.
               </p>
-              <CodeBlock
-                html={highlightCode(apiHasRefsCode, "ts")}
+              <CodeExample
                 code={apiHasRefsCode}
-                language="ts"
+                lang="ts"
                 filename="hasTokenReferences()"
                 className="m-0"
               />
@@ -444,10 +436,9 @@ export default function TokenResolutionPage() {
                 Evaluates a numeric expression string and returns the result.
                 If the input is not a valid expression, it is returned unchanged.
               </p>
-              <CodeBlock
-                html={highlightCode(apiEvaluateCode, "ts")}
+              <CodeExample
                 code={apiEvaluateCode}
-                language="ts"
+                lang="ts"
                 filename="evaluateExpression()"
                 className="m-0"
               />

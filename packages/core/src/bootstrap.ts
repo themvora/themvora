@@ -1,4 +1,4 @@
-import type { ThemeDefinition, ThemeMode } from "./model/theme";
+import type { ThemeDefinition, ThemeIdentifier, ThemeMode } from "./model/theme";
 import {
   getThemeFamilies,
   getThemeFamily,
@@ -6,7 +6,9 @@ import {
   type ThemeSelectionState,
 } from "./model";
 import { resolveInitialTheme, resolveSelectionTheme } from "./resolver";
+import { resolveThemeOverride, type ThemeOverride } from "./theme-override";
 import { themeToCSSVariables, type ThemeToCSSVariablesOptions } from "./css";
+import { escapeStyleElementText, serializeScriptJson } from "./script-safety";
 
 /**
  * Options for {@link buildThemeCssMap}.
@@ -58,8 +60,8 @@ export function buildThemeCssMap<T extends ThemeDefinition>(
 export interface ThemeBootstrapScriptOptions<T extends ThemeDefinition> {
   /** The theme definitions to embed in the generated script. */
   themes: readonly T[];
-  /** Theme name to fall back to when no persisted selection exists. */
-  defaultTheme?: T["name"];
+  /** Theme to fall back to when no persisted selection exists (variant or family). */
+  defaultTheme?: ThemeIdentifier<T>;
   /**
    * Initial mode used when no persisted selection exists.
    *
@@ -76,6 +78,16 @@ export interface ThemeBootstrapScriptOptions<T extends ThemeDefinition> {
   initialMode?: ThemeMode;
   /** Initial theme family used when no persisted selection exists. */
   initialFamily?: string;
+  /**
+   * An explicit theme override to apply before first paint, outranking any
+   * persisted selection.
+   *
+   * The blocking script runs before the runtime exists, so an override applied
+   * only by a post-mount effect would paint the saved theme first and then
+   * correct it — exactly the flash this script exists to prevent. Passing it here
+   * makes the very first frame the overridden theme.
+   */
+  themeOverride?: ThemeOverride<string>;
   /** localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. */
   storageKey?: string;
   /** CSS custom property prefix. Defaults to `"theme-"`. */
@@ -100,6 +112,7 @@ export function createThemeBootstrapScript<T extends ThemeDefinition>(
     defaultTheme,
     initialMode,
     initialFamily,
+    themeOverride,
     storageKey = "theme-selection",
     prefix,
   } = options;
@@ -109,6 +122,7 @@ export function createThemeBootstrapScript<T extends ThemeDefinition>(
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
     ...(initialMode !== undefined ? { initialMode } : {}),
     ...(initialFamily !== undefined ? { initialFamily } : {}),
+    ...(themeOverride !== undefined ? { themeOverride } : {}),
   });
 
   return serializeThemeBootstrapScript(plan, { kind: "storage", key: storageKey });
@@ -140,14 +154,18 @@ function cssRules(variables: Record<string, string>): string {
  * instead: it emits both schemes and expects no inline variables.
  *
  * @param variables - The CSS variables to emit under the dark media query.
- * @returns A `@media (prefers-color-scheme: dark)` block targeting `:root`.
+ * @returns A `@media (prefers-color-scheme: dark)` block targeting `:root`,
+ *   escaped so it cannot terminate a `<style>` element (`</` becomes `<\/`,
+ *   which CSS parses identically).
  *
  * @see {@link systemModeCSSTemplate}
  */
 export function darkModeCSSTemplate(
   variables: Record<string, string>,
 ): string {
-  return `@media (prefers-color-scheme: dark) {:root {\n${cssRules(variables)}\n}}`;
+  return escapeStyleElementText(
+    `@media (prefers-color-scheme: dark) {:root {\n${cssRules(variables)}\n}}`,
+  );
 }
 
 /**
@@ -169,7 +187,8 @@ export function darkModeCSSTemplate(
  *
  * @param light - The light theme's CSS variables.
  * @param dark - The dark theme's CSS variables.
- * @returns Two media blocks, one per scheme, both targeting `:root`.
+ * @returns Two media blocks, one per scheme, both targeting `:root`, escaped
+ *   for `<style>`-element content exactly as {@link darkModeCSSTemplate} is.
  *
  * @see {@link darkModeCSSTemplate}
  */
@@ -177,10 +196,12 @@ export function systemModeCSSTemplate(
   light: Record<string, string>,
   dark: Record<string, string>,
 ): string {
-  return [
-    `@media (prefers-color-scheme: dark) {:root {\n${cssRules(dark)}\n}}`,
-    `@media (prefers-color-scheme: light) {:root {\n${cssRules(light)}\n}}`,
-  ].join("");
+  return escapeStyleElementText(
+    [
+      `@media (prefers-color-scheme: dark) {:root {\n${cssRules(dark)}\n}}`,
+      `@media (prefers-color-scheme: light) {:root {\n${cssRules(light)}\n}}`,
+    ].join(""),
+  );
 }
 
 /** @internal — shared zero-flash implementation detail; not part of the public
@@ -190,6 +211,19 @@ export interface ThemeBootstrapPlan<T extends ThemeDefinition = ThemeDefinition>
   map: Record<string, Record<string, string>>;
   /** Theme keys → theme name (used to write `data-theme`). */
   names: Record<string, string>;
+  /**
+   * Theme **name** → human label (`theme.meta.label`), for
+   * `data-tv-readout="label"`.
+   *
+   * Keyed by name rather than by theme key because that is what the script can
+   * read back: `data-theme` on `<html>` holds the resolved theme's *name*, and
+   * the script has no registry to look a key up in. A theme with no
+   * `meta.label` is absent, and the readout is then left as the server rendered
+   * it rather than being rewritten with the machine name.
+   *
+   * Optional so a hand-assembled plan stays valid.
+   */
+  labels?: Record<string, string>;
   /** Mode used when no persisted selection is present. */
   fallbackMode: ThemeMode;
   /**
@@ -220,6 +254,14 @@ export interface ThemeBootstrapPlan<T extends ThemeDefinition = ThemeDefinition>
   defaultLight?: T;
   /** The fallback family's resolved dark theme (when themes are available). */
   defaultDark?: T;
+  /**
+   * The selection an explicit `themeOverride` resolved to, when one was supplied
+   * and could be satisfied.
+   *
+   * The inline script applies it over the persisted selection: the override is
+   * not stored, so storage must not be allowed to win on a reload.
+   */
+  override?: ThemeSelectionState | null;
 }
 
 /** @internal — reads the persisted selection from storage (no server
@@ -358,28 +400,41 @@ export function readBootstrapState<T extends ThemeDefinition>(
 }
 
 /**
- * Builds the inline script that fills in **bootstrap readouts**: elements that
- * display a theme-derived value the server cannot know.
+ * Builds the inline script that fills in **bootstrap readouts** and reconciles
+ * **selection controls**: the parts of the page that display or reflect a
+ * theme-derived value the server cannot know.
  *
  * @returns The script body to emit at the **end of `<body>`**, after the
  *   elements it patches exist.
  *
  * @remarks
- * A readout opts in with `data-tv-readout="theme" | "mode" | "family"`, or
- * `data-tv-readout="var:--theme-color-primary"` to display a resolved CSS
- * variable. The script reads the payload the blocking bootstrap published (see
- * {@link readBootstrapState}) — or, for `var:`, the variable the bootstrap
- * already applied to `<html>` — and writes the value into each element's
- * `textContent`.
+ * Three kinds of element opt in, and all three are reconciled from the same
+ * three values — the resolved theme, the mode selection and the family
+ * selection — because a control that lags the canvas by one value is the same
+ * bug in a smaller window:
  *
- * Why this exists: a server-rendered readout can only show the *server's*
- * resolution, and for `"system"` mode that is a fallback the browser overrides
- * before the first paint. The canvas is corrected by the bootstrap, but the text
- * is not — so it settles once after hydration, which is the last visible
- * difference on an otherwise static page.
+ * | Attribute | Written | Meaning |
+ * | --------- | ------- | ------- |
+ * | `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"family"`, or `"var:<custom-property>"` |
+ * | `data-tv-pressed` + `data-tv-value` | `aria-pressed` | this element represents that option of `"mode"` / `"family"` |
+ * | `data-tv-select` | `value` | this `<select>` edits `"mode"` / `"family"` |
  *
- * Patching the text before the first paint closes that, but only if the
- * framework then leaves the element alone. In React that means pairing it with
+ * Why this exists: a server-rendered readout or control can only show the
+ * *server's* resolution, and for `"system"` mode — or for any prerendered page,
+ * which has no request to read a cookie from — that is a fallback the browser
+ * overrides before the first paint. The canvas is corrected by the bootstrap,
+ * but the text and the pressed state are not, so they settle once after
+ * hydration, which is the last visible difference on an otherwise static page.
+ * On a page that reloads repeatedly it reads as the label "fluctuating" between
+ * the two themes.
+ *
+ * `data-tv-pressed` writes `aria-pressed` and nothing else. That is the whole
+ * point: the accessible state *is* the visual state, so a token class keyed off
+ * `aria-pressed` needs no second attribute to keep in step, and a screen reader
+ * can never announce a pressed option the page does not show as pressed.
+ *
+ * Patching before the first paint closes that, but only if the framework then
+ * leaves the element alone. In React that means pairing a readout with
  * `suppressHydrationWarning` on the same element: React renders its own value
  * during hydration, sees the DOM already differs, and — with the attribute —
  * neither warns nor rewrites. The framework's own post-hydration render then
@@ -390,26 +445,79 @@ export function readBootstrapState<T extends ThemeDefinition>(
  * It is deliberately placed at the end of the body: the blocking script runs in
  * `<head>`, before these elements have been parsed, so it cannot patch them.
  *
+ * **It reads the live document, not the page's build-time state.** The values
+ * come from `<html>`'s own `data-theme` / `data-theme-selection-*` attributes,
+ * which by this point describe what the visitor is actually looking at, and
+ * only fall back to the published bootstrap payload when those attributes are
+ * absent. That is what makes the script idempotent, and idempotence is
+ * load-bearing rather than tidy: `<ClientRouter />` re-executes inline body
+ * scripts on a client-side navigation, so this runs again on every navigation —
+ * after the incoming page's readouts have already been brought up to date. A
+ * script that wrote the *initial* selection would undo that, and every readout
+ * would revert to the page-build default until the next theme change. Measured
+ * on the example app: with the payload as the source, navigating from `/` with
+ * `cocoa-dark` selected left the readouts at `mint-light` / `system` / `mint`
+ * while the document was painted `cocoa-dark`.
+ *
  * @see {@link createThemeBootstrapScript}
  * @see {@link readBootstrapState}
  */
 export function createThemeReadoutScript(): string {
   return (
     "(function(){try{" +
-    "var b=window.__THEMVORA_BOOTSTRAP__;if(!b)return;" +
-    "var els=document.querySelectorAll('[data-tv-readout]');" +
+    "var b=window.__THEMVORA_BOOTSTRAP__;" +
+    "var de=document.documentElement;" +
+    // `<html>` first: the blocking script has already written the resolved
+    // state there, so it is more recent than anything a page was built with.
+    "function attr(n){var v=de.getAttribute(n);return v===null||v===''?null:v;}" +
+    "var t=attr('data-theme')||(b?b.theme:null);" +
+    "var m=attr('data-theme-selection-mode')||(b&&b.selection?b.selection.mode:null);" +
+    "var f=attr('data-theme-selection-family')||(b&&b.selection?b.selection.family:null);" +
+    // The label belongs to the *resolved* theme, which is the one `data-theme`
+    // names, so it travels in the payload rather than being looked up here — a
+    // script emitted at the end of the body has no registry to look it up in.
+    "var lb=b?b.label:null;" +
+    "if(t==null&&m==null&&f==null)return;" +
+    // Write into the existing text node when there is exactly one. Assigning
+    // `textContent` replaces every child, and when the element is React-rendered
+    // (an island's readout) the framework's fiber still points at the node that
+    // was discarded — its later unmount then calls removeChild on a node that is
+    // no longer a child and throws. Updating nodeValue keeps the identity.
+    "var w=function(el,v){var c=el.firstChild;" +
+    "if(c&&c.nodeType===3&&!c.nextSibling){if(c.nodeValue!==v){c.nodeValue=v;}return;}" +
+    "el.textContent=v;};" +
+    "var els=document.querySelectorAll('[data-tv-readout],[data-tv-pressed],[data-tv-select]');" +
     "for(var i=0;i<els.length;i++){" +
-    "var f=els[i].getAttribute('data-tv-readout');" +
-    "var v=f==='theme'?b.theme:" +
-    "(f==='mode'?(b.selection&&b.selection.mode):" +
-    "(f==='family'?(b.selection&&b.selection.family):null));" +
+    "var n=els[i];" +
+    "var k=n.getAttribute('data-tv-readout');" +
+    "if(k){" +
+    "var v=k==='theme'?t:(k==='label'?lb:(k==='mode'?m:(k==='family'?f:null)));" +
     // `var:<name>` reads a resolved variable. The bootstrap applied the resolved
     // theme's variables to <html> before this script runs, so they are readable
     // here without publishing the whole variable map to the payload.
-    "if(v==null&&f&&f.slice(0,4)==='var:'){" +
-    "try{v=getComputedStyle(document.documentElement).getPropertyValue(f.slice(4)).trim()||null;}catch(e2){v=null;}" +
+    "if(v==null&&k.slice(0,4)==='var:'){" +
+    "try{v=getComputedStyle(de).getPropertyValue(k.slice(4)).trim()||null;}catch(e2){v=null;}" +
     "}" +
-    "if(v!=null){els[i].textContent=v;}" +
+    "if(v!=null&&n.textContent!==v){w(n,v);}" +
+    "continue;" +
+    "}" +
+    // Control state, reconciled from the same three values as the text — see
+    // `__tvPatch` in the blocking script for why only `aria-pressed` is
+    // written, and why a `<select>` only takes a value it offers.
+    "var pr=n.getAttribute('data-tv-pressed');" +
+    "if(pr){" +
+    "var want=n.getAttribute('data-tv-value');" +
+    "var cur=pr==='mode'?m:(pr==='family'?f:null);" +
+    "if(cur!=null&&want!=null){var nx=String(cur===want);" +
+    "if(n.getAttribute('aria-pressed')!==nx){n.setAttribute('aria-pressed',nx);}}" +
+    "continue;" +
+    "}" +
+    "var se=n.getAttribute('data-tv-select');" +
+    "if(se){" +
+    "var want2=se==='family'?f:(se==='mode'?m:null);" +
+    "if(want2!=null&&n.value!==want2){" +
+    "for(var o=0;o<n.options.length;o++){if(n.options[o].value===want2){n.value=want2;break;}}" +
+    "}}" +
     "}" +
     "}catch(e){}})()"
   );
@@ -438,21 +546,29 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
   themes: readonly T[],
   options: {
     prefix?: string;
-    defaultTheme?: T["name"];
+    defaultTheme?: ThemeIdentifier<T>;
     initialMode?: ThemeMode;
     initialFamily?: string;
+    themeOverride?: ThemeOverride<ThemeIdentifier<T>>;
   } = {},
 ): ThemeBootstrapPlan<T> {
-  const { prefix, defaultTheme, initialMode, initialFamily } = options;
+  const { prefix, defaultTheme, initialMode, initialFamily, themeOverride } = options;
   const cssOptions = cssOptionsFrom(prefix);
 
-  const resolution = resolveInitialTheme({
+  const baseResolution = resolveInitialTheme({
     themes,
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
     ...(initialFamily !== undefined ? { family: initialFamily } : {}),
     ...(initialMode !== undefined ? { mode: initialMode } : {}),
   });
-  const defaultFamily = resolution.selection.family;
+
+  // Resolved with the same function the runtime uses, so the script and the
+  // runtime cannot disagree about what an override means. A request the catalog
+  // cannot satisfy is dropped here (the runtime reports it once, on the client);
+  // an override that did not resolve must not change the plan.
+  const override = resolveThemeOverride(themes, themeOverride, baseResolution.selection);
+  const selection = override ?? baseResolution.selection;
+  const defaultFamily = selection.family;
 
   // The script's fallback mode is the mode `resolveInitialTheme` just resolved —
   // the very same value the client runtime adopts from its own call to
@@ -467,7 +583,7 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
   //
   // `initialMode` still wins when given (it is what `resolveInitialTheme`
   // resolved), so asking for `"system"` still gets you `"system"`.
-  const fallbackMode = resolution.selection.mode;
+  const fallbackMode = selection.mode;
 
   const defaultLight = resolveSelectionTheme({
     themes,
@@ -505,9 +621,25 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
   names["__default-light"] = lightName;
   names["__default-dark"] = darkName;
 
+  // Name → label, for the `label` readout kind. Built from the registry rather
+  // than from `names` because a label is per-theme, not per-key: the same theme
+  // is reachable under its name and under `family:mode`, and both must read
+  // back the same label.
+  //
+  // A theme without `meta.label` is deliberately omitted. Writing the machine
+  // name into a readout that a caller rendered as a human label would be a
+  // silent content change, and `String(theme.name)` is already what the `theme`
+  // kind is for.
+  const labels: Record<string, string> = {};
+  for (const theme of themes) {
+    const label = theme.meta?.label;
+    if (typeof label === "string" && label) labels[String(theme.name)] = label;
+  }
+
   return {
     map,
     names,
+    labels,
     fallbackMode,
     fallbackFamily: resolvedFamily,
     // The families the inline script may legitimately select, taken from the
@@ -517,6 +649,7 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
     families: getThemeFamilies(themes),
     defaultLight,
     defaultDark,
+    override,
   };
 }
 
@@ -539,11 +672,31 @@ export function buildBootstrapPlan<T extends ThemeDefinition>(
  * nothing to validate against, so the persisted value is used as before.
  */
 function familySelectionExpression(plan: ThemeBootstrapPlan): string {
-  const families = JSON.stringify(plan.families ?? null);
-  const fallback = JSON.stringify(plan.fallbackFamily ?? null);
+  const families = serializeScriptJson(plan.families ?? null);
+  const fallback = serializeScriptJson(plan.fallbackFamily ?? null);
   return (
     "var fams=" + families + ";" +
     "var family=fams?(fams.indexOf(fam0)!==-1?fam0:" + fallback + "):(fam0||" + fallback + ");"
+  );
+}
+
+/**
+ * The script's override assignment: replaces whatever the persisted selection
+ * said with the override the server resolved from the provider's props.
+ *
+ * Placed after the storage/cookie read — and after the cookie fingerprint guard,
+ * which only concerns the persisted value — so the override always wins, and
+ * before the `family`/`mode` expressions so both see it. The values are resolved
+ * server-side and serialized with {@link serializeScriptJson}, so an override
+ * cannot inject script content.
+ *
+ * @internal
+ */
+function overrideExpression(plan: ThemeBootstrapPlan): string {
+  if (!plan.override) return "";
+  return (
+    "var ov=" + serializeScriptJson(plan.override) + ";" +
+    "if(ov){mode0=ov.mode;fam0=ov.family;}"
   );
 }
 
@@ -553,11 +706,12 @@ function readStorageSelection(
   source: ThemeBootstrapStorageSource,
 ): string {
   return (
-    "var raw=localStorage.getItem(" + JSON.stringify(source.key) + ");" +
+    "var raw=localStorage.getItem(" + serializeScriptJson(source.key) + ");" +
     "var sel=null;try{sel=raw?JSON.parse(raw):null;}catch(e){}" +
     "var mode0=sel&&(sel.mode==='light'||sel.mode==='dark'||sel.mode==='system')?sel.mode:null;" +
     "var fam0=sel&&typeof sel.family==='string'?sel.family:null;" +
-    "var mode=mode0||" + JSON.stringify(plan.fallbackMode) + ";" +
+    overrideExpression(plan) +
+    "var mode=mode0||" + serializeScriptJson(plan.fallbackMode) + ";" +
     familySelectionExpression(plan)
   );
 }
@@ -569,17 +723,26 @@ function readCookieSelection(
   fingerprint: string,
 ): string {
   const guard = fingerprint
-    ? "if(fp&&fp!==" + JSON.stringify(fingerprint) + "){mode0=null;fam0=null;}"
+    ? "if(fp&&fp!==" + serializeScriptJson(fingerprint) + "){mode0=null;fam0=null;}"
     : "";
 
   return (
-    "function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null}" +
-    "var mode0=getCookie(" + JSON.stringify(source.names.mode) + ");" +
-    "var fam0=getCookie(" + JSON.stringify(source.names.family) + ");" +
-    "var fp=getCookie(" + JSON.stringify(source.names.fingerprint) + ");" +
+    // A cookie value is percent-encoded by the writer, but nothing guarantees
+    // it still decodes: a sibling subdomain can plant `theme-mode=%E0%A4%A` on
+    // the parent domain, and `decodeURIComponent` throws `URIError` on it. The
+    // whole script runs inside one try/catch, so an unguarded throw here would
+    // skip the theme apply entirely and the page would paint the default. A
+    // value that does not decode is treated as "no selection", which is what a
+    // malformed cookie means.
+    "function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));" +
+    "if(!m)return null;try{return decodeURIComponent(m[2])}catch(e){return null}}" +
+    "var mode0=getCookie(" + serializeScriptJson(source.names.mode) + ");" +
+    "var fam0=getCookie(" + serializeScriptJson(source.names.family) + ");" +
+    "var fp=getCookie(" + serializeScriptJson(source.names.fingerprint) + ");" +
     guard +
+    overrideExpression(plan) +
     "var hasMode=mode0==='light'||mode0==='dark'||mode0==='system';" +
-    "var mode=hasMode?mode0:" + JSON.stringify(plan.fallbackMode) + ";" +
+    "var mode=hasMode?mode0:" + serializeScriptJson(plan.fallbackMode) + ";" +
     familySelectionExpression(plan)
   );
 }
@@ -589,6 +752,14 @@ function readCookieSelection(
  * (storage or cookies) and writes the theme state before first paint: the
  * `.dark` class, `color-scheme`, the `data-theme*` attributes and the CSS
  * variables — the exact contract the client runtime applies.
+ *
+ * @remarks
+ * Every theme-derived value is embedded with {@link serializeScriptJson}, not
+ * `JSON.stringify`. The result is placed in the body of a `<script>` element by
+ * the framework integrations, where a `</script` sequence inside a theme name,
+ * family name or token value ends the element and turns the rest of the theme
+ * data into markup. JSON escaping does not cover that, so it is done here, once,
+ * for every field the script carries.
  *
  * @internal — shared zero-flash implementation detail.
  */
@@ -618,16 +789,17 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
   const app =
     "var sysDark=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);" +
     "var eff=mode==='dark'||(mode==='system'&&sysDark)?'dark':'light';" +
-    "var map=" + JSON.stringify(plan.map) + ";" +
-    "var names=" + JSON.stringify(plan.names) + ";" +
+    "var map=" + serializeScriptJson(plan.map) + ";" +
+    "var names=" + serializeScriptJson(plan.names) + ";" +
+    "var lbl=" + serializeScriptJson(plan.labels ?? {}) + ";" +
     "var key=(family&&map[family+':'+eff])?family+':'+eff:'__default-'+eff;" +
     "if(!map[key]){for(var k in map){if(k.slice(-(eff.length+1))===':'+eff){key=k;break;}}}" +
     "var i=key.indexOf(':');" +
-    "var fam=i>=0?key.slice(0,i):" + JSON.stringify(plan.fallbackFamily ?? null) + ";" +
+    "var fam=i>=0?key.slice(0,i):" + serializeScriptJson(plan.fallbackFamily ?? null) + ";" +
     "var vars=map[key]||map['__default-light'];" +
     "var name=names[key]||names['__default-'+eff]||null;" +
     "var el=document.documentElement;" +
-    "var __all=" + JSON.stringify(allVarNames) + ";" +
+    "var __all=" + serializeScriptJson(allVarNames) + ";" +
     "if(eff==='dark'){el.classList.add('dark');}else{el.classList.remove('dark');}" +
     "el.style.colorScheme=eff;" +
     "el.setAttribute('data-theme-mode',eff);" +
@@ -643,28 +815,98 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     "el.setAttribute('data-theme-selection-mode',mode);" +
     "if(family||fam){el.setAttribute('data-theme-selection-family',family||fam);}" +
     "el.setAttribute('data-theme-ready','true');" +
-    "try{window.__THEMVORA_BOOTSTRAP__={theme:name,mode:eff,family:fam,selection:{mode:mode,family:family||fam}};}catch(e2){}" +
-    // Readouts are patched from HERE, not only from the end-of-body script.
-    // A body-end script is too late: the browser is free to paint while the
-    // parser is still working through a large body, so a prerendered readout can
-    // be painted with the value the prerender used — visible as the label
-    // "fluctuating" on reload. This script runs in <head>, before the body is
-    // parsed, so instead of querying once it watches for readouts appearing and
-    // patches each one in the same task it is inserted in.
+    "try{window.__THEMVORA_BOOTSTRAP__={theme:name,mode:eff,family:fam,label:(lbl[name]||null),selection:{mode:mode,family:family||fam}};}catch(e2){}" +
+    // Readouts and selection controls are reconciled from HERE, not only from
+    // the end-of-body script. A body-end script is too late: the browser is free
+    // to paint while the parser is still working through a large body, so a
+    // prerendered readout or a pressed-state control can be painted with the
+    // value the prerender used — visible as the label "fluctuating" on reload.
+    // This script runs in <head>, before the body is parsed, so instead of
+    // querying once it watches for these elements appearing and reconciles each
+    // one in the same task it is inserted in.
+    //
+    // It reads the state off `<html>`, which this script has just written, and
+    // only falls back to the values resolved above. That is what keeps it
+    // correct across a client-side navigation, where the observer installed on
+    // the first load is still attached: `<ClientRouter />` re-executes inline
+    // scripts, so the destination page's controls are new, unmarked elements,
+    // and an observer holding the *first* page's values would stamp them with
+    // the selection the app was built with — the readouts reverting to
+    // `mint-light` while the document is painted `cocoa-dark`.
     "var __tvPatch=function(){" +
-    "try{var els=document.querySelectorAll('[data-tv-readout]');" +
+    "try{" +
+    "var t2=el.getAttribute('data-theme')||name;" +
+    "var m2=el.getAttribute('data-theme-selection-mode')||mode;" +
+    "var f3=el.getAttribute('data-theme-selection-family')||family||fam;" +
+    // Single-text-node write, for the same reason as the end-of-body script:
+    // assigning `textContent` would discard the node React's fiber tracks, and
+    // the island's later unmount would throw on a node that is no longer a
+    // child. See `createThemeReadoutScript`.
+    "var __tvW=function(n,v){var c=n.firstChild;" +
+    "if(c&&c.nodeType===3&&!c.nextSibling){if(c.nodeValue!==v){c.nodeValue=v;}return;}" +
+    "n.textContent=v;};" +
+    // One pass over everything the contract owns, not three queries. The three
+    // kinds answer the same question — "what did the visitor actually choose?"
+    // — from the same three values, so they must be reconciled together; a
+    // control that lagged the canvas by one pass would be the same bug in a
+    // smaller window.
+    "var els=document.querySelectorAll('[data-tv-readout],[data-tv-pressed],[data-tv-select]');" +
     "for(var q=0;q<els.length;q++){" +
-    "if(els[q].getAttribute('data-tv-patched')==='1'){continue;}" +
-    "var f2=els[q].getAttribute('data-tv-readout');" +
-    "var v2=f2==='theme'?name:(f2==='mode'?mode:(f2==='family'?(family||fam):null));" +
-    "if(v2==null&&f2&&f2.slice(0,4)==='var:'){" +
-    "try{v2=getComputedStyle(el).getPropertyValue(f2.slice(4)).trim()||null;}catch(e3){v2=null;}" +
+    // `n0`, not `el`: `el` is `<html>` above, and the `var:` readout branch
+    // reads its computed style.
+    "var n0=els[q];" +
+    "var rd=n0.getAttribute('data-tv-readout');" +
+    "if(rd){" +
+    // Text readouts are marked once written, so the `var:` branch below does not
+    // run `getComputedStyle` again on every later mutation. The other two kinds
+    // are not marked: their writes are already conditional, and a `<select>`
+    // marked before its options were parsed could never be corrected.
+    "if(n0.getAttribute('data-tv-patched')==='1'){continue;}" +
+    "var v2=rd==='theme'?t2:(rd==='label'?(lbl[t2]||null):(rd==='mode'?m2:(rd==='family'?f3:null)));" +
+    "if(v2==null&&rd.slice(0,4)==='var:'){" +
+    "try{v2=getComputedStyle(el).getPropertyValue(rd.slice(4)).trim()||null;}catch(e3){v2=null;}" +
     "}" +
-    "if(v2!=null){els[q].textContent=v2;els[q].setAttribute('data-tv-patched','1');}" +
+    "if(v2!=null){__tvW(n0,v2);n0.setAttribute('data-tv-patched','1');}" +
+    "continue;" +
+    "}" +
+    // A segmented control: `data-tv-pressed` names the kind, `data-tv-value`
+    // the option this element represents. Only `aria-pressed` is written, so
+    // the visual state and the accessible state cannot disagree — which is why
+    // a token class keyed off `aria-pressed` needs no second attribute.
+    "var pr=n0.getAttribute('data-tv-pressed');" +
+    "if(pr){" +
+    "var want=n0.getAttribute('data-tv-value');" +
+    "var cur=pr==='mode'?m2:(pr==='family'?f3:null);" +
+    "if(cur!=null&&want!=null){var nx=String(cur===want);" +
+    "if(n0.getAttribute('aria-pressed')!==nx){n0.setAttribute('aria-pressed',nx);}}" +
+    "continue;" +
+    "}" +
+    // A `<select>`: assigning `value` fires no `change`, so this cannot feed
+    // back into the delegated listener. Only an option the element actually
+    // offers is selected — a control built from a subset of the registry would
+    // otherwise be set to `""`, which looks broken rather than out of scope.
+    "var se=n0.getAttribute('data-tv-select');" +
+    "if(se){" +
+    "var want2=se==='family'?f3:(se==='mode'?m2:null);" +
+    "if(want2!=null&&n0.value!==want2){" +
+    "for(var o=0;o<n0.options.length;o++){if(n0.options[o].value===want2){n0.value=want2;break;}}" +
+    "}}" +
     "}}catch(e4){}};" +
+    // One observer per document. This script is re-executed on every client
+    // navigation, and without the guard each navigation would attach another
+    // observer over the same `<html>`, so a single DOM change would run the
+    // patch N times. The first observer stays valid: it reads the live
+    // attributes on every call, not the values it was created with.
+    //
+    // The handle is kept rather than a boolean so a test harness — or a host
+    // that tears its document down — can `disconnect()` it. An observer left
+    // attached fires while the document is being replaced, and its writes then
+    // race whatever is removing those nodes.
     "try{__tvPatch();" +
-    "if(window.MutationObserver&&el){" +
-    "new MutationObserver(function(){__tvPatch();}).observe(el,{childList:true,subtree:true});" +
+    "if(window.MutationObserver&&el&&!window.__THEMVORA_READOUT_OBSERVER__){" +
+    "window.__THEMVORA_READOUT_OBSERVER__=" +
+    "new MutationObserver(function(){__tvPatch();});" +
+    "window.__THEMVORA_READOUT_OBSERVER__.observe(el,{childList:true,subtree:true});" +
     "}}catch(e5){}" +
     // Apply the resolved theme's variables, then clear any inline variable the
     // theme does not define. The SSR shell only knows the default theme, so it

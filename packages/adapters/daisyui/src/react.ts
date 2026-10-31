@@ -11,6 +11,7 @@
 import { useEffect, useRef } from "react";
 import type {
   AdapterStrategy,
+  ThemeAdapter,
   ThemeDefinition,
   ThemeRuntime,
 } from "@themvora/core";
@@ -44,9 +45,13 @@ export function useDaisyTheme<T extends ThemeDefinition = ThemeDefinition>(
   runtime: ThemeRuntime<T>,
   options?: { strategy?: AdapterStrategy },
 ): void {
-  const adapterRef = useRef<ReturnType<typeof createDaisyAdapter> | null>(null);
+  // Typed against the caller's `T`: `createDaisyAdapter` is generic, but without
+  // the argument it falls back to the `ThemeDefinition` constraint and the
+  // resulting `ThemeAdapter<ThemeDefinition>` is not assignable to
+  // `ThemeAdapter<T>` for a caller that narrowed the definition type.
+  const adapterRef = useRef<ThemeAdapter<T> | null>(null);
   if (!adapterRef.current) {
-    adapterRef.current = createDaisyAdapter(
+    adapterRef.current = createDaisyAdapter<T>(
       options?.strategy ? { strategy: options.strategy } : {},
     );
   }

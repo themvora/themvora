@@ -1,4 +1,117 @@
-# @theme-kit/react
+# @themvora/react
+
+## 1.4.0
+
+### Minor Changes
+
+- Add `useEffectiveThemeMode()` — `injectEffectiveThemeMode()` in Angular — which reports the mode
+  actually applied rather than the mode that was requested.
+
+  `useThemeMode()` returns the _request_, which is what a three-way light/dark/system picker needs. It is
+  the wrong value for a toggle or a label, and quietly so: with `mode: "system"` it never changes, and
+  with a sunrise/sunset schedule running it stays on the configured value while the page changes
+  underneath it.
+
+  ```tsx
+  const effectiveMode = useEffectiveThemeMode();
+  return <span>{effectiveMode === "dark" ? "Dark" : "Light"}</span>;
+  ```
+
+  It returns `"light" | "dark"` — never `"system"` — and updates for every cause: a click, an OS
+  appearance change, a schedule transition. That is because it subscribes to the appearance rather than
+  to the selection.
+
+  `@themvora/web` additionally gets `observeEffectiveThemeMode(listener)`, the same subscription without
+  a component runtime, returning an unsubscribe function:
+
+  ```ts
+  const stop = observeEffectiveThemeMode(() => {
+    label.textContent = useEffectiveThemeMode();
+  });
+  ```
+
+- `ThemeProvider` accepts a `themeOverride` prop, and `initialFamily` now takes a variant name.
+
+  `themeOverride` is what makes "preview this theme" expressible as a prop. It outranks a saved
+  selection — `localStorage` or a cookie — so it survives a reload, and it is a one-shot signal rather
+  than a controlled value: it is applied when its value changes, it is never re-asserted on later
+  renders, and it never writes to persistence.
+
+  ```tsx
+  <ThemeProvider
+    themes={themes}
+    themeOverride={{ family: "checkout", mode: "dark" }}
+  >
+    <App />
+  </ThemeProvider>
+  ```
+
+  The prop is forwarded from `ThemeRuntimeOptions` and keeps the runtime's precedence: an explicit
+  override, then a schedule, then the stored selection. A provider that never supplies it never sends
+  one, so an update from a provider that does not use it cannot clear an override set elsewhere.
+
+  `initialFamily` accepts `ThemeIdentifier<T>` instead of a family name — the union of variant and family
+  names. This is a **widening**: every value that typechecked against 1.3.1 still typechecks. A variant
+  name is normalised to its family, and the variant's own mode is used only when `initialMode` is absent,
+  so an explicit mode always wins and the two props cannot silently disagree. With themes defined
+  `as const`, both props stay autocompleted from the actual theme list.
+
+- Add `useProvidedThemes()` — and `injectProvidedThemes()` for Angular — so a theme picker can be built
+  from the provider itself.
+
+  Building a picker meant reaching past the provider into the preset catalog
+  (`Object.entries(getPresetThemes())`) and hoping the two collections agreed. They do not: an app that
+  supplies three of its own families has a picker that lists the presets and none of its own themes.
+
+  ```tsx
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+  const setMode = useSetThemeMode();
+
+  return families.map((family) => (
+    <fieldset key={family.id}>
+      <legend>{family.name}</legend>
+      {family.variants.map((variant) => (
+        <button
+          key={variant.name}
+          onClick={() => {
+            setFamily(family.family);
+            setMode(variant.mode);
+          }}
+        >
+          {variant.mode}
+        </button>
+      ))}
+    </fieldset>
+  ));
+  ```
+
+  The collection is exactly what the provider was given, grouped by family in supplied order, with each
+  variant's tokens already resolved — `auto()` / `contrast()` / expressions are evaluated, so
+  `variant.tokens.colors?.primary` reads directly. Each variant also keeps the original definition, for
+  anything the grouped view does not model.
+
+  It is reactive: a `themes` prop change, a `runtime.use(pack)` install or a registry mutation
+  re-renders the consumer. Entries keep their identity while their content is unchanged, so `React.memo`
+  and dependency arrays behave — a re-registered catalog whose only difference is the registry's
+  `meta.created` / `meta.updated` stamps is not treated as a change.
+
+  `ProvidedThemeFamily.provenance` reports a _declared_ source only — `{ kind: "generated", algorithm }`
+  from `meta.generation`, `{ kind: "pack", pack }` from a `pack:<name>` tag. A theme called `mint-light`
+  is not thereby a preset, and nothing is inferred from a name, family or colour.
+
+  Angular follows its own convention: `injectProvidedThemes()` returns a `Signal` of the same collection,
+  because a DI-based framework has no hook call site to subscribe from.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.5.0
 
 ## 1.3.1
 

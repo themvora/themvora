@@ -33,7 +33,7 @@
     "@nuxt/schema": "^4.0.0",
     "@types/node": "^26.1.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.5"
   },
   "description": "Nuxt module for Themvora: SSR, cookies, and zero-flash theming.",
   "repository": {

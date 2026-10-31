@@ -39,7 +39,7 @@
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "vitest": "^4.0.0"
+    "vitest": "^5.0.5"
   },
   "description": "Mantine adapter for Themvora.",
   "repository": {

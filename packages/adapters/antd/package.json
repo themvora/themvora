@@ -37,7 +37,7 @@
     "antd": "^6.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "vitest": "^4.0.0"
+    "vitest": "^5.0.5"
   },
   "description": "Ant Design adapter for Themvora.",
   "repository": {

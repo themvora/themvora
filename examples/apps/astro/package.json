@@ -16,7 +16,7 @@
     "@themvora/astro": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/tailwind": "workspace:*",
-    "astro": "^7.4.2",
+    "astro": "^7.4.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
   }

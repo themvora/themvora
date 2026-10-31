@@ -20,14 +20,14 @@
     "@themvora/remix": "workspace:*",
     "@themvora/tailwind": "workspace:*",
     "isbot": "^5.1.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.17.5",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "cross-env": "^7.0.3",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",

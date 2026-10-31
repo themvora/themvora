@@ -15,7 +15,7 @@
     "@themvora/core": "workspace:*",
     "@themvora/solid": "workspace:*",
     "@themvora/tailwind": "workspace:*",
-    "solid-js": "^1.9.14",
+    "solid-js": "^1.9.17",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

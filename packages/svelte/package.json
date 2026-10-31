@@ -22,7 +22,7 @@
     "test": "vitest"
   },
   "peerDependencies": {
-    "svelte": "^5.0.0"
+    "svelte": "^5.57.3"
   },
   "dependencies": {
     "@themvora/core": "workspace:^",
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "svelte": "^5.0.0",
+    "svelte": "^5.57.3",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },

@@ -10,10 +10,10 @@
     "preview": "http-server dist/browser -p 5194 -s"
   },
   "dependencies": {
-    "@angular/common": "22.0.8",
-    "@angular/compiler": "22.0.8",
-    "@angular/core": "22.0.8",
-    "@angular/platform-browser": "22.0.8",
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
     "@themvora/angular": "workspace:*",
     "@themvora/app-shared": "workspace:*",
     "@themvora/core": "workspace:*",

@@ -12,6 +12,10 @@ build
 # Svelte components compiled by packages/svelte/scripts/compile-svelte.mjs
 packages/svelte/src/generated
 
+# Svelte fixtures compiled at test time, one directory per test file. Removed in
+# `afterAll`; ignored so a crashed run does not leave untracked noise.
+packages/svelte/test/.generated*
+
 # TypeScript
 *.tsbuildinfo
 

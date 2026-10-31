@@ -48,7 +48,12 @@ const consumerSource = `<script>
 `;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const generatedDir = join(__dirname, ".generated");
+// One directory per test file. Vitest runs files in parallel workers, and every
+// file here deletes its directory in `afterAll` — two files sharing one path
+// meant one could remove it while the other was still writing, which surfaced as
+// `ENOENT … local-consumer.<ts>.<rand>.mjs` on CI (slower, different interleaving)
+// and never locally.
+const generatedDir = join(__dirname, ".generated-theme-scope");
 
 async function buildConsumer(source: string, name: string) {
   mkdirSync(generatedDir, { recursive: true });
@@ -159,6 +164,10 @@ describe("compiled consumer e2e", () => {
 </ThemeProvider>
 `;
     const { js } = compile(source, { filename: "LocalConsumer.svelte", runes: false });
+    // Create the directory here rather than relying on the first test having
+    // done it: this test must pass on its own (`-t`, reordering, a clean
+    // checkout). `buildConsumer` above does the same before writing.
+    mkdirSync(generatedDir, { recursive: true });
     const outFile = join(generatedDir, `local-consumer.${Date.now()}.${Math.random().toString(36).slice(2)}.mjs`);
     writeFileSync(outFile, js.code);
     const mod2 = await import(outFile.replace(/\\/g, "/"));

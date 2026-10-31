@@ -38,7 +38,7 @@ const noScriptCallsSource = `<script>
 `;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const generatedDir = join(__dirname, ".generated");
+const generatedDir = join(__dirname, ".generated-theme-provider-legacy");
 
 async function buildConsumer(source: string, name: string) {
   mkdirSync(generatedDir, { recursive: true });

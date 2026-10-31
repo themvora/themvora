@@ -24,14 +24,14 @@
   },
   "peerDependencies": {
     "@unocss/core": "^66.0.0",
-    "unocss": "^66.0.0"
+    "unocss": "^66.12.0"
   },
   "dependencies": {
     "@themvora/adapters": "workspace:^",
     "@themvora/core": "workspace:^"
   },
   "devDependencies": {
-    "unocss": "^66.0.0",
+    "unocss": "^66.12.0",
     "vitest": "^4.0.0"
   },
   "description": "UnoCSS adapter for Themvora.",

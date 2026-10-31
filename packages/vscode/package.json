@@ -147,10 +147,10 @@
   },
   "devDependencies": {
     "@themvora/core": "workspace:^",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/vscode": "1.94.0",
+    "@types/vscode": "1.144.0",
     "esbuild": "^0.28.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

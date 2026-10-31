@@ -29,7 +29,7 @@
     "@themvora/web": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.6",
     "esbuild-plugin-solid": "^0.6.0",
     "solid-js": "^1.8.0",
     "typescript": "^5.9.3",

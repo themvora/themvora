@@ -23,7 +23,7 @@
     "test": "vitest"
   },
   "peerDependencies": {
-    "@chakra-ui/react": "^3.0.0",
+    "@chakra-ui/react": "^3.37.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -32,7 +32,7 @@
     "@themvora/core": "workspace:^"
   },
   "devDependencies": {
-    "@chakra-ui/react": "^3.0.0",
+    "@chakra-ui/react": "^3.37.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.8",

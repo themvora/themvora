@@ -35,7 +35,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, resolve, relative, dirname } from "node:path";
+import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 // The extractor is shared with scripts/docs/check-examples.mjs — the repo keeps
 // exactly one snippet extractor (§16 "extend it, do not replace it").
@@ -245,7 +245,12 @@ for (const page of pages) {
     ? extractMarkdownSnippets(content)
     : extractSnippets(content);
   if (!snippets.length) continue;
-  const rel = relative(repoRoot, page.file);
+  // POSIX separators, always. `path.relative` is OS-native, so a
+  // Windows-generated baseline keyed on `apps\docs\…` can never match the same
+  // scan on Linux CI — every key differs by separator, and the baseline floor
+  // reports the whole surface as vanished. The baseline is committed and
+  // compared on both platforms, so the key must not depend on the host.
+  const rel = relative(repoRoot, page.file).split(sep).join("/");
   const seen = new Set();
   for (const snippet of snippets) {
     snippetCount++;

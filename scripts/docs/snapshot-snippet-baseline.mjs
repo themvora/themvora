@@ -35,7 +35,18 @@ const CONTRACT = "Audit A — docs → package (zero drift is the floor)";
 const update = process.argv.includes("--update");
 const tmp = join(here, ".snippet-audit.tmp.json");
 
-const keyOf = (e) => `${e.page}|${e.import}`;
+/**
+ * Normalise the page key to POSIX separators.
+ *
+ * The baseline is committed and diffed on both Windows and Linux CI. A baseline
+ * captured on Windows keys on `apps\docs\…`, while the same scan on Linux keys
+ * on `apps/docs/…` — every entry then looks vanished *and* new at once, and the
+ * floor fails for a reason that has nothing to do with the docs. The audit now
+ * emits POSIX keys, and normalising here too means a baseline frozen by an older
+ * checkout still compares correctly.
+ */
+const normPage = (page) => String(page).split("\\").join("/");
+const keyOf = (e) => `${normPage(e.page)}|${e.import}`;
 
 function runAudit() {
   mkdirSync(dirname(tmp), { recursive: true });

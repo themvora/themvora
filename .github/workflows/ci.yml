@@ -44,16 +44,16 @@ jobs:
       # Pinned to a full commit SHA rather than a mutable major tag, so a
       # retagged or compromised action cannot change what CI runs. The version
       # each SHA corresponds to is in the trailing comment.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
 
       # No `version:` here on purpose: the action reads `packageManager` from
       # package.json. A hardcoded major drifted from the pnpm that generated the
       # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
       # `allowBuilds`) that older majors ignore — which would make
       # `--frozen-lockfile` fail on a clean checkout.
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # pnpm/action-setup v4.4.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # pnpm/action-setup v6.1.0
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # actions/setup-node v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # actions/setup-node v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -101,16 +101,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
 
       # No `version:` here on purpose: the action reads `packageManager` from
       # package.json. A hardcoded major drifted from the pnpm that generated the
       # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
       # `allowBuilds`) that older majors ignore — which would make
       # `--frozen-lockfile` fail on a clean checkout.
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # pnpm/action-setup v4.4.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # pnpm/action-setup v6.1.0
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # actions/setup-node v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # actions/setup-node v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -139,9 +139,9 @@ jobs:
       # Only to post the summary comment; the action reads nothing else.
       pull-requests: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
 
-      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # actions/dependency-review-action v4.9.0
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # actions/dependency-review-action v5.0.0
         with:
           # Match the production audit: a high or critical advisory in a
           # dependency this change introduces fails the pull request.

@@ -10,13 +10,13 @@
     "preview": "vite preview --port 5191 --strictPort"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.4",
     "@themvora/app-shared": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/tailwind": "workspace:*",
     "@themvora/vue": "workspace:*",
-    "tailwindcss": "^4.3.3",
-    "vue": "^3.5.40"
+    "tailwindcss": "^4.3.4",
+    "vue": "^3.5.45"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.10",

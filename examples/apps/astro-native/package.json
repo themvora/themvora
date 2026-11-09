@@ -13,7 +13,7 @@
     "@astrojs/check": "^0.9.12",
     "@themvora/astro": "workspace:*",
     "@themvora/core": "workspace:*",
-    "astro": "^7.4.2",
+    "astro": "^7.4.7",
     "typescript": "^5.9.3"
   }
 }

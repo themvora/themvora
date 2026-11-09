@@ -10,13 +10,13 @@
     "preview": "vite preview --port 5192 --strictPort"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.4",
     "@themvora/app-shared": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/svelte": "workspace:*",
     "@themvora/tailwind": "workspace:*",
-    "svelte": "^5.56.8",
-    "tailwindcss": "^4.3.3"
+    "svelte": "^5.57.3",
+    "tailwindcss": "^4.3.4"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",

@@ -51,9 +51,9 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vue": "^3.4.0",
-    "svelte": "^5.0.0",
-    "solid-js": "^1.8.0",
+    "vue": "^3.5.45",
+    "svelte": "^5.57.3",
+    "solid-js": "^1.9.18",
     "@angular/core": ">=17.0.0"
   },
   "peerDependenciesMeta": {
@@ -81,15 +81,15 @@
     "@themvora/core": "workspace:^"
   },
   "devDependencies": {
-    "@angular/core": "^22.0.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "solid-js": "^1.8.0",
-    "svelte": "^5.0.0",
+    "@angular/core": "^22.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "solid-js": "^1.9.18",
+    "svelte": "^5.57.3",
     "vitest": "^4.0.0",
-    "vue": "^3.4.0"
+    "vue": "^3.5.45"
   },
   "description": "Bootstrap adapter for Themvora.",
   "repository": {

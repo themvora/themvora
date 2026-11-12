@@ -57,6 +57,21 @@ if (process.argv.includes("--fix")) {
 const recipes = readRecipes();
 const libraries = readLibraries();
 
+// A gate that checks nothing must not report success. `readLibraries()` returns
+// an empty map when `rawLibraries` cannot be parsed — a CRLF checkout used to do
+// exactly that, because the split is on `\n  {\n` — and every loop below then ran
+// zero times and printed "PASS … 0 READMEs". `.gitattributes` now pins the
+// source to LF; this guard is what turns any future recurrence into a failure
+// instead of a green tick.
+if (!SLUGS.length) {
+  console.error(
+    "\nFAIL  no libraries were parsed from apps/docs/lib/libraries.tsx.\n" +
+      "      `rawLibraries` could not be read, so nothing was checked — " +
+      "refusing to report success.\n",
+  );
+  process.exit(1);
+}
+
 const problems = [];
 const fail = (slug, detail) => problems.push(`${slug}: ${detail}`);
 

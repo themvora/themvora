@@ -94,6 +94,14 @@ pnpm apps:typecheck    # type-check of every app that has one
 Both are recursive filters over `./examples/apps/*`, so the commands do not need
 updating when an app is added or removed.
 
+No app runs a build step in `postinstall`. `pnpm install` happens before
+`pnpm -r build`, so a lifecycle script that imports a workspace package resolves
+an entrypoint (`dist/index.js`) that does not exist yet on a fresh checkout — a
+`postinstall: nuxt prepare` in `nuxt/` failed every CI and Vercel install that
+way. Each framework's own build command prepares what it needs (`nuxt build`,
+`nuxt dev` and `nuxt typecheck` all run `nuxt prepare`), and `pnpm -r build`
+orders the packages before the apps.
+
 ## How the apps differ in API style
 
 Same UX, different idioms — this is the point of the suite:

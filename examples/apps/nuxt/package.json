@@ -8,8 +8,7 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "typecheck": "nuxt typecheck",
-    "preview": "nuxt preview --port 5199 --host localhost",
-    "postinstall": "nuxt prepare"
+    "preview": "nuxt preview --port 5199 --host localhost"
   },
   "dependencies": {
     "@themvora/core": "workspace:*",

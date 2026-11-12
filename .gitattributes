@@ -20,6 +20,49 @@
 # If a byte-wise check is ever added for another generated path, pin it here.
 apps/docs/lib/generated/** text eol=lf
 
+# The API reference and CLI reference are generated and verified byte-for-byte
+# by `generate-api-reference.mjs --check` and `generate-cli-reference.mjs
+# --check`. On a CRLF checkout every one of the 61 + 14 files reports drift that
+# is not drift. Pinned for the same reason as the manifest above.
+apps/docs/content/api-reference/** text eol=lf
+apps/docs/content/cli/** text eol=lf
+
+# `readLibraries()` in `scripts/readme/canonical.mjs` splits `rawLibraries` on
+# `\n  {\n`, so a CRLF checkout parses **zero** libraries and
+# `pnpm docs:check-library-readmes` then passes while checking nothing. Pinned
+# rather than made EOL-tolerant because the same source feeds
+# `renderReadme()`, and CRs would leak into the generated READMEs and fail the
+# byte comparison instead.
+apps/docs/lib/libraries.tsx text eol=lf
+
+# The documentation source itself.
+#
+# `apps/docs/scripts/generate-search-index.mjs` derives its entries from
+# `content/`, `app/`, `components/` and `lib/`, and `test-search-index.mjs`
+# regenerates and compares them. A CRLF working tree extracts fewer sections
+# than an LF one, so an index generated on Windows and committed from there
+# drifts on every LF checkout — which is what CI is. Measured before this pin:
+# 2,148 entries from a CRLF tree against 2,267 from the same sources as LF, a
+# 108-entry difference with nothing removed.
+#
+# This is the docs subtree the generators read, not a repo-wide normalisation:
+# `packages/`, `examples/` and the root keep the default.
+#
+# Scoped to the text types the generators parse. The blanket `apps/docs/**`
+# form marks the fonts and screenshots as text too, and a `text` attribute makes
+# git normalise their bytes — `git diff` then reports every PNG as changed and a
+# commit would store a mangled copy.
+apps/docs/**/*.tsx text eol=lf
+apps/docs/**/*.ts text eol=lf
+apps/docs/**/*.md text eol=lf
+apps/docs/**/*.mjs text eol=lf
+apps/docs/**/*.json text eol=lf
+apps/docs/**/*.css text eol=lf
+apps/docs/**/*.txt text eol=lf
+apps/docs/**/*.svg text eol=lf
+apps/docs/**/*.png binary
+apps/docs/**/*.woff2 binary
+
 # The library-adapter READMEs are generated from the documentation recipes and
 # verified byte-for-byte by `pnpm docs:check-library-readmes`. Same reasoning as
 # above: with `core.autocrlf=true` a checkout would turn them into CRLF and the

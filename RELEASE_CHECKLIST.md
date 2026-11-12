@@ -113,17 +113,29 @@ Only after every box above is ticked and the tree is intentionally reconciled.
 
 ## Reference — the current release
 
-Themvora **2.0.0** enforces the dependency-isolation contract. Adapter
-framework bindings moved off the framework-package roots and off the adapter root
-entries, which removed public exports from **12 packages**, so those ship 2.0.0.
-The packages that did not break keep their own version:
+Themvora **3.0.0** ships the single-configuration document integration, a guided
+`init` wizard, and a correct first frame for every UI-library adapter. Three
+packages break: `remix` (the `createThemeDocument()` / `<theming.Document />`
+architecture and the `./react-router` entry), `cli` (interactive `init` becomes
+the default UX, plus `--tool`), and `svelte` (the Svelte `^5.56.0` peer floor,
+which `VERSIONING.md` treats as major). Everything else is additive or a fix:
 
 | Version | Packages |
 |---|---|
-| `2.0.0` | astro, next, nuxt, remix, vue, svelte, solid, angular, shadcn, bootstrap, daisyui, open-props |
-| `1.4.0` | core, web (foundation — they always move together) |
-| `1.3.1` | react |
-| `1.3.0` | antd, chakra, mantine, mui, adapters, unocss, cli, devtools, tailwind |
+| `3.0.0` | remix, svelte |
+| `2.2.0` | astro, next |
+| `2.1.1` | angular, nuxt, solid, vue |
+| `2.1.0` | bootstrap |
+| `2.0.2` | daisyui, open-props, shadcn |
+| `2.0.0` | cli |
+| `1.6.0` | core, web (foundation — they always move together) |
+| `1.4.1` | mui, react |
+| `1.4.0` | antd, mantine, tailwind, unocss |
+| `1.3.2` | chakra |
+| `1.3.1` | devtools (unchanged) |
+| `1.3.0` | adapters (unchanged) |
 
-Read the migration guide at `/migrating-to-2` for the per-package break and the
-replacement import paths.
+Per-package detail is in each `packages/*/CHANGELOG.md`. The umbrella release
+version (`apps/docs/lib/version.ts`) is `3.0.0`: it tracks the product, not any
+single package — at the 2.0.0 release it was `2.0.0` while `core` was `1.4.0`.
+

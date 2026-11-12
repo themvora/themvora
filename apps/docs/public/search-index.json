@@ -744,6 +744,144 @@
     "type": "docs"
   },
   {
+    "title": "Live Theme Generation",
+    "route": "/advanced-features",
+    "text": "Live Theme Generation `generateTheme()` produces a complete light + dark theme pair from a single seed hex color. It converts the seed to **OKLCH**, then derives secondary, muted, accent, card, popover, input, border and ring colors by adjusting lightness and chroma — low chroma for muted tones, shifted hue for accent, and the seed itself for `primary`/`ring`. OKLCH rather than HSL because its lightness is perceptually uniform: equal steps read as equal steps, so a generated ramp looks even instead of bunching up at the ends. Contrast is then solved against the declared contract rather than approximated. ```ts import { generateTheme, mergeTokens } from \"@themvora/core\"; const { light, dark } = generateTheme({ seed: \"#6366f1\", family: \"indigo\" }); // Override defaults — mergeTokens deep-merges partial tokens into the generated theme const customLight = { ...light, tokens: mergeTokens(light.tokens, { radius: { lg: \"14px\" }, colors: { destructive: \"#dc2626\" }, }), }; ``` The `family` parameter controls the theme name prefix (`\"indigo-light\"` / `\"indigo-dark\"`); omit it and the default is `\"generated\"`. Contrast-aware foregrounds are computed via WCAG relative luminance — `primaryForeground` gets white or dark ink based on the seed's lightness.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Validation",
+    "route": "/advanced-features",
+    "text": "Theme Validation `validateTheme()` checks that every required semantic color token is defined and resolves `extends` chains before validation. See the [/accessibility](/accessibility) page for the full contrast-checking guide, CI integration, and the complete list of required color keys. ```ts import { validateTheme } from \"@themvora/core\"; const result = validateTheme(childTheme, { themes: [baseTheme, childTheme] }); // { valid: boolean, issues: [{ type: \"missing\", path: \"colors.destructive\", message: \"...\" }] } ```",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Migration",
+    "route": "/advanced-features",
+    "text": "Theme Migration Themes are versioned with a linear migration chain. `registerMigration()` declares a step between two versions; `migrateTheme()` walks the chain from the current version to the target. See the [/migration](/migration) page for the full guide with examples, CI integration, and checklists. ```ts import { registerMigration, migrateTheme } from \"@themvora/core\"; registerMigration({ from: \"1.0.0\", to: \"2.0.0\", description: \"Rename primaryColor to primary\", remapColors: [{ from: \"primaryColor\", to: \"primary\" }], }); const migrated = migrateTheme(oldTheme, { targetVersion: \"2.0.0\" }); ``` `remapColors` handles simple key renames; for arbitrary transforms, pass a `migrate` function instead. The chain is walked linearly (max 20 steps).",
+    "type": "docs"
+  },
+  {
+    "title": "Token Resolution Deep Dive",
+    "route": "/advanced-features",
+    "text": "Token Resolution Deep Dive Tokens support three kinds of dynamic values, resolved lazily by `resolveTokens()`: **References** — `$colors.primary` or `{colors.primary}` point to another token. Circular references throw. ```ts tokens: { colors: { primary: \"#6366f1\", ring: \"$colors.primary\", cardForeground: \"{colors.primary}\", }, } ``` **Expressions** — numeric math evaluated at resolve time. ```ts spacing: { \"12\": \"calc(3rem + 0.75rem)\" } ``` **Derived colors** — `contrast()` returns black/white by WCAG luminance; `auto()` derives a readable foreground from a sibling. ```ts tokens: { colors: { primary: \"#6366f1\", primaryForeground: \"auto()\", // white or dark ink based on primary muted: \"#f1f5f9\", mutedForeground: \"contrast(muted)\", // black on light, white on dark }, } ``` Resolution walks the token tree — references first, then expressions, then derived calls. Utilities: ```ts import { flattenTokens, resolveTokens } from \"@themvora/core\"; const flat = flattenTokens(myTheme.tokens); // { \"colors.primary\": \"#6366f1\", ... } const deep = resolveTokens(myTheme.tokens); // returns a new ThemeTokens tree ```",
+    "type": "docs"
+  },
+  {
+    "title": "Plugin Authoring",
+    "route": "/advanced-features",
+    "text": "Plugin Authoring Plugins implement the `ThemePlugin` interface and are registered via the `plugins` option or `runtime.registry.use()`. ```ts import type { ThemePlugin } from \"@themvora/core\"; const watermarkPlugin: ThemePlugin = { name: \"watermark\", priority: 10, // lower runs first onRuntimeCreated(runtime) { // access runtime.store, runtime.selection, etc. }, transformTokens(tokens, { theme }) { // inject a derived token into every theme return { ...tokens, colors: { ...tokens.colors, watermark: `${tokens.colors?.primary ?? \"#000\"}22`, // 10% opacity }, }; }, onAfterThemeChange({ theme }) { console.log(`[watermark] applied: ${theme.name}`); }, onDestroy() { // cleanup }, }; ``` Priority controls execution order — lower numbers run first. `transformTokens` is called for every theme change and receives the merged token tree; it must return the modified tree. Plugins can be added/removed at runtime: ```ts import { createThemeRuntime } from \"@themvora/core\"; const runtime = createThemeRuntime({ plugins: [watermarkPlugin], }); ```",
+    "type": "docs"
+  },
+  {
+    "title": "runtime.update()",
+    "route": "/advanced-features",
+    "text": "runtime.update() `update()` merges partial tokens into the current live theme without replacing it. The merge is deep — nested color objects are merged recursively, then all plugins' `transformTokens` run, and the result is resolved. ```ts // live-edit: override just the primary color runtime.update({ colors: { primary: \"#f97316\" }, }); // override multiple groups at once runtime.update({ colors: { primary: \"#f97316\", accent: \"#eab308\" }, radius: { lg: \"20px\" }, }); ``` This triggers the full lifecycle: `beforeThemeChange` → store update → `beforePersist` → `afterPersist` → `afterThemeChange`.",
+    "type": "docs"
+  },
+  {
+    "title": "runtime.snapshot() / restore()",
+    "route": "/advanced-features",
+    "text": "runtime.snapshot() / restore() Capture the entire runtime state — current theme, selection, history, and registry — then restore it later. Useful for undo/redo implementations, test fixtures, or time-travel debugging. ```ts const snap = runtime.snapshot(); // snap: { theme, selection: { mode, family }, history: [...], registry: { themes: [...] } } // ... user makes changes ... runtime.restore(snap); ``` Both use `structuredClone` internally, so the snapshot is a deep copy — mutations to the snapshot don't affect the live runtime.",
+    "type": "docs"
+  },
+  {
+    "title": "runtime.batch()",
+    "route": "/advanced-features",
+    "text": "runtime.batch() Batch coalesces multiple store writes into a single lifecycle cycle. Without `batch`, each `set` or `update` triggers the full event chain. ```ts runtime.batch(() => { runtime.update({ colors: { primary: \"#f97316\" } }); runtime.selection.setFamily(\"ocean\"); runtime.selection.setMode(\"dark\"); }); // single beforeThemeChange / afterThemeChange pair ``` If any intermediate state would be invalid, the batch still completes — there's no rollback. Use it when you know the final state is correct but don't want intermediate renders.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Packs",
+    "route": "/advanced-features",
+    "text": "Theme Packs A theme pack is a named bundle of themes. `runtime.use()` installs the pack — every theme it contains is tagged `pack:<name>` in its meta. ```ts const brandPack = { name: \"brand\", themes: [ defineTheme({ name: \"brand-light\", meta: { family: \"brand\", mode: \"light\" }, tokens: { ... } }), defineTheme({ name: \"brand-dark\", meta: { family: \"brand\", mode: \"dark\" }, tokens: { ... } }), ], }; runtime.use(brandPack); runtime.selection.setFamily(\"brand\"); runtime.selection.setMode(\"dark\"); ``` Under the hood, `runtime.use()` delegates to `registry.use()`, which registers every theme in the pack and stamps the `pack:brand` tag. The registry's `getThemesByFamily` and `getFamilies` methods immediately reflect the new themes.",
+    "type": "docs"
+  },
+  {
+    "title": "Accessibility Profiles",
+    "route": "/advanced-features",
+    "text": "Accessibility Profiles `getAccessibilityProfiles()` returns pre-built high-contrast and large-text themes. `validateThemeContrast()` audits a theme's WCAG contrast ratios, and `simulateCVD()` models how colors appear under color vision deficiencies. See the [/accessibility](/accessibility) page for the full guide including CVD simulation, CI integration, and all available profiles. ```ts import { getAccessibilityProfiles, validateThemeContrast } from \"@themvora/core\"; const profiles = getAccessibilityProfiles(); // [high-contrast-light, high-contrast-dark, large-text-light, large-text-dark] const audit = validateThemeContrast(myTheme); // { valid: boolean, checks: [{ foregroundToken, backgroundToken, ratio, passesAANormal, ... }] } ```",
+    "type": "docs"
+  },
+  {
+    "title": "Live runtime configuration",
+    "route": "/advanced-features",
+    "text": "Live runtime configuration Every configuration input below is reconciled through one shared contract: `runtime.configure(update)`. The framework providers forward changed props to it; nothing recreates the runtime, reloads the page, or resets the active theme, selection, persistence or history. Precedence and validation live in the runtime, not in the adapters, so React, Vue, Svelte, Solid, Web Components, Astro, Next and Nuxt all behave the same way. Only the *inputs the caller supplied* are applied: omitting a prop leaves its current value alone, so a provider that never sets `transition` cannot reset a transition configured at creation.",
+    "type": "docs"
+  },
+  {
+    "title": "Reactivity",
+    "route": "/advanced-features",
+    "text": "Reactivity Every configuration is fully reactive — changes apply live without remounting. See the dedicated pages for [transition](/transition), [schedule](/sunrise-sunset), and [scrollbar](/scrollbar) for details on when each takes effect.",
+    "type": "docs"
+  },
+  {
+    "title": "Precedence between the selection inputs",
+    "route": "/advanced-features",
+    "text": "Precedence between the selection inputs The runtime resolves one selection from four inputs, in this order: 1. **A persisted selection** (localStorage, or the SSR cookie/bridge) — the visitor's own choice wins over everything. 2. **`initial`** — an SSR-resolved selection. It is used when it resolves against the current catalog, and **ignored** when it does not (a deploy between the server render and hydration can leave the client with a theme the server no longer has). 3. **`initialFamily` / `initialMode`** — explicit selections. They override the corresponding half of `defaultTheme`, so `defaultTheme=\"plum-dark\"` with `initialMode=\"light\"` resolves to `plum-light`. 4. **`defaultTheme`**, then the catalog's first theme — the fallback. An unknown `initialFamily` is reported (`TV_THEME_FAMILY_UNKNOWN`) and resolves to a registered family; an unknown `defaultTheme` resolves to the catalog's first theme.",
+    "type": "docs"
+  },
+  {
+    "title": "Catalog changes reach the scopes too",
+    "route": "/advanced-features",
+    "text": "Catalog changes reach the scopes too `themes` is not just a provider input: it is the catalog every scope, family selector and readout resolves against. A catalog change that preserves the active theme produces **no theme change**, so `store.subscribe()` cannot report it — a scope would otherwise keep rendering a theme the runtime had dropped. The runtime therefore exposes the catalog as its own signal: | Consumer | Signal | | --- | --- | | Framework providers, custom consumers | `runtime.registry.subscribe(() => …)` — fires once per atomic catalog change (`configure({ themes })`, `runtime.use(pack)`, `runtime.restore()`), after the store and the selection are updated | | `<themvora-scope>`, `<themvora-select>` and the other elements | The same signal, subscribed by the element base class | | Page code listening for the DOM event | `themes-change` on `<themvora-provider>` (`detail.themes`), dispatched on a microtask after the change applies | Every framework `ThemeScope` subscribes to it and re-resolves in place, so a scope whose theme leaves the catalog moves to the catalog's first theme — the same fallback an unknown name gets — instead of keeping stale variables. The runtime also keeps one catalog array and updates it in place, so a consumer that captured `runtime.themes` sees later changes rather than a snapshot.",
+    "type": "docs"
+  },
+  {
+    "title": "Enabling and disabling after mount",
+    "route": "/advanced-features",
+    "text": "Enabling and disabling after mount Transitions, schedules, and scrollbar can all be enabled, disabled, or reconfigured after mount without a reload or remount. See [/animation](/animation) for transition and schedule toggling, and [/sunrise-sunset](/sunrise-sunset) for schedule installation and removal.",
+    "type": "docs"
+  },
+  {
+    "title": "Reading the mode a schedule produced",
+    "route": "/advanced-features",
+    "text": "Reading the mode a schedule produced A scheduled transition changes the **applied** appearance, not the visitor's standing choice. See [/sunrise-sunset](/sunrise-sunset) for `useEffectiveThemeMode()`, `selection.subscribeEffective`, and the precedence between automatic drivers.",
+    "type": "docs"
+  },
+  {
+    "title": "Imperative configuration",
+    "route": "/advanced-features",
+    "text": "Imperative configuration Framework-free code (and adapters built on `createThemeRuntime`) can drive the same contract directly: ```ts runtime.configure({ transition: { enabled: true, duration: 600 } }); runtime.configure({ scheduled: false }); runtime.transition; // live view of the current transition options runtime.schedule; // live view of the schedule controller (or null) ```",
+    "type": "docs"
+  },
+  {
+    "title": "Discovering the provider's themes",
+    "route": "/advanced-features",
+    "text": "Discovering the provider's themes A provider knows exactly which themes it was given. `useProvidedThemes()` returns that collection — grouped by family, with each variant's metadata and resolved tokens — so a theme picker never has to enumerate a second source: ```tsx import { useProvidedThemes, useSetThemeFamily } from \"@themvora/react\"; function ThemePicker() { const families = useProvidedThemes(); const setFamily = useSetThemeFamily(); return ( <fieldset> {families.map((family) => ( <section key={family.id}> <h3>{family.name}</h3> {family.variants.map((variant) => ( <button key={variant.name} onClick={() => setFamily(family.family)}> {variant.mode} — {variant.tokens.colors?.background} </button> ))} </section> ))} </fieldset> ); } ``` Each entry is `{ id, family, name, meta, provenance, variants }`, and each variant is `{ name, mode, meta, tokens, theme }`. `variants[].meta` and `variants[].tokens` are authoritative; the family-level `meta` is a roll-up of the first variant that carries one. The same data contract is exposed with each framework's own reactivity: | Framework | Surface | Shape | | --- | --- | --- | | React | `useProvidedThemes()` | array (re-renders on change) | | Vue | `useProvidedThemes()` | `Ref` | | Svelte | `useProvidedThemes()` | readable store | | Solid | `useProvidedThemes()` | accessor | | Angular | `injectProvidedThemes()` | `Signal` | | Web Components | `useProvidedThemes()` | live read + `themes-change` event | | Framework-free | `Themvora#providedThemes` | getter | Three properties are worth knowing: - **Exactly what the provider received.** Built-in or preset themes the provider was not given are absent, and two providers never share a collection. - **Reactive.** A `themes` prop change, `runtime.use(pack)` or a registry mutation updates the collection. Entries whose content did not change keep their identity, so `React.memo` and dependency arrays behave. - **No provenance guessing.** `provenance` is filled only from markers the library writes (`meta.generation.kind === \"generated\"`, a `pack:<name>` tag). A theme named `mint-dark` is not thereby a preset.",
+    "type": "docs"
+  },
+  {
+    "title": "Naming a theme: family or variant",
+    "route": "/advanced-features",
+    "text": "Naming a theme: family or variant Every selection prop — `defaultTheme`, `themeOverride`, `initialFamily` — accepts the same two forms, resolved by one function against the themes *your provider was given*: | Form | Example | What it selects | | --- | --- | --- | | **Variant** | `\"cocoa-dark\"` | that exact definition, with its own mode | | **Family** | `\"cocoa\"` | the family's variant for the mode in effect | ```tsx // `themes` is the registry your provider is given. const themes = [cocoaLight, cocoaDark, oatLight, oatDark]; // An exact variant: this is the theme, whatever the visitor's mode is. <ThemeProvider themes={themes} defaultTheme=\"cocoa-light\"> <App /> </ThemeProvider> // A family: `initialMode` picks the variant, and the visitor can still toggle. <ThemeProvider themes={themes} defaultTheme=\"oat\" initialMode=\"light\"> <App /> </ThemeProvider> ``` A family never resolves to \"whichever variant happens to come first in the object\": it uses the mode in effect, then the configured initial mode, then the family's light variant. So `defaultTheme=\"oat\"` with `initialMode=\"dark\"` is `oat-dark`, and a visitor who toggles to light gets `oat-light` — the family is the default, not a lock. `initialFamily` takes a family. A variant name is accepted too and normalised to its family; its mode is used **only when `initialMode` is absent**, so the two props can never silently disagree: ```tsx const themes = [cocoaLight, cocoaDark, oatLight, oatDark]; <ThemeProvider themes={themes} initialFamily=\"cocoa-dark\"> {/* cocoa, dark */} </ThemeProvider> <ThemeProvider themes={themes} initialFamily=\"cocoa-dark\" initialMode=\"light\"> {/* cocoa, light — the explicit mode wins */} </ThemeProvider> ``` A name that is not in the provider's collection is reported (`TV_THEME_OVERRIDE_UNRESOLVED` for an override, `TV_THEME_FAMILY_UNKNOWN` for `initialFamily`) and ignored. Themvora never falls back to a same-named theme from the global preset catalog.",
+    "type": "docs"
+  },
+  {
+    "title": "Autocomplete from your own collection",
+    "route": "/advanced-features",
+    "text": "Autocomplete from your own collection The props are typed from the `themes` you pass, so a statically known collection completes both forms — no separate union to maintain: ```tsx const themes = [ defineTheme({ name: \"oat-light\", meta: { family: \"oat\", mode: \"light\" }, tokens: {} }), defineTheme({ name: \"oat-dark\", meta: { family: \"oat\", mode: \"dark\" }, tokens: {} }), defineTheme({ name: \"cocoa-light\", meta: { family: \"cocoa\", mode: \"light\" }, tokens: {} }), defineTheme({ name: \"cocoa-dark\", meta: { family: \"cocoa\", mode: \"dark\" }, tokens: {} }), ] as const; // defaultTheme: \"oat-light\" | \"oat-dark\" | \"cocoa-light\" | \"cocoa-dark\" | \"oat\" | \"cocoa\" // initialFamily: \"oat\" | \"cocoa\" <ThemeProvider themes={themes} defaultTheme=\"cocoa\">…</ThemeProvider> ``` `defineTheme` preserves the literal names and families, and `as const` keeps the collection literal. A collection built at runtime (`generateTheme()`, a fetched catalog) is a `ThemeDefinition[]`, whose values cannot be known at compile time — the props widen to `string` there rather than becoming unusable. Which surfaces infer the union from `themes`: | Surface | Completion from `themes` | | --- | --- | | React `ThemeProvider` | yes — `defaultTheme`, `themeOverride`, `initialFamily` | | Svelte / Solid `ThemeProvider` | yes (their props extend the core options) | | Next.js `ThemeProvider` | yes | | Remix `ThemeProvider` / `ThemeHead` | yes | | Astro `ThemeProviderClient` | yes | | Angular `provideTheme` / `createBlockingScriptContent` | yes | | Vue `ThemeProviderProps<T>` | yes, via the exported type | | `<themvora-provider>` element | no — attributes are strings; type a wrapper against `ThemvoraProviderProps<T>` | | Nuxt module options | no — build-time configuration, not a `themes` prop | Two surfaces need a word of explanation, because the union exists but the component cannot show it: - **Vue's `<ThemeProvider>`** declares its props at runtime (`type: String`), and Vue cannot infer a component's prop union from another prop outside an SFC with `generic=\"…\"`. The exported `ThemeProviderProps<T>` carries the narrowed union, so annotate a wrapper with it if you want template completion: ```ts import type { ThemeProviderProps } from \"@themvora/vue\"; import { defineTheme } from \"@themvora/core\"; const themes = [ defineTheme({ name: \"cocoa-light\", meta: { family: \"cocoa\", mode: \"light\" }, tokens: {} }), ]; type Props = ThemeProviderProps<(typeof themes)[number]>; ``` - **Nuxt's module options** are fixed at build time and never receive the theme array, so they stay `string`. Pass `themes` to the module and use `runtime.configure({ themeOverride })` for a value that changes at runtime.",
+    "type": "docs"
+  },
+  {
+    "title": "Explicit theme override",
+    "route": "/advanced-features",
+    "text": "Explicit theme override `defaultTheme` is a **fallback**: it applies only when nothing else selected a theme. Previewing a theme — or driving one from a prop — needs the opposite, so the provider accepts `themeOverride`: ```tsx const themes = [cocoaLight, cocoaDark, oatLight, oatDark]; <ThemeProvider themes={themes} themeOverride={preview ?? undefined}> <App /> </ThemeProvider> ``` ```ts type ThemeOverride<Name extends string = string> = | Name // \"cocoa-dark\" or \"cocoa\" | { family?: string; mode?: ThemeMode }; // { family: \"cocoa\", mode: \"dark\" } ``` Semantics, identical in every integration: 1. It outranks a saved selection (`localStorage`, cookies) and an SSR-resolved `initial`, because it is the most explicit request. 2. It applies **once per value**. Changing the prop applies the new value; re-rendering with the same value does nothing, so it never fights a manual selection the visitor made afterwards. 3. **Removing it restores the selection it covered**, in the same commit — no reload, no remount. If the visitor picked a theme themselves while the override was active, that newer choice is kept instead of the snapshot. 4. It does **not** write persistence. An override is a transient preview; a later manual selection persists normally. 5. An unresolvable value is reported as `TV_THEME_OVERRIDE_UNRESOLVED` and ignored — it is retried if the catalog later gains that theme. ```tsx const themes = [cocoaLight, cocoaDark, oatLight, oatDark]; // Preview a theme while the visitor's own selection stays untouched underneath. <ThemeProvider themes={themes} themeOverride={preview}>…</ThemeProvider> // Set `preview` back to `undefined` and the previous selection reappears. ``` Precedence, in order: ``` themeOverride > initial (SSR handoff) > persisted > defaultTheme / initialFamily / initialMode > fallback ``` `themeOverride` is a layer over that list rather than an entry in it: it is applied over whatever the rest resolves to, and removing it reveals that layer again. **Initial paint.** Every integration that owns a pre-paint bootstrap (`createThemeBootstrapScript`, the Next shell, the Remix `ThemeHead`, the Angular blocking script, the Nuxt plugin) resolves the override into that script — family form included — so the first frame is already the overridden theme rather than the saved one corrected after mount. Astro's client island applies it after mount; pass the same value to `provider.astro` / `createBlockingScript` for a flash-free override there. **Change detection** is semantic, not referential: `\"cocoa-dark\"`, `\"cocoa\"` and `{ family: \"cocoa\", mode: \"dark\" }` each identify a request, and a freshly allocated object per render is not a change.",
+    "type": "docs"
+  },
+  {
+    "title": "What gets persisted",
+    "route": "/advanced-features",
+    "text": "What gets persisted Only the **selection identity** is stored — `{ family, mode }` — never a theme definition, its tokens or its metadata: ```json { \"family\": \"brand\", \"mode\": \"dark\" } ``` That is why a user-defined or generated theme persists exactly like a preset: the identity resolves against whatever the provider supplies on the next load, and an identity whose family is gone falls back safely. An override never writes it, and neither does restoring one.",
+    "type": "docs"
+  },
+  {
+    "title": "Keeping a UI library in step",
+    "route": "/advanced-features",
+    "text": "Keeping a UI library in step Themvora applies a theme change as one update: the resolved tokens, the DOM attributes and the `--theme-*` variables commit together, inside one animation window. A UI library that mirrors tokens into its own theme object participates only as far as its own API allows. - **MUI typography.** MUI's typography rules carry their own `font-family`, so a font loaded through global CSS on `body` does not reach MUI components by inheritance. `@themvora/mui` writes the theme's `typography.fontFamilies` token when there is one and `\"inherit\"` when there is not — so MUI follows the document font instead of being forced onto `system-ui`. If you render `CssBaseline`, its `body` rule inherits from `<html>`; pass the family explicitly: `<MuiThemeProvider runtime={runtime} fontFamily=\"Inter, sans-serif\">`. - **MUI `className`.** MUI forwards `className` to the component's root slot, so the class is present and its rule is in the cascade. When it appears not to apply, the cause is usually order or specificity: Emotion appends its stylesheet after a `<link>`ed application stylesheet, and `.brand-button` and `.MuiButton-root` have the same specificity, so MUI wins. `style` works because inline declarations outrank every stylesheet rule. Use MUI's supported escape hatches — `sx`, `&&` to raise specificity, or `components.styleOverrides` for a nested slot — rather than `!important`. - **MUI transitions.** MUI's own animations use its `transitions` scale. Pass `transitionDuration` / `transitionEasing` to `MuiThemeProvider` (the same values as the runtime's `transition`) so both engines use one timing. During a theme change Themvora mutes descendant transitions for the length of the swap — on both the View Transition path and the CSS-property path — so a component that also eases its own `background-color` cannot lag behind the page. Measured on the React + MUI fixture: without it the document switched in one frame while a MUI `Button` took ~540 ms and a MUI `Paper` snapped, i.e. three timings for one change. - **shadcn/Tailwind.** These components read the CSS variables the adapter writes (`--background`, `--primary`, …), so they follow the same swap. Nothing else is required; the variables are rewritten on every selection change.",
+    "type": "docs"
+  },
+  {
     "title": "API reference",
     "route": "/advanced-features",
     "text": "API reference Every export used above is generated from source JSDoc — this guide links it rather than duplicating it. - [@themvora/core API reference](/api-reference/core)",
@@ -10496,7 +10634,13 @@
   {
     "title": "@themvora/web",
     "route": "/api-reference/web",
-    "text": "@themvora/web Themvora web components — framework-free theming for any app. Provides the custom elements `ThemvoraProvider`, `ThemvoraScope`, `ThemvoraToggle`, `ThemvoraSelect`, `ThemvoraScrollbar`, and `ThemvoraInspector`, plus the `useTheme*` hooks, `getProviderRuntime`, `getThemeSchedule`, and the `defineCustomElements` registration helper. ## HTML-first usage Importing this entry is enough: it registers the built-in elements and injects their stylesheet once, so the consumer writes semantic HTML and nothing else. ```html <themvora-provider themes=\"light dark plum-dark\" default-theme=\"light\"> <themvora-toggle></themvora-toggle> <themvora-select type=\"family\"></themvora-select> <themvora-scope theme=\"plum-dark\">…</themvora-scope> </themvora-provider> ``` ```ts import \"@themvora/web\"; ``` Registration is idempotent and browser-only: importing the package during a server render is a no-op, so Next.js, Remix, Nuxt, Astro and SvelteKit can import it without a browser guard. > Generated from `packages/web/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.",
+    "text": "@themvora/web Themvora web components — framework-free theming for any app. Provides the custom elements `ThemvoraProvider`, `ThemvoraScope`, `ThemvoraToggle`, `ThemvoraSelect`, `ThemvoraScrollbar`, and `ThemvoraInspector`, plus the `useTheme*` hooks, `getProviderRuntime`, `getThemeSchedule`, and the `defineCustomElements` registration helper.",
+    "type": "api"
+  },
+  {
+    "title": "HTML-first usage",
+    "route": "/api-reference/web",
+    "text": "HTML-first usage Importing this entry is enough: it registers the built-in elements and injects their stylesheet once, so the consumer writes semantic HTML and nothing else. ```html <themvora-provider themes=\"light dark plum-dark\" default-theme=\"light\"> <themvora-toggle></themvora-toggle> <themvora-select type=\"family\"></themvora-select> <themvora-scope theme=\"plum-dark\">…</themvora-scope> </themvora-provider> ``` ```ts import \"@themvora/web\"; ``` Registration is idempotent and browser-only: importing the package during a server render is a no-op, so Next.js, Remix, Nuxt, Astro and SvelteKit can import it without a browser guard. > Generated from `packages/web/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.",
     "type": "api"
   },
   {
@@ -11048,7 +11192,31 @@
   {
     "title": "Zero Flash Theming",
     "route": "/blog/zero-flash-theming",
-    "text": "--- title: \"Zero flash: how ThemeProvider avoids a wrong-theme flash on every load\" date: 2026-07-28 description: \"The three techniques Themvora uses to guarantee a user never sees a flash of incorrect theme — blocking bootstrap scripts, SSR CSS variables and cookie-based fingerprinting.\" tags: next, rsc, ssr, performance --- Every theming library has to answer the same question: what does the user see between \"HTML arrives\" and \"JavaScript runs\"? If the answer is *the wrong theme*, you have a flash of incorrect theme (FOIT). Themvora attacks this from three directions at once. ## 1. Resolve the theme on the server With `@themvora/next`, the `ThemeProvider` is a server component. It reads the `theme` cookie, validates the selection against the configured themes, and resolves the *initial theme before a single byte of HTML is sent*: ```tsx import { ThemeProvider } from \"@themvora/next\"; export default function RootLayout({ children }) { return ( <ThemeProvider defaultTheme=\"light\"> {children} </ThemeProvider> ); } ``` The server-rendered `<html>` arrives already carrying `data-theme=\"dark\"` and the correct inline `--theme-color-*` variables, so first paint is correct. ## 2. Block with a bootstrap script Cookies aren't always there — a returning user's first request, an authenticated route, or a misconfigured proxy. For those cases Themvora emits a small **blocking bootstrap script** inside `<head>` that runs before first paint. It reads the persisted selection from `localStorage`, falls back to `prefers-color-scheme`, and flips `data-theme` before the browser paints: ```ts import { createThemeBootstrapScript, getBuiltInThemes } from \"@themvora/core\"; const script = createThemeBootstrapScript({ themes: getBuiltInThemes(), defaultTheme: \"light\" }); // → a self-contained <script> string you can inline in <head> ``` ## 3. Ship the CSS variables in the SSR HTML Because the resolved theme's tokens are flattened on the server, the `--theme-color-*` variables are present in the initial HTML itself. There is no \"CSS loads late\" gap — the tokens the first paint needs are already there, and `@themvora/next` even pre-paints the dark-mode CSS via `useServerInsertedHTML`. ## The result - **First paint is always correct** — no theme, no layout flash. - **No runtime dependency for correctness** — the site is themed even with JavaScript disabled. - **Fingerprinting** keeps the persisted selection honest: a cookie that names a theme you no longer ship is safely rejected. Try it yourself — this very documentation site runs on exactly this pipeline.",
+    "text": "--- title: \"Zero flash: how ThemeProvider avoids a wrong-theme flash on every load\" date: 2026-07-28 description: \"The three techniques Themvora uses to guarantee a user never sees a flash of incorrect theme — blocking bootstrap scripts, SSR CSS variables and cookie-based fingerprinting.\" tags: next, rsc, ssr, performance --- Every theming library has to answer the same question: what does the user see between \"HTML arrives\" and \"JavaScript runs\"? If the answer is *the wrong theme*, you have a flash of incorrect theme (FOIT). Themvora attacks this from three directions at once.",
+    "type": "blog"
+  },
+  {
+    "title": "1. Resolve the theme on the server",
+    "route": "/blog/zero-flash-theming",
+    "text": "1. Resolve the theme on the server With `@themvora/next`, the `ThemeProvider` is a server component. It reads the `theme` cookie, validates the selection against the configured themes, and resolves the *initial theme before a single byte of HTML is sent*: ```tsx import { ThemeProvider } from \"@themvora/next\"; export default function RootLayout({ children }) { return ( <ThemeProvider defaultTheme=\"light\"> {children} </ThemeProvider> ); } ``` The server-rendered `<html>` arrives already carrying `data-theme=\"dark\"` and the correct inline `--theme-color-*` variables, so first paint is correct.",
+    "type": "blog"
+  },
+  {
+    "title": "2. Block with a bootstrap script",
+    "route": "/blog/zero-flash-theming",
+    "text": "2. Block with a bootstrap script Cookies aren't always there — a returning user's first request, an authenticated route, or a misconfigured proxy. For those cases Themvora emits a small **blocking bootstrap script** inside `<head>` that runs before first paint. It reads the persisted selection from `localStorage`, falls back to `prefers-color-scheme`, and flips `data-theme` before the browser paints: ```ts import { createThemeBootstrapScript, getBuiltInThemes } from \"@themvora/core\"; const script = createThemeBootstrapScript({ themes: getBuiltInThemes(), defaultTheme: \"light\" }); // → a self-contained <script> string you can inline in <head> ```",
+    "type": "blog"
+  },
+  {
+    "title": "3. Ship the CSS variables in the SSR HTML",
+    "route": "/blog/zero-flash-theming",
+    "text": "3. Ship the CSS variables in the SSR HTML Because the resolved theme's tokens are flattened on the server, the `--theme-color-*` variables are present in the initial HTML itself. There is no \"CSS loads late\" gap — the tokens the first paint needs are already there, and `@themvora/next` even pre-paints the dark-mode CSS via `useServerInsertedHTML`.",
+    "type": "blog"
+  },
+  {
+    "title": "The result",
+    "route": "/blog/zero-flash-theming",
+    "text": "The result - **First paint is always correct** — no theme, no layout flash. - **No runtime dependency for correctness** — the site is themed even with JavaScript disabled. - **Fingerprinting** keeps the persisted selection honest: a cookie that names a theme you no longer ship is safely rejected. Try it yourself — this very documentation site runs on exactly this pipeline.",
     "type": "blog"
   },
   {
@@ -11112,6 +11280,12 @@
     "type": "cli"
   },
   {
+    "title": "Prerequisites",
+    "route": "/cli/audit",
+    "text": "Prerequisites - Node.js 18+ - Project with @themvora/cli installed or npx access Audit a theme — or every shipped preset and brand — with the **canonical** scorecard. `audit` is deliberately **stricter than [`validate`](./validate)**: `validate` gates on the frozen structural contract, while `audit` gates on the full quality model. A theme can pass `validate` and fail `audit`, and that difference is the point. <!-- cli-command:generated:start -->",
+    "type": "cli"
+  },
+  {
     "title": "Synopsis — Audit a theme or the shipped presets",
     "route": "/cli/audit",
     "text": "Synopsis — Audit a theme or the shipped presets ```text Usage: themvora audit <file|presets> [options] ``` | Argument | Description | | -------- | ----------- | | `<scope>` | A theme file to audit, or `presets` to audit every shipped preset and brand. |",
@@ -11132,7 +11306,61 @@
   {
     "title": "Examples",
     "route": "/cli/audit",
-    "text": "Examples ```bash themvora audit presets themvora audit theme.json themvora audit presets --strict --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash # Every shipped preset and brand themvora audit presets # One theme file themvora audit theme.json # Warnings are failures too themvora audit presets --strict ``` ## The scorecard Both scopes use `scoreTheme()` — the same quality model the repository's `audit-presets.mjs` release gate and the preset documentation use. There is one audit system, so the CLI and the release gate cannot disagree about whether a preset is healthy. | Check | What it asserts | | ----- | --------------- | | `structural` | Every core role is present and a valid colour | | `semantic` | `destructive` / `success` are still in their colour families | | `text-contrast` | Every text pair meets its floor | | `ui-contrast` | Every non-text UI pair meets its floor | | `surface-hierarchy` | `background` / `card` / `popover` / `border` are distinguishable | | `muted-hierarchy` | The muted scale is ordered and separated | | `accent-collision` | `accent` and `primary` do not collide | | `cvd` | Status roles stay distinguishable under colour-vision deficiency | | `contexts` | Every semantic usage the components promise is satisfied | ## Output ``` Shipped presets and brands oat-light 9/9 PASS oat-dark 9/9 PASS ... discord-dark 9/9 PASS 28 theme(s) 28 pass 0 with warnings 0 fail Audit passed. ``` A failing theme names the checks that failed and their measured values: ``` forest-light 6/9 FAIL ui-contrast: input/background 1.40; input/card 1.45; surface-hierarchy: card/popover ΔL 0.000 ``` `--quiet` prints only the themes that fail or warn, plus the summary. ## Strict mode `--strict` treats warnings as failures, mirroring the repository's `audit-presets.mjs --strict-ui`. A preset that only warns is reported but does not fail the audit by default. ## Scope `audit presets` audits every entry in the canonical catalog — the 9 default presets and the 5 brand recipes, both modes: **28 themes**. The repository's own `audit-presets.mjs` additionally covers the neutral baseline and the accessibility profiles (which are exempt by design, since they exist *to* deviate), and checks snapshot drift against a frozen test fixture. Those are repository concerns; `audit presets` is the user-facing equivalent, on the same scorecard. ## JSON output ```bash themvora audit presets --json ``` ```json { \"scope\": \"presets\", \"strict\": false, \"subjects\": [ { \"id\": \"mint\", \"label\": \"Mint\", \"themes\": [ { \"name\": \"mint-light\", \"valid\": true, \"issues\": [], \"checks\": [{ \"id\": \"structural\", \"label\": \"Structural\", \"status\": \"pass\" }], \"passed\": 9, \"total\": 9, \"failed\": false, \"warned\": false } ] } ], \"summary\": { \"subjects\": 14, \"themes\": 28, \"passed\": 28, \"warned\": 0, \"failed\": 0 } } ``` A failing run still emits the report **and** exits `3`. ## Exit codes | Code | Meaning | | ---- | ------- | | `0` | Audit passed. | | `3` | Audit failed — a theme failed a check, or a warning under `--strict`. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). | | `2` | Usage error: no scope, or an unknown scope. | ## Next Steps - [Validate a theme](./validate) - [Explain a theme](./explain) - [CLI reference](./reference) ## Related - [Theme generation](../../theme-generation) - [Accessibility](../../accessibility) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "text": "Examples ```bash themvora audit presets themvora audit theme.json themvora audit presets --strict --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/audit",
+    "text": "Examples ```bash # Every shipped preset and brand themvora audit presets # One theme file themvora audit theme.json # Warnings are failures too themvora audit presets --strict ```",
+    "type": "cli"
+  },
+  {
+    "title": "The scorecard",
+    "route": "/cli/audit",
+    "text": "The scorecard Both scopes use `scoreTheme()` — the same quality model the repository's `audit-presets.mjs` release gate and the preset documentation use. There is one audit system, so the CLI and the release gate cannot disagree about whether a preset is healthy. | Check | What it asserts | | ----- | --------------- | | `structural` | Every core role is present and a valid colour | | `semantic` | `destructive` / `success` are still in their colour families | | `text-contrast` | Every text pair meets its floor | | `ui-contrast` | Every non-text UI pair meets its floor | | `surface-hierarchy` | `background` / `card` / `popover` / `border` are distinguishable | | `muted-hierarchy` | The muted scale is ordered and separated | | `accent-collision` | `accent` and `primary` do not collide | | `cvd` | Status roles stay distinguishable under colour-vision deficiency | | `contexts` | Every semantic usage the components promise is satisfied |",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/audit",
+    "text": "Output ``` Shipped presets and brands oat-light 9/9 PASS oat-dark 9/9 PASS ... discord-dark 9/9 PASS 28 theme(s) 28 pass 0 with warnings 0 fail Audit passed. ``` A failing theme names the checks that failed and their measured values: ``` forest-light 6/9 FAIL ui-contrast: input/background 1.40; input/card 1.45; surface-hierarchy: card/popover ΔL 0.000 ``` `--quiet` prints only the themes that fail or warn, plus the summary.",
+    "type": "cli"
+  },
+  {
+    "title": "Strict mode",
+    "route": "/cli/audit",
+    "text": "Strict mode `--strict` treats warnings as failures, mirroring the repository's `audit-presets.mjs --strict-ui`. A preset that only warns is reported but does not fail the audit by default.",
+    "type": "cli"
+  },
+  {
+    "title": "Scope",
+    "route": "/cli/audit",
+    "text": "Scope `audit presets` audits every entry in the canonical catalog — the 9 default presets and the 5 brand recipes, both modes: **28 themes**. The repository's own `audit-presets.mjs` additionally covers the neutral baseline and the accessibility profiles (which are exempt by design, since they exist *to* deviate), and checks snapshot drift against a frozen test fixture. Those are repository concerns; `audit presets` is the user-facing equivalent, on the same scorecard.",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/audit",
+    "text": "JSON output ```bash themvora audit presets --json ``` ```json { \"scope\": \"presets\", \"strict\": false, \"subjects\": [ { \"id\": \"mint\", \"label\": \"Mint\", \"themes\": [ { \"name\": \"mint-light\", \"valid\": true, \"issues\": [], \"checks\": [{ \"id\": \"structural\", \"label\": \"Structural\", \"status\": \"pass\" }], \"passed\": 9, \"total\": 9, \"failed\": false, \"warned\": false } ] } ], \"summary\": { \"subjects\": 14, \"themes\": 28, \"passed\": 28, \"warned\": 0, \"failed\": 0 } } ``` A failing run still emits the report **and** exits `3`.",
+    "type": "cli"
+  },
+  {
+    "title": "Exit codes",
+    "route": "/cli/audit",
+    "text": "Exit codes | Code | Meaning | | ---- | ------- | | `0` | Audit passed. | | `3` | Audit failed — a theme failed a check, or a warning under `--strict`. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). | | `2` | Usage error: no scope, or an unknown scope. |",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/audit",
+    "text": "Next Steps - [Validate a theme](./validate) - [Explain a theme](./explain) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/audit",
+    "text": "Related - [Theme generation](../../theme-generation) - [Accessibility](../../accessibility) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
     "type": "cli"
   },
   {
@@ -11310,6 +11538,12 @@
     "type": "cli"
   },
   {
+    "title": "Prerequisites",
+    "route": "/cli/diff",
+    "text": "Prerequisites - Node.js 18+ - Project with @themvora/cli installed or npx access Compare two themes and see exactly what changed, role by role. Every comparison decision comes from `@themvora/core`; the CLI resolves sources and renders the report. <!-- cli-command:generated:start -->",
+    "type": "cli"
+  },
+  {
     "title": "Synopsis — Diff two themes semantically",
     "route": "/cli/diff",
     "text": "Synopsis — Diff two themes semantically ```text Usage: themvora diff <a> <b> [options] ``` | Argument | Description | | -------- | ----------- | | `<a>` | First source: a theme file, a preset id, or a brand id. Resolved as file, then preset, then brand. Omit to use a flag instead. (optional) | | `<b>` | Second source, resolved the same way. Omit to use a flag instead. (optional) |",
@@ -11330,7 +11564,67 @@
   {
     "title": "Examples",
     "route": "/cli/diff",
-    "text": "Examples ```bash themvora diff mint iris themvora diff theme.json --preset mint themvora diff --brand apple --preset mint --mode light themvora diff mint iris --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash # Two presets themvora diff mint iris # A file against a preset themvora diff theme.json --preset mint # Two brand recipes themvora diff --brand apple --brand github # A seed against a preset themvora diff --seed \"#3366ff\" --preset mint ``` ## Sources Each side takes exactly one source. A positional is resolved in a fixed order — **an existing file, then a preset id, then a brand id** — and the label in the output always states which branch was taken, so the precedence is never a guess: ``` a: file theme.json b: preset mint ``` A value that looks like a path (it contains a separator or ends in `.json`) is always treated as a file, so a mistyped filename reports `cannot read file` rather than being mistaken for an unknown id. Use `--preset`, `--brand`, or `--seed` when a side has no positional. The flags fill the sides without a positional, **in the order you type them**: ```bash themvora diff mint --brand apple # a = preset mint, b = brand apple themvora diff --brand apple --preset mint # a = brand apple, b = preset mint themvora diff --seed \"#111111\" --seed \"#222222\" # a and b are seeds ``` ## Output ``` mint-light → iris-light a: preset mint b: preset iris light Canvas background #e9f3ee → #f1f1f6 foreground #131d18 → #191a1f Actions primary #32936c → #5d5fea primaryForeground #0a140f → #fbfbff radius lg 18px → 16px 20 changed · 0 added · 0 removed · 2 unchanged dark ... ``` Sections are the canonical role groups — **Canvas**, **Surfaces**, **Actions**, **States**, **Interaction** — for colours, and the token group name (`radius`, `spacing`, …) for everything else. Only groups with changes are shown. - Unchanged tokens are hidden by default. Pass `--all` to include them. - `--quiet` prints only the per-mode counts. - A mode only one side provides says so in words rather than listing every token as added. - Identical themes print `… are identical (N tokens compared).` ### Provenance is reported separately Themes generated from different seeds but with identical tokens are *the same theme* for every rendering purpose, so they are not reported as changed. Provenance differences appear as a trailing note instead: ``` provenance differs: seed, style ``` ## Modes There are two visual modes, `light` and `dark`. `--mode` restricts the comparison to one of them, and is rejected if a source does not have it: ```bash themvora diff mint iris --mode light ``` `--mode system` is rejected: `\"system\"` is a **selector** over the concrete light/dark pair, not a mode that can be compared. ## JSON output `--json` emits the report on stdout, with nothing else mixed in. ```bash themvora diff mint iris --json ``` ```json { \"version\": 1, \"a\": { \"name\": \"mint-light\", \"family\": \"mint\", \"mode\": \"light\" }, \"b\": { \"name\": \"iris-light\", \"family\": \"iris\", \"mode\": \"light\" }, \"hasChanges\": true, \"modes\": { \"light\": { \"mode\": \"light\", \"present\": \"both\", \"changes\": [ { \"path\": \"colors.primary\", \"group\": \"colors\", \"role\": \"primary\", \"roleGroup\": \"actions\", \"status\": \"changed\", \"before\": \"#32936c\", \"after\": \"#5d5fea\" } ], \"counts\": { \"added\": 0, \"removed\": 0, \"changed\": 20, \"unchanged\": 2, \"total\": 22 }, \"byGroup\": [{ \"group\": \"colors\", \"added\": 0, \"removed\": 0, \"changed\": 19, \"unchanged\": 2 }] } }, \"provenance\": { \"a\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#059669\", \"style\": \"soft\", \"anchored\": [] }, \"b\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#6366f1\", \"style\": \"balanced\", \"anchored\": [] }, \"changed\": true, \"differing\": [\"seed\", \"style\"] }, \"summary\": { \"added\": 0, \"removed\": 0, \"changed\": 20, \"unchanged\": 2, \"total\": 22 } } ``` `version` is the **report schema** version, independent of the theme schema and the package version. `counts` is always complete, whatever `--all` is set to; only `changes` is filtered. Ordering is deterministic — groups follow the canonical token-group order, colours follow the canonical role order, and nothing in the report depends on the host's locale. ## Exit codes | Code | Meaning | | ---- | ------- | | `0` | Compared successfully — **whether or not differences exist**. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC, an unresolvable `mode: \"system\"`). | | `2` | Usage error: an unresolvable source, two sources for one side, `--mode system`, or a mode a source does not have. | > `diff` exits `0` when the themes differ. A `git diff --exit-code`-style > \"nonzero means different\" would collide with `1` meaning *runtime error* in > this CLI's exit-code contract, so it is deliberately not provided. ## Next Steps - [Validate a theme](./validate) - [Inspect a theme](./inspect) - [CLI reference](./reference) ## Related - [Themvora Quick Start](../quickstart) - [Theme generation](../../theme-generation) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "text": "Examples ```bash themvora diff mint iris themvora diff theme.json --preset mint themvora diff --brand apple --preset mint --mode light themvora diff mint iris --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/diff",
+    "text": "Examples ```bash # Two presets themvora diff mint iris # A file against a preset themvora diff theme.json --preset mint # Two brand recipes themvora diff --brand apple --brand github # A seed against a preset themvora diff --seed \"#3366ff\" --preset mint ```",
+    "type": "cli"
+  },
+  {
+    "title": "Sources",
+    "route": "/cli/diff",
+    "text": "Sources Each side takes exactly one source. A positional is resolved in a fixed order — **an existing file, then a preset id, then a brand id** — and the label in the output always states which branch was taken, so the precedence is never a guess: ``` a: file theme.json b: preset mint ``` A value that looks like a path (it contains a separator or ends in `.json`) is always treated as a file, so a mistyped filename reports `cannot read file` rather than being mistaken for an unknown id. Use `--preset`, `--brand`, or `--seed` when a side has no positional. The flags fill the sides without a positional, **in the order you type them**: ```bash themvora diff mint --brand apple # a = preset mint, b = brand apple themvora diff --brand apple --preset mint # a = brand apple, b = preset mint themvora diff --seed \"#111111\" --seed \"#222222\" # a and b are seeds ```",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/diff",
+    "text": "Output ``` mint-light → iris-light a: preset mint b: preset iris light Canvas background #e9f3ee → #f1f1f6 foreground #131d18 → #191a1f Actions primary #32936c → #5d5fea primaryForeground #0a140f → #fbfbff radius lg 18px → 16px 20 changed · 0 added · 0 removed · 2 unchanged dark ... ``` Sections are the canonical role groups — **Canvas**, **Surfaces**, **Actions**, **States**, **Interaction** — for colours, and the token group name (`radius`, `spacing`, …) for everything else. Only groups with changes are shown. - Unchanged tokens are hidden by default. Pass `--all` to include them. - `--quiet` prints only the per-mode counts. - A mode only one side provides says so in words rather than listing every token as added. - Identical themes print `… are identical (N tokens compared).`",
+    "type": "cli"
+  },
+  {
+    "title": "Provenance is reported separately",
+    "route": "/cli/diff",
+    "text": "Provenance is reported separately Themes generated from different seeds but with identical tokens are *the same theme* for every rendering purpose, so they are not reported as changed. Provenance differences appear as a trailing note instead: ``` provenance differs: seed, style ```",
+    "type": "cli"
+  },
+  {
+    "title": "Modes",
+    "route": "/cli/diff",
+    "text": "Modes There are two visual modes, `light` and `dark`. `--mode` restricts the comparison to one of them, and is rejected if a source does not have it: ```bash themvora diff mint iris --mode light ``` `--mode system` is rejected: `\"system\"` is a **selector** over the concrete light/dark pair, not a mode that can be compared.",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/diff",
+    "text": "JSON output `--json` emits the report on stdout, with nothing else mixed in. ```bash themvora diff mint iris --json ``` ```json { \"version\": 1, \"a\": { \"name\": \"mint-light\", \"family\": \"mint\", \"mode\": \"light\" }, \"b\": { \"name\": \"iris-light\", \"family\": \"iris\", \"mode\": \"light\" }, \"hasChanges\": true, \"modes\": { \"light\": { \"mode\": \"light\", \"present\": \"both\", \"changes\": [ { \"path\": \"colors.primary\", \"group\": \"colors\", \"role\": \"primary\", \"roleGroup\": \"actions\", \"status\": \"changed\", \"before\": \"#32936c\", \"after\": \"#5d5fea\" } ], \"counts\": { \"added\": 0, \"removed\": 0, \"changed\": 20, \"unchanged\": 2, \"total\": 22 }, \"byGroup\": [{ \"group\": \"colors\", \"added\": 0, \"removed\": 0, \"changed\": 19, \"unchanged\": 2 }] } }, \"provenance\": { \"a\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#059669\", \"style\": \"soft\", \"anchored\": [] }, \"b\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#6366f1\", \"style\": \"balanced\", \"anchored\": [] }, \"changed\": true, \"differing\": [\"seed\", \"style\"] }, \"summary\": { \"added\": 0, \"removed\": 0, \"changed\": 20, \"unchanged\": 2, \"total\": 22 } } ``` `version` is the **report schema** version, independent of the theme schema and the package version. `counts` is always complete, whatever `--all` is set to; only `changes` is filtered. Ordering is deterministic — groups follow the canonical token-group order, colours follow the canonical role order, and nothing in the report depends on the host's locale.",
+    "type": "cli"
+  },
+  {
+    "title": "Exit codes",
+    "route": "/cli/diff",
+    "text": "Exit codes | Code | Meaning | | ---- | ------- | | `0` | Compared successfully — **whether or not differences exist**. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC, an unresolvable `mode: \"system\"`). | | `2` | Usage error: an unresolvable source, two sources for one side, `--mode system`, or a mode a source does not have. | > `diff` exits `0` when the themes differ. A `git diff --exit-code`-style > \"nonzero means different\" would collide with `1` meaning *runtime error* in > this CLI's exit-code contract, so it is deliberately not provided.",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/diff",
+    "text": "Next Steps - [Validate a theme](./validate) - [Inspect a theme](./inspect) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/diff",
+    "text": "Related - [Themvora Quick Start](../quickstart) - [Theme generation](../../theme-generation) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "type": "cli"
+  },
+  {
+    "title": "Prerequisites",
+    "route": "/cli/doctor",
+    "text": "Prerequisites - Node.js 18+ - Project with @themvora/cli installed or npx access Check the health of a Themvora project: its framework, package manager, installed Themvora packages, theme configuration, and theme files. `doctor` only performs checks it can make **reliably**. It does not guess, and it never walks a filesystem — it looks at the project root, `*.theme.json` at the root, and one level of `themes/`. <!-- cli-command:generated:start -->",
     "type": "cli"
   },
   {
@@ -11354,7 +11648,55 @@
   {
     "title": "Examples",
     "route": "/cli/doctor",
-    "text": "Examples ```bash themvora doctor themvora doctor ./my-app themvora doctor --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash # The current directory themvora doctor # Another project themvora doctor ./my-app ``` ## Output ``` themvora doctor — /path/to/project ✓ Project manifest healthy-app — 3 dependencies ✓ Package manager pnpm ✓ Framework React (Vite) ✓ Themvora packages @themvora/core, @themvora/react ✓ Theme config theme.config.ts ✓ Theme files 2 valid, generated by semantic-v2 healthy ``` Every finding that has a concrete correction carries it: ``` ! Package manager 2 lockfiles found: package-lock.json, yarn.lock → Keep one lockfile; several let different tools resolve different trees. ✗ Themvora packages none installed → Install @themvora/core (and the integration for your framework). ``` ## What it checks | Check | Level | | ----- | ----- | | `project` | **error** if `package.json` is missing or unparseable | | `package-manager` | **warning** for no lockfile, or several | | `framework` | **warning** when nothing is detected | | `framework-support` | **info** when the framework is a library integration but not an `init` target | | `themvora-packages` | **error** when none are installed | | `framework-integration` | **warning** when the framework is in use but its integration is not installed | | `theme-config` | **error** when `theme.config.*` exists without `@themvora/core`; **warning** when it is missing | | `theme-files` | **error** for an unreadable, malformed, or structurally invalid theme file (comments and trailing commas are accepted, as in `validate`) | | `generator-metadata` | **warning** when a theme was generated by an older algorithm than the current one | Framework detection reads dependencies and prefers the **most specific** match: a Next.js app also depends on `react`, so Next.js wins. ## Warnings are not failures A project with warnings is still healthy: | State | Exit | | ----- | ---- | | No errors | `0` — including a warnings-only project | | Any error | `3` | | Not a directory, or an unreadable project | `1` | ## JSON output ```bash themvora doctor --json ``` ```json { \"directory\": \"/path/to/project\", \"framework\": { \"id\": \"react\", \"displayName\": \"React\", \"initSupported\": true }, \"packageManager\": \"pnpm\", \"findings\": [ { \"id\": \"theme-config\", \"level\": \"warning\", \"title\": \"Theme config\", \"detail\": \"no theme.config.ts found\", \"fix\": \"Add a theme.config.ts so the pre-paint bootstrap and the runtime read one registry.\" } ], \"summary\": { \"errors\": 0, \"warnings\": 1, \"info\": 5, \"healthy\": true } } ``` `--quiet` prints only warnings and errors. ## Next Steps - [Audit a theme](./audit) - [Explain a theme](./explain) - [CLI reference](./reference) ## Related - [Themvora Quick Start](../quickstart) - [Zero-flash theming](../../zero-flash) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "text": "Examples ```bash themvora doctor themvora doctor ./my-app themvora doctor --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/doctor",
+    "text": "Examples ```bash # The current directory themvora doctor # Another project themvora doctor ./my-app ```",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/doctor",
+    "text": "Output ``` themvora doctor — /path/to/project ✓ Project manifest healthy-app — 3 dependencies ✓ Package manager pnpm ✓ Framework React (Vite) ✓ Themvora packages @themvora/core, @themvora/react ✓ Theme config theme.config.ts ✓ Theme files 2 valid, generated by semantic-v2 healthy ``` Every finding that has a concrete correction carries it: ``` ! Package manager 2 lockfiles found: package-lock.json, yarn.lock → Keep one lockfile; several let different tools resolve different trees. ✗ Themvora packages none installed → Install @themvora/core (and the integration for your framework). ```",
+    "type": "cli"
+  },
+  {
+    "title": "What it checks",
+    "route": "/cli/doctor",
+    "text": "What it checks | Check | Level | | ----- | ----- | | `project` | **error** if `package.json` is missing or unparseable | | `package-manager` | **warning** for no lockfile, or several | | `framework` | **warning** when nothing is detected | | `framework-support` | **info** when the framework is a library integration but not an `init` target | | `themvora-packages` | **error** when none are installed | | `framework-integration` | **warning** when the framework is in use but its integration is not installed | | `theme-config` | **error** when `theme.config.*` exists without `@themvora/core`; **warning** when it is missing | | `theme-files` | **error** for an unreadable, malformed, or structurally invalid theme file (comments and trailing commas are accepted, as in `validate`) | | `generator-metadata` | **warning** when a theme was generated by an older algorithm than the current one | Framework detection reads dependencies and prefers the **most specific** match: a Next.js app also depends on `react`, so Next.js wins.",
+    "type": "cli"
+  },
+  {
+    "title": "Warnings are not failures",
+    "route": "/cli/doctor",
+    "text": "Warnings are not failures A project with warnings is still healthy: | State | Exit | | ----- | ---- | | No errors | `0` — including a warnings-only project | | Any error | `3` | | Not a directory, or an unreadable project | `1` |",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/doctor",
+    "text": "JSON output ```bash themvora doctor --json ``` ```json { \"directory\": \"/path/to/project\", \"framework\": { \"id\": \"react\", \"displayName\": \"React\", \"initSupported\": true }, \"packageManager\": \"pnpm\", \"findings\": [ { \"id\": \"theme-config\", \"level\": \"warning\", \"title\": \"Theme config\", \"detail\": \"no theme.config.ts found\", \"fix\": \"Add a theme.config.ts so the pre-paint bootstrap and the runtime read one registry.\" } ], \"summary\": { \"errors\": 0, \"warnings\": 1, \"info\": 5, \"healthy\": true } } ``` `--quiet` prints only warnings and errors.",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/doctor",
+    "text": "Next Steps - [Audit a theme](./audit) - [Explain a theme](./explain) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/doctor",
+    "text": "Related - [Themvora Quick Start](../quickstart) - [Zero-flash theming](../../zero-flash) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "type": "cli"
+  },
+  {
+    "title": "Prerequisites",
+    "route": "/cli/explain",
+    "text": "Prerequisites - Node.js 18+ - Project with @themvora/cli installed or npx access Explain how a theme came to be: its source, its recipe, the identity or brand anchors behind it, the contrast contract it was solved against, the semantic mapping of every role, and a validation summary. It explains the **result**, not the solver. There is no iteration log here, and nothing is re-derived — every value comes from an existing public API, so the numbers cannot disagree with the preset audit or the docs. <!-- cli-command:generated:start -->",
     "type": "cli"
   },
   {
@@ -11378,7 +11720,55 @@
   {
     "title": "Examples",
     "route": "/cli/explain",
-    "text": "Examples ```bash themvora explain --preset mint themvora explain --brand apple themvora explain --seed \"#6366f1\" themvora explain theme.json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash themvora explain --preset mint themvora explain --brand apple themvora explain --seed \"#6366f1\" themvora explain theme.json ``` A preset or brand id is also accepted positionally, resolved the same way [`diff`](./diff) resolves its sources: an existing file, then a preset id, then a brand id. ## Output ``` source resolved preset mint kind curated preset family mint style soft character Cool · Soft · Restrained tags cool, soft, restrained radius 18px temperature neutral seed #059669 algorithm semantic-v2 constraint contract text 4.5:1 large text 3:1 ui 3:1 semantic mapping mint-light Canvas background #e9f3ee foreground #131d18 Body text on the page canvas muted #dfe9e4 mutedForeground #5e6662 Supporting text on the canvas Actions primary #32936c primaryForeground #0a140f The label on a primary action ... validation light valid · 9/9 checks · text 9/9 · ui 7/7 dark valid · 9/9 checks · text 9/9 · ui 7/7 ``` Each section answers one of the plan's questions: | Section | Answers | | ------- | ------- | | `source` | Where this theme came from, and how it was resolved | | `identity` | For a brand recipe: the reference material, the pinned anchors, and any normalization | | `constraint contract` | The contrast floors the theme was solved against | | `semantic mapping` | Every role, its resolved value, and the usage core promises for it | | `validation` | The canonical scorecard, per mode | ## Brand recipes A brand source adds an `identity` block, drawn from the recipe's own reference data: ``` identity reference Apple · official-guidelines https://developer.apple.com/design/human-interface-guidelines/color design system: yes · light/dark: yes anchors 2 pinned light primary #007aff System Blue dark primary #007aff System Blue normalized every anchor survived exactly ``` - **`anchors`** are the brand values the generator pins exactly rather than generating around. - **`normalized`** lists anchors the solver had to move to keep the theme readable. When nothing moved it says so. (No shipped brand currently reports a moved anchor — the channel is reported honestly and is empty.) - The canonical brand disclaimer is printed verbatim, so a page that shows a brand preset states the same thing everywhere. ## What it does not explain Two things the CLI deliberately does not report, because core does not expose them: - **Derived seed identity** (hue, chroma, temperature) for a `--seed` source. The identity layer is internal to the generation engine, which keeps all colour math in one module. `explain --seed` reports the seed, the style and the contract instead. - **Solver repairs** for non-brand sources. The generator exposes no repair data for a seed, and its internal report returns empty adjustment lists. ## JSON output `--json` emits the same explanation as a document: ```json { \"source\": { \"kind\": \"preset\", \"id\": \"mint\", \"label\": \"preset mint\" }, \"recipe\": { \"name\": \"Mint\", \"family\": \"mint\", \"kind\": \"curated preset\", \"style\": \"soft\", \"character\": \"Cool · Soft · Restrained\", \"tags\": [\"cool\", \"soft\", \"restrained\"], \"radius\": \"18px\", \"temperature\": \"neutral\", \"seed\": \"#059669\", \"algorithm\": \"semantic-v2\", \"provenance\": null, \"brandColor\": null, \"disclaimer\": null }, \"identity\": null, \"contract\": { \"text\": 4.5, \"largeText\": 3, \"ui\": 3 }, \"modes\": { \"light\": { \"name\": \"mint-light\", \"roles\": [ { \"path\": \"colors.foreground\", \"role\": \"foreground\", \"roleGroup\": \"Canvas\", \"value\": \"#131d18\", \"usage\": \"Body text on the page canvas\" } ], \"validation\": { \"valid\": true, \"issues\": [], \"score\": { \"passed\": 9, \"total\": 9, \"checks\": [] }, \"contrast\": { \"pairs\": 16, \"text\": { \"total\": 9, \"passing\": 9 }, \"ui\": { \"total\": 7, \"passing\": 7 } } } } } } ``` `identity` is `null` for a preset, a seed, and a theme file — only a brand recipe has one. ## Exit codes | Code | Meaning | | ---- | ------- | | `0` | Explained successfully. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). | | `2` | Usage error: no source, more than one source, an unresolvable id, or an invalid seed. | ## Next Steps - [Diff two themes](./diff) - [Inspect a theme](./inspect) - [CLI reference](./reference) ## Related - [Theme generation](../../theme-generation) - [Presets](../presets) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "text": "Examples ```bash themvora explain --preset mint themvora explain --brand apple themvora explain --seed \"#6366f1\" themvora explain theme.json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/explain",
+    "text": "Examples ```bash themvora explain --preset mint themvora explain --brand apple themvora explain --seed \"#6366f1\" themvora explain theme.json ``` A preset or brand id is also accepted positionally, resolved the same way [`diff`](./diff) resolves its sources: an existing file, then a preset id, then a brand id.",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/explain",
+    "text": "Output ``` source resolved preset mint kind curated preset family mint style soft character Cool · Soft · Restrained tags cool, soft, restrained radius 18px temperature neutral seed #059669 algorithm semantic-v2 constraint contract text 4.5:1 large text 3:1 ui 3:1 semantic mapping mint-light Canvas background #e9f3ee foreground #131d18 Body text on the page canvas muted #dfe9e4 mutedForeground #5e6662 Supporting text on the canvas Actions primary #32936c primaryForeground #0a140f The label on a primary action ... validation light valid · 9/9 checks · text 9/9 · ui 7/7 dark valid · 9/9 checks · text 9/9 · ui 7/7 ``` Each section answers one of the plan's questions: | Section | Answers | | ------- | ------- | | `source` | Where this theme came from, and how it was resolved | | `identity` | For a brand recipe: the reference material, the pinned anchors, and any normalization | | `constraint contract` | The contrast floors the theme was solved against | | `semantic mapping` | Every role, its resolved value, and the usage core promises for it | | `validation` | The canonical scorecard, per mode |",
+    "type": "cli"
+  },
+  {
+    "title": "Brand recipes",
+    "route": "/cli/explain",
+    "text": "Brand recipes A brand source adds an `identity` block, drawn from the recipe's own reference data: ``` identity reference Apple · official-guidelines https://developer.apple.com/design/human-interface-guidelines/color design system: yes · light/dark: yes anchors 2 pinned light primary #007aff System Blue dark primary #007aff System Blue normalized every anchor survived exactly ``` - **`anchors`** are the brand values the generator pins exactly rather than generating around. - **`normalized`** lists anchors the solver had to move to keep the theme readable. When nothing moved it says so. (No shipped brand currently reports a moved anchor — the channel is reported honestly and is empty.) - The canonical brand disclaimer is printed verbatim, so a page that shows a brand preset states the same thing everywhere.",
+    "type": "cli"
+  },
+  {
+    "title": "What it does not explain",
+    "route": "/cli/explain",
+    "text": "What it does not explain Two things the CLI deliberately does not report, because core does not expose them: - **Derived seed identity** (hue, chroma, temperature) for a `--seed` source. The identity layer is internal to the generation engine, which keeps all colour math in one module. `explain --seed` reports the seed, the style and the contract instead. - **Solver repairs** for non-brand sources. The generator exposes no repair data for a seed, and its internal report returns empty adjustment lists.",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/explain",
+    "text": "JSON output `--json` emits the same explanation as a document: ```json { \"source\": { \"kind\": \"preset\", \"id\": \"mint\", \"label\": \"preset mint\" }, \"recipe\": { \"name\": \"Mint\", \"family\": \"mint\", \"kind\": \"curated preset\", \"style\": \"soft\", \"character\": \"Cool · Soft · Restrained\", \"tags\": [\"cool\", \"soft\", \"restrained\"], \"radius\": \"18px\", \"temperature\": \"neutral\", \"seed\": \"#059669\", \"algorithm\": \"semantic-v2\", \"provenance\": null, \"brandColor\": null, \"disclaimer\": null }, \"identity\": null, \"contract\": { \"text\": 4.5, \"largeText\": 3, \"ui\": 3 }, \"modes\": { \"light\": { \"name\": \"mint-light\", \"roles\": [ { \"path\": \"colors.foreground\", \"role\": \"foreground\", \"roleGroup\": \"Canvas\", \"value\": \"#131d18\", \"usage\": \"Body text on the page canvas\" } ], \"validation\": { \"valid\": true, \"issues\": [], \"score\": { \"passed\": 9, \"total\": 9, \"checks\": [] }, \"contrast\": { \"pairs\": 16, \"text\": { \"total\": 9, \"passing\": 9 }, \"ui\": { \"total\": 7, \"passing\": 7 } } } } } } ``` `identity` is `null` for a preset, a seed, and a theme file — only a brand recipe has one.",
+    "type": "cli"
+  },
+  {
+    "title": "Exit codes",
+    "route": "/cli/explain",
+    "text": "Exit codes | Code | Meaning | | ---- | ------- | | `0` | Explained successfully. | | `1` | A source was accepted but could not be used (unreadable file, invalid JSON or JSONC). | | `2` | Usage error: no source, more than one source, an unresolvable id, or an invalid seed. |",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/explain",
+    "text": "Next Steps - [Diff two themes](./diff) - [Inspect a theme](./inspect) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/explain",
+    "text": "Related - [Theme generation](../../theme-generation) - [Presets](../presets) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
     "type": "cli"
   },
   {
@@ -11712,6 +12102,12 @@
     "type": "cli"
   },
   {
+    "title": "Prerequisites",
+    "route": "/cli/inspect",
+    "text": "Prerequisites - Node.js 18+ - Theme JSON file(s) to inspect - Project with @themvora/cli installed or npx access Print a human-readable summary of what is inside a theme: its provenance, semantic token groups, resolved colours, and accessibility. Useful for documentation, review, and explaining a theme to a teammate. <!-- cli-command:generated:start -->",
+    "type": "cli"
+  },
+  {
     "title": "Synopsis — Inspect a theme",
     "route": "/cli/inspect",
     "text": "Synopsis — Inspect a theme ```text Usage: themvora inspect <file> [options] ``` | Argument | Description | | -------- | ----------- | | `<file>` | Theme file to inspect. |",
@@ -11732,7 +12128,115 @@
   {
     "title": "Examples",
     "route": "/cli/inspect",
-    "text": "Examples ```bash themvora inspect theme.json themvora inspect theme.json --generation themvora inspect theme.json --accessibility --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash themvora inspect themes/plum-dark.json themvora inspect theme.json # a light + dark pair # One section at a time themvora inspect theme.json --generation themvora inspect theme.json --tokens themvora inspect theme.json --colors themvora inspect theme.json --accessibility # Machine-readable themvora inspect theme.json --json ``` With no selector, every section is shown. ## Output For a single theme: ``` Theme: mint-light Mode: light Family: mint Label: Mint Light Version: N/A Provenance: Algorithm semantic-v2 Seed #059669 Style soft Tokens: colors: 21 items radius: 1 items Colors: background #f8fbf9 foreground #12211a primary #0a8f5f ... Accessibility: contrast 9/9 text · 7/7 ui pairs meet the floor relationships no issues ``` For a `{ light, dark }` pair, each theme is printed with its own index: ```text Theme 1: mint-light ... Theme 2: mint-dark ``` ## Provenance `Provenance` reports the generation metadata the theme carries — the algorithm, the seed it was generated from, the style, and any roles pinned to a brand anchor. It is read straight from `meta.generation`; nothing is inferred. A theme with no provenance is labelled as such, and `inspect` only suggests `migrate` when a registered migration step actually applies to the file: ``` Provenance: not recorded — this theme was not produced by the generator. ``` ## Accessibility The `Accessibility` section reuses core's own checks: the canonical `measureThemeContrast()` measurement for the ratio counts, and `validateThemeLevels()` for the relationship and CVD diagnostics. `inspect` never re-derives a ratio. Note that this section is diagnostic. A hand-authored theme can report issues here and still be perfectly valid — see [validate](./validate) for why the two commands draw that line where they do. ## JSON output `--json` emits the same data as a document. For a single theme the theme object is the root; for a pair it is `{ \"themes\": [ … ] }`. ```bash themvora inspect theme.json --json ``` ```json { \"themes\": [ { \"name\": \"mint-light\", \"mode\": \"light\", \"family\": \"mint\", \"generation\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#059669\", \"style\": \"soft\", \"anchored\": [] }, \"tokens\": { \"groups\": [{ \"name\": \"colors\", \"count\": 21 }] }, \"colors\": { \"background\": \"#f8fbf9\" }, \"accessibility\": { \"pairs\": 16, \"text\": { \"total\": 9, \"passing\": 9 }, \"ui\": { \"total\": 7, \"passing\": 7 }, \"diagnostics\": [] } } ] } ``` ## Exit codes | Code | Meaning | | ---- | ------- | | `0` | Inspected successfully. | | `1` | File not found, unreadable, or not parseable as JSON or JSONC. | | `2` | No theme file supplied. | ## Next Steps - [Migrate themes to new schema](./migrate) - [Export current tokens](./export) - [Validate theme structure](./validate) - [CLI reference](./reference) ## Related - [Themvora Quick Start](../quickstart) - [Custom Themes](../../custom-themes) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "text": "Examples ```bash themvora inspect theme.json themvora inspect theme.json --generation themvora inspect theme.json --accessibility --json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/inspect",
+    "text": "Examples ```bash themvora inspect themes/plum-dark.json themvora inspect theme.json # a light + dark pair # One section at a time themvora inspect theme.json --generation themvora inspect theme.json --tokens themvora inspect theme.json --colors themvora inspect theme.json --accessibility # Machine-readable themvora inspect theme.json --json ``` With no selector, every section is shown.",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/inspect",
+    "text": "Output For a single theme: ``` Theme: mint-light Mode: light Family: mint Label: Mint Light Version: N/A Provenance: Algorithm semantic-v2 Seed #059669 Style soft Tokens: colors: 21 items radius: 1 items Colors: background #f8fbf9 foreground #12211a primary #0a8f5f ... Accessibility: contrast 9/9 text · 7/7 ui pairs meet the floor relationships no issues ``` For a `{ light, dark }` pair, each theme is printed with its own index: ```text Theme 1: mint-light ... Theme 2: mint-dark ```",
+    "type": "cli"
+  },
+  {
+    "title": "Provenance",
+    "route": "/cli/inspect",
+    "text": "Provenance `Provenance` reports the generation metadata the theme carries — the algorithm, the seed it was generated from, the style, and any roles pinned to a brand anchor. It is read straight from `meta.generation`; nothing is inferred. A theme with no provenance is labelled as such, and `inspect` only suggests `migrate` when a registered migration step actually applies to the file: ``` Provenance: not recorded — this theme was not produced by the generator. ```",
+    "type": "cli"
+  },
+  {
+    "title": "Accessibility",
+    "route": "/cli/inspect",
+    "text": "Accessibility The `Accessibility` section reuses core's own checks: the canonical `measureThemeContrast()` measurement for the ratio counts, and `validateThemeLevels()` for the relationship and CVD diagnostics. `inspect` never re-derives a ratio. Note that this section is diagnostic. A hand-authored theme can report issues here and still be perfectly valid — see [validate](./validate) for why the two commands draw that line where they do.",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/inspect",
+    "text": "JSON output `--json` emits the same data as a document. For a single theme the theme object is the root; for a pair it is `{ \"themes\": [ … ] }`. ```bash themvora inspect theme.json --json ``` ```json { \"themes\": [ { \"name\": \"mint-light\", \"mode\": \"light\", \"family\": \"mint\", \"generation\": { \"algorithm\": \"semantic-v2\", \"seed\": \"#059669\", \"style\": \"soft\", \"anchored\": [] }, \"tokens\": { \"groups\": [{ \"name\": \"colors\", \"count\": 21 }] }, \"colors\": { \"background\": \"#f8fbf9\" }, \"accessibility\": { \"pairs\": 16, \"text\": { \"total\": 9, \"passing\": 9 }, \"ui\": { \"total\": 7, \"passing\": 7 }, \"diagnostics\": [] } } ] } ```",
+    "type": "cli"
+  },
+  {
+    "title": "Exit codes",
+    "route": "/cli/inspect",
+    "text": "Exit codes | Code | Meaning | | ---- | ------- | | `0` | Inspected successfully. | | `1` | File not found, unreadable, or not parseable as JSON or JSONC. | | `2` | No theme file supplied. |",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/inspect",
+    "text": "Next Steps - [Migrate themes to new schema](./migrate) - [Export current tokens](./export) - [Validate theme structure](./validate) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/inspect",
+    "text": "Related - [Themvora Quick Start](../quickstart) - [Custom Themes](../../custom-themes) - [API Reference](../../api-reference) Next: [migrate](/cli/migrate).",
+    "type": "cli"
+  },
+  {
+    "title": "Prerequisites",
+    "route": "/cli/installation",
+    "text": "Prerequisites - Node.js 18+ (the CLI's published `engines.node` is `>=18`) - npm, pnpm, yarn, or bun installed The CLI is a development tool. It reads and writes theme files, so it does not belong in an application's runtime dependencies. The repository itself requires Node.js 22.23.4 to build the monorepo; that contributor requirement is separate from what a consumer needs to run the published CLI. See [the Node.js support policy](/reference/compatibility#node-js-support-policy) for the full breakdown. Teams usually prefer the **project-local** approach so every human and pipeline runs the identical version; individuals often install globally.",
+    "type": "cli"
+  },
+  {
+    "title": "1. Install globally (any directory)",
+    "route": "/cli/installation",
+    "text": "1. Install globally (any directory) ```bash # npm — `-g` is npm's global-install flag npm install -g @themvora/cli # pnpm uses the long `--global` form pnpm add --global @themvora/cli # yarn (yarn 2+ with global support) yarn global add @themvora/cli ``` > Installing globally: each package manager spells it differently. npm uses > `npm install -g <pkg>`, pnpm uses `pnpm add --global <pkg>`, and yarn uses > `yarn global add <pkg>`. In a team, prefer [project-local](#3-add-it-to-one-project-recommended) > so the version is reviewed and reproducible. After a global install, `themvora` is on your shell's PATH and runs from any directory. The packager writes a small shim for **every** platform, so `themvora` works identically from Windows cmd, Windows PowerShell, macOS Terminal (`bash`/`zsh`), and Linux (`bash`). ```bash themvora --version themvora --help ```",
+    "type": "cli"
+  },
+  {
+    "title": "2. On demand with npx (zero install)",
+    "route": "/cli/installation",
+    "text": "2. On demand with npx (zero install) `npx` ships with Node and downloads the package when you run it: ```bash npx --yes @themvora/cli generate --seed \"#6366f1\" ``` npm, pnpm, yarn, and bun all resolve the same package name.",
+    "type": "cli"
+  },
+  {
+    "title": "3. Add it to one project (recommended)",
+    "route": "/cli/installation",
+    "text": "3. Add it to one project (recommended) Install the published package as a development dependency. The CLI version in this example (`1.3.1`) is the current published release; using a caret range keeps patch and minor updates reviewable through your lockfile. ```bash # pnpm pnpm add -D @themvora/cli # npm npm install -D @themvora/cli # yarn yarn add -D @themvora/cli # bun bun add -d @themvora/cli ``` ```json { \"scripts\": { \"theme:generate\": \"themvora generate --seed \\\"#6366f1\\\" --family indigo --output theme.json\" }, \"devDependencies\": { \"@themvora/cli\": \"^1.3.1\" } } ``` ```bash npm run theme:generate ``` A project-local dependency is deterministic: version bumps are reviewed in the same PR that changes the script, so machines and humans agree.",
+    "type": "cli"
+  },
+  {
+    "title": "4. Monorepo contributors — pnpm workspace",
+    "route": "/cli/installation",
+    "text": "4. Monorepo contributors — pnpm workspace This form only works **inside this repository**, where the package exists in the pnpm workspace. It is not a public installation instruction and will fail in an external project: ```json { \"devDependencies\": { \"@themvora/cli\": \"workspace:*\" } } ``` If you are contributing to the Themvora monorepo, run `pnpm install` from the repository root and use the workspace scripts (`pnpm --filter @themvora/cli …`) rather than adding a `file:` or `workspace:` dependency to a consumer project.",
+    "type": "cli"
+  },
+  {
+    "title": "5. Set up shell completion",
+    "route": "/cli/installation",
+    "text": "5. Set up shell completion Once `themvora` is on your PATH, you can enable shell completion. See [`themvora completion`](./completion) for the full setup.",
+    "type": "cli"
+  },
+  {
+    "title": "Prefer a direct alias instead of installing?",
+    "route": "/cli/installation",
+    "text": "Prefer a direct alias instead of installing? If you already have a clone or a built copy, you can alias the built entry point: ```bash alias themvora=\"node /path/to/themvora/packages/cli/dist/cli.cjs\" ``` This is a contributor shortcut, not the supported installation path for consumers.",
+    "type": "cli"
+  },
+  {
+    "title": "Verify the executable, not the workspace",
+    "route": "/cli/installation",
+    "text": "Verify the executable, not the workspace A package's `bin` only proves portable if you test it from a **separate directory** — not just from inside this monorepo. From any empty folder: ```bash mkdir themvora-cli-test cd themvora-cli-test npx --yes @themvora/cli --version ``` That confirms the published package resolves your executable rather than a workspace shortcut.",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/installation",
+    "text": "Next Steps - [Run your first theme workflow](./quickstart) - [Generate a theme from a seed color](./generate) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/installation",
+    "text": "Related - [Themvora Quick Start](../quickstart) - [Core Concepts](../../core-concepts) - [API Reference](../../api-reference) Next: [Quick Start](/cli/quickstart).",
     "type": "cli"
   },
   {
@@ -12462,6 +12966,12 @@
     "type": "cli"
   },
   {
+    "title": "Prerequisites",
+    "route": "/cli/validate",
+    "text": "Prerequisites - Node.js 18+ - Theme file(s) to validate - Project with @themvora/cli installed or npx access Check a theme file against the Themvora contract. It is a CI tool — run it before commit and in a pipeline, and branch on the exit code. <!-- cli-command:generated:start -->",
+    "type": "cli"
+  },
+  {
     "title": "Synopsis — Validate a theme",
     "route": "/cli/validate",
     "text": "Synopsis — Validate a theme ```text Usage: themvora validate <file> [options] ``` | Argument | Description | | -------- | ----------- | | `<file>` | Theme file to validate. |",
@@ -12482,7 +12992,61 @@
   {
     "title": "Examples",
     "route": "/cli/validate",
-    "text": "Examples ```bash themvora validate theme.json themvora validate theme.json --json themvora check theme.json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end --> ## Examples ```bash themvora validate theme.json themvora validate themes/berry.json themvora validate theme.json --json ``` The file may be a single theme or a `{ light, dark }` pair; both are validated. ### Comments and trailing commas Theme files may be JSONC. `//` and `/* … */` comments and trailing commas are accepted — this is a syntax excerpt, not a complete theme: ```jsonc { // The brand colour. \"name\": \"brand-light\", \"tokens\": { \"colors\": { \"primary\": \"#4f46e5\", // trailing commas are fine too }, }, } ``` The same parser is used by the VS Code extension (`parseThemeJson()` in `@themvora/core`), so a commented theme behaves identically in the editor and in CI — diagnostics, hovers and colour swatches included. **Only** comments and trailing commas are tolerated. Unquoted keys, single-quoted strings and other JSON5 syntax are not: `JSON.parse` still decides what the values are, and the tolerance is applied by blanking the extra syntax first. Package manifests such as `package.json` are read as strict JSON and are unaffected. A genuinely malformed file still fails, and the message says where the parser gave up: ```text Error: file is not valid JSON or JSONC: themes/broken.json — Expected double-quoted property name in JSON at position 17 (line 3 column 1) ``` ## What it checks `validate` reports the layers Themvora core actually provides. Each layer comes from the shipped API — there is no second validator inside the CLI. | Layer | Source | Decides the exit code? | | ----- | ------ | ---------------------- | | `required` | `validateTheme()` — the frozen contract | **Yes** | | `structure` | `validateThemeLevels()` | No — reported | | `semantic` | `validateThemeLevels()` (semantic + visual) | No — reported | | `contrast` | `validateThemeLevels()` | No — reported | | `accessibility` | `validateThemeLevels()` (CVD diagnostics) | No — reported | | `measured` | `measureThemeContrast()` — the canonical ratio measurement | No — reported | ### Why only one layer decides the exit code `required` is the contract that shipped first, and it is what existing pipelines already branch on. The deeper layers are stricter: they flag, for example, an `input` token that sits below the UI contrast floor, or a `card` and `popover` that are not visually distinguishable. Turning those into failures by default would make themes that pass today start failing — a breaking change to a tool people run in CI. So they are **reported** here, and *gating* on them belongs to `themvora audit`. ## Output On success, the summary line is followed by the layer breakdown: ``` ✓ Theme is valid: mint-light + mint-dark mint-light structure pass semantic pass contrast pass accessibility pass measured 16 pairs · text 12/12 · ui 4/4 ``` A theme that is structurally valid but has deeper problems says so without failing: ``` ✓ Theme is valid: forest-light + forest-dark forest-light structure pass semantic 1 issue(s) · `card` and `popover` are not distinguishable (ΔL 0.000 < 0.005) contrast 2 issue(s) · input/background is 1.40:1, below 3:1 · input/card is 1.45:1, below 3:1 accessibility pass measured 16 pairs · text 9/9 · ui 5/7 ``` On failure, every missing token is listed and the command exits `3`: ``` ✗ Theme is invalid: x - Missing token: `colors.background` - Missing token: `colors.foreground` (validation failed for 1 theme) ``` `--quiet` suppresses the success summary. It never suppresses errors. ## JSON output `--json` emits one document on stdout, with nothing else mixed in — diagnostics never contaminate a payload. ```bash themvora validate theme.json --json ``` ```json { \"valid\": true, \"themes\": [ { \"name\": \"mint-light\", \"valid\": true, \"issues\": [], \"layers\": [ { \"layer\": \"structure\", \"issues\": [] }, { \"layer\": \"contrast\", \"issues\": [] } ], \"contrast\": { \"pairs\": 16, \"text\": { \"total\": 12, \"passing\": 12 }, \"ui\": { \"total\": 4, \"passing\": 4 } } } ], \"summary\": { \"themes\": 2, \"valid\": 2, \"invalid\": 0 } } ``` The shape is stable: `valid` mirrors the exit code, `themes` is in file order, and `summary` is the aggregate. A failing run still emits the document *and* exits `3`. ## Exit codes | Code | Meaning | | ---- | ------- | | `0` | Theme is valid. | | `1` | File not found, unreadable, or not parseable as JSON or JSONC. | | `2` | No theme file supplied (invalid arguments). | | `3` | Validation failed (issues are listed). | Because failure is a real nonzero exit code, `validate` works in any build tool: ```bash themvora validate themes/ || exit 1 ``` ## Next Steps - [Inspect validation output](./inspect) - [Export as CSS or JSON](./export) - [CLI reference](./reference) ## Related - [Themvora Quick Start](../quickstart) - [Custom Themes](../../custom-themes) - [API Reference](../../api-reference) Next: [inspect](/cli/inspect).",
+    "text": "Examples ```bash themvora validate theme.json themvora validate theme.json --json themvora check theme.json ``` > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders. <!-- cli-command:generated:end -->",
+    "type": "cli"
+  },
+  {
+    "title": "Examples",
+    "route": "/cli/validate",
+    "text": "Examples ```bash themvora validate theme.json themvora validate themes/berry.json themvora validate theme.json --json ``` The file may be a single theme or a `{ light, dark }` pair; both are validated.",
+    "type": "cli"
+  },
+  {
+    "title": "Comments and trailing commas",
+    "route": "/cli/validate",
+    "text": "Comments and trailing commas Theme files may be JSONC. `//` and `/* … */` comments and trailing commas are accepted — this is a syntax excerpt, not a complete theme: ```jsonc { // The brand colour. \"name\": \"brand-light\", \"tokens\": { \"colors\": { \"primary\": \"#4f46e5\", // trailing commas are fine too }, }, } ``` The same parser is used by the VS Code extension (`parseThemeJson()` in `@themvora/core`), so a commented theme behaves identically in the editor and in CI — diagnostics, hovers and colour swatches included. **Only** comments and trailing commas are tolerated. Unquoted keys, single-quoted strings and other JSON5 syntax are not: `JSON.parse` still decides what the values are, and the tolerance is applied by blanking the extra syntax first. Package manifests such as `package.json` are read as strict JSON and are unaffected. A genuinely malformed file still fails, and the message says where the parser gave up: ```text Error: file is not valid JSON or JSONC: themes/broken.json — Expected double-quoted property name in JSON at position 17 (line 3 column 1) ```",
+    "type": "cli"
+  },
+  {
+    "title": "What it checks",
+    "route": "/cli/validate",
+    "text": "What it checks `validate` reports the layers Themvora core actually provides. Each layer comes from the shipped API — there is no second validator inside the CLI. | Layer | Source | Decides the exit code? | | ----- | ------ | ---------------------- | | `required` | `validateTheme()` — the frozen contract | **Yes** | | `structure` | `validateThemeLevels()` | No — reported | | `semantic` | `validateThemeLevels()` (semantic + visual) | No — reported | | `contrast` | `validateThemeLevels()` | No — reported | | `accessibility` | `validateThemeLevels()` (CVD diagnostics) | No — reported | | `measured` | `measureThemeContrast()` — the canonical ratio measurement | No — reported |",
+    "type": "cli"
+  },
+  {
+    "title": "Why only one layer decides the exit code",
+    "route": "/cli/validate",
+    "text": "Why only one layer decides the exit code `required` is the contract that shipped first, and it is what existing pipelines already branch on. The deeper layers are stricter: they flag, for example, an `input` token that sits below the UI contrast floor, or a `card` and `popover` that are not visually distinguishable. Turning those into failures by default would make themes that pass today start failing — a breaking change to a tool people run in CI. So they are **reported** here, and *gating* on them belongs to `themvora audit`.",
+    "type": "cli"
+  },
+  {
+    "title": "Output",
+    "route": "/cli/validate",
+    "text": "Output On success, the summary line is followed by the layer breakdown: ``` ✓ Theme is valid: mint-light + mint-dark mint-light structure pass semantic pass contrast pass accessibility pass measured 16 pairs · text 12/12 · ui 4/4 ``` A theme that is structurally valid but has deeper problems says so without failing: ``` ✓ Theme is valid: forest-light + forest-dark forest-light structure pass semantic 1 issue(s) · `card` and `popover` are not distinguishable (ΔL 0.000 < 0.005) contrast 2 issue(s) · input/background is 1.40:1, below 3:1 · input/card is 1.45:1, below 3:1 accessibility pass measured 16 pairs · text 9/9 · ui 5/7 ``` On failure, every missing token is listed and the command exits `3`: ``` ✗ Theme is invalid: x - Missing token: `colors.background` - Missing token: `colors.foreground` (validation failed for 1 theme) ``` `--quiet` suppresses the success summary. It never suppresses errors.",
+    "type": "cli"
+  },
+  {
+    "title": "JSON output",
+    "route": "/cli/validate",
+    "text": "JSON output `--json` emits one document on stdout, with nothing else mixed in — diagnostics never contaminate a payload. ```bash themvora validate theme.json --json ``` ```json { \"valid\": true, \"themes\": [ { \"name\": \"mint-light\", \"valid\": true, \"issues\": [], \"layers\": [ { \"layer\": \"structure\", \"issues\": [] }, { \"layer\": \"contrast\", \"issues\": [] } ], \"contrast\": { \"pairs\": 16, \"text\": { \"total\": 12, \"passing\": 12 }, \"ui\": { \"total\": 4, \"passing\": 4 } } } ], \"summary\": { \"themes\": 2, \"valid\": 2, \"invalid\": 0 } } ``` The shape is stable: `valid` mirrors the exit code, `themes` is in file order, and `summary` is the aggregate. A failing run still emits the document *and* exits `3`.",
+    "type": "cli"
+  },
+  {
+    "title": "Exit codes",
+    "route": "/cli/validate",
+    "text": "Exit codes | Code | Meaning | | ---- | ------- | | `0` | Theme is valid. | | `1` | File not found, unreadable, or not parseable as JSON or JSONC. | | `2` | No theme file supplied (invalid arguments). | | `3` | Validation failed (issues are listed). | Because failure is a real nonzero exit code, `validate` works in any build tool: ```bash themvora validate themes/ || exit 1 ```",
+    "type": "cli"
+  },
+  {
+    "title": "Next Steps",
+    "route": "/cli/validate",
+    "text": "Next Steps - [Inspect validation output](./inspect) - [Export as CSS or JSON](./export) - [CLI reference](./reference)",
+    "type": "cli"
+  },
+  {
+    "title": "Related",
+    "route": "/cli/validate",
+    "text": "Related - [Themvora Quick Start](../quickstart) - [Custom Themes](../../custom-themes) - [API Reference](../../api-reference) Next: [inspect](/cli/inspect).",
     "type": "cli"
   },
   {
@@ -12538,6 +13102,156 @@
     "route": "/cli/workflows",
     "text": "Next Steps - [Run in CI](/cli/ci) — wire validate into your build pipeline. - [CLI reference](/cli/reference) — all options and exit codes. - [Presets](/cli/presets) · [brands](/cli/brands) · [styles](/cli/styles) — what the registries contain. - [Custom Themes](/custom-themes) — author a theme by hand. - [Adapters](/adapters) — map runtime tokens to MUI, shadcn, Bootstrap.",
     "type": "cli"
+  },
+  {
+    "title": "Theme",
+    "route": "/core-concepts",
+    "text": "Theme A **theme** is a named set of semantic tokens plus metadata. Themes are plain, serializable objects — no classes, no magic. ```ts interface ThemeDefinition { name: string; // e.g. \"plum-dark\" extends?: string | string[]; // inherit from another theme meta?: ThemeMeta; // label, family, mode, order, tags, version... tokens?: ThemeTokens; // colors, spacing, radius, shadows, ... } ``` A concrete theme looks like this: ```ts import { defineTheme } from \"@themvora/core\"; const plumDark = defineTheme({ name: \"plum-dark\", meta: { family: \"plum\", mode: \"dark\", label: \"Plum Dark\", order: 20, tags: [\"preset\"], }, tokens: { colors: { background: \"#171123\", foreground: \"#f6f1fb\", primary: \"#a78bfa\", card: \"#221a33\", border: \"#3b2d55\", // ... every semantic role }, radius: { lg: \"14px\" }, }, }); ``` `meta` also carries `created` and `updated` timestamps (added automatically when a theme is registered), plus `version` for migrations.",
+    "type": "docs"
+  },
+  {
+    "title": "Token Groups",
+    "route": "/core-concepts",
+    "text": "Token Groups Tokens are grouped by **semantic meaning**, not raw values: - `colors` — nested, recursively-addressable: `colors.surface.default`, `colors.primary`, `colors.accent.hover` - `spacing`, `radius`, `shadows`, `borderWidths`, `zIndex`, `breakpoints` - `typography` — `fontFamilies`, `fontSizes`, `lineHeights` Because tokens are plain nested objects, you can address any leaf by its path — `theme.tokens.colors.primary` — and merge partial overrides safely.",
+    "type": "docs"
+  },
+  {
+    "title": "Mode & Family",
+    "route": "/core-concepts",
+    "text": "Mode & Family - **Mode** — `\"light\" | \"dark\" | \"system\"`. `system` follows the OS with `prefers-color-scheme`. - **Family** — a named set of themes (e.g. `\"plum\"`, `\"mint\"`, `\"apple\"`). Switching family changes the palette; switching mode changes light/dark within that family. ```ts runtime.selection.setFamily(\"plum\"); // plum light/dark pair runtime.selection.setMode(\"dark\"); // whichever plum is active, use dark runtime.selection.toggleTheme(); // flip between light and dark ``` The active theme is always resolved from **family + mode** — the library picks the matching theme in the registry.",
+    "type": "docs"
+  },
+  {
+    "title": "Semantic Token Groups",
+    "route": "/core-concepts",
+    "text": "Semantic Token Groups Nested token objects become **recursive groups**. The emitter walks each group, joins every nested level with `-`, and appends the key **verbatim**: ``` --theme-color-background /* colors.background */ --theme-color-cardForeground /* colors.cardForeground */ --theme-typography-font-size-2xl /* typography.fontSizes[\"2xl\"] */ --theme-shadow-md /* shadows.md */ --theme-breakpoint-lg /* breakpoints.lg */ --theme-radius-lg --theme-spacing-4 ``` Two naming rules follow from \"verbatim\", and both catch people out: - **Colour keys stay camelCase.** The real property is `--theme-color-cardForeground`, not `--theme-color-card-foreground`. Only *nested levels* gain a `-`; a key is never re-cased or split. - **Two group prefixes are singular.** `shadows` emits `--theme-shadow-*` and `breakpoints` emits `--theme-breakpoint-*`, not `--theme-shadows-*` / `--theme-breakpoints-*`. Every token maps to a `--theme-*` variable automatically via `themeToCSSVariables`: ```ts import { themeToCSSVariables } from \"@themvora/core\"; const vars = themeToCSSVariables(plumDark, { prefix: \"theme-\" }); // { \"--theme-color-background\": \"#171123\", \"--theme-radius-lg\": \"14px\", ... } ```",
+    "type": "docs"
+  },
+  {
+    "title": "The Theme Store",
+    "route": "/core-concepts",
+    "text": "The Theme Store A minimal reactive store that holds the active theme. ```ts import { createThemeStore } from \"@themvora/core\"; const store = createThemeStore({ initialTheme: myTheme }); store.get(); // current theme store.set(nextTheme); // apply store.subscribe((theme) => render(theme)); // react to changes store.batch(() => { store.set(a); store.set(b); }); // coalesce writes store.destroy(); ```",
+    "type": "docs"
+  },
+  {
+    "title": "Model Builders",
+    "route": "/core-concepts",
+    "text": "Model Builders Type-safe, zero-cost helpers for composing themes: `defineTheme`, `extendTheme`, `composeTheme`, `mergeThemeDefinitions`, `mergeTokens`, and `resolveTheme`. See the [Tokens reference](/tokens) for full code examples of each builder.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Registry",
+    "route": "/core-concepts",
+    "text": "Theme Registry Every registered theme lives in a registry — the engine behind dynamic theming, family lookups, and theme packs. ```ts import { createThemeRegistry } from \"@themvora/core\"; const registry = createThemeRegistry(); registry.register(theme); registry.registerMany([a, b]); registry.unregister(\"plum-dark\"); registry.replace(\"plum-dark\", newDark); registry.get(\"plum-light\"); registry.has(\"plum-light\"); registry.list(); registry.getFamilies(); // [\"default\", \"oat\", \"plum\", ...] registry.getThemesByFamily(\"plum\"); // plum light + dark // Install a theme pack — a named bundle of themes you supply. registry.use({ name: \"brand\", themes: [brandLight, brandDark] }); ``` A **theme pack** is a named bundle of themes; every theme it installs is stamped with a `pack:<name>` tag in its meta.",
+    "type": "docs"
+  },
+  {
+    "title": "The Theme Runtime",
+    "route": "/core-concepts",
+    "text": "The Theme Runtime `createThemeRuntime` wires everything together — store, registry, selection, persistence, broadcast, DOM bindings, history, lifecycle, and plugins — into one object. ```ts import { createThemeRuntime } from \"@themvora/core\"; const runtime = createThemeRuntime({ defaultTheme: \"light\", transition: { enabled: true, duration: 300 }, plugins: [createPersistencePlugin(), createHistoryPlugin()], }); ``` Every capability is documented with snippets in the **Architecture** section. Key surfaces: `store`, `registry`, `selection`, `themes`, `update`, `use`, `batch`, `snapshot`/`restore`, `history`, `lifecycle`, `destroy`.",
+    "type": "docs"
+  },
+  {
+    "title": "Token Resolution",
+    "route": "/core-concepts",
+    "text": "Token Resolution Tokens support **references and derived values**, resolved lazily at runtime: - **References** — `\"$colors.primary\"` or `\"{colors.primary}\"` point to another token (with circular-reference detection). ```ts { tokens: { colors: { primary: \"#6366f1\", ring: \"$colors.primary\" }, }, } ``` - **Expressions** — numeric math such as `\"calc(100% + 2rem)\"`-style evaluations: ```ts spacing: { \"12\": \"calc(3rem + 0.75rem)\" } ``` - **Derived colors** — `\"contrast(#123456)\"` returns black/white by WCAG luminance; `\"auto()\"` derives a foreground from a base token: ```ts colors: { primary: \"#6366f1\", primaryForeground: \"auto()\", // readable on primary } ``` Utilities: `flattenTokens`, `resolveTokens`, `evaluateExpression`.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Generation",
+    "route": "/core-concepts",
+    "text": "Theme Generation `generateTheme()` produces a complete light + dark theme pair from a single seed color, deriving secondary, muted, accent, card, popover, input, border, and ring colors in OKLCH with WCAG-compliant code tokens. See the [Custom Themes guide](/custom-themes) for the full generation API, style options, and guarantees.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Validation",
+    "route": "/core-concepts",
+    "text": "Theme Validation `validateTheme()` checks that a theme defines all required semantic color tokens, resolving `extends` chains when a theme list is provided. See the [Accessibility guide](/accessibility) for the full validation API and contrast auditing.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme Migration",
+    "route": "/core-concepts",
+    "text": "Theme Migration Version themes with a migration chain so old theme files automatically upgrade to the latest format. See the [Migration guide](/migration) for `registerMigration`, `migrateTheme`, and the full API.",
+    "type": "docs"
+  },
+  {
+    "title": "Theme History (Undo / Redo)",
+    "route": "/core-concepts",
+    "text": "Theme History (Undo / Redo) History is capped (default 50 steps) and records full theme snapshots with timestamps. ```ts runtime.history.undo(); // step back runtime.history.redo(); // step forward runtime.history.jump(i); // jump to any point in time runtime.history.canUndo(); // / canRedo() runtime.history.getHistory(); // / clear() ```",
+    "type": "docs"
+  },
+  {
+    "title": "Lifecycle Events",
+    "route": "/core-concepts",
+    "text": "Lifecycle Events `runtime.lifecycle.on(event, handler)` with typed payloads: | Event | Payload | | ------------------- | ------------------- | | `beforeThemeChange` | `{ current, next }` | | `afterThemeChange` | `{ theme }` | | `beforePersist` | `{ selection }` | | `afterPersist` | `{ selection }` | | `beforeApply` | `{ theme }` | | `afterApply` | `{ theme }` | ```ts const off = runtime.lifecycle.on(\"afterThemeChange\", ({ theme }) => { console.log(\"applied\", theme.name); }); ```",
+    "type": "docs"
+  },
+  {
+    "title": "Plugins",
+    "route": "/core-concepts",
+    "text": "Plugins Plugins hook into the lifecycle and can transform tokens. ```ts interface ThemePlugin { name: string; priority?: number; onBeforeThemeChange?(data): void; onAfterThemeChange?(data): void; onBeforePersist?(data): void; onAfterPersist?(data): void; onBeforeApply?(data): void; onAfterApply?(data): void; transformTokens?(tokens, ctx): ThemeTokens; } ``` **Official plugins:** - `createPersistencePlugin()` — persist selection to localStorage - `createBroadcastPlugin()` — cross-tab sync - `createHistoryPlugin()` — undo/redo - `createAnimationsPlugin()` — theme transition animation control - `createAccessibilityPlugin()` — contrast / accessibility enforcement - `createScheduledPlugin()` — auto light/dark by solar time - `createDebuggerPlugin()` — theme change logging - `createDevToolsPlugin()` — exposes the runtime on `window.__THEMVORA_DEVTOOLS__` for a devtools extension. Core's version is the lightweight bridge (state only); the inspector that records entries and timings is `@themvora/devtools`'s `createDevToolsPlugin`. - `createGenerationPlugin()` — live theme generation from a seed",
+    "type": "docs"
+  },
+  {
+    "title": "Accessibility Toolkit",
+    "route": "/core-concepts",
+    "text": "Accessibility Toolkit ```ts import { getContrastRatio, validateThemeContrast, simulateCVD, simulateThemeForCVD, } from \"@themvora/core\"; const ratio = getContrastRatio(\"#ffffff\", \"#171123\"); // 15.6... const audit = validateThemeContrast(theme); // full theme audit // Color Vision Deficiency simulation (protanopia, deuteranopia, ...) const simulated = simulateCVD(\"#6366f1\", \"deuteranopia\"); ```",
+    "type": "docs"
+  },
+  {
+    "title": "DOM Adapters",
+    "route": "/core-concepts",
+    "text": "DOM Adapters - **CSS Variables binding** — `createCSSVariablesBinding(store, { prefix, target, transition, styleSheet, layerName })`. Writes `--theme-*` variables inline or into a `@layer` stylesheet; batches writes and diffs against previously applied variables for minimal DOM churn. - **DOM Attribute binding** — `createDOMBinding(store, { target, attributeName, transition })`. Sets `data-theme`, `data-theme-family`, `data-theme-mode`, toggles the `.dark` class, and sets `color-scheme`. - **System theme binding** — `createSystemThemeBinding(store, { lightTheme, darkTheme })` — follows `prefers-color-scheme`. - **Scoped theme binding** — `createScopedThemeBinding(themes, target, themeName)` — apply a theme to a subtree. - **Transitions** — `ThemeTransitionOptions`: `enabled`, `duration`, `easing`, `useViewTransition`, `properties[]` (40+ default animated properties). - **View Transitions API** — native `document.startViewTransition` when switching themes. ```ts import { createCSSVariablesBinding, createDOMBinding } from \"@themvora/core\"; const css = createCSSVariablesBinding(store, { prefix: \"theme-\" }); const dom = createDOMBinding(store, { attributeName: \"data-theme\", transition: { enabled: true, duration: 300 }, }); ```",
+    "type": "docs"
+  },
+  {
+    "title": "Multi-Window Sync",
+    "route": "/core-concepts",
+    "text": "Multi-Window Sync Sync theme selection across tabs/windows instantly: - **BroadcastChannel** — primary transport (`createThemeSelectionBroadcast`) - **SharedWorker** — inline blob-based worker relay - **StorageEvent fallback** — `createStorageEventSync` - **Auto strategy** — `createMultiWindowSync({ prefer: \"auto\" | \"broadcast\" | \"sharedworker\" })` picks the best available transport and reports fallbacks - **Zero-flicker** — transitions are suppressed while applying cross-tab syncs ```ts import { createMultiWindowSync } from \"@themvora/core\"; const sync = createMultiWindowSync({ prefer: \"auto\" }); // choose the theme in one tab — every other tab follows instantly ```",
+    "type": "docs"
+  },
+  {
+    "title": "Scheduled Themes (Solar Time)",
+    "route": "/core-concepts",
+    "text": "Scheduled Themes (Solar Time) Automatically switch between light and dark themes based on actual sunrise/sunset. The schedule derives light/dark variants from the active family, auto-detects the visitor's location from their browser timezone, and exposes a separate *effective mode* channel so UI can reflect appearance without overwriting the user's explicit choice. See the [Sunrise & Sunset guide](/sunrise-sunset) for the full configuration API, `getTimes` customization, the configured-vs-effective mode table, and framework accessors.",
+    "type": "docs"
+  },
+  {
+    "title": "Persistence",
+    "route": "/core-concepts",
+    "text": "Persistence - `createPersistencePlugin({ key })` — full selection persistence (mode + family) as a runtime plugin; default key `theme-selection` - `createThemePersistence({ storage, key })` — mode-only persistence (`theme-mode`), returned as a `ThemePersistenceAdapter` for manual wiring (not directly assignable to the runtime `persistence` option) - `ThemeSelectionPersistenceAdapter` — the interface the runtime persistence option expects (`get/set/remove/subscribe` over `{ mode, family }`); default runtime persistence stores `{ mode, family }` under `theme-selection` in localStorage with a `storage` event subscription ```ts import { createPersistencePlugin } from \"@themvora/core\"; // Recommended: full selection (mode + family) persistence const runtime = createThemeRuntime({ plugins: [createPersistencePlugin({ key: \"my-app-theme\" })], }); ```",
+    "type": "docs"
+  },
+  {
+    "title": "Bootstrap (Zero Flash of Wrong Theme)",
+    "route": "/core-concepts",
+    "text": "Bootstrap (Zero Flash of Wrong Theme) - `createThemeBootstrapScript({ themes, defaultTheme, initialMode, initialFamily, storageKey, prefix })` — generates a **blocking inline script** that reads the persisted selection, resolves the effective mode (`system` → `prefers-color-scheme`), and applies CSS variables + DOM effects before first paint. - `buildThemeCssMap(themes)` — maps theme names and `family:mode` keys to flat CSS variable maps. - `darkModeCSSTemplate(variables)` — a `@media (prefers-color-scheme: dark)` block carrying one theme's variables. This is a **pre-script** fallback only. It cannot override an inline `style` on the same element — inline declarations outrank every stylesheet rule regardless of specificity — so do not pair it with a server render that inlines the *light* variables, or an OS-dark visitor keeps the light ones. When the resolved mode is `system`, express both schemes in CSS instead: `systemModeCSSTemplate(light, dark)` from `@themvora/core` — which emits light *and* dark media blocks and expects **no** inline variables. `@themvora/astro` re-exports the same two functions, and `@themvora/angular`'s `createBlockingScriptContent` applies the identical rule internally. ```ts import { createThemeBootstrapScript, buildThemeCssMap, darkModeCSSTemplate, getBuiltInThemes, } from \"@themvora/core\"; // buildThemeCssMap/createThemeBootstrapScript take the registry explicitly; // the built-in set is a valid registry, so no theme file is needed. const themes = getBuiltInThemes(); const cssMap = buildThemeCssMap(themes); const script = createThemeBootstrapScript({ themes, defaultTheme: \"light\" }); // Neutral themes carry no family, so they are keyed by name only. const fallbackCSS = darkModeCSSTemplate(cssMap[\"dark\"] ?? {}); ```",
+    "type": "docs"
+  },
+  {
+    "title": "Built-in Themes",
+    "route": "/core-concepts",
+    "text": "Built-in Themes The library ships with neutral light/dark themes, nine preset families (Oat, Berry, Mint, Citrus, Cocoa, Plum, Iris, Sky, Graphite), brand presets (Apple, GitHub, Vercel, Slack, Discord), and accessibility profiles (High Contrast, Large Text). See the [Presets page](/presets) for the full catalog and `getPresetThemes()` / `getBrandPresets()` API, and the [Accessibility guide](/accessibility) for the contrast profiles.",
+    "type": "docs"
+  },
+  {
+    "title": "Vanilla (No Framework)",
+    "route": "/core-concepts",
+    "text": "Vanilla (No Framework) `@themvora/core/vanilla` provides the `Themvora` class — framework-free drop-in theming: ```js import { Themvora } from \"@themvora/core/vanilla\"; const kit = new Themvora(); // or Themvora.init() kit.setMode(\"dark\"); kit.setFamily(\"plum\"); kit.toggleTheme(); kit.update({ colors: { primary: \"#07f\" } }); kit.use({ name: \"brand\", themes: [...] }); kit.toCSSVariables(); kit.on(\"themeChange\", (theme) => console.log(theme.name)); kit.destroy(); ``` Events: `themeChange`, `modeChange`, `familyChange`. Exposes `.runtime`, `.registry`, `.theme`, `.mode`, `.family`, `.themes`.",
+    "type": "docs"
+  },
+  {
+    "title": "Vite Plugin",
+    "route": "/core-concepts",
+    "text": "Vite Plugin `@themvora/core/vite` injects the blocking bootstrap script into `index.html` (`head-prepend`) so the persisted theme applies before first paint in client-rendered apps — no manual inline scripts. ```ts import { defineTheme, defineThemvoraConfig } from \"@themvora/core\"; const themes = [ defineTheme({ name: \"brand-light\", meta: { family: \"brand\", mode: \"light\" }, tokens: { colors: { background: \"#ffffff\" } }, }), defineTheme({ name: \"brand-dark\", meta: { family: \"brand\", mode: \"dark\" }, tokens: { colors: { background: \"#101014\" } }, }), ]; export default defineThemvoraConfig({ themes, defaultTheme: \"brand-light\", // Opt in to following the OS. The plugin's bootstrap and the client runtime // both read this one value, so there is nothing to keep in sync. initialMode: \"system\", }); ``` ```ts import { themvoraVitePlugin } from \"@themvora/core/vite\"; export default defineConfig({ plugins: [react(), themvoraVitePlugin()], }); ``` The plugin **discovers** `theme.config.ts` at the project root, derives the bootstrap from it, and transports the same configuration to the runtime. Do not repeat `themes` / `defaultTheme` / `initialMode` in `vite.config.ts` — declaring them twice is how the script and the runtime drift apart, and a drift is visible as a flash of the wrong theme.",
+    "type": "docs"
+  },
+  {
+    "title": "Framework Integrations",
+    "route": "/core-concepts",
+    "text": "Framework Integrations The same runtime powers every framework integration: - `@themvora/react` — provider, hooks, `ThemeScope`, `ThemeInspector`, `ThemeModeButton` - `@themvora/next` — App Router SSR, cookies, zero-flash hydration - `@themvora/vue`, `@themvora/svelte`, `@themvora/solid`, `@themvora/angular` — provider + composables/stores/signals/injectables - `@themvora/web` — `<themvora-provider>`, `<themvora-toggle>`, `<themvora-select>`, `<themvora-scope>` custom elements - `@themvora/tailwind` — Tailwind CSS v4 `@theme` mapping - `@themvora/astro`, `@themvora/nuxt`, `@themvora/remix` — island/SSR integrations",
+    "type": "docs"
   },
   {
     "title": "Quick start",

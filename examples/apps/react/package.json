@@ -10,14 +10,14 @@
     "preview": "vite preview --port 5190 --strictPort"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@themvora/app-shared": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/react": "workspace:*",
     "@themvora/tailwind": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

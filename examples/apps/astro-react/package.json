@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
-    "@astrojs/react": "^7.1.2",
+    "@astrojs/react": "^7.1.5",
     "@themvora/astro": "workspace:*",
     "@themvora/core": "workspace:*",
-    "astro": "^7.4.4",
+    "astro": "^7.4.8",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^5.9.3"

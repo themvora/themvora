@@ -11,13 +11,13 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@themvora/app-shared": "workspace:*",
     "@themvora/astro": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/tailwind": "workspace:*",
-    "astro": "^7.4.4",
-    "tailwindcss": "^4.3.3",
+    "astro": "^7.4.8",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3"
   }
 }

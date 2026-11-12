@@ -51,7 +51,7 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vue": "^3.4.0",
+    "vue": "^3.5.45",
     "svelte": "^5.0.0",
     "solid-js": "^1.8.0",
     "@angular/core": ">=17.0.0"
@@ -81,7 +81,7 @@
     "@themvora/core": "workspace:^"
   },
   "devDependencies": {
-    "@angular/core": "^22.2.4",
+    "@angular/core": "^22.2.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "react": "^19.3.1",
@@ -89,7 +89,7 @@
     "solid-js": "^1.9.18",
     "svelte": "^5.57.3",
     "vitest": "^4.0.0",
-    "vue": "^3.4.0"
+    "vue": "^3.5.45"
   },
   "description": "DaisyUI adapter for Themvora.",
   "repository": {

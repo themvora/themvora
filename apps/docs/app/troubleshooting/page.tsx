@@ -246,7 +246,7 @@ const runtime = createThemeRuntime({
 export default function TroubleshootingPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Troubleshooting"
           icon={

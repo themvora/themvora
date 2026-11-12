@@ -54,6 +54,32 @@ const DIAGNOSTICS: DiagnosticEntry[] = [
     emits: false,
   },
   {
+    id: "tv_prepaint_missing",
+    code: "TV_PREPAINT_MISSING",
+    level: "warning",
+    api: "createThemeRuntime()",
+    pkg: "@themvora/core, @themvora/web",
+    meaning:
+      "The runtime initialized after the document had already painted, and no pre-paint setup was found. The saved theme therefore corrects the first visible frame instead of painting it.",
+    cause:
+      "The page loaded the Web Components module without themvoraVitePlugin() and without a blocking bootstrap script in <head>. A browser paint entry exists before the runtime runs, so the theme was applied late.",
+    fix: "Add themvoraVitePlugin() from @themvora/web/vite to vite.config.ts, or inline createThemeBootstrapScript() (and the generated CSS) in <head> before the body. Reported once per page, deduplicated.",
+    emits: true,
+  },
+  {
+    id: "tv_prepaint_mismatch",
+    code: "TV_PREPAINT_MISMATCH",
+    level: "warning",
+    api: "createThemeRuntime()",
+    pkg: "@themvora/core, @themvora/web",
+    meaning:
+      "Something was painted before first paint, but the runtime could not adopt it: the painted theme is not in the registered catalog, or the runtime resolved a different theme.",
+    cause:
+      "A stale data-theme attribute from an older registry, a theme declared only at runtime with runtime.use(), or a plugin configuration that does not match the provider's catalog/default. The runtime recovers by resolving normally, so the first frame may move.",
+    fix: "Register the painted theme in the provider's catalog, or remove the stale attribute. A runtime-only theme cannot be painted because it is not in the generated CSS. With the plugin, declare the catalog, defaultTheme and initialMode once in theme.config.ts.",
+    emits: true,
+  },
+  {
     id: "tv_a11y_contrast_violation",
     code: "TV_A11Y_CONTRAST_VIOLATION",
     level: "warning",
@@ -162,7 +188,12 @@ function DiagnosticCard({ entry }: { entry: DiagnosticEntry }) {
       className="scroll-mt-24 rounded-lg border border-border bg-muted/10 p-4"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <code className="font-mono text-sm font-semibold">{entry.code}</code>
+        {/* `wrap-anywhere`, not `break-words`: the code is a flex item, and only
+            `overflow-wrap: anywhere` lowers its min-content contribution, which
+            is what lets a 29-character code such as
+            `TV_SCHEDULE_THEME_UNRESOLVED` shrink instead of pushing the card
+            past the column. */}
+        <code className="font-mono text-sm font-semibold wrap-anywhere">{entry.code}</code>
         <CodeBadge level={entry.level} />
         <span className="font-mono text-[0.6875rem] text-muted-foreground">
           {entry.pkg}
@@ -194,7 +225,7 @@ function DiagnosticCard({ entry }: { entry: DiagnosticEntry }) {
 export default function DiagnosticsReferencePage() {
   return (
     <DocsLayout>
-      <div className="max-w-4xl">
+      <div>
         <PageHeader
           eyebrow="Reference"
           title="Diagnostics Reference"

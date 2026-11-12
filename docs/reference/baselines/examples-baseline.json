@@ -1,22 +1,28 @@
 {
-  "capturedAt": "2026-10-16T20:40:39.957Z",
+  "capturedAt": "2026-11-12T15:27:50.800Z",
   "tool": "scripts/docs/check-examples.mjs",
   "contract": "docs-hardening — every copy-paste example must be complete",
   "counts": {
-    "bundles": 145,
-    "entries": 867,
-    "skipped": 286,
-    "A": 1,
+    "bundles": 160,
+    "entries": 1122,
+    "skipped": 349,
+    "A": 5,
     "B": 0,
     "C": 0,
     "D": 0,
     "E": 0,
-    "total": 1
+    "total": 5
   },
   "violations": {
-    "A|apps/docs/app/vanilla/page.tsx|src/main.ts → \"./style.css\"": 1
+    "A|apps/docs/app/zero-flash/page.tsx|app/root.tsx → \"./styles.css?url\"": 1,
+    "A|apps/docs/lib/framework-examples/remix.ts|app/root.tsx → \"./styles.css?url\"": 2,
+    "A|apps/docs/lib/quick-start-snippets.ts|src/pages/index.astro → \"../layouts/BaseLayout.astro\"": 1,
+    "A|apps/docs/lib/use-cases.ts|app/root.tsx → \"./styles.css?url\"": 1
   },
   "details": {
-    "A|apps/docs/app/vanilla/page.tsx|src/main.ts → \"./style.css\"": "imports a local file no snippet in this bundle declares (declared: src/main.ts)"
+    "A|apps/docs/app/zero-flash/page.tsx|app/root.tsx → \"./styles.css?url\"": "imports a local file no snippet in this bundle declares (declared: bootstrap.ts, app/layout.tsx, nuxt.config.ts, src/main.ts, app/root.tsx, theme.config.ts, vite.config.ts)",
+    "A|apps/docs/lib/framework-examples/remix.ts|app/root.tsx → \"./styles.css?url\"": "imports a local file no snippet in this bundle declares (declared: app/root.tsx, app/theme-runtime.ts, app/routes/_index.tsx, package.json, app/routes/pricing.tsx, app/routes/settings.tsx, app/components/ModeToggle.tsx, app/routes/themes.tsx)",
+    "A|apps/docs/lib/quick-start-snippets.ts|src/pages/index.astro → \"../layouts/BaseLayout.astro\"": "imports a local file no snippet in this bundle declares (declared: app/components/ThemeSwitcher.vue, app/theme-switcher.tsx, src/App.tsx, src/app/theme-switcher.component.ts, src/components/ThemeIsland.tsx, src/pages/index.astro, app/routes/_index.tsx)",
+    "A|apps/docs/lib/use-cases.ts|app/root.tsx → \"./styles.css?url\"": "imports a local file no snippet in this bundle declares (declared: src/main.tsx, app/layout.tsx, app/theme-switcher.tsx, app/widgets.tsx, app/runtime-demo.tsx, app/sync-status.tsx, src/components/ScopedChart.tsx, src/components/ThemeIsland.tsx, nuxt.config.ts, plugins/theme.client.ts, app/root.tsx)"
   }
 }

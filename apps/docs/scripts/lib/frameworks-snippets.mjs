@@ -55,7 +55,11 @@ export function snippetAt(src, at, label, styles) {
   if (!titleMatch) throw new Error(`no "title:" for ${label}`);
 
   const rest = src.slice(codeIdx + "code:".length);
-  const literal = rest.match(/^\s*`([\s\S]*?)`/);
+  // The body may contain escaped backticks (`\``) and escaped `${` — a snippet
+  // that quotes an inline code span or a template literal has to. A plain
+  // non-greedy `` `([\s\S]*?)` `` stops at the first of those and silently
+  // returns a truncated snippet, which makes every later assertion vacuous.
+  const literal = rest.match(/^\s*`((?:\\[\s\S]|[^`\\])*)`/);
   if (literal) return { title: titleMatch[1], code: literal[1] };
 
   const identifier = rest.match(/^\s*([A-Za-z_$][\w$]*)/);
@@ -83,6 +87,8 @@ export function readWebSnippets(repoRoot) {
   return {
     styles,
     quickStart: slot(web, "quickStart", styles),
+    buildConfig: slot(web, "buildConfig", styles),
+    themeConfig: slot(web, "themeConfig", styles),
     setupExtra: slot(web, "setupExtra", styles),
     noTheme: slot(web, "noTheme", styles),
     snippet: slot(web, "snippet", styles),

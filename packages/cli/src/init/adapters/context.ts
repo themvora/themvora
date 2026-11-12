@@ -102,8 +102,14 @@ export interface IntegrationResult {
    * styling choice instead of a property of the framework.
    */
   packages?: readonly string[];
-  /** Extra dev dependencies, installed with the manager's dev flag. */
-  devPackages?: readonly string[];
+  /**
+   * Build-time dependencies, with the ranges to record in `package.json`.
+   *
+   * Written into the manifest before the install runs rather than added by a
+   * second `add -D` command: the dev flag applies to a whole command, so two
+   * commands would resolve the same tree twice for one new project.
+   */
+  devDependencies?: Readonly<Record<string, string>>;
 }
 
 /** What an adapter needs to describe its verification. */

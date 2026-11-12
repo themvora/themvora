@@ -12,84 +12,76 @@ Next.js App Router theming with SSR-safe hydration, cookie persistence, and zero
 
 ## Set up
 
-```tsx
-// app/layout.tsx
-import { ThemeProvider } from "@themvora/next";
+`ThemeProvider` in `@themvora/next` is a server component. It reads the theme cookies during the request and renders `<html data-theme>` — and `<body>` — itself, with the resolved variables already inline. Do not wrap it in `<html>` or `<body>`; the provider owns both elements, which is what makes the first byte correct.
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <ThemeProvider lang="en" defaultTheme="plum-light">{children}</ThemeProvider>;
+```tsx title="app/layout.tsx"
+import type { ReactNode } from "react";
+import { Geist } from "next/font/google";
+import { ThemeProvider } from "@themvora/next";
+import "./globals.css";
+
+const geist = Geist({
+  subsets: ["latin"],
+});
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    // ThemeProvider renders <html> and <body> itself — do not wrap it in them.
+    <ThemeProvider
+      defaultTheme="light"
+      body={{ className: geist.className }}
+    >
+      <main>
+        {children}
+      </main>
+    </ThemeProvider>
+  );
 }
 ```
 
-`ThemeProvider` renders `<html>` and `<body>` itself — do not wrap it in them.
+## Run and choose a theme
 
-### With Cache Components (Next 16)
+The toggle is a client component: `useTheme()` from `@themvora/next/client` reads the runtime the server provider installed. The markup carries only four classes — `page`, `primary`, `card` and `muted` — and no CSS.
 
-Nothing extra is needed. `ThemeProvider` renders a **request-independent document
-shell**, so a route that hosts it is prerenderable and no route-segment export is
-required — in particular, **no `export const instant = false`**.
-
-Cache Components rejects a route that reads request data (`cookies()`,
-`headers()`) outside a `<Suspense>` boundary. `ThemeProvider` keeps that read
-*inside* a boundary: the `<html>`/`<head>`/`<body>` shell resolves from your
-configured `themes`/`defaultTheme` alone, and the persisted selection is resolved
-in a nested server component beneath `<Suspense>`. The route therefore prerenders
-as a static shell with a dynamic, request-aware hole.
-
-The persisted theme reaches the first paint through two mechanisms that agree
-with each other:
-
-- the blocking bootstrap script in `<head>` reads the theme cookies in the
-  browser and writes the resolved theme onto `<html>` before the first visible
-  frame — so the shell's default never flashes; and
-- the Suspense-gated server component resolves the same cookies and hands the
-  selection to the client runtime, so the streamed, server-rendered subtree and
-  the hydrated provider both carry the visitor's theme.
-
-The shell itself names the default theme; the script and the resolved subtree
-carry the persisted selection. React's hydration attribute check is suppressed on
-`<html>` — the one element the script owns — never on the application subtree.
-
-Because the persisted selection is resolved server-side, a crawler or a client
-that runs the bootstrap still resolves a valid selection; the static shell is the
-request-independent fallback, not the final state.
-
-## Add a small UI
-
-A heading, a card and a button. The button reads the current theme and changes
-it — nothing is styled yet.
-
-```tsx
-// app/page.tsx
+```tsx title="app/theme-switcher.tsx"
 "use client";
-
 import { useTheme } from "@themvora/next/client";
 
-export default function Page() {
+export function ThemeSwitcher() {
   const { theme, mode, toggleTheme } = useTheme();
 
   return (
     <main className="page">
       <h1>Themvora</h1>
-      <p>
-        {theme.name} · {mode}
-      </p>
-      <button onClick={toggleTheme}>Toggle theme</button>
+      <p>Current theme: {theme.name} ({mode})</p>
+
+      <button className="primary" type="button" onClick={toggleTheme}>
+        Toggle theme
+      </button>
+
+      <section className="card">
+        <h2>Themed card</h2>
+        <p className="muted">Surface, border and text follow the theme.</p>
+      </section>
     </main>
   );
 }
 ```
 
-`useTheme` lives on `@themvora/next/client`, not the package root — the root export is the server-side provider.
+Those four classes are plain CSS. The next step puts the document rule and those classes in a global stylesheet; nothing is inlined or scoped here.
 
-## Style it with Themvora tokens
+## Add the global stylesheet
 
-Themvora emits the active theme's tokens as CSS custom properties, so the
-document itself is themed and your own classes read the same variables without
-any per-theme CSS. The rules use only required semantic colours — spacing,
-typography and layout stay ordinary CSS:
+Put the document rule and the four classes from step 3 in `app/globals.css`. Themvora emits its design tokens as CSS custom properties on the root element, so this stylesheet only reads them.
 
-```css
+```css title="app/globals.css"
+/* Themvora emits its design tokens as CSS custom properties on the root
+   element, so a stylesheet only has to read them. Nothing here is
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -97,21 +89,143 @@ body {
 }
 
 .page {
-  background: var(--theme-color-background);
-  color: var(--theme-color-foreground);
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.primary {
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
 }
 
 .card {
   background: var(--theme-color-card);
-  color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg, 12px);
+  border-radius: 0.75rem;
+  margin-top: 1.5rem;
   padding: 1rem;
+}
+
+.muted {
+  color: var(--theme-color-mutedForeground);
 }
 ```
 
-Nothing is re-rendered on a switch — the variables change and the styles follow.
+Load it once from `app/layout.tsx` with `import "./globals.css";`, so the classes from step 3 pick up the theme.
 
+## Add a small UI
+
+A status card with a heading, a description, a status label and a primary button.
+
+```tsx title="app/workspace-card.tsx"
+export function WorkspaceCard() {
+  return (
+    <div className="themvora-example-card">
+      <div className="themvora-example-header">
+        <h3 className="themvora-example-title">Design system</h3>
+        <span className="themvora-example-status">Active</span>
+      </div>
+      <p className="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p className="themvora-example-meta">Updated 2 minutes ago</p>
+      <button className="themvora-example-button" type="button">View themes</button>
+    </div>
+  );
+}
+```
+
+## Style it with Themvora tokens
+
+Only the component rules live here — the document rule is in the global stylesheet from step 4, so it is not repeated below. Every colour is a required semantic token, so any theme that passes `validateTheme()` emits it; radius and shadow are optional and carry fallbacks, and no typography token is read.
+
+```css title="app/globals.css"
+.themvora-example-card {
+  display: grid;
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+```
+
+`.themvora-example-card` and its children read Themvora tokens, so switching the active theme repaints them — no re-render, and no per-theme CSS.
 ## Reference snippet
 
 ```tsx

@@ -31,16 +31,38 @@ const renderer = readFileSync(join(DOCS, "components", "library-recipe.tsx"), "u
 const failures = [];
 const checks = [];
 
-/** Frameworks listed as public for a library, read from the matrix source. */
-function publicFrameworks(slug) {
-  const m = support.match(new RegExp(`\\n  "?${slug}"?: \\[([^\\]]*)\\]`));
+/**
+ * A named framework list declared in the matrix source — `REACT_BRIDGES`,
+ * `CSS_FRAMEWORKS`.
+ *
+ * Resolving these matters: `mui: REACT_BRIDGES` used to read as "no list" and
+ * silently skipped every parity check for the four React libraries, so a
+ * missing recipe for MUI + Remix would have passed.
+ */
+function namedList(name) {
+  const m = support.match(
+    new RegExp(`const ${name}: FrameworkName\\[\\] = \\[([^\\]]*)\\]`),
+  );
   if (!m) return null;
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
 }
 
+/** Frameworks listed as public for a library, read from the matrix source. */
+function publicFrameworks(slug) {
+  const inline = support.match(
+    new RegExp(`\\n  "?${slug}"?: \\[([^\\]]*)\\]`),
+  );
+  if (inline) return [...inline[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+
+  const named = support.match(new RegExp(`\\n  "?${slug}"?: (\\w+),`));
+  if (named) return namedList(named[1]);
+
+  return null;
+}
+
 /** Recipe keys present in the data. */
 const recipeKeys = new Set(
-  [...libraries.matchAll(/^  "([a-z-]+\/[^"]+)": \{$/gm)].map((m) => m[1]),
+  [...libraries.matchAll(/^  "([a-z-]+\/[^"]+)": \{\r?$/gm)].map((m) => m[1]),
 );
 
 // ---------------------------------------------------------------------------
@@ -473,6 +495,148 @@ const recipeKeys = new Set(
   checks.push(["every recipe call matches its adapter hook's declared signature", bad.length === 0 && checked > 0]);
   if (checked === 0) failures.push("adapter signature check matched no calls — treat as failing, not passing");
   for (const b of bad) failures.push("adapter signature: " + b);
+}
+
+// ---------------------------------------------------------------------------
+// Idiom regressions found by running the recipes (see
+// scripts/docs/verify-library-recipes.mjs and verify-library-browser.mjs).
+// Each one typechecked or built while still being wrong at runtime, so they are
+// cheap static guards rather than expensive rebuilds.
+
+{
+  const problems = [];
+
+  // Parse the emitted recipe values (the block above only keeps field names).
+  const at = libraries.indexOf("const FRAMEWORK_RECIPES");
+  const block = libraries.slice(at, libraries.indexOf("export const FRAMEWORK_LANG", at));
+  const values = {};
+  for (const m of block.matchAll(/^  "([a-z-]+\/[^"]+)": \{$/gm)) {
+    const chunk = block.slice(m.index, block.indexOf("\n  },", m.index));
+    const fields = {};
+    for (const line of chunk.split("\n")) {
+      const f = line.match(/^    "(\w+)": (.*),$/);
+      if (!f) continue;
+      try { fields[f[1]] = JSON.parse(f[2]); } catch { /* arrays are parsed below */ }
+    }
+    for (const f of chunk.matchAll(/^    "(\w+)": (\[[^\]]*\]),$/gm)) {
+      try { fields[f[1]] = JSON.parse(f[2]); } catch { /* ignore */ }
+    }
+    values[m[1]] = fields;
+  }
+
+  for (const [key, recipe] of Object.entries(values)) {
+    const slash = key.lastIndexOf("/");
+    const lib = key.slice(0, slash);
+    const fw = key.slice(slash + 1);
+    const text = [recipe.code, recipe.componentExample, recipe.completeExample]
+      .filter((v) => typeof v === "string")
+      .join("\n");
+
+    // Solid's JSX uses `class`, not React's `className`. The React markup
+    // typechecks as Solid only by accident — it then fails `tsc` on every
+    // element, or renders without styles if the attribute is dropped.
+    if (fw === "Solid" && /\bclassName=/.test(text)) {
+      problems.push(`${key} — Solid markup uses className; Solid needs class`);
+    }
+
+    // `@themvora/next` owns the document shell and has no `initialMode` prop.
+    if (fw === "Next.js" && /<ThemeProvider[^>]*\binitialMode=/.test(String(recipe.mountProvider))) {
+      problems.push(`${key} — Next.js ThemeProvider has no initialMode prop`);
+    }
+
+    // Any Next.js file that calls a Themvora hook must be a client component.
+    if (fw === "Next.js") {
+      for (const field of ["code", "themeSwitchExample"]) {
+        const value = recipe[field];
+        if (typeof value !== "string") continue;
+        if (!/use[A-Z]\w*\(|useTheme\(/.test(value)) continue;
+        if (!/^"use client";/m.test(value.split("\n").slice(0, 4).join("\n"))) {
+          problems.push(`${key} — ${field} calls a hook without "use client"`);
+        }
+      }
+    }
+
+    // Emotion-backed libraries under the App Router need their own cache
+    // provider to flush SSR styles into <head>. The two providers are not
+    // interchangeable: MUI uses `AppRouterCacheProvider`, Chakra its own
+    // Emotion registry. Dropping or swapping one still typechecks and builds,
+    // then fails production hydration with React error #418.
+    if (fw === "Next.js" && (lib === "mui" || lib === "chakra")) {
+      const layout = String(recipe.mountProvider ?? "");
+      const setup = String(recipe.setup ?? "");
+      const install = Array.isArray(recipe.install) ? recipe.install.join(" ") : "";
+
+      if (lib === "mui") {
+        if (!/@mui\/material-nextjs\/v1[0-9]-appRouter/.test(layout)) {
+          problems.push(`${key} — layout does not import AppRouterCacheProvider from a versioned @mui/material-nextjs subpath`);
+        }
+        if (!/AppRouterCacheProvider/.test(layout)) {
+          problems.push(`${key} — layout does not render AppRouterCacheProvider`);
+        }
+        if (/EmotionRegistry/.test(layout)) {
+          problems.push(`${key} — layout uses Chakra's EmotionRegistry; MUI needs AppRouterCacheProvider`);
+        }
+        for (const pkg of ["@mui/material-nextjs", "@emotion/cache", "@emotion/server"]) {
+          if (!install.includes(pkg)) problems.push(`${key} — install omits ${pkg}`);
+        }
+      }
+
+      if (lib === "chakra") {
+        if (!/EmotionRegistry/.test(layout)) {
+          problems.push(`${key} — layout does not render Chakra's EmotionRegistry`);
+        }
+        if (/AppRouterCacheProvider/.test(layout)) {
+          problems.push(`${key} — layout uses MUI's AppRouterCacheProvider; Chakra needs its EmotionRegistry`);
+        }
+        const wiring = `${layout}\n${setup}`;
+        for (const needle of ["app/emotion-registry.tsx", "useServerInsertedHTML", "@emotion/cache"]) {
+          if (!wiring.includes(needle)) {
+            problems.push(`${key} — provider snippet is missing ${needle}`);
+          }
+        }
+        if (!install.includes("@emotion/cache")) {
+          problems.push(`${key} — install omits @emotion/cache`);
+        }
+      }
+    }
+
+    // A route module must default-export; a named export renders an empty
+    // Remix route and fails Next's generated type check.
+    if ((fw === "Next.js" || fw === "Remix") && typeof recipe.completeExample === "string") {
+      if (!/export default /.test(recipe.completeExample)) {
+        problems.push(`${key} — route module does not default-export its page`);
+      }
+    }
+
+    // One file, one snippet: a second `src/main.*` block would be overwritten
+    // by the provider entry, silently dropping the UnoCSS import.
+    if (lib === "unocss" && typeof recipe.setup === "string") {
+      const mainBlocks = (recipe.setup.match(/\/\/ ---- src\/main\.(?:tsx|ts)/g) ?? []).length;
+      if (mainBlocks > 0) {
+        problems.push(`${key} — setup writes src/main.* that the provider entry also owns`);
+      }
+    }
+
+    // Astro cannot hand React children to a `client:only` island, so the
+    // island's default export must not take a `children` prop from the page.
+    // (A provider wrapper inside the island may still use React children.)
+    if (fw === "Astro" && typeof recipe.code === "string" &&
+        /export default function \w+\s*\(\s*\{[^}]*\bchildren\b/.test(recipe.code)) {
+      problems.push(`${key} — Astro island takes children; it must render its own UI`);
+    }
+
+    // daisyUI is a Tailwind plugin: its Astro config must keep the React
+    // integration, or prerendering fails with NoMatchingRenderer.
+    if (fw === "Astro" && (lib === "daisyui" || lib === "shadcn") &&
+        typeof recipe.setup === "string" && /astro\.config\.mjs/.test(recipe.setup)) {
+      if (!/integrations: \[react\(\)\]/.test(recipe.setup)) {
+        problems.push(`${key} — astro.config.mjs drops the React integration`);
+      }
+    }
+  }
+
+  checks.push(["framework idioms that fail only at runtime", problems.length === 0]);
+  for (const p of problems) failures.push("idiom: " + p);
 }
 
 // ---------------------------------------------------------------------------

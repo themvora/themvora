@@ -396,12 +396,16 @@ describe("--styling", () => {
     const result = await cli(
       "init", dir.path, "--framework", "react", "--preset", "mint", "--styling", "tailwind", "--plan", "--json",
     );
-    const plan = result.json<{ styling: string; packages: string[]; devInstallStep: { args: string[] } | null }>();
+    const plan = result.json<{
+      styling: string;
+      packages: string[];
+      devDependencies: Record<string, string>;
+    }>();
 
     expect(result.code).toBe(0);
     expect(plan.styling).toBe("tailwind");
     expect(plan.packages).toContain("@themvora/tailwind");
-    expect(plan.devInstallStep?.args.join(" ")).toContain("tailwindcss");
+    expect(Object.keys(plan.devDependencies)).toEqual(["@tailwindcss/vite", "tailwindcss"]);
   });
 
   it("rejects an unknown styling engine with a usage error", async () => {

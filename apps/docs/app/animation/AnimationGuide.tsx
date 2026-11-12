@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { highlightCode } from "../../lib/highlight";
 import { pairWithJavaScript } from "../../lib/code-language";
 import { CodeBlock } from "../../components/code-block";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
 import { FrameworkPicker, getExample } from "../../components/framework-picker";
 
-type Snippet = { lang: string; title: string; code: string };
+type Snippet = {
+  lang: string;
+  title: string;
+  code: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: { lang: string; title: string; code: string };
+};
 
 /**
  * One snippet, with its JavaScript counterpart when there is one.
@@ -26,19 +31,39 @@ function snippetBlock(
   const variants = js
     ? pairWithJavaScript(snippet, js)?.map((variant) => ({
         ...variant,
-        html: highlightCode(variant.code, variant.lang),
       }))
     : undefined;
 
-  return (
+  const main = (
     <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
       code={snippet.code}
       language={snippet.lang}
+      filename={snippet.title}
       {...(labels?.[snippet.code] ? { displayLanguage: labels[snippet.code] } : {})}
       {...(variants ? { variants } : {})}
       className="rounded-lg m-0"
     />
+  );
+  if (!snippet.vite) return main;
+
+  const vite = snippet.vite;
+  const viteJs = jsSources?.[vite.code];
+  const viteVariants = viteJs
+    ? pairWithJavaScript(vite, viteJs)?.map((variant) => ({ ...variant }))
+    : undefined;
+
+  return (
+    <>
+      {main}
+      <CodeBlock
+        code={vite.code}
+        language={vite.lang}
+        filename={vite.title}
+        {...(labels?.[vite.code] ? { displayLanguage: labels[vite.code] } : {})}
+        {...(viteVariants ? { variants: viteVariants } : {})}
+        className="rounded-lg m-0 mt-3"
+      />
+    </>
   );
 }
 
@@ -139,7 +164,6 @@ export function AnimationGuide({
           allow only those CSS properties to animate:
         </p>
         <CodeBlock
-          html={highlightCode(transitionPropSnippet.code, transitionPropSnippet.lang)}
           code={transitionPropSnippet.code}
           language={transitionPropSnippet.lang}
           filename={transitionPropSnippet.title}
@@ -148,7 +172,7 @@ export function AnimationGuide({
             : {})}
           className="rounded-lg"
         />
-        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
@@ -188,8 +212,8 @@ export function AnimationGuide({
         </SectionHeading>
         <p className="text-sm opacity-70 leading-relaxed">
           Pass the same <code className="mono text-xs">transition</code> object
-          to your provider (or runtime). Every framework exposes it with the
-          same shape — only the binding syntax changes.
+          to your provider, runtime, or document configuration. Every framework
+          exposes it with the same shape — only the binding syntax changes.
         </p>
         <FrameworkPicker
           value={selectedFramework}

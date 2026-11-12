@@ -99,6 +99,49 @@ describe("studioUiReducer", () => {
     expect(withFormatExtension(state.fileName, "css")).toBe("brand.css");
   });
 
+  it("remembers the folder the picker returned and the name it came with", () => {
+    const picked = studioUiReducer(initialUiState(), {
+      type: "set-save-location",
+      directory: "/out/themes",
+      fileName: "brand.ts",
+    });
+
+    expect(picked.saveDirectory).toBe("/out/themes");
+    expect(picked.fileName).toBe("brand.ts");
+    // Choosing a location is a destination in its own right, so the form must
+    // stop claiming the file goes beside a source it does not have.
+    expect(picked.destination).toBe("choose");
+  });
+
+  it("keeps the picked folder when the file is renamed afterwards", () => {
+    const picked = studioUiReducer(initialUiState(), {
+      type: "set-save-location",
+      directory: "/out/themes",
+      fileName: "brand.ts",
+    });
+    const renamed = studioUiReducer(picked, { type: "set-file-name", fileName: "renamed.ts" });
+
+    expect(renamed.fileName).toBe("renamed.ts");
+    expect(renamed.saveDirectory).toBe("/out/themes");
+  });
+
+  it("forgets the picked folder when the dialog closes or a new theme is selected", () => {
+    const picked = studioUiReducer(initialUiState(), {
+      type: "set-save-location",
+      directory: "/out/themes",
+      fileName: "brand.ts",
+    });
+
+    expect(studioUiReducer(picked, { type: "close-save" }).saveDirectory).toBeUndefined();
+    expect(studioUiReducer(picked, { type: "open-save" }).saveDirectory).toBeUndefined();
+    expect(
+      studioUiReducer(picked, {
+        type: "selection-changed",
+        selection: { origin: "project" },
+      }).saveDirectory,
+    ).toBeUndefined();
+  });
+
   it("defaults appearance to auto", () => {
     expect(initialUiState().studioAppearance).toBe("auto");
     expect(initialUiState("light").studioAppearance).toBe("light");

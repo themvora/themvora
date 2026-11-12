@@ -21,7 +21,7 @@ export function ThemedExample() {
       </style>
       <div className="themvora-example-card">
         <div className="themvora-example-header">
-          <h3 className="themvora-example-title">Design system</h3>
+          <div className="themvora-example-title">Design system</div>
           <span className="themvora-example-status">Active</span>
         </div>
         <p className="themvora-example-description">

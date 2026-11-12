@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { FrameworkPicker, getExample } from "../framework-picker";
 import { CodeBlock } from "../code-block";
-import { highlightCode } from "../../lib/highlight";
 import { Icon } from "@iconify/react";
 
 interface SnippetMap {
@@ -63,11 +62,7 @@ export function ShowCode({
           </div>
           <div className="px-4 pb-4">
             <div className="relative">
-              <CodeBlock
-                html={highlightCode(entry.code, entry.lang)}
-                code={entry.code}
-                language={entry.lang}
-              />
+              <CodeBlock code={entry.code} language={entry.lang} />
               <button
                 type="button"
                 onClick={copyCode}

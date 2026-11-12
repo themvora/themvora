@@ -1,4 +1,25 @@
-# themvora-vscode
+# themvora-for-vscode
+
+## 0.1.1 — the published README catches up
+
+A documentation-only republish. The 0.1.0 binary already contained the save
+fixes recorded below, but its packaged `README.md` still opened with the old
+display name, so the Marketplace listing body disagreed with the listing title.
+The README shipped inside the `.vsix` is what the Marketplace renders; editing
+the repository alone does not change a published page.
+
+### Changed
+
+- The packaged README is titled **Themvora Theme Studio for VS Code** and opens
+  with the published identifier, the Extensions-view search steps, the
+  `@id:themvora.themvora-for-vscode` filter and
+  `code --install-extension themvora.themvora-for-vscode`.
+- The docs site, repository README and the npm package READMEs for `core` and
+  `cli` now point at the published listing rather than saying the extension was
+  unpublished. A screenshot of the listing ships in `apps/docs/public/vscode/`.
+
+No runtime behaviour changed. Version 0.1.1 exists because the Marketplace will
+not accept a second upload of 0.1.0.
 
 ## 0.1.0 — First release
 
@@ -9,6 +30,56 @@ and editor features, draft creation and editing, and the command layer.
 The sections below were written as the work landed, so each is still headed
 “Unreleased”. They are kept as-is because they record what changed and why, in
 the order it changed.
+
+## Unreleased — the Marketplace listing is `themvora-for-vscode`
+
+### Changed
+
+- **The package is named `themvora-for-vscode` and listed as “Themvora Theme
+  Studio for VS Code”.** Both the name `themvora-vscode` and the display name
+  “Themvora for VS Code” are already reserved in the Marketplace, so publishing
+  under them is refused with “already exists” / “display name is taken”. Neither
+  reservation is publicly visible — an unpublished listing does not appear in
+  gallery search — so the collision only surfaces at upload. The extension
+  identifier is now `themvora.themvora-for-vscode`; the command ids
+  (`themvora.*`) and the view ids are unchanged, so nothing a user has
+  configured moves.
+- **Installing this build replaces the old id, not the old files.** An extension
+  is identified by `publisher.name`, so `themvora.themvora-vscode` must be
+  uninstalled rather than upgraded — otherwise two copies contribute the same
+  commands. The Studio's appearance preference is stored per identifier and
+  therefore resets to “auto” once.
+
+## Unreleased — saving a theme asks once, and says where it went
+
+### Fixed
+
+- **The save dialog no longer asks for a location twice.** A generated draft has
+  no source file to sit beside, so "Beside the theme source" cannot be its
+  destination — but the form still carried that value, and the host honoured it
+  by ignoring the folder the picker had already returned and opening the dialog
+  again. The picked folder is now remembered as a folder, and the write uses it
+  whether the form says "source" or not.
+- **A theme is written with the extension it has, not the name of its format.**
+  The dialog was filtered on the format key, so `TypeScript · generateTheme`
+  asked Windows for `*.ts-generate` and produced `theme.ts.ts-generate` — a file
+  no editor or registry reads back. `ts`, `ts-generate` and `ts-preset` all write
+  `.ts`; the filter, the suggested name and the written path now agree.
+- **A save reports itself.** A successful write now raises a notification naming
+  the exact path, with **Open file** and **Copy path**, and the in-panel notice
+  says "Saved to …" rather than "Written to …". Previously a write could finish
+  with the dialog still open and nothing said, because a handler that threw left
+  the webview on its last frame.
+
+### Changed
+
+- **The picked folder is shown, and can be changed.** The dialog's footer shows
+  the resolved path (`d:\test\themvora-theme.ts`) instead of only the folder
+  name, the "Where" row gained a **Browse…/Change…** button, and renaming the
+  file afterwards keeps the folder rather than discarding it.
+- **One write at a time.** A second click on **Save** while the first is still
+  resolving is ignored, and every intent that throws now posts a result and a
+  model instead of failing silently.
 
 ## Unreleased — Saved-workspace analysis
 

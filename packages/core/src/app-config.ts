@@ -6,6 +6,8 @@
 import type { ThemeDefinition, ThemeMode } from "./model/theme";
 import { getBuiltInThemes } from "./built-in-themes";
 import type { ThemeRuntimeOptions } from "./runtime";
+import type { PrePaintScrollbarOptions } from "./scrollbar/pre-paint";
+import type { ThemeTransitionOptions } from "./transition";
 
 /**
  * The application's Themvora configuration: one declaration, consumed by both
@@ -67,12 +69,25 @@ export interface ThemvoraConfig<T extends ThemeDefinition> {
    *
    * @remarks
    * Serializable, so it crosses to the browser with the rest of the config and
-   * is honoured by the client runtime. Setting `{ enabled: false }` makes every
-   * theme change swap synchronously.
+   * is honoured by the client runtime. `true` uses the defaults, `false` makes
+   * every theme change swap synchronously, and an object configures the
+   * animation (`enabled`, `duration`, `easing`, `useViewTransition`,
+   * `preset`, `properties`).
+   *
+   * @see {@link ThemeTransitionOptions}
    */
-  transition?: unknown;
-  /** Overlay scrollbar options. Serializable, so it crosses to the browser. */
-  scrollbar?: unknown;
+  transition?: boolean | ThemeTransitionOptions;
+  /**
+   * Pre-paint native-scrollbar hiding for the overlay scrollbar.
+   *
+   * @remarks
+   * Serializable, so it crosses to the browser. `true` hides the native bar on
+   * fine-pointer devices, and an object can additionally hide it on
+   * coarse-pointer devices (`{ touch: true }`).
+   *
+   * @see {@link PrePaintScrollbarOptions}
+   */
+  scrollbar?: boolean | PrePaintScrollbarOptions;
   /** Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. */
   plugins?: readonly unknown[];
   /** Runtime adapters. Runtime-only, and **not serializable** — pass it to the provider, not here. */

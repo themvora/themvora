@@ -1,7 +1,7 @@
 # Brand recipes
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - @themvora/cli installed (globally, locally, or via npx)
 
 A **brand recipe** is a brand-inspired starting point: a documented reference

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Themvora + React (theme.config.ts)</title>
+  </head>
+  <body>
+    <!--
+      The build-integrated variant of this example.
+
+      It differs from index.html in exactly one way: its entry renders a bare
+      `<ThemeProvider>` and relies on `theme.config.ts`, so `themvoraVitePlugin()`
+      injects the pre-paint bootstrap into this document. That makes it the
+      fixture for the first-paint gate — index.html has no bootstrap at all and
+      therefore cannot prove a pre-paint contract.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/main-theme-config.tsx"></script>
+  </body>
+</html>

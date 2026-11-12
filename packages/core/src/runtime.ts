@@ -31,7 +31,8 @@ import {
   type ThemeRegistryOptions,
 } from "./registry";
 import { resolveInitialTheme, type InitialThemeResolution } from "./resolver";
-import { readBootstrapState } from "./bootstrap";
+import { readBootstrapState, type ThemeBootstrapState } from "./bootstrap";
+import { createDiagnostic, emitDiagnostic } from "./diagnostics";
 
 import {
   createThemeSelectionController,
@@ -198,6 +199,32 @@ export interface ThemeRuntimeOptions<
    *   `"theme-selection"` key, when `window` is available.
    */
   persistence?: ThemeSelectionPersistenceAdapter | null;
+
+  /**
+   * The `localStorage` key the default persistence adapter reads and writes.
+   *
+   * @defaultValue `"theme-selection"`
+   *
+   * @remarks
+   * Ignored when {@link persistence} is supplied — that adapter owns its own
+   * storage. It exists so a declaration that names a key (the pre-paint
+   * bootstrap, the application configuration) is honoured by the runtime too:
+   * with two different keys the bootstrap restores from one and the runtime
+   * writes to the other, so every reload loses the visitor's choice.
+   */
+  storageKey?: string;
+
+  /**
+   * CSS custom property prefix used by the CSS-variables binding.
+   *
+   * @defaultValue `"theme-"`
+   *
+   * @remarks
+   * A creation-time option: it is applied when the binding is built, so a later
+   * `configure({ prefix })` does not rename the properties already on the page.
+   * It must match the prefix the pre-paint assets emitted.
+   */
+  prefix?: string;
 
   /**
    * Cross-tab broadcast adapter. When omitted, a `BroadcastChannel`-based
@@ -531,7 +558,9 @@ export interface ThemeRuntime<T extends ThemeDefinition> {
  * @see {@link ThemeSelectionPersistenceAdapter}
  * @see {@link createThemePersistence}
  */
-export function createDefaultPersistence(): ThemeSelectionPersistenceAdapter | null {
+export function createDefaultPersistence(
+  options: { key?: string } = {},
+): ThemeSelectionPersistenceAdapter | null {
   if (typeof window === "undefined") return null;
 
   let storage: Storage | null = null;
@@ -541,7 +570,7 @@ export function createDefaultPersistence(): ThemeSelectionPersistenceAdapter | n
     return null;
   }
 
-  const key = "theme-selection";
+  const key = options.key ?? "theme-selection";
 
   function parseState(value: string | null): ThemeSelectionState | null {
     if (!value) return null;
@@ -605,6 +634,143 @@ function resolveTransitionConfig(
   if (value === undefined) return undefined;
   if (typeof value === "object") return value;
   return value ? {} : { enabled: false };
+}
+
+/**
+ * Whether the browser has recorded a paint entry.
+ *
+ * The missing-pre-paint diagnostic is only meaningful once something has
+ * actually been painted: a runtime created while the parser is still building
+ * the document can still apply its theme before the first frame. `Paint Timing`
+ * is also absent in jsdom, which keeps the diagnostic out of unit tests without
+ * a test-environment special case.
+ */
+function hasPaintEntry(): boolean {
+  try {
+    return (
+      typeof performance !== "undefined" &&
+      typeof performance.getEntriesByType === "function" &&
+      performance.getEntriesByType("paint").length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Names of the first few registered themes, for an actionable diagnostic. */
+function catalogSample(themes: readonly ThemeDefinition[]): string {
+  return themes
+    .slice(0, 6)
+    .map((theme) => String(theme.name))
+    .join(" | ");
+}
+
+/**
+ * Report a first-paint problem the runtime can actually observe.
+ *
+ * Two distinct conditions, deliberately two codes:
+ *
+ * - **missing** — no theme was applied before the first paint. This is the
+ *   setup problem: neither the Vite plugin nor a manual blocking bootstrap ran.
+ * - **mismatch** — something *was* painted, but the runtime cannot adopt it
+ *   (its theme is not in this registry) or resolves a different one. This is a
+ *   configuration problem, and the visitor sees the correction.
+ *
+ * Both are warnings: the runtime recovers by resolving normally. Emission is
+ * deduplicated process-wide by `emitDiagnostic`, so a page with several
+ * providers reports each condition once rather than once per provider.
+ */
+function reportPrePaintState<T extends ThemeDefinition>(options: {
+  themes: readonly T[];
+  bootstrapState: ThemeBootstrapState<T> | null;
+  adopted: boolean;
+  resolvedTheme: T;
+  overrideActive: boolean;
+}): void {
+  if (typeof document === "undefined") return;
+
+  const root = document.documentElement;
+  const ready = root.getAttribute("data-theme-ready") === "true";
+  const paintedName = root.getAttribute("data-theme");
+
+  if (ready) {
+    if (options.overrideActive) return;
+
+    if (!options.adopted) {
+      emitDiagnostic(
+        createDiagnostic({
+          code: "TV_PREPAINT_MISMATCH",
+          level: "warning",
+          message:
+            "The theme painted before first paint is not in the runtime's " +
+            "registered catalog; the runtime resolved a different theme after " +
+            "the page was already visible.",
+          context: {
+            api: "createThemeRuntime",
+            property: "data-theme",
+            received: paintedName ?? "",
+            expected: catalogSample(options.themes),
+          },
+          hint:
+            "Register the painted theme with the provider, or remove the stale " +
+            "attribute. A theme that only exists at runtime cannot be painted " +
+            "by the pre-paint CSS.",
+        }),
+      );
+      return;
+    }
+
+    const resolvedName = String(options.resolvedTheme.name);
+    if (paintedName && paintedName !== resolvedName) {
+      emitDiagnostic(
+        createDiagnostic({
+          code: "TV_PREPAINT_MISMATCH",
+          level: "warning",
+          message:
+            "The pre-paint theme and the runtime's resolved theme differ; the " +
+            "first visible frame may change.",
+          context: {
+            api: "createThemeRuntime",
+            property: "data-theme",
+            received: paintedName,
+            expected: resolvedName,
+          },
+          hint:
+            "Use one configuration for the pre-paint assets and the provider: " +
+            "themvoraVitePlugin() consumes theme.config.ts, so declare the " +
+            "registry, defaultTheme and initialMode there rather than twice.",
+        }),
+      );
+    }
+    return;
+  }
+
+  // No completion marker. Only report once the document has demonstrably
+  // painted — a provider that upgrades during parsing is still in time.
+  if (!hasPaintEntry()) return;
+
+  const hasBootstrap = !!document.getElementById("themvora-bootstrap");
+  const hasCss = !!document.getElementById("themvora-pre-paint-css");
+
+  emitDiagnostic(
+    createDiagnostic({
+      code: "TV_PREPAINT_MISSING",
+      level: "warning",
+      message:
+        "Theme applied after first paint. Use themvoraVitePlugin() or the " +
+        "manual bootstrap setup to prevent a flash.",
+      context: {
+        api: "createThemeRuntime",
+        property: hasBootstrap ? "themvora-bootstrap" : "themvora-pre-paint-css",
+        expected: hasCss
+          ? "the blocking boot script that restores the persisted theme"
+          : "generated theme CSS and the blocking boot script",
+      },
+      hint:
+        "Add `themvoraVitePlugin()` to vite.config.ts, or inline the script " +
+        "from createThemeBootstrapScript() in <head> before the body.",
+    }),
+  );
 }
 
 /**
@@ -673,7 +839,9 @@ export function createThemeRuntime<T extends ThemeDefinition>(
 
   const persistence =
     options.persistence === undefined
-      ? createDefaultPersistence()
+      ? createDefaultPersistence(
+          options.storageKey !== undefined ? { key: options.storageKey } : {},
+        )
       : options.persistence;
   const readPersistenceOnInit = options.readPersistenceOnInit ?? true;
 
@@ -783,6 +951,14 @@ export function createThemeRuntime<T extends ThemeDefinition>(
         }),
       }
     : baseResolution;
+
+  reportPrePaintState({
+    themes,
+    bootstrapState,
+    adopted: adoptBootstrap !== null,
+    resolvedTheme: resolution.theme,
+    overrideActive: overrideSelection !== null,
+  });
 
   // Report an explicitly requested family that the catalog does not contain.
   //
@@ -901,7 +1077,7 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   let transitionOpt = resolveTransitionConfig(options.transition);
 
   const domOptions = mergeDOMOptions(options.dom, transitionOpt);
-  const cssVarOptions = mergeCSSOptions(options.cssVariables, transitionOpt);
+  const cssVarOptions = mergeCSSOptions(options.cssVariables, transitionOpt, options.prefix);
 
   // A binding's `transition` can come from two places: an explicit
   // `dom.transition` / `cssVariables.transition` (which wins) or the runtime's
@@ -1148,15 +1324,22 @@ export function createThemeRuntime<T extends ThemeDefinition>(
   function mergeCSSOptions(
     explicit: false | CSSVariablesOptions | undefined,
     fallbackTransition: ThemeTransitionOptions | undefined,
+    prefix: string | undefined,
   ): CSSVariablesOptions | undefined {
     if (explicit === false) return undefined;
 
     const base: CSSVariablesOptions = explicit ?? {};
 
-    if (base.transition) return base;
-    if (fallbackTransition) return { ...base, transition: fallbackTransition };
+    // A prefix set on the binding itself wins; the runtime-level one is the
+    // fallback, so a declaration that names a prefix is honoured without
+    // overwriting a binding that already chose one.
+    const withPrefix =
+      base.prefix === undefined && prefix !== undefined ? { ...base, prefix } : base;
 
-    return base;
+    if (withPrefix.transition) return withPrefix;
+    if (fallbackTransition) return { ...withPrefix, transition: fallbackTransition };
+
+    return withPrefix;
   }
 
   function batch(callback: () => void): void {

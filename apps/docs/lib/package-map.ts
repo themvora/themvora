@@ -361,11 +361,10 @@ export const EDITORIAL: Record<string, PackageEditorial> = {
     layer: "tooling",
     role: "build-time",
     purpose:
-      "Tailwind CSS v4 plugin that publishes Themvora tokens as Tailwind theme variables, plus the dark-mode class helper.",
-    primaryApis: ["createTailwindPlugin", "themeCSS", "synchronizeDarkClass"],
+      "CSS utility layer that publishes Themvora tokens as Tailwind theme variables.",
+    primaryApis: ["createTailwindPlugin", "themeCSS"],
     useCases: [
       "Tailwind v4 projects that want `bg-background`-style utilities driven by semantic tokens",
-      "Keeping Tailwind's `dark:` variant aligned with Themvora's mode",
     ],
     related: ["@themvora/core", "@themvora/shadcn", "@themvora/daisyui"],
   },

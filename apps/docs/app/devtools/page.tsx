@@ -104,7 +104,7 @@ const entryTypes = [
 export default function DevToolsPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg
@@ -282,7 +282,7 @@ export default function DevToolsPage() {
           >
             Entry types
           </SectionHeading>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">

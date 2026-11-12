@@ -118,7 +118,7 @@ export default async function RecipePage({
   if (!recipe) {
     return (
       <DocsLayout>
-        <div className="max-w-3xl">
+        <div>
           <PageHeader
             eyebrow="Recipe"
             title="Recipe not found"
@@ -145,7 +145,7 @@ export default async function RecipePage({
 
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow={
             <span className="inline-flex items-center gap-2">

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function RecipesPage() {
   return (
     <DocsLayout wide>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Recipes"
           title="Task-Oriented Patterns"

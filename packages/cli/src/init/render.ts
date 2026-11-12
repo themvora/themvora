@@ -7,7 +7,8 @@
  *
  * @packageDocumentation
  */
-import { paint } from "../output.js";
+import { basename } from "node:path";
+import { command, paint, renderPanel } from "../output.js";
 import type { CommandStep, FileOperation, InitPlan, InitReport } from "./types.js";
 
 /** How each file action is labelled. */
@@ -117,9 +118,21 @@ export function renderPlan(plan: InitPlan, options: { verbose?: boolean } = {}):
     lines.push("");
   }
 
-  if (plan.installStep) {
-    lines.push(`${step++}. Install`);
-    lines.push(`   ${commandText(plan.installStep)}`);
+  const devDependencies = Object.entries(plan.devDependencies);
+  if (plan.installStep || devDependencies.length > 0) {
+    // Without an install there is no step to describe, only a manifest to
+    // write — so the heading says what actually happens.
+    lines.push(`${step++}. ${plan.installStep ? "Install" : "Manifest"}`);
+    if (plan.installStep) lines.push(`   ${commandText(plan.installStep)}`);
+    if (devDependencies.length > 0) {
+      // Named rather than counted: a reader checking "did it pick the right
+      // Tailwind plugin for this framework?" should not have to open the diff.
+      // They are written into the manifest, so they are shown even under
+      // `--no-install`, where no install command runs but the file still is.
+      lines.push(
+        `   devDependencies  ${devDependencies.map(([name, range]) => `${name} ${range}`).join(", ")}`,
+      );
+    }
     lines.push("");
   }
 
@@ -152,15 +165,41 @@ export function renderPlan(plan: InitPlan, options: { verbose?: boolean } = {}):
  * Render a report.
  *
  * @param report - The report to describe.
+ * @param options - Rendering options. `columns` is the terminal width the panel
+ *   is fitted to; it defaults to the real terminal, then 80.
  * @returns The rendered text, without a trailing newline.
+ *
+ * @remarks
+ * The panel at the top is the one decorative element: it answers "did this
+ * work, and what did it produce?" before the file list, which is what a reader
+ * wants first. Everything below it is the same structured detail as before.
  */
-export function renderReport(report: InitReport): string {
+export function renderReport(
+  report: InitReport,
+  options: { columns?: number } = {},
+): string {
   const lines: string[] = [];
 
-  lines.push(paint("bold", "themvora init — done"));
+  const heading = report.scaffolded
+    ? "Project created successfully!"
+    : "Themvora integrated successfully";
+  const subject = report.scaffolded
+    ? `${basename(report.projectPath)} · ${report.framework} · ${report.packageManager}`
+    : `${report.framework} · ${report.packageManager}`;
+
+  lines.push(
+    renderPanel(`${paint("bold", heading)}\n${paint("dim", subject)}`, {
+      tone: "success",
+      ...(options.columns !== undefined ? { columns: options.columns } : {}),
+    }),
+  );
   lines.push("");
   lines.push(`  project    ${report.projectPath}`);
   lines.push(`  framework  ${report.framework}`);
+  lines.push(`  manager    ${report.packageManager}`);
+  lines.push(
+    `  styling    ${report.styling === "tailwind" ? "Tailwind CSS v4" : "plain CSS"}`,
+  );
   if (report.scaffolded) lines.push("  scaffolded yes");
   if (report.installed) lines.push("  installed  yes");
   lines.push("");
@@ -207,8 +246,9 @@ export function renderReport(report: InitReport): string {
   }
 
   if (report.nextSteps.length > 0) {
-    lines.push("  next");
-    for (const step of report.nextSteps) lines.push(`    ${step}`);
+    lines.push(`  ${paint("bold", "Next steps:")}`);
+    lines.push("");
+    for (const step of report.nextSteps) lines.push(`  ${command(step)}`);
   }
 
   return lines.join("\n");

@@ -20,6 +20,7 @@ import {
 import { findAdapter } from "./adapters/index.js";
 import type { IntegrationContext } from "./adapters/context.js";
 import { readProjectFile, projectFileExists, listProjectFiles } from "./files.js";
+import { mergeDevDependencies } from "./manifest.js";
 import { inspectProject, type ProjectInspection } from "./detect.js";
 import { canScaffold, scaffoldCommand } from "./scaffold.js";
 import { resolveSource, type SourceRequest } from "./source.js";
@@ -45,6 +46,8 @@ export interface BuildInitOptions {
   source: SourceRequest;
   /** The styling engine the generated project uses. */
   styling: StylingEngine;
+  /** Whether `--styling` supplied {@link styling}, rather than a default. */
+  stylingExplicit?: boolean;
   /** Whether to generate the richer showcase UI. */
   example: boolean;
   /** Whether to install dependencies. */
@@ -65,8 +68,8 @@ export interface IntegrationOutcome {
   warnings: string[];
   /** Extra runtime dependencies the integration needs. */
   packages: readonly string[];
-  /** Extra dev dependencies the integration needs. */
-  devPackages: readonly string[];
+  /** Build-time dependencies, with the ranges to record in the manifest. */
+  devDependencies: Readonly<Record<string, string>>;
 }
 
 /**
@@ -150,12 +153,24 @@ export function buildIntegration(
     integrationContext(projectPath, projectName, kind, options, framework, source, themes),
   );
 
+  const devDependencies = result.devDependencies ?? {};
+
+  // Build-time dependencies are recorded in the manifest *before* the install
+  // runs, so one command resolves runtime and build-time packages together.
+  // Doing it here rather than in the adapter keeps every adapter from having to
+  // know how a `package.json` is edited, and doing it here rather than in
+  // `buildInitPlan` keeps `apply` — which recomputes this after scaffolding —
+  // from having to remember to add it.
+  const files = [...result.files];
+  const manifestEdit = planManifestEdit(projectPath, devDependencies);
+  if (manifestEdit) files.push(manifestEdit);
+
   return {
-    files: result.files,
+    files,
     manualSteps: result.manualSteps,
     warnings: result.warnings,
     packages: result.packages ?? [],
-    devPackages: result.devPackages ?? [],
+    devDependencies,
   };
 }
 
@@ -169,25 +184,20 @@ export function buildIntegration(
 function installCommand(
   manager: PackageManager,
   packages: readonly string[],
-  dev = false,
 ): CommandStep | null {
   if (packages.length === 0) return null;
 
-  // The dev flag is spelled differently by each manager, and `npm install`
-  // differs from the `add` the others use, so the two axes are resolved here
-  // rather than at the call site.
-  const devFlag = dev ? (manager === "yarn" ? "-D" : manager === "bun" ? "-d" : "-D") : null;
-  const description = `Install ${packages.join(", ")}${dev ? " (dev)" : ""}`;
+  const description = `Install ${packages.join(", ")}`;
 
   switch (manager) {
     case "pnpm":
-      return { command: "pnpm", args: ["add", ...(devFlag ? [devFlag] : []), ...packages], description };
+      return { command: "pnpm", args: ["add", ...packages], description };
     case "yarn":
-      return { command: "yarn", args: ["add", ...(devFlag ? [devFlag] : []), ...packages], description };
+      return { command: "yarn", args: ["add", ...packages], description };
     case "bun":
-      return { command: "bun", args: ["add", ...(devFlag ? [devFlag] : []), ...packages], description };
+      return { command: "bun", args: ["add", ...packages], description };
     default:
-      return { command: "npm", args: ["install", ...(devFlag ? [devFlag] : []), ...packages], description };
+      return { command: "npm", args: ["install", ...packages], description };
   }
 }
 
@@ -269,17 +279,32 @@ export function buildInitPlan(options: BuildInitOptions): InitPlan {
         "keep one lockfile so every tool resolves the same dependency tree",
     );
   }
-  if (options.packageManager !== undefined && options.packageManager !== inspection.packageManager) {
+  // Only an *override* is worth reporting. For a brand-new project detection is
+  // a fallback rather than a finding, so "using pnpm instead of the detected
+  // npm" would be describing a choice the user just made as a surprise.
+  if (
+    options.packageManager !== undefined &&
+    inspection.packageManagerSource !== "fallback" &&
+    options.packageManager !== inspection.packageManager
+  ) {
     warnings.push(
       `using ${options.packageManager} instead of the detected ${inspection.packageManager}`,
     );
   }
 
   const isNew = inspection.kind !== "existing";
-  const scaffold = isNew
-    ? scaffoldFor(framework.id, inspection, packageManager, options.install)
-    : null;
+  const scaffold = isNew ? scaffoldFor(framework.id, inspection, packageManager) : null;
   const projectName = inspection.manifest?.name ?? inspection.directoryName;
+
+  // `--styling` chooses what the generated project looks like. In an existing
+  // project it can only reach the files `init` generated — the user's own
+  // stylesheet is a conflict, not a target — so the run says which it is rather
+  // than appearing to restyle a project it is not allowed to restyle.
+  if (!isNew && options.stylingExplicit) {
+    warnings.push(
+      `--styling ${options.styling} only rewrites the stylesheets \`init\` generated — a stylesheet you wrote yourself is left alone unless you pass --force`,
+    );
+  }
 
   const integration = buildIntegration(
     framework,
@@ -328,11 +353,48 @@ export function buildInitPlan(options: BuildInitOptions): InitPlan {
     preview: scaffold !== null,
     files: integration.files,
     packages: runtimePackages,
+    devDependencies: integration.devDependencies,
     installStep: options.install ? installCommand(packageManager, runtimePackages) : null,
-    devInstallStep: options.install ? installCommand(packageManager, integration.devPackages, true) : null,
     manualSteps: integration.manualSteps,
     verification,
     warnings,
+  };
+}
+
+/**
+ * Plan the `package.json` edit that records build-time dependencies.
+ *
+ * @param projectPath - The project root.
+ * @param additions - Dependency names and the ranges to record.
+ * @returns The file operation, or `null` when nothing needs recording.
+ *
+ * @remarks
+ * A new project has no manifest until the generator has run, so the preview
+ * carries no operation and the real one is computed after scaffolding. The
+ * {@link InitPlan.devDependencies} field is what the preview shows instead, and
+ * it is the same data the edit is built from.
+ *
+ * The operation is an `update` on a file Themvora does not own — the merge is
+ * additive, so an existing range always wins and a second run changes nothing.
+ */
+function planManifestEdit(
+  projectPath: string,
+  additions: Readonly<Record<string, string>>,
+): FileOperation | null {
+  if (Object.keys(additions).length === 0) return null;
+
+  const existing = readProjectFile(projectPath, "package.json");
+  if (existing === null) return null;
+
+  const edit = mergeDevDependencies(existing, additions);
+  if (edit === null || edit.added.length === 0) return null;
+
+  return {
+    action: "update",
+    path: "package.json",
+    contents: edit.contents,
+    reason: `record the build-time dependencies the styling engine needs (${edit.added.join(", ")})`,
+    generated: false,
   };
 }
 
@@ -342,18 +404,21 @@ export function buildInitPlan(options: BuildInitOptions): InitPlan {
  * @param frameworkId - The framework id.
  * @param inspection - What was found at the target path.
  * @param manager - The package manager to drive the generator with.
- * @param install - Whether dependencies will be installed. `false` forwards the
- *   generator's own "do not install" flag.
  * @returns The command, or `null` when the framework cannot be scaffolded.
  *
  * @throws {Error} When the directory is new and the framework has no scaffold
  *   strategy — `init` will not hand-write a framework project.
+ *
+ * @remarks
+ * The generator is always told to skip its own install. Dependency
+ * installation is a single step that runs after the integration has edited the
+ * project's manifest, so the framework's packages and Themvora's are resolved
+ * together — see `scaffold.ts`.
  */
 function scaffoldFor(
   frameworkId: string,
   inspection: ProjectInspection,
   manager: PackageManager,
-  install: boolean,
 ): CommandStep | null {
   if (!canScaffold(frameworkId)) return null;
 
@@ -362,7 +427,7 @@ function scaffoldFor(
   // as `.`.
   const inPlace = inspection.kind === "empty";
   const name = inPlace ? "." : inspection.directoryName;
-  const command = scaffoldCommand(frameworkId, name, manager, { install });
+  const command = scaffoldCommand(frameworkId, name, manager);
   if (!command) return null;
 
   return {

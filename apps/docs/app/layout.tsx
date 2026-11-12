@@ -1,7 +1,7 @@
-import { cache } from "react";
 import type { ReactNode } from "react";
 
 import { type Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 
 import { ThemeProvider, ThemeScrollbar } from "@themvora/next";
 
@@ -11,11 +11,11 @@ import { SiteToolbar } from "../components/site-toolbar";
 import { SearchProvider } from "../components/search-dialog";
 import { SkipToContent } from "../components/ui/skip-to-content";
 import ScrollToTop from "../components/ui/scroll-to-top";
-import { buildSearchIndex } from "../lib/search";
 import { SIDEBAR_PRE_PAINT_SCRIPT } from "../lib/sidebar-scroll";
 
 import {
   themes,
+  chromeAccentCss,
   scrollbarConfig,
   scheduleConfig,
   transitionConfig,
@@ -52,8 +52,6 @@ export const metadata: Metadata = {
   },
 };
 
-const getSearchEntries = cache(buildSearchIndex);
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
@@ -75,9 +73,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       ))}
 
+      <Analytics />
+
       <ThemeScrollbar {...scrollbarConfig} />
 
-      <SearchProvider entries={getSearchEntries()}>
+      {/* The docs chrome accent, per theme. React hoists this into `<head>`
+          ahead of the page's own stylesheets by `precedence`, and the rules
+          outrank the `:root` default on specificity, so the order they land in
+          cannot change the result. See `lib/chrome-accent.ts` for why the site
+          cannot simply paint its furniture in `--theme-color-primary`. */}
+      {chromeAccentCss ? (
+        <style
+          precedence="docs-chrome"
+          dangerouslySetInnerHTML={{ __html: chromeAccentCss }}
+        />
+      ) : null}
+
+      <SearchProvider>
         <SkipToContent targetId="main" />
         <SiteHeader />
 

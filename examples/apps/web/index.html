@@ -3,116 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:," />
-    <!--
-      Render-blocking on purpose. A stylesheet imported from `main.ts` is
-      injected by JavaScript, so in dev the first paint happens before it
-      exists — themed variables, no rules using them, i.e. a flash. A <link> in
-      <head> is fetched before the first paint in dev and extracted to a
-      hashed asset by the build, so both modes paint the same frame.
-    -->
-    <link rel="stylesheet" href="/src/styles.css" />
-    <!--
-      The elements upgrade while the parser builds the body — before any module
-      runs — so the app's own log bridge is too late for the boot diagnostic and
-      `theme-ready`. This blocking bridge buffers both, forwards to the real
-      console, and hands over to `src/log.ts` as soon as it loads.
-    -->
-    <script>
-      (function () {
-        var queue = (window.__tvEarlyLog = []);
-        function push(channel, message, tone) {
-          if (window.__tvLogSink) window.__tvLogSink(channel, message, tone);
-          else queue.push([channel, message, tone]);
-        }
-        ["warn", "error"].forEach(function (method) {
-          var original = console[method].bind(console);
-          console[method] = function () {
-            var diagnostic = arguments[1];
-            if (
-              diagnostic &&
-              typeof diagnostic === "object" &&
-              typeof diagnostic.code === "string"
-            ) {
-              var headline =
-                typeof arguments[0] === "string"
-                  ? arguments[0].split("\n")[0]
-                  : "";
-              push(
-                "diagnostic",
-                diagnostic.code +
-                  " — " +
-                  (headline.length > 120
-                    ? headline.slice(0, 117) + "…"
-                    : headline),
-                "warn",
-              );
-            }
-            original.apply(console, arguments);
-          };
-        });
-        document.addEventListener("theme-ready", function () {
-          push(
-            "event",
-            "theme-ready — runtime created, first theme applied",
-            "good",
-          );
-        });
-        document.addEventListener("themes-change", function (event) {
-          var detail = event.detail || {};
-          var count = (detail.themes && detail.themes.length) || 0;
-          push(
-            "event",
-            "themes-change — catalog now has " + count + " themes",
-            "info",
-          );
-        });
-      })();
-    </script>
-    <!--
-      Classic (blocking) on purpose. `type="module"` is deferred by spec, so a
-      module import cannot register the elements before the browser paints: the
-      controls appeared ~100 ms after the page did. The package ships this
-      standalone build for exactly that case — it registers every element and
-      injects their stylesheet while the parser is still in <head>, so the
-      controls are part of the first frame. `vite.config.ts` copies it from
-      `@themvora/web/dist/cdn.js` on every start and build.
-    -->
-    <script src="/themvora-web.js"></script>
-    <title>Themvora Web Components — Theme Lab</title>
     <meta
       name="description"
-      content="HTML-first theming with @themvora/web: custom elements, CSS variables, and live configuration with no framework."
+      content="A plain Vite page with @themvora/web: automatic pre-paint theme CSS and boot script, ordinary HTML, no manual bootstrap."
     />
+    <link rel="icon" href="data:," />
+    <!--
+      Render-blocking on purpose. A CSS file imported from main.ts is injected
+      by JavaScript, so in dev the first paint happens before it exists.
+    -->
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Themvora Web Components — First Paint</title>
   </head>
   <body>
     <!--
-      The provider owns the runtime. Every option is an attribute, and every
-      attribute is live: changing one reconfigures the running runtime instead
-      of reloading the page.
-
-      `themes` accepts identifiers (resolved against the registered catalog) or
-      a JSON array of full definitions. The identifiers below are preset
-      families shipped with @themvora/core; the app's own "solar" pack is
-      installed later, on demand, to demonstrate the catalog signal.
+      No attributes: the catalog, default theme and initial mode come from
+      theme.config.ts, transported by themvoraVitePlugin(). Declaring them here
+      as well would be a second source of truth — and the plugin fails the build
+      if the two resolve differently.
     -->
-    <themvora-provider
-      id="provider"
-      themes="light dark oat-light oat-dark citrus-light citrus-dark cocoa-light cocoa-dark plum-light plum-dark"
-      default-theme="oat-light"
-      initial-mode="system"
-      transition='{"enabled":true,"duration":220,"easing":"ease-out"}'
-    >
+    <themvora-provider>
       <header class="topbar">
         <a class="brand" href="#top">
           <span class="brand-mark" aria-hidden="true">T</span>
-          <span class="brand-text">
+          <span>
             <strong>Themvora</strong>
             <span class="brand-sub">Web Components</span>
           </span>
         </a>
 
-        <div class="topbar-controls">
+        <div class="controls">
           <themvora-select type="family" label="Theme family"></themvora-select>
           <themvora-select type="mode" label="Colour mode"></themvora-select>
           <themvora-toggle></themvora-toggle>
@@ -120,395 +40,131 @@
       </header>
 
       <main id="top">
-        <!-- ------------------------------------------------------------ hero -->
         <section class="hero">
-          <div class="hero-copy">
-            <p class="eyebrow">No framework · no shared package</p>
-            <h1>Theme the page with attributes, not with an API.</h1>
-            <p class="lede">
-              One script registers the elements. The markup below is the entire
-              configuration: a theme list, a starting theme and a starting mode.
-              Every value is applied to a live runtime, so a change lands in the
-              next frame — never on a reload.
-            </p>
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="#lab">Try the live lab</a>
-              <a class="btn btn-ghost" href="#snippets">See the markup</a>
-            </div>
-          </div>
-
-          <aside class="state-panel" aria-label="Live theme state">
-            <p class="state-title">On <code>&lt;html&gt;</code> right now</p>
-            <dl class="state-grid" aria-live="polite">
-              <div>
-                <dt><code>data-theme</code></dt>
-                <dd data-readout="theme">—</dd>
-              </div>
-              <div>
-                <dt><code>data-theme-mode</code></dt>
-                <dd data-readout="mode">—</dd>
-              </div>
-              <div>
-                <dt><code>data-theme-family</code></dt>
-                <dd data-readout="family">—</dd>
-              </div>
-              <div>
-                <dt><code>data-theme-selection-mode</code></dt>
-                <dd data-readout="selection">—</dd>
-              </div>
-            </dl>
-            <p class="state-note">
-              These are written by the provider's own DOM binding, so a screen
-              reader, a test or a CSS rule can read the resolved theme without
-              asking JavaScript.
-            </p>
-          </aside>
+          <p class="eyebrow">First paint, no flash</p>
+          <h1>Themvora first-paint test</h1>
+          <p class="lede">
+            Hello, this is ordinary HTML content. It is not a custom element and
+            it does not wait for JavaScript: the generated stylesheet themes it
+            on the first visible frame, and the blocking boot script restores a
+            saved selection before the body is parsed.
+          </p>
 
           <!--
-            Blocking and immediately after the panel it fills: the parser has
-            just built these readouts, and <html> already carries the resolved
-            attributes (the provider upgraded while the parser was here). A
-            script at the end of <body> is too late — the page can paint
-            mid-parse, and the panel would show "—" for that frame.
+            `data-tv-readout` is the pre-paint readout contract. The boot script
+            in <head> watches for these elements and fills each one in the same
+            task it is parsed, so the values do not appear a module-load later.
+            `effective-mode` is the applied light/dark; `mode` is the visitor's
+            selection (which may be `system`).
           -->
-          <script>
-            (function () {
-              var data = document.documentElement.dataset;
-              var values = {
-                theme: data.theme,
-                mode: data.themeMode,
-                family: data.themeFamily,
-                selection: data.themeSelectionMode,
-              };
-              document
-                .querySelectorAll("[data-readout]")
-                .forEach(function (node) {
-                  var value = values[node.getAttribute("data-readout")];
-                  if (value) node.textContent = value;
-                });
-            })();
-          </script>
-        </section>
-
-        <!-- ---------------------------------------------------------- scopes -->
-        <section class="section" aria-labelledby="scopes-title">
-          <div class="section-head">
-            <h2 id="scopes-title">Scopes resolve against the live catalog</h2>
-            <p>
-              Each card is a <code>&lt;themvora-scope&gt;</code>. The badge
-              shows the theme it actually resolved to — including the fallback
-              when a name is not registered.
-            </p>
-          </div>
-
-          <div class="scope-grid">
-            <article class="scope-card">
-              <header class="scope-head">
-                <p class="eyebrow">exact name</p>
-                <h3><code>theme="citrus-dark"</code></h3>
-                <p class="scope-note">
-                  A name carries its own mode, so this card stays dark even when
-                  the page switches to light.
-                </p>
-              </header>
-              <themvora-scope class="scope-surface" theme="citrus-dark">
-                <span class="scope-dot" aria-hidden="true"></span>
-                <p class="scope-title">Citrus, pinned dark</p>
-                <p class="scope-body">
-                  Variables from <code>citrus-dark</code> are written inline on
-                  this element only.
-                </p>
-              </themvora-scope>
-              <footer class="scope-foot">
-                resolved
-                <code
-                  data-scope-readout="exact"
-                  data-scope-selector='themvora-scope[theme="citrus-dark"]'
-                  >—</code
-                >
-              </footer>
-            </article>
-
-            <article class="scope-card">
-              <header class="scope-head">
-                <p class="eyebrow">family</p>
-                <h3><code>theme="cocoa"</code></h3>
-                <p class="scope-note">
-                  A family follows the page's mode: toggle it and this card
-                  flips with you.
-                </p>
-              </header>
-              <themvora-scope class="scope-surface" theme="cocoa">
-                <span class="scope-dot" aria-hidden="true"></span>
-                <p class="scope-title">Cocoa, follows the mode</p>
-                <p class="scope-body">
-                  Re-resolved on every selection change, in place — no remount,
-                  no transition restart.
-                </p>
-              </themvora-scope>
-              <footer class="scope-foot">
-                resolved
-                <code
-                  data-scope-readout="family"
-                  data-scope-selector='themvora-scope[theme="cocoa"]'
-                  >—</code
-                >
-              </footer>
-            </article>
-
-            <article class="scope-card">
-              <header class="scope-head">
-                <p class="eyebrow">late catalog</p>
-                <h3><code>theme="solar"</code></h3>
-                <p class="scope-note">
-                  <code>solar</code> is not part of the initial catalog, so this
-                  scope is <strong>not scoped yet</strong> — naming a theme that
-                  does not exist would be a configuration error, not a demo.
-                  Install the pack in the lab and the attribute is applied; the
-                  card then resolves without a reload.
-                </p>
-              </header>
-              <themvora-scope class="scope-surface" id="late-scope">
-                <span class="scope-dot" aria-hidden="true"></span>
-                <p class="scope-title">Solar, when it arrives</p>
-                <p class="scope-body">
-                  Install the pack in the lab below and this card resolves
-                  without a reload.
-                </p>
-              </themvora-scope>
-              <footer class="scope-foot">
-                resolved
-                <code
-                  data-scope-readout="late"
-                  data-scope-selector="#late-scope"
-                  >—</code
-                >
-                <span class="scope-status" data-late-status>not installed</span>
-              </footer>
-            </article>
-          </div>
-
-          <!-- Same reason as the panel above: fill each scope's "resolved"
-               line as soon as the scopes have been parsed, not at the end. -->
-          <script>
-            document
-              .querySelectorAll("[data-scope-readout]")
-              .forEach(function (node) {
-                var selector = node.getAttribute("data-scope-selector");
-                var scope = selector ? document.querySelector(selector) : null;
-                var value = scope && scope.getAttribute("data-theme");
-                if (value) node.textContent = value;
-              });
-          </script>
-        </section>
-
-        <!-- ------------------------------------------------------------- lab -->
-        <section class="section" id="lab" aria-labelledby="lab-title">
-          <div class="section-head">
-            <h2 id="lab-title">Live configuration</h2>
-            <p>
-              Every button calls <code>runtime.configure()</code> or
-              <code>runtime.use()</code>. Nothing reloads; watch the readouts
-              above and the log beside them.
-            </p>
-          </div>
-
-          <div class="lab">
-            <div class="lab-controls">
-              <div class="control-group">
-                <p class="control-title">Catalog</p>
-                <button
-                  class="btn btn-primary"
-                  data-action="load-pack"
-                  type="button"
-                >
-                  Install the Solar pack
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="drop-pack"
-                  type="button"
-                >
-                  Remove it again
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="set-brand"
-                  type="button"
-                >
-                  Make Solar the default
-                </button>
-              </div>
-
-              <div class="control-group">
-                <p class="control-title">Selection</p>
-                <button
-                  class="btn btn-ghost"
-                  data-action="family-plum"
-                  type="button"
-                >
-                  Switch to the Plum family
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="mode-dark"
-                  type="button"
-                >
-                  Force dark mode
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="restore"
-                  type="button"
-                >
-                  Restore the boot snapshot
-                </button>
-              </div>
-
-              <div class="control-group">
-                <p class="control-title">Diagnostics</p>
-                <button
-                  class="btn btn-ghost"
-                  data-action="bad-mode"
-                  type="button"
-                >
-                  Send an invalid mode
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="bad-family"
-                  type="button"
-                >
-                  Send an unknown family
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  data-action="bad-attribute"
-                  type="button"
-                >
-                  Write an empty <code>themes</code> attribute
-                </button>
-              </div>
-
-              <p class="control-hint">
-                Diagnostics are warnings, not crashes: the runtime reports the
-                bad input, keeps the previous setting and carries on.
-              </p>
+          <dl class="state">
+            <div>
+              <dt>Resolved theme</dt>
+              <dd data-tv-readout="theme">—</dd>
             </div>
-
-            <div class="lab-log">
-              <div class="log-head">
-                <p class="control-title">Event log</p>
-                <button
-                  class="btn btn-ghost btn-small"
-                  data-action="clear-log"
-                  type="button"
-                >
-                  Clear
-                </button>
-              </div>
-              <ol
-                class="log"
-                id="log"
-                role="log"
-                aria-live="polite"
-                aria-relevant="additions"
-              >
-                <li class="log-row log-row-muted" data-log-placeholder>
-                  <span class="log-time">0</span>
-                  <span class="log-channel">boot</span>
-                  <span class="log-message">waiting for the provider…</span>
-                </li>
-              </ol>
+            <div>
+              <dt>Applied mode</dt>
+              <dd data-tv-readout="effective-mode">—</dd>
             </div>
+            <div>
+              <dt>Family</dt>
+              <dd data-tv-readout="family">—</dd>
+            </div>
+            <div>
+              <dt>Selection</dt>
+              <dd data-tv-readout="mode">—</dd>
+            </div>
+          </dl>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="pick-plum" type="button">
+              Use the Plum family
+            </button>
+            <button class="btn" id="pick-harbor" type="button">
+              Use the Harbor family
+            </button>
+            <button class="btn" id="reload" type="button">
+              Reload with this selection
+            </button>
           </div>
         </section>
 
-        <!-- -------------------------------------------------------- snippets -->
-        <section class="section" id="snippets" aria-labelledby="snippets-title">
-          <div class="section-head">
-            <h2 id="snippets-title">The markup this page runs on</h2>
+        <section class="cards" aria-label="Ordinary HTML content">
+          <article class="card">
+            <h2>Headings, paragraphs, buttons</h2>
             <p>
-              Copy any block into a Vite page with
-              <code>@themvora/web</code> installed and it behaves the same way.
+              Every colour in this card is a semantic token. There is no
+              component and no shadow root, so the document's variables inherit
+              normally.
             </p>
-          </div>
+            <button class="btn" type="button">An ordinary button</button>
+          </article>
 
-          <div class="snippet-grid">
-            <article class="snippet">
-              <h3>1 · The provider</h3>
-              <pre><code>&lt;themvora-provider
-  themes="light dark oat-light oat-dark citrus-light citrus-dark
-          cocoa-light cocoa-dark plum-light plum-dark"
-  default-theme="oat-light"
-  initial-mode="system"
-  transition='{"enabled":true,"duration":220,"easing":"ease-out"}'
-&gt;
-  &lt;themvora-select type="family" label="Theme family"&gt;&lt;/themvora-select&gt;
-  &lt;themvora-select type="mode" label="Colour mode"&gt;&lt;/themvora-select&gt;
-  &lt;themvora-toggle&gt;&lt;/themvora-toggle&gt;
-&lt;/themvora-provider&gt;</code></pre>
-            </article>
+          <article class="card">
+            <h2>System light and dark</h2>
+            <p>
+              The default is <code>harbor-light</code> with
+              <code>initialMode: "system"</code>. On a dark OS the generated
+              <code>prefers-color-scheme</code> rule paints
+              <code>harbor-dark</code> before any script runs.
+            </p>
+          </article>
 
-            <article class="snippet">
-              <h3>2 · The boot script</h3>
-              <pre><code>&lt;!-- index.html — blocking, so the elements exist at first paint --&gt;
-&lt;script src="/themvora-web.js"&gt;&lt;/script&gt;
+          <article class="card">
+            <h2>Saved selection</h2>
+            <p>
+              Choose a theme, then reload. The blocking script reads the same
+              <code>theme-selection</code> entry the runtime persists and writes
+              the canonical <code>data-theme</code> attributes before first
+              paint.
+            </p>
+          </article>
 
-// main.ts — the same package, read off the global it exposes
-const { getProviderRuntime } = window.ThemvoraWeb;
+          <!--
+            `data-theme` is the generated stylesheet's scope selector, so this
+            card is already plum-dark while it is still plain HTML. `theme` is
+            the runtime selection the element adopts when it upgrades; the
+            values it writes inline are the same.
+          -->
+          <themvora-scope
+            class="card card-scoped"
+            theme="plum-dark"
+            data-theme="plum-dark"
+          >
+            <h2>A scoped region</h2>
+            <p>
+              A custom element with its own inline variables. Its children are
+              still ordinary HTML; only this subtree uses the pinned theme.
+            </p>
+          </themvora-scope>
 
-const provider = document.querySelector&lt;HTMLElement&gt;("#provider");
-const runtime = getProviderRuntime(provider);
+          <themvora-scope
+            class="card card-scoped"
+            theme="oat-dark"
+            data-theme="oat-dark"
+          >
+            <h2>A scoped region</h2>
+            <p>
+              A custom element with its own inline variables. Its children are
+              still ordinary HTML; only this subtree uses the pinned theme.
+            </p>
+          </themvora-scope>
 
-// Getters, not subscriptions: subscribe, then re-read.
-const render = () =&gt; {
-  const theme = runtime.store.get();
-  console.log(theme.name, runtime.selection.getMode());
-};
-
-runtime.store.subscribe(render);
-render();</code></pre>
-            </article>
-
-            <article class="snippet">
-              <h3>3 · A catalog change</h3>
-              <pre><code>// Installs a pack the page did not ship with.
-runtime.use({ name: "solar", themes: [solarLight, solarDark] });
-
-// A catalog change that preserves the active theme emits no store
-// change — the registry signal is what scopes and selects follow.
-runtime.registry.subscribe(() =&gt; {
-  console.log(runtime.themes.map((theme) =&gt; theme.name));
-});
-
-// The DOM event carries the same information for page code.
-provider.addEventListener("themes-change", (event) =&gt; {
-  console.log(event.detail.themes);
-});</code></pre>
-            </article>
-          </div>
+          <themvora-scope
+            class="card card-scoped"
+            theme="berry-light"
+            data-theme="berry-light"
+          >
+            <h2>A scoped region</h2>
+            <p>
+              A custom element with its own inline variables. Its children are
+              still ordinary HTML; only this subtree uses the pinned theme.
+            </p>
+          </themvora-scope>
         </section>
 
-        <footer class="footer">
-          <p>
-            Built with <code>@themvora/web</code> and
-            <code>@themvora/core</code>
-            — no framework, no shared example package.
-          </p>
-          <p class="footer-meta">
-            Themes are plain CSS variables: inspect one with the floating
-            inspector in the corner.
-          </p>
-        </footer>
+        <themvora-inspector right="20"></themvora-inspector>
       </main>
-
-      <themvora-scrollbar
-        auto-hide="false"
-        hover-expand="false"
-        appearance=""
-      ></themvora-scrollbar>
-      <themvora-inspector bottom="24" right="24"></themvora-inspector>
     </themvora-provider>
 
     <script type="module" src="/src/main.ts"></script>

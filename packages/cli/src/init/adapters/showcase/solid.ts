@@ -22,6 +22,7 @@ import {
   docsLinks,
 } from "../showcase-content.js";
 import type { ShowcasePort } from "./port.js";
+import type { StylingEngine } from "../../types.js";
 
 /** A backtick, so the generated snippets can be delimited without escaping. */
 const BT = "`";
@@ -33,7 +34,14 @@ const BT = "`";
  * @param port - The framework-specific bits.
  * @returns The component's source.
  */
-export function solidThemvoraDefault(c: ShowcaseClasses, port: ShowcasePort): string {
+export function solidThemvoraDefault(
+  c: ShowcaseClasses,
+  port: ShowcasePort,
+  styling: StylingEngine,
+): string {
+  // A plain-CSS project is not shown a Tailwind snippet: the card would be
+  // documenting an engine the project does not have.
+  const tailwind = styling === "tailwind";
   const links = docsLinks(port.guideSlug)
     .map((link) => `  { href: "${link.href}", label: "${link.label}" },`)
     .join("\n");
@@ -53,8 +61,7 @@ const docsLinks = [
 ${links}
 ];
 
-const tailwindSnippet = ${BT}${TAILWIND_SNIPPET}${BT};
-
+${tailwind ? `const tailwindSnippet = ${BT}${TAILWIND_SNIPPET}${BT};\n` : ""}
 const cssSnippet = ${BT}${CSS_SNIPPET}${BT};
 
 const ThemvoraDefault = () => {
@@ -313,10 +320,10 @@ const ThemvoraDefault = () => {
       <section class="${c.card}">
         <div class="${c.cardHeading}">
           <h2 class="${c.cardTitle}">Use the tokens</h2>
-          <p class="${c.cardHint}">Same tokens, two ways. Neither needs per-theme code.</p>
+          <p class="${c.cardHint}">${tailwind ? "Same tokens, two ways. Neither needs per-theme code." : "Every colour on this page is one of these variables."}</p>
         </div>
-        <div class="${c.snippetGrid}">
-          <div class="${c.snippet}">
+        <div class="${tailwind ? c.snippetGrid : c.snippetGridSingle}">
+${tailwind ? `          <div class="${c.snippet}">
             <div class="${c.snippetHead}">
               <span class="${c.snippetLabel}">Tailwind</span>
               <button
@@ -334,7 +341,7 @@ const ThemvoraDefault = () => {
             </pre>
           </div>
 
-          <div class="${c.snippet}">
+` : ""}          <div class="${c.snippet}">
             <div class="${c.snippetHead}">
               <span class="${c.snippetLabel}">CSS variables</span>
               <button

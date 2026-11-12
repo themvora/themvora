@@ -11,5 +11,12 @@ import {
 } from "@themvora/app-shared/themes";
 
 bootstrapApplication(AppComponent, {
-  providers: [provideTheme({ themes, defaultTheme, initialMode, transition })],
+  providers: [
+    provideTheme({
+      themes,
+      defaultTheme,
+      initialMode,
+      transition: { enabled: true, duration: 400, preset: "subtle" },
+    }),
+  ],
 });

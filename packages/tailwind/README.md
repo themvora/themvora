@@ -12,68 +12,143 @@ Tailwind CSS v4 integration that maps every semantic token to utilities and `@th
 
 ## Set up
 
-```css
-/* src/globals.css */
+`@themvora/tailwind` is build-time only. Two imports in the same file: Tailwind itself, then Themvora's mapping, which emits a utility for every semantic token.
+
+```css title="src/index.css"
 @import "tailwindcss";
 @import "@themvora/tailwind";
 ```
 
-That import is the whole integration — Tailwind maps tokens to utilities at
-build time and never runs in the browser.
+## Add the global stylesheet
 
-## Add a small UI
+Put the document rule in `src/index.css`. Themvora emits its design tokens as CSS custom properties on the root element, so this stylesheet only reads them.
 
-A heading, a card and a button. The button reads the current theme and changes
-it — nothing is styled yet.
-
-```html
-<!-- Plain HTML. Tailwind utilities resolve to Themvora tokens, so there is
-     no framework and no component library here. -->
-<main class="min-h-screen bg-background text-foreground p-8">
-  <h1 class="text-2xl font-semibold">Themvora + Tailwind</h1>
-  <section class="mt-6 rounded-xl border border-border bg-card p-4">
-    <h2 class="font-semibold text-card-foreground">Themed card</h2>
-    <button class="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-      Toggle theme
-    </button>
-  </section>
-</main>
-```
-
-Switching needs a runtime, which Tailwind does not provide — install a Theme
-Kit runtime for your framework and keep Tailwind's `.dark` class in step with
-it using `synchronizeDarkClass`.
-
-## Style it with Themvora tokens
-
-Themvora emits the active theme's tokens as CSS custom properties, so the
-document itself is themed and your own classes read the same variables without
-any per-theme CSS. The rules use only required semantic colours — spacing,
-typography and layout stay ordinary CSS:
-
-```css
+```css title="src/index.css"
+/* Themvora emits its design tokens as CSS custom properties on the root
+   element, so a stylesheet only has to read them. Nothing here is
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
 }
+```
 
-.page {
-  background: var(--theme-color-background);
-  color: var(--theme-color-foreground);
-}
+Load it once from `your app entry` with `import "./index.css";`, so the document rule applies before any component styles.
 
-.card {
-  background: var(--theme-color-card);
-  color: var(--theme-color-cardForeground);
+## Add a small UI
+
+The same card with Tailwind utilities. Every class resolves to a semantic token, so a theme switch repaints it without a re-render.
+
+```html title="index.html"
+<div class="grid max-w-sm gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+  <div class="flex items-center justify-between gap-2">
+    <h3 class="text-[15px] font-semibold">Design system</h3>
+    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+      Active
+    </span>
+  </div>
+  <p class="text-[13px] text-muted-foreground">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="text-xs text-muted-foreground">Updated 2 minutes ago</p>
+  <button
+    type="button"
+    class="justify-self-start rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground hover:brightness-110"
+  >
+    View themes
+  </button>
+</div>
+```
+
+## Style it with Themvora tokens
+
+Only the component rules live here — the document rule is in the global stylesheet from step 4, so it is not repeated below. Every colour is a required semantic token, so any theme that passes `validateTheme()` emits it; radius and shadow are optional and carry fallbacks, and no typography token is read.
+
+```css title="src/index.css"
+.themvora-example-card {
+  display: grid;
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
   border: 1px solid var(--theme-color-border);
   border-radius: var(--theme-radius-lg, 12px);
-  padding: 1rem;
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
 }
 ```
 
-Nothing is re-rendered on a switch — the variables change and the styles follow.
-
+`.themvora-example-card` and its children read Themvora tokens, so switching the active theme repaints them — no re-render, and no per-theme CSS.
 ## Reference snippet
 
 ```css

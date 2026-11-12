@@ -35,9 +35,25 @@ import { AntdThemeProvider } from "@themvora/antd";
 ### `buildAntdConfig(theme): ThemeConfig`
 Builds an Ant Design `ThemeConfig` from a resolved Themvora theme.
 
-Maps Themvora semantic tokens (colors, radius, typography) onto Ant Design's
-design tokens and component overrides. The algorithm is Ant's default
-algorithm; the palette follows the resolved theme mode.
+## What this maps, and why
+
+Ant Design's design tokens are *derived*: it runs an algorithm over a handful
+of seeds (`colorPrimary`, `colorBgBase`, `colorTextBase`, …) and computes every
+alias from them. Two consequences shape this adapter:
+
+- The algorithm itself is mode-specific. `defaultAlgorithm` computes a light
+  palette; `darkAlgorithm` computes a dark one. Running the light algorithm
+  over a dark Themvora theme is what made dark integrations look washed out —
+  every derived surface was still the light one. The algorithm is therefore
+  selected from the resolved theme's mode, not fixed.
+- Semantic roles must be seeded from the *matching* Themvora token. Ant
+  Design's `colorWarning` was being seeded from `accent` and `colorSuccess`
+  from `muted`, so warning and success rendered in unrelated colours.
+
+The neutral roles are seeded from Themvora's own neutrals — `background` for
+the page, `card` for containers, `popover` for elevated surfaces, `muted` for
+hover/selected fills, `mutedForeground` for secondary text — so cards, inputs
+and overlays stay visually distinct instead of collapsing onto one surface.
 
 **See also:** `AntdThemeProvider`
 

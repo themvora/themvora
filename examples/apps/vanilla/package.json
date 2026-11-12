@@ -1,0 +1,14 @@
+{
+  "name": "@themvora/app-vanilla",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Themvora framework-free example: plain HTML, CSS and JavaScript on a static server — no Vite, no bundler, no framework.",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@themvora/core": "workspace:*"
+  }
+}

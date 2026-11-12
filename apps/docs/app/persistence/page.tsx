@@ -273,7 +273,7 @@ const runtime = createThemeRuntime({
 export default function PersistencePage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Persistence"
           title="Remember the user's choice"

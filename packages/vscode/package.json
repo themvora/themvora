@@ -1,8 +1,8 @@
 {
-  "name": "themvora-vscode",
-  "displayName": "Themvora for VS Code",
+  "name": "themvora-for-vscode",
+  "displayName": "Themvora Theme Studio for VS Code",
   "description": "Explore, preview, create and validate your Themvora themes without leaving VS Code.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "MIT",

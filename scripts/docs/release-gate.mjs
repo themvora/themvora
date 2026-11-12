@@ -210,12 +210,21 @@ const staticSteps = [
   // mode as the TOC manifest. Both generated `lib/generated/*` files are now
   // gated, because an ungated generated file is a file that will drift.
   { name: "package graph current (generated file is current)", cmd: "apps/docs/scripts/generate-package-graph.mjs", args: ["--check"] },
+  // The nine UI-library adapter READMEs are generated from `FRAMEWORK_RECIPES` —
+  // the table `/libraries/[slug]` renders. A recipe change that is not
+  // regenerated leaves npm and GitHub showing a different integration from the
+  // one the site documents, and nothing else would notice: the README still
+  // renders, the site still builds. It imports `.ts` modules, hence `nodeArgs`.
+  { name: "library READMEs match the docs recipes", cmd: "scripts/check-readme-drift.mjs", args: [], nodeArgs: ["--experimental-strip-types"] },
   // `docs/style-guide.md` §1 names `cli:check` as the gate for the CLI reference
   // tables, but it was reachable only through the `apps/docs` package script, so
   // the declared gate and the enforced gate disagreed. The tables are generated
   // from `packages/cli/src/cli.ts` and `exit-codes.ts` — no build, no dist — so
   // it belongs in this static cluster with the other generated-freshness checks.
   { name: "CLI reference current (generated file is current)", cmd: "apps/docs/scripts/generate-cli-reference.mjs", args: ["--check"] },
+  // The search index is generated from content and lib data. This verifies the
+  // static asset exists, has the expected structure, and matches the source data.
+  { name: "search index (generated asset is valid)", cmd: "apps/docs/scripts/test-search-index.mjs", args: [] },
   { name: "audit B — package → docs destinations", cmd: "scripts/docs/audits/audit-b-package-to-docs.mjs", args: ["--coverage=fail"] },
   { name: "audit C — canonical examples (static)", cmd: "scripts/docs/audits/audit-c-examples.mjs", args: [] },
   // The authoritative preset quality gate: 8 semantic checks per shipped theme
@@ -259,7 +268,35 @@ const staticSteps = [
   { name: "audit E — no invented symbols", cmd: "scripts/docs/audits/audit-e-invented-symbols.mjs", args: [] },
   { name: "audit F — no internal symbols", cmd: "scripts/docs/audits/audit-f-internal-symbols.mjs", args: [] },
   { name: "audit G — terminology consistency", cmd: "scripts/docs/audits/audit-g-terminology.mjs", args: [] },
+  // The setup structure every README teaches: canonical step order, the
+  // document rule in one place, and no CSS in the run step. The docs site is
+  // guarded by its own page contract; this covers the npm and GitHub surfaces,
+  // which a reader meets before the site.
+  { name: "README setup conventions", cmd: "scripts/docs/check-doc-setup-conventions.mjs", args: [] },
   { name: "audit I — well-formed markdown tables", cmd: "scripts/docs/audits/audit-i-generated-tables.mjs", args: [] },
+  // Installation copy is a contract with the published manifests. The docs
+  // centralise it in `lib/package-contracts.ts`; this compares that module to
+  // every publishable package.json and rejects the old contradictory wording.
+  {
+    name: "installation contracts (docs vs manifests)",
+    cmd: "scripts/docs/audits/audit-installation-contracts.mjs",
+    args: [],
+    nodeArgs: ["--experimental-strip-types"],
+  },
+  // The Compatibility Matrix defines the SSR and zero-flash vocabulary. This
+  // checks every framework row against its manifest peer range and keeps the
+  // guide header rendering those exact labels.
+  {
+    name: "SSR / zero-flash metadata consistency",
+    cmd: "scripts/docs/audits/audit-ssr-metadata.mjs",
+    args: [],
+    nodeArgs: ["--experimental-strip-types"],
+  },
+  // Snippets are strings. `gap: 10 px` survives every compiler and reaches the
+  // Copy button, so this is the only gate that can see it.
+  { name: "CSS snippet correctness", cmd: "scripts/docs/audits/audit-css-snippets.mjs", args: [] },
+  // Redirect aliases, canonical destinations and sitemap exclusions.
+  { name: "routes, redirects, sitemap aliases", cmd: "apps/docs/scripts/check-redirects.mjs", args: [] },
   { name: "§2 IA + §3 page contracts", cmd: "scripts/docs/audits/audit-page-contracts.mjs", args: [] },
   // `docs/style-guide.md` §1 names `links` as the gate for internal links,
   // duplicate titles and sitemap coverage, but it was reachable only through the
@@ -305,6 +342,15 @@ const fullSteps = [
     },
   },
   { name: "audit H — browser smoke (docs site)", cmd: "scripts/docs/audits/audit-browser-smoke.mjs", args: ["--strict"] },
+  // HTTP health for every canonical route and every redirect, against a fresh
+  // `next start`. Reports the route, status, response time, document shell and
+  // missing-content failures — the facts a crawler timeout cannot distinguish.
+  {
+    name: "route health (every canonical route)",
+    cmd: "scripts/docs/audits/audit-route-health.mjs",
+    args: ["--start"],
+    nodeArgs: ["--experimental-strip-types"],
+  },
   // The TOC rail's SSR list comes from a committed manifest (lib/generated/
   // toc-headings.ts) because the render-tree walk cannot see headings inside
   // client components. Crawling the built site is the only way to know the
@@ -368,17 +414,11 @@ const browserSteps = [];
       cmd: "scripts/release/verify-astro-readouts.mjs",
       args: [],
     },
-    // The hero's 3D field. A canvas has no DOM to query and no ratio to assert,
-    // so the scene publishes a development-only diagnostic and this drives a real
-    // browser to check what actually matters: the loop runs and draws, the palette
-    // follows the theme, `prefers-reduced-motion` freezes it, the CSS poster
-    // carries the hero without WebGL, and the canvas arrives without a layout
-    // shift. Skips cleanly when no browser is installed.
-    {
-      name: "hero scene (browser, canvas + progressive enhancement)",
-      cmd: "apps/docs/scripts/probe-hero-scene.mjs",
-      args: [],
-    },
+    // The hero's 3D field gate used to live here. That scene — its component,
+    // `lib/hero-scene.ts`, `lib/hero-three.ts` and its probe — was removed with
+    // the homepage redesign, so there is nothing left to drive. A step pointing
+    // at the deleted probe does not test the page; it fails the whole tier with
+    // MODULE_NOT_FOUND before the remaining browser gates can run.
     ...reactSteps,
   );
 }

@@ -1,7 +1,7 @@
 # `themvora generate`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 Generate a complete theme from one of three sources: a **seed color**, a

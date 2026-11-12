@@ -253,6 +253,57 @@
   --bs-dropdown-link-disabled-color: var(--bs-tertiary-color);
 }
 
+/* ==========================================================================
+   Surfaces
+
+   Bootstrap 5.3 declares these **on the component**, not on `:root`:
+
+       .card { --bs-card-bg: var(--bs-body-bg); … }
+
+   A `:root` value therefore cannot reach them — the component's own
+   declaration is closer to the element and wins. That is why cards, dropdowns,
+   modals and list groups all painted the page colour even when the theme had a
+   distinct `card` and `popover` role, and why adding the variables at `:root`
+   changed nothing.
+
+   Re-declaring them here is the same extension mechanism used above: the
+   component keeps its own variable, pointed at the Themvora role that means the
+   same thing.
+   ========================================================================== */
+
+.card {
+  --bs-card-bg: var(--theme-color-card, var(--bs-body-bg));
+  --bs-card-cap-bg: transparent;
+}
+
+.dropdown-menu {
+  --bs-dropdown-bg: var(--theme-color-popover, var(--theme-color-card, var(--bs-body-bg)));
+}
+
+.modal-content {
+  --bs-modal-bg: var(--theme-color-popover, var(--theme-color-card, var(--bs-body-bg)));
+}
+
+.offcanvas {
+  --bs-offcanvas-bg: var(--theme-color-card, var(--bs-body-bg));
+}
+
+.accordion {
+  --bs-accordion-bg: var(--theme-color-card, var(--bs-body-bg));
+}
+
+.list-group {
+  --bs-list-group-bg: var(--theme-color-card, var(--bs-body-bg));
+}
+
+.popover {
+  --bs-popover-bg: var(--theme-color-popover, var(--theme-color-card, var(--bs-body-bg)));
+}
+
+.toast {
+  --bs-toast-bg: var(--theme-color-popover, var(--theme-color-card, var(--bs-body-bg)));
+}
+
 .badge {
   --bs-badge-color: var(--bs-primary-foreground, #fff);
 }

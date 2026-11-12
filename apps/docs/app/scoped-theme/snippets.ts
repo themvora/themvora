@@ -8,10 +8,35 @@
  * makes it readable from both sides — the guide for display, the page for
  * `javascriptSources`.
  */
-export const scopeExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+type WebViteSnippet = { title: string; lang: string; code: string };
+type Snippet = {
+  lang: string;
+  title: string;
+  code: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: WebViteSnippet;
+};
+
+const webViteSnippet: WebViteSnippet = {
+  title: "Using Vite — theme.config.ts",
+  lang: "ts",
+  code: `// vite.config.ts
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({ plugins: [themvoraVitePlugin()] });
+
+// theme.config.ts
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "mint-light",
+  initialMode: "system",
+});`,
+};
+
+export const scopeExamples: Record<string, Snippet> = {
   react: {
     lang: "tsx",
     title: "src/App.tsx",
@@ -130,10 +155,9 @@ export class BannerComponent {}`,
 </themvora-provider>
 
 <script type="module">
-  // Registers every <themvora-*> element and their stylesheet. No manual
-  // registration step is needed.
   import "@themvora/web";
 </script>`,
+    vite: webViteSnippet,
   },
   tailwind: {
     lang: "css",
@@ -204,10 +228,7 @@ export function ScopedPanel() {
   },
 };
 
-export const imperativeExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+export const imperativeExamples: Record<string, Snippet> = {
   react: {
     lang: "tsx",
     title: "useScopedTheme — imperative",
@@ -337,6 +358,7 @@ export class PreviewComponent {}`,
     code: `<themvora-scope theme="plum-dark">
   <p>Scoped to plum-dark</p>
 </themvora-scope>`,
+    vite: webViteSnippet,
   },
   tailwind: {
     lang: "ts",
@@ -373,10 +395,7 @@ import { ThemeScope } from "@themvora/astro/client";
   },
 };
 
-export const localThemeExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+export const localThemeExamples: Record<string, Snippet> = {
   react: {
     lang: "tsx",
     title: "React — local themes",
@@ -556,15 +575,12 @@ binding.destroy();`,
   web: {
     lang: "ts",
     title: "core — imperative local themes",
-    code: `// The <themvora-scope> element doesn't support local themes.
-// Use the imperative core binding with localThemes:
-import {
+    code: `import {
   createScopedThemeBinding,
   defineTheme,
   getBuiltInThemes,
 } from "@themvora/core";
 
-// A local theme is just a ThemeDefinition — define it wherever you like.
 const compactTheme = defineTheme({
   name: "compact-light",
   meta: { family: "compact", mode: "light" },
@@ -577,13 +593,13 @@ const compactTheme = defineTheme({
   },
 });
 
-// createScopedThemeBinding takes the registry positionally.
 const themes = getBuiltInThemes();
 
 const binding = createScopedThemeBinding(themes, el, "plum-dark", {
   localThemes: [compactTheme],
 });
 binding.destroy();`,
+    vite: webViteSnippet,
   },
   tailwind: {
     lang: "ts",
@@ -709,10 +725,7 @@ export function ScopedPanel() {
   },
 };
 
-export const transitionExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+export const transitionExamples: Record<string, Snippet> = {
   react: {
     lang: "tsx",
     title: "React — transition prop",
@@ -810,6 +823,7 @@ export class ScopeComponent {}`,
   theme="plum-dark"
   theme-transition='{"duration":150}'
 ></themvora-scope>`,
+    vite: webViteSnippet,
   },
   tailwind: {
     lang: "css",
@@ -866,10 +880,7 @@ import { ThemeScope } from "@themvora/remix";
   },
 };
 
-export const nestedScopeExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+export const nestedScopeExamples: Record<string, Snippet> = {
   react: {
     lang: "tsx",
     title: "React — nested scopes",
@@ -971,6 +982,7 @@ export class DashboardComponent {}`,
     </themvora-scope>
   </themvora-scope>
 </themvora-provider>`,
+    vite: webViteSnippet,
   },
   tailwind: {
     lang: "css",

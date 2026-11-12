@@ -1,5 +1,39 @@
 # @themvora/next
 
+## 2.2.0
+
+### Minor Changes
+
+- Render the pre-paint stylesheet, not only the blocking script, and let an
+  adapter contribute its own.
+
+  The blocking bootstrap writes `--theme-*` as an inline `style` on `<html>`. That
+  covers the _first_ paint but not the one after hydration: the layout renders
+  `<html style={…}>`, so React reconciles that attribute and drops the properties
+  the script added. The variables then disappear until the provider writes them
+  again, and for a few frames every library falls back to its own colours. A
+  stylesheet closes that window, because hydration cannot remove a rule.
+
+  `ThemeProvider` now renders `createThemePrePaintCss()` into `<head>` before the
+  script, and accepts an optional `prePaintCss` string for a library adapter that
+  paints from its own variables (`@themvora/bootstrap/prepaint`,
+  `@themvora/mantine/prepaint`). The prop is a string rather than a component, so
+  this package stays unaware of which library is in use.
+
+  `ResolvedThemeProvider` also gains the `Suspense` boundary its `cookies()` read
+  needs, so the request-dependent read streams into an already-painted shell
+  instead of making the shell request-dependent.
+
+  No existing prop changed; `prePaintCss` is additive.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+  - @themvora/react@1.4.1
+
 ## 2.1.0
 
 ### Minor Changes

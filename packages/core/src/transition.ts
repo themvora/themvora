@@ -49,11 +49,21 @@ export interface ThemeTransitionOptions {
    * raw array filters the diff-derived properties.
    *
    * @defaultValue "smooth"
+   *
+   * @remarks
+   * Applies to the CSS-custom-property path. With `useViewTransition` (the
+   * default where the browser supports it) the whole document is crossfaded as
+   * one image, so there is no per-property set to filter and this option has no
+   * effect — set `useViewTransition: false` to animate properties instead.
    */
   preset?: TransitionPreset;
 
   /**
    * Explicit property allowlist. Overrides `preset` when provided.
+   *
+   * @remarks
+   * Same scope as {@link preset}: it filters the CSS-custom-property
+   * interpolation, which a document-wide view transition replaces.
    */
   properties?: string[];
 }

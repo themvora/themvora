@@ -1,0 +1,25 @@
+---
+// Fixture styles. `scroll-behavior: smooth` is intentional: restoration must
+// not turn into an animation (the gate asserts no later frame is at the top).
+---
+<style is:inline>
+  html {
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+  }
+  .row {
+    height: 100px;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+  }
+  .landmark {
+    font-weight: 700;
+  }
+  #middle {
+    background: #eef;
+  }
+</style>

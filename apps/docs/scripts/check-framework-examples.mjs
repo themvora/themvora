@@ -201,7 +201,7 @@ const registrySrc = read(registryPath);
 
 console.log("\n=== FRAMEWORK EXAMPLES COVERAGE ===\n");
 console.log(`frameworks in lib/frameworks.tsx: ${frameworks.length}`);
-console.log(`examples modules registered:      ${[...registrySrc.matchAll(/^ {2}[a-z]+: [a-zA-Z]+Examples,$/gm)].length}\n`);
+console.log(`examples modules registered:      ${[...registrySrc.matchAll(/^ {2}(?:"[^"]+"|[a-z]+): [a-zA-Z]+Examples,$/gm)].length}\n`);
 
 for (const framework of frameworks) {
   const { slug } = framework;
@@ -220,8 +220,21 @@ for (const framework of frameworks) {
     fail(where, "no examples module for this framework");
     continue;
   }
-  if (!new RegExp(`^ {2}${slug}: [a-zA-Z]+Examples,$`, "m").test(registrySrc)) {
+  const registered = new RegExp(
+    `^ {2}(?:"${slug}"|${slug}): [a-zA-Z]+Examples,$`,
+    "m",
+  ).test(registrySrc);
+  if (!registered) {
     fail(where, "module exists but is not registered in framework-examples/index.ts");
+  }
+
+  // --- snippets stay about the integration, not styling --------------------
+  // Tailwind is the exception: classes are the subject there.
+  if (slug !== "tailwind" && /class(?:Name)?="/.test(examples.src)) {
+    fail(
+      where,
+      "contains a class/className attribute — framework examples should demonstrate APIs, not incidental styling",
+    );
   }
 
   // --- category labels mirror the What's Available groups -----------------

@@ -1,48 +1,75 @@
-# Themvora + Nuxt
+# Nuxt Minimal Starter
 
-Runnable parity app for the `@themvora/nuxt` module.
+Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
-- **Stack:** Nuxt 4 + Vue 3 + Tailwind CSS v4 (`@tailwindcss/vite`).
-- **Integration:** the `@themvora/nuxt` module (auto-imports + runtime plugin +
-  cookie SSR). The module owns the provider — there is no provider component to
-  mount.
-- **Shared fixtures:** `@themvora/app-shared`.
+## Setup
 
-## Layout
-
-```
-nuxt.config.ts            # modules: ["@themvora/nuxt"], themvora: { themes, defaultTheme, initialMode, transition }
-app/
-  app.vue                 # reference page; `useTheme`, `<ThemeScope>`, `<ThemeScrollbar>` are auto-imported
-  assets/css/main.css
-```
-
-The module auto-registers `ThemeProvider`, `ThemeScope`, `ThemeScrollbar`
-(prefix `""`) and auto-imports the `@themvora/vue` composables. The runtime
-plugin resolves the cookie selection on the server, writes the `data-theme*`
-attributes and zero-flash style/script into `<head>`, and builds the client
-runtime with cookie + localStorage persistence.
-
-### Framework-specific behaviour
-
-`nuxt.config.ts` casts the Tailwind Vite plugin (`as never`) only to silence a
-Vite-copy type clash with Nuxt's own Vite in type-check; the production build is
-unaffected.
-
-The overlay scrollbar is split the way the module requires:
-
-- `themvora.scrollbar: true` makes the server emit the native-hiding CSS and the
-  `tv-scrollbar` class on `<html>`, so the native bar is never painted — no
-  flash on reload.
-- `css: ["@themvora/core/scrollbar.css"]` ships the overlay styles (the scrollbar
-  styles live in core, not the module).
-- `<ThemeScrollbar>` in `app/app.vue` draws the overlay after hydration.
-
-## Run
+Make sure to install dependencies:
 
 ```bash
-pnpm --filter @themvora/app-nuxt dev        # http://localhost:5199
-pnpm --filter @themvora/app-nuxt build      # nuxt build
-pnpm --filter @themvora/app-nuxt typecheck  # nuxt typecheck
-pnpm --filter @themvora/app-nuxt preview
+# npm
+npm install
+
+# pnpm
+pnpm install
+
+# yarn
+yarn install
+
+# bun
+bun install
 ```
+
+## Development Server
+
+Start the development server on `http://localhost:3000`:
+
+```bash
+# npm
+npm run dev
+
+# pnpm
+pnpm dev
+
+# yarn
+yarn dev
+
+# bun
+bun run dev
+```
+
+## Production
+
+Build the application for production:
+
+```bash
+# npm
+npm run build
+
+# pnpm
+pnpm build
+
+# yarn
+yarn build
+
+# bun
+bun run build
+```
+
+Locally preview production build:
+
+```bash
+# npm
+npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

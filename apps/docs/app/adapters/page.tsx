@@ -269,7 +269,7 @@ runtime.adapters.use(createBootstrapAdapter({ injectCSS: false }));`,
 export default function AdaptersPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg
@@ -327,7 +327,7 @@ export default function AdaptersPage() {
           Remix and Astro.
         </Callout>
 
-        <div className="mt-6 overflow-hidden rounded-xl border border-border">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
@@ -580,7 +580,7 @@ export default function AdaptersPage() {
           >
             Strategies
           </SectionHeading>
-          <div className="overflow-hidden rounded-xl border border-border mb-4">
+          <div className="overflow-x-auto rounded-xl border border-border mb-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">

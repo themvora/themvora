@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "themvora-vscode: build",
+      "label": "themvora-for-vscode: build",
       "type": "shell",
-      "command": "pnpm --filter themvora-vscode build",
+      "command": "pnpm --filter themvora-for-vscode build",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "presentation": { "reveal": "silent", "panel": "dedicated" }

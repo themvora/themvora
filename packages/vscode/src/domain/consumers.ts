@@ -177,8 +177,15 @@ function matchApi(specifier: string, imported: string): ApiMatch | undefined {
     }
   }
 
-  if (pkg === "@themvora/remix") {
+  if (pkg === "@themvora/remix" || pkg === "@themvora/remix/react-router") {
     if (imported === "ThemeProvider") return { integration: "remix", api: "ThemeProvider", kind: "provider" };
+    // The document integration: one configuration object supplies the loader
+    // helper, the blocking script, the `<html>` shell and the runtime provider.
+    // It is a factory call with the same option shape a provider took, so it is
+    // read the same way — `themes` (and the aliases) come out of the literal.
+    if (imported === "createThemeDocument") {
+      return { integration: "remix", api: "createThemeDocument", kind: "options" };
+    }
   }
 
   if (pkg === "@themvora/solid") {

@@ -7,7 +7,8 @@ export type PackageManager = "pnpm" | "npm" | "yarn" | "bun";
 
 type InstallCommandEntry = {
   code: string;
-  html: string;
+  /** Pre-highlighted markup. Omitted for commands derived in the client. */
+  html?: string;
 };
 
 const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
@@ -125,7 +126,7 @@ export function InstallCommand({
         <CodeBlock
           bordered={false}
           className="m-0"
-          html={commands[active].html}
+          {...(commands[active].html ? { html: commands[active].html } : {})}
           code={commands[active].code}
           language="bash"
         />

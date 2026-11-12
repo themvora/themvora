@@ -47,6 +47,7 @@ function renderControls(): void {
   document.body.innerHTML = `
     <span data-tv-readout="label">Sunrise Light</span>
     <span data-tv-readout="mode">light</span>
+    <span data-tv-readout="effective-mode">light</span>
     <span data-tv-readout="theme">-</span>
     <button data-tv-pressed="mode" data-tv-value="light">light</button>
     <button data-tv-pressed="mode" data-tv-value="dark">dark</button>
@@ -129,6 +130,43 @@ describe("pre-paint control reconciliation", () => {
     expect(text('[data-tv-readout="label"]')).toBe("Sunrise Dark");
     expect(text('[data-tv-readout="mode"]')).toBe("dark");
     expect(text('[data-tv-readout="theme"]')).toBe("sunrise-dark");
+  });
+
+  it("separates the selected mode from the effective mode", () => {
+    window.matchMedia = (() => ({
+      matches: true,
+    })) as unknown as typeof window.matchMedia;
+    window.localStorage.setItem(
+      "theme-selection",
+      JSON.stringify({ mode: "system", family: "sunrise" }),
+    );
+    renderControls();
+
+    run(createThemeBootstrapScript({ themes }));
+
+    // The visitor chose `system`; the canvas is dark. A readout must be able to
+    // show both without waiting for the runtime.
+    expect(text('[data-tv-readout="mode"]')).toBe("system");
+    expect(text('[data-tv-readout="effective-mode"]')).toBe("dark");
+  });
+
+  it("reconciles effective-mode from the document on a later pass", () => {
+    document.documentElement.setAttribute("data-theme", "sunrise-dark");
+    document.documentElement.setAttribute("data-theme-mode", "dark");
+    document.documentElement.setAttribute(
+      "data-theme-selection-mode",
+      "system",
+    );
+    document.documentElement.setAttribute(
+      "data-theme-selection-family",
+      "sunrise",
+    );
+    renderControls();
+
+    run(createThemeReadoutScript());
+
+    expect(text('[data-tv-readout="effective-mode"]')).toBe("dark");
+    expect(text('[data-tv-readout="mode"]')).toBe("system");
   });
 
   it("presses exactly the selected mode option", () => {

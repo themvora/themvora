@@ -16,7 +16,7 @@ export default function CoreConceptsPage() {
   const content = getContent("core-concepts");
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

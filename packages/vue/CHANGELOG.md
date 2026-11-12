@@ -1,5 +1,26 @@
 # @themvora/vue
 
+## 2.1.1
+
+### Patch Changes
+
+- Mirror the visitor's selection onto the DOM from the Vue provider.
+
+  `ThemeProvider` creates its runtime with `dom: false`, because the component
+  owns the DOM bindings. Without forwarding `selection`, `data-theme-selection-mode`
+  and `data-theme-selection-family` stayed at whatever the pre-paint script wrote,
+  so a `"system"` selection was indistinguishable from the light or dark theme it
+  resolved to — a readout, an inspector or a test could not tell "the visitor chose
+  system" from "the visitor chose light".
+
+  The provider now forwards `runtime.selection`, matching the runtime and the React
+  provider. No prop or signature changed.
+
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+  - @themvora/web@1.6.0
+
 ## 2.1.0
 
 ### Minor Changes

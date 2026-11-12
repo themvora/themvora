@@ -1,7 +1,7 @@
 # Theme workflows
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - @themvora/cli installed (globally, locally, or via npx)
 - A Themvora project or JSON theme files to work with
 

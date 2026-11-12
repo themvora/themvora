@@ -3,11 +3,13 @@ import type { FrameworkExamples } from "./types";
 /**
  * Remix examples and use cases.
  *
- * Remix owns the document, so the integration cannot render `<html>` for you:
- * the loader resolves the initial state, `ThemeHead` emits the blocking script,
- * `getThemeShellProps()` produces the `<html>` attributes the script will
- * write, and `ThemeProvider` hydrates against the loader's result. Verified
- * against `packages/remix/src` (`server/index.ts`, `shell.ts`,
+ * Remix owns the document, so the integration cannot render `<html>` for you.
+ * `createThemeDocument()` is the single configuration: it returns the loader
+ * helper and a `Document` component that renders the blocking head script, the
+ * `<html>` shell and the runtime provider. The lower-level pieces —
+ * `getInitialThemeState()`, `ThemeHead`, `getThemeShellProps()` and
+ * `ThemeProvider` — remain exported for a hand-assembled document. Verified
+ * against `packages/remix/src` (`document.tsx`, `server/index.ts`, `shell.ts`,
  * `blocking-script.tsx`, `provider.tsx`).
  */
 export const remixExamples: FrameworkExamples = {
@@ -19,50 +21,50 @@ export const remixExamples: FrameworkExamples = {
     combining: "The complete root route",
   },
   intro: [
-    "Remix is the integration where the app, not the library, writes the document. That changes the shape of the setup: the loader resolves the theme from the request, the root route renders `<html>` with the attributes `getThemeShellProps()` derives, and `ThemeHead` puts the blocking script in `<head>`.",
-    "Every piece has to agree, which is why the API is small and opinionated. `ThemeProvider` then hydrates against the loader's `initial` value, so the first client render equals the server's markup and the selection is mirrored back to cookies.",
+    "Remix is the integration where the app, not the library, writes the document. `createThemeDocument()` declares the configuration once; the root loader resolves the request's selection from it, and `<theming.Document>` renders the pre-paint script, the `<html>` shell and the runtime provider from that same object.",
+    "That is what makes the setup small: four layers that had to agree by hand now read one frozen configuration, so the first client render equals the server's markup and the selection is mirrored back to cookies. The lower-level exports remain available for a document you assemble yourself.",
   ],
   startHere: {
-    body: "Four pieces in the root route: a loader that calls `getInitialThemeState()`, `<ThemeHead>` in the document head, `<html>` spread with `getThemeShellProps()`, and `<ThemeProvider>` around `<Outlet />`.",
-    note: "`getThemeShellProps()` exists so you never hand-copy the seven attributes the blocking script writes — the script and the server markup come from one function.",
+    body: "Declare one configuration with `createThemeDocument()`. It returns the loader helper and a `Document` component that renders the blocking head script, the matching `<html>` shell and the provider.",
+    note: "The lower-level `getInitialThemeState()`, `<ThemeHead>`, `getThemeShellProps()` and `<ThemeProvider>` remain available; the factory exists so their arguments cannot disagree.",
     code: [
       {
         title: "app/root.tsx",
         lang: "tsx",
-        code: `import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "@remix-run/react";
-import { ThemeProvider } from "@themvora/remix";
-import { ThemeHead } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
-import { getThemeShellProps } from "@themvora/remix";
+        code: `import type { LinksFunction } from "@remix-run/node";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
+import { createThemeDocument } from "@themvora/remix";
 import { getBuiltInThemes } from "@themvora/core";
 
 const themes = getBuiltInThemes();
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const initial = await getInitialThemeState({ request, themes, defaultTheme: "mint-light" });
-  return { initial };
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "mint-light",
+  mode: "system",
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
 }
 
-export default function App({ loaderData }: { loaderData: Awaited<ReturnType<typeof loader>> }) {
-  const { initial } = loaderData;
+export function Layout({ children }: { children: React.ReactNode }) {
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    <html lang="en" {...getThemeShellProps(initial)}>
-      <head>
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} defaultTheme="mint-light" />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes} defaultTheme="mint-light">
-          <Outlet />
-        </ThemeProvider>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[<Meta key="meta" />, <Links key="links" />]}
+      afterContent={<><ScrollRestoration /><Scripts /></>}
+    >
+      {children}
+    </theming.Document>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }`,
       },
     ],
@@ -75,13 +77,58 @@ export default function App({ loaderData }: { loaderData: Awaited<ReturnType<typ
         "These run in the loader and in the document render. Together they decide what the first byte looks like.",
       entries: [
         {
+          id: "remix-create-document",
+          name: "createThemeDocument()",
+          covers: ["createThemeDocument()"],
+          what: "Accepts the registry, fallback theme, `mode`/`initialMode`, `family`/`initialFamily`, `themeOverride`, `transition`, `scheduled`, `scrollbar` and document-level classes/styles once, and returns `resolveInitial(request)` plus a `Document` component. `Document` renders the head script, the `<html>` shell and the provider from the same configuration. `children` stays on `Document`; `initial` is the loader's per-request result.",
+          when: "The preferred root setup. Use the lower-level APIs below only when you need to assemble the document yourself.",
+          effect: "Changing the default theme, mode, registry or scrollbar option changes every layer together, so the script and the server markup cannot disagree.",
+          related: ["remix-initial-state", "remix-provider"],
+          code: [
+            {
+              title: "app/root.tsx",
+              lang: "tsx",
+              code: `import { createThemeDocument } from "@themvora/remix";
+
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+  scrollbar: true,
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
+}`,
+            },
+          ],
+        },
+        {
+          id: "remix-resolve-initial",
+          name: "theming.resolveInitial()",
+          covers: ["theming.resolveInitial()"],
+          what: "Reads the request's `theme-mode`, `theme-family` and `theme-fingerprint` cookies and resolves them against the configuration returned by `createThemeDocument()`. The stale-registry rule is the same one the pre-paint script applies.",
+          when: "In the root loader, once per document request. The result is the only request-specific theme state.",
+          effect: "Two concurrent requests with different cookies resolve independently; nothing is stored on the shared handle, so the configuration cannot leak between visitors.",
+          related: ["remix-create-document", "remix-ssr"],
+          code: [
+            {
+              title: "app/root.tsx",
+              lang: "tsx",
+              code: `export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
+}`,
+            },
+          ],
+        },
+        {
           id: "remix-initial-state",
           name: "getInitialThemeState()",
           covers: ["getInitialThemeState()"],
-          what: "Reads the `theme-mode` and `theme-family` cookies off the request and resolves the initial theme state against the registry. Imported from `@themvora/remix/server`.",
-          when: "In the root loader, on every request. This is the value the rest of the setup is built around.",
-          effect: "Returns the resolved theme and selection. Passing it to `ThemeProvider` is what makes hydration exact rather than approximate.",
-          related: ["remix-provider", "remix-shell-props"],
+          what: "The lower-level resolver behind `resolveInitial()`: it takes the `Request` **positionally** — `getInitialThemeState(request, options)` — and returns the same resolved state. Imported from `@themvora/remix/server`.",
+          when: "Only when you assemble the document yourself, without `createThemeDocument()`. The factory calls it for you and cannot get the arguments out of step with the script, the shell and the provider.",
+          effect: "Returns the resolved theme and selection. Whatever consumes it — `ThemeProvider`, `getThemeShellProps()`, `ThemeHead` — has to be told the same `defaultTheme` and `mode`, or the layers disagree.",
+          related: ["remix-resolve-initial", "remix-provider"],
           code: [
             {
               title: "app/root.tsx",
@@ -93,10 +140,11 @@ import { getBuiltInThemes } from "@themvora/core";
 const themes = getBuiltInThemes();
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const initial = await getInitialThemeState({
-    request,
+  // The request is the first argument; the options are the second.
+  const initial = await getInitialThemeState(request, {
     themes,
     defaultTheme: "mint-light",
+    mode: "system",
   });
 
   return { initial };
@@ -108,10 +156,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
           id: "remix-theme-head",
           name: "ThemeHead",
           covers: ["ThemeHead"],
-          what: "Emits the blocking bootstrap script in the document `<head>` so the page paints already themed, plus the `prefers-color-scheme` dark fallback for `system` mode.",
-          when: "Once, in the root route's `<head>`. Without it the server markup is themed but a `system` visitor with a dark OS gets a correction frame.",
-          effect: "The persisted selection is applied before first paint. `mode` on `ThemeHead` must match `initialMode` on `ThemeProvider`, or the script paints one theme and the runtime corrects it.",
-          related: ["remix-initial-state", "remix-provider"],
+          what: "The lower-level head script: emits the blocking bootstrap in the document `<head>` so the page paints already themed, plus the `prefers-color-scheme` dark fallback for `system` mode.",
+          when: "Only in a hand-written `<head>`. `<theming.Document>` renders it for you, and it derives `themes` / `defaultTheme` / `mode` from the same configuration the loader used.",
+          effect: "The persisted selection is applied before first paint. Used directly, `mode` on `ThemeHead` must match `initialMode` on `ThemeProvider`, or the script paints one theme and the runtime corrects it.",
+          related: ["remix-create-document", "remix-provider"],
           code: [
             {
               title: "app/root.tsx",
@@ -130,8 +178,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
           id: "remix-shell-props",
           name: "getThemeShellProps()",
           covers: ["getThemeShellProps()"],
-          what: "Produces the `<html>` attributes and CSS variables the blocking script writes, plus `suppressHydrationWarning` for the resolved mode the server cannot know.",
-          when: "Always, on the root `<html>`. Remix owns the document, so the shell has to be written by the app — this is what keeps it in agreement with the script instead of hand-copying seven attributes.",
+          what: "The lower-level `<html>` shell: produces the attributes and CSS variables the blocking script writes, plus `suppressHydrationWarning` for the resolved mode the server cannot know.",
+          when: "Only when you write the `<html>` element yourself. `<theming.Document>` spreads it for you, which is what keeps the server markup in agreement with the script instead of hand-copying seven attributes.",
           effect: "The server's `<html>` carries exactly what the script would write, so there is nothing to correct. `{ scrollbar: true }` adds the `tv-scrollbar` class the overlay needs from the first paint.",
           related: ["remix-theme-head", "remix-scrollbar"],
           code: [
@@ -152,21 +200,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
           id: "remix-ssr",
           name: "SSR-first resolution",
           covers: ["SSR-first resolution"],
-          what: "The full path: request → loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.",
+          what: "The full path: request → root loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.",
           when: "This is the architecture rather than a call you make. Understanding it is what tells you why `initial` must be threaded through every step.",
-          effect: "No flash and no hydration mismatch, provided the loader's value reaches `ThemeProvider` and `getThemeShellProps()`.",
-          related: ["remix-initial-state", "remix-provider"],
+          effect: "No flash and no hydration mismatch, provided the loader's value reaches the document — `Document` threads it to both the shell and the provider for you.",
+          related: ["remix-resolve-initial", "remix-provider"],
           code: [
             {
               title: "The chain, in one place",
               lang: "tsx",
-              code: `const initial = await getInitialThemeState({ request, themes, defaultTheme: "mint-light" });
+              code: `const theming = createThemeDocument({ themes, defaultTheme: "mint-light", mode: "system" });
 
-<html {...getThemeShellProps(initial)}>
+const initial = await theming.resolveInitial(request);
 
-<ThemeHead themes={themes} defaultTheme="mint-light" />
-
-<ThemeProvider initial={initial} themes={themes} defaultTheme="mint-light">`,
+<theming.Document initial={initial}>
+  {children}
+</theming.Document>`,
             },
           ],
         },
@@ -218,7 +266,9 @@ const themes = getBuiltInThemes();
 export const runtime = createThemeRuntime({
   themes,
   defaultTheme: "mint-light",
-  persistence: createRemixThemePersistence({ themes }),
+  // Registry first, fallback theme second. Returns null during SSR, which the
+  // runtime accepts — there is no storage on the server.
+  persistence: createRemixThemePersistence(themes, "mint-light"),
 });`,
             },
           ],
@@ -260,7 +310,7 @@ export default function Index() {
           id: "remix-react-dep",
           name: "Intentional React dependency",
           covers: ["Intentional React dependency"],
-          what: "`@themvora/remix` depends on `@themvora/core` and `@themvora/react` directly. Remix is a React framework, so there is no framework-neutral layer to preserve — and no other framework or adapter package is pulled in.",
+          what: "`@themvora/remix` depends on `@themvora/core` and `@themvora/react` directly. Remix is a React framework, so there is no framework-neutral layer to preserve — and no other framework or adapter package is pulled in. (The repository manifest uses `workspace:^` edges; published, they become the compatible version ranges shown here.)",
           when: "Relevant when auditing your dependency tree or deciding where to import from. It explains why this package's surface is the React one.",
           effect: "One React implementation, not a wrapper around a wrapper. The hooks are the same code the React integration ships.",
           related: ["remix-hooks"],
@@ -270,8 +320,8 @@ export default function Index() {
               lang: "json",
               code: `{
   "dependencies": {
-    "@themvora/core": "workspace:*",
-    "@themvora/react": "workspace:*"
+    "@themvora/core": "^1.5.0",
+    "@themvora/react": "^1.4.0"
   }
 }`,
             },
@@ -338,13 +388,13 @@ export default function Pricing() {
       id: "transition",
       label: "Transition",
       intro:
-        "Configured on the root provider. Nested routes inherit the runtime, so there is one transition setting for the whole app.",
+        "Configured once in `createThemeDocument()`. The loader, the blocking head script, the document shell and the runtime all read the same object, so nested routes inherit one transition setting.",
       entries: [
         {
           id: "remix-transition",
           name: "transition",
-          covers: ["transition prop"],
-          what: "Enables and configures the cross-fade applied when the theme changes — duration, easing, preset, animated properties.",
+          covers: ["transition option"],
+          what: "The `transition` option on `createThemeDocument()` enables and configures the cross-fade applied when the theme changes — duration, easing, preset, animated properties. The same object reaches the runtime through the provider.",
           when: "Leave the default on; tune it when a large surface feels slow, or disable it for an app that must repaint instantly.",
           effect: "Theme changes animate; the DOM writes still happen in one flush.",
           related: ["remix-suppress-transition", "remix-provider"],
@@ -352,14 +402,21 @@ export default function Pricing() {
             {
               title: "app/root.tsx",
               lang: "tsx",
-              code: `<ThemeProvider
-  initial={initial}
-  themes={themes}
-  defaultTheme="mint-light"
-  transition={{ enabled: true, duration: 250, easing: "ease-in-out" }}
->
-  <Outlet />
-</ThemeProvider>`,
+              code: `import type { ReactNode } from "react";
+import { createThemeDocument } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
+
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "mint-light",
+  transition: { enabled: true, duration: 250, easing: "ease-in-out" },
+});
+
+// The loader returns { theme: await theming.resolveInitial(request) }; pass it
+// to <theming.Document initial={data.theme}> for exact hydration.
+export function Layout({ children }: { children: ReactNode }) {
+  return <theming.Document>{children}</theming.Document>;
+}`,
             },
           ],
         },
@@ -402,8 +459,8 @@ export default function Settings() {
         {
           id: "remix-scrollbar",
           name: "scrollbar",
-          covers: ["scrollbar prop"],
-          what: "Passing `scrollbar` to `ThemeHead` hides the native scrollbar from the very first paint and hands over to Themvora's overlay engine once the runtime hydrates.",
+          covers: ["scrollbar option"],
+          what: "The `scrollbar` option on `createThemeDocument()` hides the native scrollbar from the very first paint and hands over to Themvora's overlay engine once the runtime hydrates. `Document` renders the class and emits the pre-paint stylesheet.",
           when: "A custom scrollbar is part of the design. Without the pre-paint half the page paints a native bar and then replaces it.",
           effect: "No native-bar flash. The overlay follows runtime theme changes.",
           related: ["remix-scrollbar-css", "remix-shell-props"],
@@ -411,9 +468,12 @@ export default function Settings() {
             {
               title: "app/root.tsx",
               lang: "tsx",
-              code: `<head>
-  <ThemeHead themes={themes} defaultTheme="mint-light" scrollbar />
-</head>`,
+              code: `const theming = createThemeDocument({
+  themes,
+  defaultTheme: "mint-light",
+  mode: "system",
+  scrollbar: true,
+});`,
             },
           ],
         },
@@ -421,8 +481,8 @@ export default function Settings() {
           id: "remix-scrollbar-css",
           name: "Import the pre-paint styles",
           covers: ["Import the pre-paint styles"],
-          what: "The overlay needs `import \"@themvora/core/scrollbar.css\"` plus the `tv-scrollbar` class on `<html>`. `getThemeShellProps(initial, { scrollbar: true })` renders that class.",
-          when: "Always, together with the `scrollbar` prop. Both halves are required — the class without the stylesheet hides nothing, and the stylesheet without the class has no effect.",
+          what: "The overlay needs `import \"@themvora/core/scrollbar.css\"` plus the `tv-scrollbar` class on `<html>`. The `scrollbar` option makes `Document` render that class; the CSS import stays yours, because a bundler concern is not something a component can inject.",
+          when: "Always, together with the `scrollbar` option. Both halves are required — the class without the stylesheet hides nothing, and the stylesheet without the class has no effect.",
           effect: "The native bar is hidden before the first paint instead of after hydration.",
           related: ["remix-scrollbar", "remix-shell-props"],
           code: [
@@ -430,8 +490,13 @@ export default function Settings() {
               title: "app/root.tsx",
               lang: "tsx",
               code: `import "@themvora/core/scrollbar.css";
+import { createThemeDocument } from "@themvora/remix";
 
-<html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>`,
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "mint-light",
+  scrollbar: true,
+});`,
             },
           ],
         },
@@ -444,48 +509,70 @@ export default function Settings() {
       title: "Wire the root route once, correctly",
       problem:
         "The pieces are individually documented but only work together: a loader, a head script, shell attributes and a provider that all have to agree on the same resolution.",
-      apis: ["getInitialThemeState()", "ThemeHead", "getThemeShellProps()", "ThemeProvider"],
-      why: "Each piece consumes the same `initial` value, so there is exactly one resolution per request. That is what removes both the flash and the hydration mismatch.",
+      apis: ["createThemeDocument()", "theming.resolveInitial()", "ThemeProvider"],
+      why: "`createThemeDocument()` derives all four layers from one frozen configuration, so there is exactly one resolution per request and no argument can drift between them. That is what removes both the flash and the hydration mismatch.",
       expect:
         "Reloading with any persisted selection paints that selection immediately, and no component reports a hydration mismatch.",
       caveats:
-        "`ThemeHead`'s `mode` and `ThemeProvider`'s `initialMode` must match. Leaving them out of step produces a wrong-theme flash, not a crash.",
+        "The stylesheet has to be linked through `links`, not imported for side effects — Remix's Vite plugin expects the export. The lower-level `ThemeHead` / `getThemeShellProps()` pair remains available for a hand-written document, and then `mode` on `ThemeHead` must match `initialMode` on `ThemeProvider`.",
       code: [
         {
           title: "app/root.tsx",
           lang: "tsx",
-          code: `import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "@remix-run/react";
-import { ThemeHead, ThemeProvider, getThemeShellProps } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
+          code: `import type { ReactNode } from "react";
+import type { LinksFunction } from "@remix-run/node";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+} from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
 
-const themes = getBuiltInThemes();
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: styles },
+];
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const initial = await getInitialThemeState({ request, themes, defaultTheme: "mint-light" });
-  return { initial };
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "mint-light",
+  mode: "system",
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
 }
 
-export default function App({ loaderData }: { loaderData: Awaited<ReturnType<typeof loader>> }) {
-  const { initial } = loaderData;
+export function Layout({ children }: { children: ReactNode }) {
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    <html lang="en" {...getThemeShellProps(initial)}>
-      <head>
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} defaultTheme="mint-light" mode="system" />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes} defaultTheme="mint-light">
-          <Outlet />
-        </ThemeProvider>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }`,
         },
       ],
@@ -571,47 +658,68 @@ export default function Themes() {
     {
       id: "full-root",
       title: "A complete root route",
-      body: "The wiring recipe with the optional pieces switched on: transitions, the overlay scrollbar and its pre-paint stylesheet.",
+      body: "The wiring recipe with the optional pieces switched on: transitions, the overlay scrollbar and its pre-paint stylesheet. Every option is declared in the same object, so the script, the shell and the runtime receive them together.",
       code: [
         {
           title: "app/root.tsx",
           lang: "tsx",
-          code: `import "@themvora/core/scrollbar.css";
-import { ThemeHead, ThemeProvider, getThemeShellProps } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
+          code: `import type { ReactNode } from "react";
+import type { LinksFunction } from "@remix-run/node";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+} from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
+import "@themvora/core/scrollbar.css";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
 
-const themes = getBuiltInThemes();
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: styles },
+];
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const initial = await getInitialThemeState({ request, themes, defaultTheme: "mint-light" });
-  return { initial };
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "mint-light",
+  mode: "system",
+  transition: { enabled: true, duration: 250 },
+  scrollbar: true,
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
 }
 
-export default function App({ loaderData }: { loaderData: Awaited<ReturnType<typeof loader>> }) {
-  const { initial } = loaderData;
+export function Layout({ children }: { children: ReactNode }) {
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
-      <head>
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} defaultTheme="mint-light" scrollbar />
-      </head>
-      <body>
-        <ThemeProvider
-          initial={initial}
-          themes={themes}
-          defaultTheme="mint-light"
-          transition={{ enabled: true, duration: 250 }}
-        >
-          <Outlet />
-        </ThemeProvider>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }`,
         },
       ],
@@ -621,7 +729,7 @@ export default function App({ loaderData }: { loaderData: Awaited<ReturnType<typ
     {
       name: "A server-component `ThemeProvider` that renders `<html>`",
       reason:
-        "Remix owns the document, so this package cannot render `<html>` for you. The equivalent is the loader + `ThemeHead` + `getThemeShellProps()` combination above.",
+        "Remix owns the document, so this package cannot render `<html>` for you. `createThemeDocument()` is the equivalent: its `Document` renders the theme-owned parts of the document the app already owns, and `Layout` stays in charge of the rest.",
     },
     {
       name: "createThemeRoot()",

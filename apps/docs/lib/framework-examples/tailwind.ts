@@ -3,23 +3,22 @@ import type { FrameworkExamples } from "./types";
 /**
  * Tailwind CSS examples and use cases.
  *
- * Tailwind is the CSS-only integration: it exposes Themvora tokens as Tailwind
- * theme variables and utilities, and has no runtime of its own. Verified
- * against `packages/tailwind` — the package exports `createTailwindPlugin`,
- * `synchronizeDarkClass` and `themeCSS`, plus `theme.css`, `dark.css` and
- * `preflight.css` entries. Everything else on this page is CSS.
+ * Tailwind is the CSS utility integration: it exposes Themvora tokens as
+ * Tailwind theme variables and utilities, and has no runtime of its own.
+ * Verified against `packages/tailwind` — the package exports
+ * `createTailwindPlugin` and `themeCSS`, plus CSS entries.
  */
 export const tailwindExamples: FrameworkExamples = {
   slug: "tailwind",
   sections: {
-    startHere: "One import, one dark variant",
+    startHere: "One import, every utility",
     useCases: "Tokens instead of hex values",
-    api: "The stylesheet, the plugin, the variant",
+    api: "The stylesheet and the plugin",
     combining: "The complete stylesheet",
   },
   intro: [
     "The Tailwind integration is build-time only: it maps Themvora's semantic tokens onto Tailwind's `@theme` variables so `bg-primary`, `text-muted-foreground` and `rounded-lg` resolve to the active theme. There is no provider here — a runtime for your framework (or `<themvora-provider>` for plain HTML) does the theming, and Tailwind reads the variables it produces.",
-    "That split is why this page is short on JavaScript: the interesting work is one `@import`, one custom variant, and knowing which class names the tokens generate.",
+    "That split is why this page is short on JavaScript: the interesting work is one `@import` and knowing which class names the tokens generate.",
   ],
   startHere: {
     body: "Import the package's CSS entry in your Tailwind stylesheet. One import maps every token group onto Tailwind's theme variables, so utilities exist without a config file.",
@@ -32,10 +31,7 @@ export const tailwindExamples: FrameworkExamples = {
 
 /* Maps Themvora tokens onto Tailwind's @theme variables:
    --color-*, --radius-*, --spacing-*, --font-*, --shadow-* */
-@import "@themvora/tailwind";
-
-/* Scope \`dark:\` to the class Themvora maintains on <html>. */
-@custom-variant dark (&:where(.dark, .dark *));`,
+@import "@themvora/tailwind";`,
       },
       {
         title: "Using the generated utilities",
@@ -55,7 +51,7 @@ export const tailwindExamples: FrameworkExamples = {
       id: "integration",
       label: "Integration",
       intro:
-        "The CSS entry, the dark-mode variant, and the two helpers that keep Tailwind's expectations and Themvora's DOM contract in agreement.",
+        "The CSS entry that maps the token contract onto Tailwind's theme variables, and the separate layers for projects that need to control import order.",
       entries: [
         {
           id: "tw-import",
@@ -64,7 +60,7 @@ export const tailwindExamples: FrameworkExamples = {
           what: "One CSS import that maps every Themvora token group onto Tailwind's `@theme` variables: `--color-*`, `--radius-*`, `--spacing-*`, `--font-*` and `--shadow-*`. Tailwind then generates the matching utilities.",
           when: "Every Tailwind v4 project using Themvora. It replaces a `tailwind.config` theme block entirely.",
           effect: "Utilities such as `bg-primary`, `text-muted-foreground`, `rounded-lg` and `shadow-md` resolve to the active theme's values and repaint when the theme changes.",
-          related: ["tw-dark-variant", "tw-layers"],
+          related: ["tw-layers"],
           code: [
             {
               title: "src/app.css",
@@ -75,62 +71,10 @@ export const tailwindExamples: FrameworkExamples = {
           ],
         },
         {
-          id: "tw-dark-variant",
-          name: "Dark-mode variant",
-          covers: ["Dark-mode variant"],
-          what: "`@custom-variant dark (&:where(.dark, .dark *))` scopes Tailwind's `dark:` variant to the `.dark` class Themvora maintains on the root element, instead of Tailwind's default `prefers-color-scheme`.",
-          when: "Always, when the theme is selected by Themvora rather than by the OS alone. Without it, `dark:` utilities follow the OS and disagree with a visitor who picked light explicitly.",
-          effect: "`dark:` utilities activate exactly when Themvora's active theme is dark — including inside a scoped subtree, because the variant matches any ancestor with the class.",
-          related: ["tw-import", "tw-sync-dark"],
-          code: [
-            {
-              title: "src/app.css",
-              lang: "css",
-              code: `@import "tailwindcss";
-@import "@themvora/tailwind";
-
-/* Follow the class Themvora writes, not the OS preference. */
-@custom-variant dark (&:where(.dark, .dark *));`,
-            },
-            {
-              title: "Using it",
-              lang: "html",
-              code: `<div class="bg-background text-foreground dark:bg-card">
-  Repaints with the active theme's mode.
-</div>`,
-            },
-          ],
-        },
-        {
-          id: "tw-sync-dark",
-          name: "synchronizeDarkClass(theme)",
-          covers: ["synchronizeDarkClass(theme)"],
-          what: "A function that toggles the `.dark` class on the document root to match a theme definition's `meta.mode`.",
-          when: "You apply a theme yourself — from a custom script, a non-Themvora runtime, or a server response — and need Tailwind's `dark:` variant to follow. When Themvora's runtime is applying the theme, it already maintains the class.",
-          effect: "The root gains or loses `.dark`, so `dark:` utilities switch with it. It is a no-op on the server.",
-          related: ["tw-dark-variant"],
-          code: [
-            {
-              title: "src/apply-theme.ts",
-              lang: "ts",
-              code: `import { synchronizeDarkClass } from "@themvora/tailwind";
-import { getBuiltInThemes } from "@themvora/core";
-
-const themes = getBuiltInThemes();
-const dark = themes.find((theme) => theme.meta?.mode === "dark");
-
-if (dark) {
-  // Keeps Tailwind's \`dark:\` variant in step with a theme applied by hand.
-  synchronizeDarkClass(dark);
-}`,
-            },
-          ],
-        },
-        {
           id: "tw-layers",
           name: "CSS layers",
           covers: ["CSS layers"],
-          what: "The package ships `theme.css`, `dark.css` and `preflight.css` layers, so the token declarations, the dark-mode block and the reset can be imported independently or in a controlled order.",
+          what: "The package ships the token declarations and the reset as separate CSS layers, so a project can import them independently or in a controlled order.",
           when: "You need the layer files separately — a design system that owns its own reset, or a page that must load only the token layer.",
           effect: "Imports compose in the order you write them, which is what decides whether your own rules can override a token declaration.",
           related: ["tw-import"],
@@ -138,13 +82,57 @@ if (dark) {
             {
               title: "src/app.css — importing the layers directly",
               lang: "css",
-              code: `/* The single \`@import "@themvora/tailwind"\` pulls in all three.
+              code: `/* The single \`@import "@themvora/tailwind"\` pulls them in for you.
    Import them yourself when you need a different order or a subset. */
 @import "@themvora/tailwind/theme.css";
-@import "@themvora/tailwind/dark.css";
 
 /* Skip preflight.css when your own reset already owns base styles. */
 /* @import "@themvora/tailwind/preflight.css"; */`,
+            },
+          ],
+        },
+        {
+          id: "tw-dark-variant",
+          name: "Dark-mode variant",
+          covers: ["Dark-mode variant"],
+          what: "`@custom-variant dark (&:where(.dark, .dark *))` — the `dark:` variant is scoped to the `.dark` class Themvora maintains on the document root, not to `prefers-color-scheme`.",
+          when: "Any project using `dark:` utilities. Import the layer once; the runtime decides when the class is present, so a visitor who pinned `light` never sees a dark utility apply.",
+          effect: "`dark:bg-neutral-900` follows the active theme rather than the operating system, and it repaints with everything else on a switch.",
+          related: ["tw-import", "tw-sync-dark-class"],
+          code: [
+            {
+              title: "src/app.css",
+              lang: "css",
+              code: `/* Shipped by @themvora/tailwind/dark.css, and pulled in by the single
+   package import. Declared here for a project that assembles its own order. */
+@custom-variant dark (&:where(.dark, .dark *));`,
+            },
+          ],
+        },
+        {
+          id: "tw-sync-dark-class",
+          name: "synchronizeDarkClass(theme)",
+          covers: ["synchronizeDarkClass(theme)"],
+          what: "Keeps the `.dark` class on `document.documentElement` in step with a theme's `meta.mode`. It adds the class for a dark theme and removes it otherwise, and is a no-op during SSR where `document` does not exist.",
+          when: "A custom runtime — one you created yourself instead of through a framework provider, or a test that applies a theme by hand. The shipped providers already call it.",
+          effect: "The `dark:` variant and the `.dark`-scoped variables agree with the theme that is actually applied, so the two halves cannot drift.",
+          related: ["tw-dark-variant", "tw-plugin"],
+          code: [
+            {
+              title: "src/theme.ts",
+              lang: "ts",
+              code: `import { createThemeRuntime, getBuiltInThemes } from "@themvora/core";
+import { synchronizeDarkClass } from "@themvora/tailwind";
+
+const runtime = createThemeRuntime({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+});
+
+// The listener receives the new theme. Call it once for the initial one, too:
+// subscribing only fires on change.
+synchronizeDarkClass(runtime.store.get());
+runtime.store.subscribe((theme) => synchronizeDarkClass(theme));`,
             },
           ],
         },
@@ -232,8 +220,8 @@ writeFileSync("src/generated/theme.css", themeCSS);`,
       title: "Style a component without a second palette",
       problem:
         "A component ends up with `bg-[#6366f1]` because the token name was not obvious, and it looks wrong in every theme but one.",
-      apis: ['@import "@themvora/tailwind"', "Dark-mode variant"],
-      why: "The import generates a utility per semantic token, so the semantic name is always available. The custom variant makes `dark:` follow the active theme rather than the OS.",
+      apis: ['@import "@themvora/tailwind"'],
+      why: "The import generates a utility per semantic token, so the semantic name is always available and every utility follows the active theme.",
       expect:
         "The component repaints with every theme change and needs no per-theme classes.",
       caveats:
@@ -244,7 +232,7 @@ writeFileSync("src/generated/theme.css", themeCSS);`,
           lang: "tsx",
           code: `export function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-lg border border-border bg-card p-6 text-card-foreground shadow-md dark:border-border">
+    <article className="rounded-lg border border-border bg-card p-6 text-card-foreground shadow-md">
       <h3 className="text-sm text-muted-foreground">{label}</h3>
       <strong className="text-2xl">{value}</strong>
     </article>
@@ -253,41 +241,18 @@ writeFileSync("src/generated/theme.css", themeCSS);`,
         },
       ],
     },
-    {
-      id: "dark-variant-inside-scope",
-      title: "Make dark: work inside a scoped panel",
-      problem:
-        "A scoped dark panel renders with light `dark:` utilities, because the class-based variant is only on `<html>`.",
-      apis: ["Dark-mode variant", "<themvora-scope>"],
-      why: "`&:where(.dark, .dark *)` matches any ancestor carrying the class, and a dark scope adds it to its own wrapper — so the variant activates inside the scope without touching the page.",
-      expect:
-        "`dark:` utilities inside the scoped panel follow the panel's theme, while the rest of the page keeps the global one.",
-      code: [
-        {
-          title: "Scoped panel",
-          lang: "html",
-          code: `<themvora-scope theme="cocoa-dark">
-  <div class="bg-card text-card-foreground dark:bg-background">
-    Both classes follow the scope, not the page.
-  </div>
-</themvora-scope>`,
-        },
-      ],
-    },
   ],
   combining: [
     {
       id: "full-setup",
       title: "The complete stylesheet",
-      body: "Everything the Tailwind side needs, in the order it has to appear: Tailwind itself, the Themvora token mapping, then the variant that ties `dark:` to the class the runtime maintains.",
+      body: "Everything the Tailwind side needs, in the order it has to appear: Tailwind itself, then the Themvora token mapping.",
       code: [
         {
           title: "src/app.css",
           lang: "css",
           code: `@import "tailwindcss";
 @import "@themvora/tailwind";
-
-@custom-variant dark (&:where(.dark, .dark *));
 
 /* Your own base styles read the same variables, so they repaint too. */
 body {

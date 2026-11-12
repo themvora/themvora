@@ -26,8 +26,8 @@ export type CodeVariant = {
   lang: string;
   /** The source the reader copies. */
   code: string;
-  /** Precomputed Shiki output for `code`. */
-  html: string;
+  /** Precomputed Shiki output for `code`. Omitted when the client highlights it. */
+  html?: string;
   /** File name to show in the toolbar — the extension follows the language. */
   filename?: string;
 };

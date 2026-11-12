@@ -136,14 +136,25 @@ export interface OverlayScrollbarOptions {
   iconSize?: number;
   /** Distance from the container edges to the rail. A number insets every side
    *  equally; an object sets individual sides, with omitted sides defaulting to
-   *  the component default (`4`, except `left`, which defaults to `0`). A side
-   *  set to `0` gets no inset — the rail sits flush against that edge, like a
-   *  native scrollbar.
+   *  the component default (`4`, except `left`, which defaults to `0`).
+   *
+   *  `0` is a value, not "unset": a side set to `0` gets no inset at all and the
+   *  rail sits flush against that edge, like a native scrollbar. That holds for
+   *  every host, **including the page/window scrollbar** — `offset: 0` puts the
+   *  document rail hard against the viewport edge rather than a few px in.
    *
    *  The rail follows the writing direction (a vertical rail sits on the
    *  inline-end edge), so in RTL it uses `left`. The content is kept clear of
    *  the rail by the native scrollbar gutter the component reserves, not by
-   *  extra padding, so no content width is taken and nothing reflows. */
+   *  extra padding, so no content width is taken and nothing reflows.
+   *
+   *  @example
+   *  ```ts
+   *  offset: 4                                  // 4px on every side
+   *  offset: { right: 0, top: 4, bottom: 4 }    // flush right, 4px at the ends
+   *  offset: 0                                  // flush on every side
+   *  ```
+   */
   offset?: ScrollbarOffset;
   /** Track strip opacity (0 = invisible). Default `0.25`. */
   trackOpacity?: number;
@@ -181,7 +192,25 @@ export interface OverlayScrollbarOptions {
   /** Scope overlay to these CSS selectors for inner scrollables (the window is
    *  always tracked). When empty, all scrollable elements are tracked. */
   include?: string[] | null;
-  /** Skip these CSS selectors when tracking inner scrollables. */
+  /** Skip these CSS selectors when tracking inner scrollables.
+   *
+   *  A selector matches a *region*, not only the element itself: a scroll
+   *  container nested inside a matched element is excluded too. That is what
+   *  makes `exclude: [".code-block"]` mean what it reads as, rather than
+   *  nothing at all unless the code block is the scroller.
+   *
+   *  An excluded container gets no overlay **and no reserved gutter**: the
+   *  pre-paint CSS reserves a native scrollbar's width on every element so the
+   *  overlay never reflows the page, and that reservation is collapsed for
+   *  excluded containers so the element does not keep an empty strip down its
+   *  edge. The container still scrolls normally by wheel, trackpad and touch —
+   *  it simply has no visible bar of ours.
+   *
+   *  @example
+   *  ```ts
+   *  scope: { exclude: ["[data-toc-rail]", "[data-doc-nav]"] }
+   *  ```
+   */
   exclude?: string[] | null;
   /** Native (touch) devices: keep native scrollbars by default. Pass `true` to
    *  force the overlay on coarse-pointer devices. Default `false`. */

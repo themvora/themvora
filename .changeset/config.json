@@ -17,13 +17,15 @@
     "@themvora/app-nextjs",
     "@themvora/app-nuxt",
     "@themvora/app-react",
+    "@themvora/app-react-router",
     "@themvora/app-remix",
     "@themvora/app-shared",
     "@themvora/app-solid",
     "@themvora/app-svelte",
+    "@themvora/app-vanilla",
     "@themvora/app-vanilla-js",
     "@themvora/app-vue",
     "@themvora/app-web",
-    "themvora-vscode"
+    "themvora-for-vscode"
   ]
 }

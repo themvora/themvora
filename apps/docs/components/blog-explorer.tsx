@@ -100,7 +100,7 @@ export function BlogExplorer({ posts }: { posts: BlogPost[] }) {
                 <div className="font-semibold">{post.title}</div>
                 <span
                   className="text-xs font-semibold shrink-0"
-                  style={{ color: "var(--theme-color-primary)" }}
+                  style={{ color: "var(--docs-accent)" }}
                 >
                   Read →
                 </span>

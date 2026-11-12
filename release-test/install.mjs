@@ -9,7 +9,13 @@
  * Usage: node release-test/install.mjs
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -20,7 +26,9 @@ const tarballsDir = join(here, "tarballs");
 const APPS = ["vanilla-app", "react-app", "cli-app", "clean-app"];
 
 function tarballFor(pkgName) {
-  const scope = pkgName.startsWith("@") ? pkgName.split("/")[0].replace("@", "") : "themvora";
+  const scope = pkgName.startsWith("@")
+    ? pkgName.split("/")[0].replace("@", "")
+    : "themvora";
   const unscoped = pkgName.startsWith("@") ? pkgName.split("/")[1] : pkgName;
   // Resolve by prefix rather than a hardcoded version: the fixtures must track
   // whatever version was just packed, otherwise this gate silently stops running
@@ -96,23 +104,31 @@ function writeAppPackageJson(app, config) {
     private: true,
     version: "0.0.0",
     type: "module",
-    scripts: app === "vanilla-app"
-      ? { test: "node smoke.mjs && node smoke.cjs" }
-      : app === "react-app"
-        ? { test: "tsc --noEmit && node smoke-runtime.mjs" }
-        : app === "cli-app"
-          ? { test: "node test.mjs" }
-          : { test: "tsc --noEmit" },
+    scripts:
+      app === "vanilla-app"
+        ? { test: "node smoke.mjs && node smoke.cjs" }
+        : app === "react-app"
+          ? { test: "tsc --noEmit && node smoke-runtime.mjs" }
+          : app === "cli-app"
+            ? { test: "node test.mjs" }
+            : { test: "tsc --noEmit" },
     dependencies: deps,
   };
-  writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n", "utf8");
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify(pkg, null, 2) + "\n",
+    "utf8",
+  );
 }
 
 for (const [app, config] of Object.entries(APPS_CONFIG)) {
   writeAppPackageJson(app, config);
   // No lockfile: package-lock.json pins tarball integrity hashes, which would
   // make reinstalls reuse stale cached tarballs after re-packing.
-  execSync(`npm install --no-audit --no-fund --no-package-lock`, { cwd: join(here, app), stdio: "inherit" });
+  execSync(`npm install --no-audit --no-fund --no-package-lock`, {
+    cwd: join(here, app),
+    stdio: "inherit",
+  });
   console.log(`  done`);
 }
 

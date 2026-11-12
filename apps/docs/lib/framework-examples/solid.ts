@@ -580,7 +580,7 @@ export function PrintTheme() {
 
 export function Preview() {
   return (
-    <ThemeScope theme="cocoa-dark" class="rounded-lg p-6">
+    <ThemeScope theme="cocoa-dark">
       <h3>Always cocoa</h3>
       <p>This panel keeps its own theme while the page changes.</p>
     </ThemeScope>
@@ -682,13 +682,13 @@ export function ThemeGallery() {
   const { setFamily } = useTheme();
 
   return (
-    <div class="grid grid-cols-2 gap-4">
+    <div>
       <For each={families()}>
         {(entry) => (
           <button onClick={() => setFamily(entry.name)}>
-            <ThemeScope family={entry.name} class="p-4 rounded-lg">
+            <ThemeScope family={entry.name}>
               <strong>{entry.name}</strong>
-              <p class="muted">The quick brown fox</p>
+              <p>The quick brown fox</p>
             </ThemeScope>
           </button>
         )}

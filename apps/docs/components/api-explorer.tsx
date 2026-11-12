@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { frameworkExamplesPath } from "../lib/frameworks";
 import { Callout } from "./ui/callout";
 
 type Feature = { name: string; desc: string };
@@ -60,7 +61,7 @@ export function ApiExplorer({
                   the panel below, once there is an export to point at. */}
               {categoryAnchor ? (
                 <Link
-                  href={`/framework-guides/${slug}/examples#${categoryAnchor}`}
+                  href={`${frameworkExamplesPath(slug)}#${categoryAnchor}`}
                   className="shrink-0 text-[11px] text-foreground no-underline opacity-80 hover:opacity-100"
                 >
                   Examples →
@@ -106,14 +107,14 @@ export function ApiExplorer({
                       in browse mode, a copy-paste). */}
                   <div
                     className="font-semibold"
-                    style={{ color: "var(--theme-color-primary)" }}
+                    style={{ color: "var(--docs-accent)" }}
                   >
                     {active?.name}
                   </div>
                   <p className="mt-0.5">{active?.desc}</p>
                   {example ? (
                     <Link
-                      href={`/framework-guides/${slug}/examples#${example}`}
+                      href={`${frameworkExamplesPath(slug)}#${example}`}
                       className="mt-1.5 inline-block text-xs font-medium text-foreground no-underline"
                     >
                       See the example →

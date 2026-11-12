@@ -15,7 +15,10 @@ import { InstallCommand, type PackageManager } from "../install-command";
  * The highlighted HTML arrives pre-rendered per manager; highlighting is a
  * server concern (shiki) and this component only chooses what to show.
  */
-export type ManagerBlocks = Record<PackageManager, { code: string; html: string }>;
+export type ManagerBlocks = Record<
+  PackageManager,
+  { code: string; html?: string }
+>;
 
 export function LibraryInstall({
   libraryName,

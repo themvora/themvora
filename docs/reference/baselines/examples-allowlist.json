@@ -24,6 +24,8 @@
     "@remix-run/dev": "Remix Vite plugin (remix guide, vite-plugin registration tabs)",
     "@remix-run/node": "Remix server loader types — LoaderFunctionArgs, LinksFunction (remix guide and its example app)",
     "@remix-run/react": "Remix runtime (remix guide)",
+    "@react-router/dev": "React Router Framework Mode route config — `routes.ts` and its plugin (react-router guide and its example app)",
+    "react-router": "React Router Framework Mode runtime — `Links`, `Meta`, `Scripts`, `ScrollRestoration`, `useRouteLoaderData` (react-router guide and its example app)",
     "@sveltejs/vite-plugin-svelte": "Svelte + Vite build setup (svelte guide)",
     "@tailwindcss/vite": "Tailwind v4 Vite plugin (tailwind guide)",
     "@vitejs/plugin-react": "React + Vite build setup (react/web guides)",

@@ -1,0 +1,15 @@
+---
+// Provider + overlay scrollbar, no client router.
+import Provider from "@themvora/astro/provider.astro";
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+import themeConfig from "../../../theme.config";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false} scrollbar>
+  <title slot="head">provider + scrollbar</title>
+  <ThemeScrollbar appearance={{ arrows: false }} />
+  <ScrollFixtureStyle />
+  <ScrollFixtureBody />
+</Provider>

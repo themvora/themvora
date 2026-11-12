@@ -575,7 +575,7 @@ import { ThemeScopeDirective } from "@themvora/angular";
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ThemeScopeDirective],
   template: \`
-    <section [themvoraScope]="'cocoa-dark'" class="rounded-lg p-6">
+    <section [themvoraScope]="'cocoa-dark'">
       <h3>Always cocoa</h3>
       <p>This panel keeps its own theme while the page changes.</p>
     </section>
@@ -587,7 +587,7 @@ export class PreviewComponent {}`,
               title: "Toggling the scope at runtime",
               lang: "ts",
               code: `// An empty string destroys the binding, so the subtree inherits the page theme.
-<section [themvoraScope]="pinnedTheme()" class="p-6">
+<section [themvoraScope]="pinnedTheme()">
   <ng-content />
 </section>`,
             },
@@ -679,8 +679,8 @@ import { injectProvidedThemes, injectTheme } from "@themvora/angular";
     <label>
       Theme family
       <select [value]="state().family" (change)="state().setFamily($any($event.target).value)">
-        @for (entry of families(); track entry.name) {
-          <option [value]="entry.name">{{ entry.name }}</option>
+        @for (entry of families(); track entry.family) {
+          <option [value]="entry.family">{{ entry.name }}</option>
         }
       </select>
     </label>
@@ -756,12 +756,12 @@ import { ThemeScopeDirective, injectProvidedThemes, injectTheme } from "@themvor
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ThemeScopeDirective],
   template: \`
-    <div class="grid grid-cols-2 gap-4">
-      @for (entry of families(); track entry.name) {
-        <button type="button" (click)="state().setFamily(entry.name)">
-          <div [themvoraScope]="entry.name" class="p-4 rounded-lg">
+    <div>
+      @for (entry of families(); track entry.family) {
+        <button type="button" (click)="state().setFamily(entry.family)">
+          <div [themvoraScope]="entry.family">
             <strong>{{ entry.name }}</strong>
-            <p class="muted">The quick brown fox</p>
+            <p>The quick brown fox</p>
           </div>
         </button>
       }
@@ -803,8 +803,8 @@ const MODES = ["light", "dark", "system"] as const;
       <label>
         Family
         <select [value]="state().family" (change)="state().setFamily($any($event.target).value)">
-          @for (entry of families(); track entry.name) {
-            <option [value]="entry.name">{{ entry.name }}</option>
+          @for (entry of families(); track entry.family) {
+            <option [value]="entry.family">{{ entry.name }}</option>
           }
         </select>
       </label>

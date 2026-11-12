@@ -1,7 +1,7 @@
 # `themvora diff`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 Compare two themes and see exactly what changed, role by role. Every comparison

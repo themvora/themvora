@@ -1327,17 +1327,12 @@ The reactive state a ThemeController publishes to its subscribers.
 
 
 ### `ThemvoraIntegrationOptions`
-Options for themvora. Configures the theme registry the injected
-bootstrap resolves against and the fallback selection used when no
-persisted cookie is present.
-
-**See also:** `themvora`
-
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `config` (optional) | `ThemvoraThemeConfig<ThemeDefinition<string>>` | The provider's theme configuration — the same object you pass to `getInitialThemeState` and `provider.astro`. |
 | `defaultTheme` (optional) | `string` | Fallback theme name when no selection is persisted. |
 | `injectBootstrap` (optional) | `boolean` | Set to `false` to skip injecting the pre-paint bootstrap script (e.g. when you emit it yourself with `createBlockingScript`). Defaults to `true`. |
+| `injectStylesheet` (optional) | `boolean` | Emit the render-blocking pre-paint stylesheet, so the document is already themed **without JavaScript** — the same guarantee `themvoraVitePlugin` provides through its `css` option. |
 | `mode` (optional) | `ThemeMode` | Fallback mode when no selection is persisted. Defaults to the fallback theme's own mode — the mode `defaultTheme` resolves to. |
 | `navigation` (optional) | `boolean` | Keep the resolved theme across Astro client-side navigations (`<ClientRouter />`). Defaults to `true`. |
 | `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Hide the native scrollbar before first paint, so the Themvora overlay scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame — the same guarantee the Vite plugin and the Nuxt module provide. `true` hides it on fine-pointer (desktop) devices; pass `{ touch: true }` to hide it on coarse-pointer devices too. Defaults to `false`. |

@@ -175,7 +175,7 @@ export default function ExamplesPage() {
 
   return (
     <DocsLayout wide>
-      <div className="max-w-4xl">
+      <div>
         <PageHeader
           eyebrow="Examples"
           title="Examples you can run"

@@ -192,9 +192,11 @@ export function renderCommandHelp(spec: CommandSpec): string {
 
   if (spec.exitCodes.length > 0) {
     sections.push("", "Exit codes:");
-    for (const exit of spec.exitCodes) {
-      sections.push(`  ${exit.code}   ${exit.meaning}`);
-    }
+    const codes = spec.exitCodes.map((exit) => String(exit.code));
+    const codeWidth = pad(codes);
+    spec.exitCodes.forEach((exit, index) => {
+      sections.push(`  ${codes[index]!.padEnd(codeWidth)}  ${exit.meaning}`);
+    });
   }
 
   if (spec.examples.length > 0) {

@@ -312,7 +312,7 @@ const seedScript = await send("Page.addScriptToEvaluateOnNewDocument", {
 // (light). That makes the prerendered readout and the resolved theme genuinely
 // differ, which is the only way to see the label fluctuate: without it the
 // prerendered value happens to be right and the check proves nothing.
-try { localStorage.setItem('theme-selection', JSON.stringify({ mode: 'dark', family: 'mint' })); } catch (e) {}
+try { localStorage.setItem('theme-selection', JSON.stringify({ mode: 'dark', family: 'cocoa' })); } catch (e) {}
 
 window.__tvFrames = [];
 (function(){
@@ -361,74 +361,56 @@ console.log(`loads: ${loads} (cpu 6x, cache disabled)\n`);
 // prerendered readouts). `expectedTheme`/`expectedSelMode` are the bootstrap's
 // own `<html>` attributes, which are assertable on any fixture.
 //
-// `theme.config.ts` declares defaultTheme "mint-light", initialMode "system",
-// initialFamily "mint" — so a fresh visitor resolves to mint-light while the
-// *selection* mode stays "system" (the effective mode is what the OS decides).
-//
-// The quickstart variant has no `theme.config.ts` at all: `main.tsx` passes
-// `defaultTheme="light" initialMode="system"` to the provider, so no pre-paint
-// bootstrap is injected and no family is registered. Its expectations are
-// therefore genuinely different — deriving them per variant is what stops this
-// gate from reporting a healthy build as broken.
+// `theme.config.ts` declares defaultTheme "cocoa-light", initialMode "light",
+// initialFamily "cocoa" — matching the props `src/main.tsx` passes explicitly,
+// so both builds of the example resolve the same theme. A fresh visitor
+// therefore resolves to cocoa-light with the selection mode "light".
 const themeConfigPasses = [
   {
     label: "persisted dark",
-    expected: "mint-dark|dark",
-    expectedTheme: "mint-dark",
-    expectedFamily: "mint",
-    expectedSelFamily: "mint",
+    expected: "cocoa-dark|dark",
+    expectedTheme: "cocoa-dark",
+    expectedFamily: "cocoa",
+    expectedSelFamily: "cocoa",
     expectedSelMode: "dark",
     seeded: true,
   },
   {
     label: "no selection (initialMode)",
-    expected: "mint-light|system",
-    expectedTheme: "mint-light",
-    expectedFamily: "mint",
-    expectedSelFamily: "mint",
-    expectedSelMode: "system",
+    expected: "cocoa-light|light",
+    expectedTheme: "cocoa-light",
+    expectedFamily: "cocoa",
+    expectedSelFamily: "cocoa",
+    expectedSelMode: "light",
     seeded: false,
   },
 ];
 
 // No bootstrap is injected for this variant — `dist/index.html` has neither
 // `themvora-bootstrap` nor `__THEMVORA_CONFIG__`, so it is pure client runtime
-// and asserts after React resolves. Its provider passes NO `themes` array, so the
-// runtime falls back to the full built-in theme set. A persisted
-// `{mode:"dark", family:"mint"}` therefore resolves to the built-in
-// `mint-dark`, and a fresh visitor to the provider's `defaultTheme="light"`.
-// Those are the observed, intended contracts — not guesses.
+// and asserts after React resolves. `src/main.tsx` passes the example's full
+// registry explicitly (`themes={themes}`), `defaultTheme="cocoa-light"` and
+// `initialMode="light"`, so a persisted `{mode:"dark", family:"cocoa"}` resolves
+// to `cocoa-dark` and a fresh visitor to `cocoa-light`. Those are the observed,
+// intended contracts — not guesses.
 const quickstartPasses = [
   {
     label: "persisted dark",
-    expected: "mint-dark|dark",
-    expectedTheme: "mint-dark",
-    expectedFamily: "mint",
-    expectedSelFamily: "mint",
+    expected: "cocoa-dark|dark",
+    expectedTheme: "cocoa-dark",
+    expectedFamily: "cocoa",
+    expectedSelFamily: "cocoa",
     expectedSelMode: "dark",
     seeded: true,
     bootstrap: false,
   },
   {
     label: "no selection (initialMode)",
-    expected: "light|system",
-    expectedTheme: "light",
-    // The provider passes no `themes` and `defaultTheme="light"` resolves to the
-    // built-in neutral theme, which carries no `meta.family`. Two layers then
-    // disagree on purpose, and the gate encodes both:
-    //
-    //   data-theme-family            — mirrors `theme.meta.family`, so the
-    //                                 attribute is REMOVED (<absent>).
-    //   data-theme-selection-family  — `getThemeFamily()` normalises a
-    //                                 familyless theme to the sentinel
-    //                                 "default" (documented in
-    //                                 model/selection.ts), so it reads
-    //                                 "default".
-    //
-    // That is the shipped contract, not an inconsistency to fix here.
-    expectedFamily: null,
-    expectedSelFamily: "default",
-    expectedSelMode: "system",
+    expected: "cocoa-light|light",
+    expectedTheme: "cocoa-light",
+    expectedFamily: "cocoa",
+    expectedSelFamily: "cocoa",
+    expectedSelMode: "light",
     seeded: false,
     bootstrap: false,
   },

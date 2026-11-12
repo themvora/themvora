@@ -3,6 +3,13 @@ node_modules
 
 # Build output
 dist
+# The React example ships a second build of the same app from
+# vite.config.theme-config.ts (the build-integrated variant the first-paint gate
+# serves). It writes beside `dist/`, so it needs its own entry.
+dist-theme-config
+# The scroll-restoration gate's exercise pages build from
+# scroll-fixture.config.mjs, also beside `dist/`.
+dist-scroll-fixture
 build
 .next
 .out
@@ -141,3 +148,8 @@ release-test/clean-app/package.json
 # tarballs kept for visual comparison. Machine-local: referenced by nobody at
 # build time, so it is preserved on disk but never committed.
 /.redesign-backup/
+
+# Isolated documentation-recipe verification workspace. The harnesses under
+# scripts/docs/ materialise 54 temporary applications here along with their
+# node_modules, build output and result JSON. Machine-local, never shipped.
+/verify/

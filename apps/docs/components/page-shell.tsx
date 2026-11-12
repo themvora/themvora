@@ -89,7 +89,7 @@ export function PageMasthead({
       >
         <div className="min-w-0">
           {eyebrow ? <div className="mb-4">{eyebrow}</div> : null}
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-balance">
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-balance break-words">
             {title}
           </h1>
         </div>

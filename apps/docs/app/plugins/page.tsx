@@ -183,7 +183,7 @@ const runtime = createThemeRuntime({
 export default function PluginsPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Plugins"
           title="Extend Themvora with plugins"

@@ -969,6 +969,7 @@ elements, applies the theme, and mounts the client runtime inside the body.
 | `popoverTarget` (optional) | `string` | — |
 | `popoverTargetAction` (optional) | `"toggle" \| "show" \| "hide"` | — |
 | `prefix` (optional) | `string` | — |
+| `prePaintCss` (optional) | `string` | Extra CSS rendered into `<head>` before the blocking bootstrap script. |
 | `property` (optional) | `string` | — |
 | `radioGroup` (optional) | `string` | — |
 | `rel` (optional) | `string` | — |

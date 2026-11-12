@@ -71,9 +71,10 @@ export default function LicensePage() {
 
       <LegalSection id="dependencies" heading="Dependencies">
         <p>
-          The library ships with no runtime dependencies of its own. When you
-          use a framework integration, the framework itself remains under its
-          own license.
+          The Themvora packages add no third-party runtime dependencies beyond
+          Angular&apos;s <code className="mono">tslib</code>. When you use a
+          framework integration, the framework itself remains under its own
+          license.
         </p>
       </LegalSection>
     </LegalShell>

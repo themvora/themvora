@@ -333,6 +333,10 @@ export function createScopedThemeBinding<T extends ThemeDefinition>(
   // strips the scope off its prepaint theme variables, flashing the content to
   // the page theme until the binding is recreated.
   const previousStyle = target.getAttribute("style");
+  // A scope may carry a static `data-theme` so the generated stylesheet can
+  // paint it before this binding exists. Restore it on destroy instead of
+  // removing it, so a StrictMode cleanup does not drop the pre-paint theme.
+  const previousDataTheme = target.getAttribute("data-theme");
 
   function updateStateAttributes(theme: T) {
     const isDark = getThemeMode(theme) === "dark";
@@ -466,7 +470,11 @@ export function createScopedThemeBinding<T extends ThemeDefinition>(
         target.removeAttribute("style");
       }
       appliedVariables.clear();
-      target.removeAttribute("data-theme");
+      if (previousDataTheme !== null) {
+        target.setAttribute("data-theme", previousDataTheme);
+      } else {
+        target.removeAttribute("data-theme");
+      }
       target.removeAttribute("data-mode");
       target.classList.remove("dark");
     },

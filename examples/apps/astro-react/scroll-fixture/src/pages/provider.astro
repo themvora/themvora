@@ -1,0 +1,15 @@
+---
+// Provider only, router present. No overlay scrollbar.
+import Provider from "@themvora/astro/provider.astro";
+import { ClientRouter } from "astro:transitions";
+import themeConfig from "../../../theme.config";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false}>
+  <title slot="head">provider + router</title>
+  <ClientRouter slot="head" />
+  <ScrollFixtureStyle />
+  <ScrollFixtureBody />
+</Provider>

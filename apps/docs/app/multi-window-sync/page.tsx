@@ -183,7 +183,7 @@ storeSync.post({ mode: "light", family: "default" });`,
 export default function MultiWindowSyncPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Multi-Window Sync"
           title="One theme across every tab"

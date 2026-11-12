@@ -11,6 +11,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { vi } from "vitest";
+import { CommandExit } from "../src/exit-codes.js";
 import { run } from "../src/run.js";
 
 /** One captured CLI invocation. */
@@ -25,6 +26,13 @@ export interface CliResult {
   output: string;
   /** `stdout` parsed as JSON. Throws when stdout is not valid JSON. */
   json: <T = unknown>() => T;
+  /**
+   * The error a command threw, when it threw one.
+   *
+   * Only {@link captureCommand} sets this: `cli()` goes through the dispatcher,
+   * which turns every error into an exit code.
+   */
+  error?: unknown;
 }
 
 /**
@@ -63,6 +71,62 @@ export async function cli(...argv: string[]): Promise<CliResult> {
     outSpy.mockRestore();
     errSpy.mockRestore();
   }
+}
+
+/**
+ * Run a command implementation in-process with both streams captured.
+ *
+ * `cli()` drives the dispatcher, which converts errors into exit codes. A test
+ * that needs to replace one of a command's seams — the prompt adapter, the
+ * process runner, the availability probe — calls the command directly, and this
+ * gives it the same captured-stream shape.
+ *
+ * @param command - The command call to run.
+ * @returns The exit code and captured streams. A thrown {@link CommandExit} is
+ *   reported as its code; any other error is reported as code `1` and returned
+ *   in `error`, so a test can assert on both the message and the output that
+ *   preceded it.
+ */
+export async function captureCommand(command: () => Promise<void>): Promise<CliResult> {
+  let stdout = "";
+  let stderr = "";
+
+  const outSpy = vi
+    .spyOn(process.stdout, "write")
+    .mockImplementation((chunk: unknown): boolean => {
+      stdout += String(chunk);
+      return true;
+    });
+  const errSpy = vi
+    .spyOn(process.stderr, "write")
+    .mockImplementation((chunk: unknown): boolean => {
+      stderr += String(chunk);
+      return true;
+    });
+
+  let code = 0;
+  let error: unknown;
+  try {
+    await command();
+  } catch (caught) {
+    if (caught instanceof CommandExit) code = caught.code;
+    else {
+      error = caught;
+      code = 1;
+    }
+  } finally {
+    outSpy.mockRestore();
+    errSpy.mockRestore();
+  }
+
+  return {
+    code,
+    stdout,
+    stderr,
+    output: stdout + stderr,
+    json: <T,>() => JSON.parse(stdout) as T,
+    ...(error !== undefined ? { error } : {}),
+  };
 }
 
 /** A throwaway directory for tests that touch the filesystem. */

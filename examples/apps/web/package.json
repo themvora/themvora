@@ -3,13 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Themvora Web Components example: HTML-first theming with no framework and no shared example package.",
+  "description": "Themvora Web Components first-paint example: plain HTML, automatic pre-paint CSS and boot script, no manual bootstrap.",
   "scripts": {
     "dev": "vite --port 5195 --strictPort",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview --port 5195 --strictPort",
-    "verify:consumer": "node scripts/consumer-check.mjs"
+    "preview": "vite preview --port 5195 --strictPort"
   },
   "dependencies": {
     "@themvora/core": "workspace:*",

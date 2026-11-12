@@ -104,6 +104,20 @@ describe("resolveThemeFromCookies", () => {
     expect(resolution.theme.name).toBe("forest-dark");
   });
 
+  it("keeps a system selection from the mode cookie", () => {
+    const cookies = {
+      [themvoraCookieNames.mode]: "system",
+      [themvoraCookieNames.family]: "forest",
+      [themvoraCookieNames.fingerprint]: computeFingerprint(themes, "forest-light"),
+    };
+    const resolution = resolveThemeFromCookies({ ...base, cookies });
+    // A server cannot know `prefers-color-scheme`, so the theme falls back to
+    // light; the selection must remain "system" so the SSR markup, the
+    // bootstrap script and hydration all agree.
+    expect(resolution.selection.mode).toBe("system");
+    expect(resolution.theme.name).toBe("forest-light");
+  });
+
   it("ignores invalid mode cookie values", () => {
     const cookies = {
       [themvoraCookieNames.mode]: "neon",

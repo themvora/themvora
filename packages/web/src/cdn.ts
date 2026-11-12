@@ -6,7 +6,7 @@
  * with no import map, no bundler and no bare-specifier resolution:
  *
  * ```html
- * <script src="https://cdn.jsdelivr.net/npm/@themvora/web@1.4.0/dist/cdn.js"></script>
+ * <script src="https://cdn.jsdelivr.net/npm/@themvora/web@1.6.0/dist/cdn.js"></script>
  * ```
  *
  * Importing this module registers the elements and injects the component

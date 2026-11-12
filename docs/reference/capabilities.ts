@@ -756,6 +756,9 @@ export const capabilities: Record<string, Capability> = {
         "chooseForeground",
         "preferredInk",
         "hasForegroundPreference",
+        // A readable name for a colour, chosen by OKLCH hue and tone — the
+        // inverse of `generateTheme`'s "give me a theme from this seed".
+        "colorName",
         "PresetScore",
         "CheckStatus",
         "validateThemeLevels",
@@ -936,6 +939,15 @@ export const capabilities: Record<string, Capability> = {
         "createThemeBootstrapScript",
         "ThemeBootstrapScriptOptions",
         "ThemeBootstrapState",
+        // The pre-paint *stylesheet* half of the same contract, and the DOM
+        // applier the static boot asset and the generated script share. A
+        // script alone covers the first paint; the stylesheet also survives the
+        // hydration that reconciles `<html style>`.
+        "createThemePrePaintCss",
+        "ThemePrePaintCssOptions",
+        "applyThemeBootstrap",
+        "ApplyThemeBootstrapOptions",
+        "ThemeBootstrapApplied",
         "createThemeReadoutScript",
         "readBootstrapState",
         "computeFingerprint",
@@ -964,6 +976,7 @@ export const capabilities: Record<string, Capability> = {
       // integration need no theme options of their own.
       "@themvora/core/config": [
         "loadThemvoraConfig",
+        "findThemvoraConfigPath",
         "THEMVORA_CONFIG_FILES",
       ],
       "@themvora/core/vite": [
@@ -973,6 +986,17 @@ export const capabilities: Record<string, Capability> = {
         "ThemvoraViteInjectedTag",
         // The inline form, kept only for apps that have not moved to
         // `theme.config.ts`. Documented as deprecated on the plugin's options.
+        "ThemvoraThemeConfig",
+      ],
+      // `@themvora/web/vite` re-exports the core plugin for Web Components
+      // projects, so the same symbol is reachable from two entrypoints and both
+      // are documented. Listing only the core path made every Web Components
+      // snippet that imports the package's own subpath look invented.
+      "@themvora/web/vite": [
+        "themvoraVitePlugin",
+        "ThemvoraVitePlugin",
+        "ThemvoraVitePluginOptions",
+        "ThemvoraViteInjectedTag",
         "ThemvoraThemeConfig",
       ],
       "@themvora/next/client": ["ThemeBootstrap", "ThemeBootstrapProps"],
@@ -989,6 +1013,18 @@ export const capabilities: Record<string, Capability> = {
         "systemModeCSSTemplate",
       ],
       "@themvora/remix": [
+        // The single-config document integration. The same export is available
+        // from `@themvora/remix/react-router` for Framework Mode.
+        "createThemeDocument",
+        "ThemeDocumentBodyProps",
+        "ThemeDocumentConfig",
+        "ThemeDocumentHandle",
+        "ThemeDocumentHeadContent",
+        "ThemeDocumentHeadElement",
+        "ThemeDocumentHeadTag",
+        "ThemeDocumentHtmlProps",
+        "ThemeDocumentProps",
+        "ThemeDocumentProviderProps",
         "ThemeHead",
         "ThemeHeadProps",
         "getInitialThemeState",
@@ -1005,8 +1041,22 @@ export const capabilities: Record<string, Capability> = {
         "ResolveThemeFromCookiesOptions",
         "ModuleOptions",
         "computeFingerprint",
+        // Re-exported from `@themvora/core`, and reachable from the module the
+        // guide tells a Nuxt app to install.
+        "createThemePrePaintCss",
+        "ThemePrePaintCssOptions",
+        "applyThemeBootstrap",
+        "ApplyThemeBootstrapOptions",
+        "ThemeBootstrapApplied",
       ],
       "@themvora/web": ["PRE_PAINT_SCROLLBAR_CSS", "injectPrePaintScrollbarCSS"],
+      // The library adapters that paint from their own variable namespace need a
+      // pre-paint stylesheet of their own; without it the first frame is the
+      // library's stock colours.
+      "@themvora/antd/next": ["AntdStyleRegistry", "ANTD_SSR_STYLE_ID"],
+      "@themvora/bootstrap/prepaint": ["createBootstrapPrePaintCss", "BootstrapPrePaintOptions"],
+      "@themvora/mantine/prepaint": ["createMantinePrePaintCss", "MantinePrePaintOptions"],
+      "@themvora/mantine": ["useMantineCssVariables"],
     },
     frameworks: ["react", "next", "vue", "nuxt", "svelte", "solid", "angular", "astro", "remix", "web"],
     limitations: [
@@ -1495,6 +1545,14 @@ export const integrations: Record<string, Integration> = {
     packages: {
       "@themvora/mantine": [
         "createMantineTheme", "MantineThemeProvider", "MantineThemeProviderProps", "useMantineTheme",
+        // The CSS-variable resolver. Mantine reads its own custom properties, so
+        // this is the half that makes a theme change reach Mantine's components.
+        "createMantineCssVariables",
+      ],
+      // The pre-paint half: emits the resolver's output as a `:root` block for
+      // the server render, so the first paint carries the right scheme.
+      "@themvora/mantine/prepaint": [
+        "createMantinePrePaintCss", "MantinePrePaintOptions",
       ],
     },
   },
@@ -1676,6 +1734,12 @@ export const integrations: Record<string, Integration> = {
       "@themvora/bootstrap/svelte": ["useBootstrapTheme", "UseAdapterOptions"],
       "@themvora/bootstrap/solid": ["useBootstrapTheme", "UseAdapterOptions"],
       "@themvora/bootstrap/angular": ["injectBootstrapTheme", "InjectAdapterOptions"],
+      // The pre-paint half: a `:root` block for the server render. Bootstrap's
+      // component styles hold literal colours, so the variables have to be on
+      // the document before the stylesheet is parsed.
+      "@themvora/bootstrap/prepaint": [
+        "createBootstrapPrePaintCss", "BootstrapPrePaintOptions",
+      ],
     },
   },
 

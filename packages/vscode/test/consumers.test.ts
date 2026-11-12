@@ -461,11 +461,15 @@ describe("real repository examples", () => {
   it("recognizes the Nuxt example's module configuration", () => {
     const found = recognizeConsumers(example("nuxt/nuxt.config.ts"), "nuxt.config.ts");
 
+    // The example enables the module and leaves the catalog to the built-in
+    // one, so there is no `themes` option to read — and none is invented.
     expect(found[0]).toMatchObject({
       integration: "nuxt",
       api: "defineNuxtConfig",
-      names: ["themes"],
+      input: "absent",
+      names: [],
     });
+    expect(found[0]?.reason).toContain("built-in catalog");
   });
 
   it("recognizes the Solid example's provider", () => {
@@ -475,11 +479,17 @@ describe("real repository examples", () => {
     expect(provider).toMatchObject({ integration: "solid", names: ["themes"] });
   });
 
-  it("recognizes the Remix root provider", () => {
+  it("recognizes the Remix example's theme document", () => {
     const found = consumersOf(example("remix/app/root.tsx"));
-    const provider = found.find((entry) => entry.api === "ThemeProvider");
+    const document = found.find((entry) => entry.api === "createThemeDocument");
 
-    expect(provider).toMatchObject({ integration: "remix", names: ["themes"] });
+    // The root composes `<theming.Document>` from one `createThemeDocument()`
+    // configuration, so that call — not a `ThemeProvider` — is the consumer.
+    expect(document).toMatchObject({
+      integration: "remix",
+      input: "static",
+      names: ["themes", "presets"],
+    });
   });
 
   it("does not invent options for the vanilla example's bare new Themvora()", () => {
@@ -489,11 +499,14 @@ describe("real repository examples", () => {
     expect(kit).toMatchObject({ integration: "vanilla", input: "absent" });
   });
 
-  it("recognizes the Web Components example's runtime.use(pack)", () => {
+  it("does not invent a theme pack for the Web Components example's module", () => {
     const found = consumersOf(example("web/src/main.ts"));
-    const use = found.find((entry) => entry.api === "runtime.use");
 
-    expect(use).toMatchObject({ integration: "web", names: ["solarPack"] });
+    // The example's catalog is declared in `theme.config.ts` and transported by
+    // the Vite plugin, so this module only reads the runtime the provider
+    // already created. Reporting nothing is the correct answer — a `runtime.use`
+    // here would be a theme pack the file does not contain.
+    expect(found).toEqual([]);
   });
 });
 

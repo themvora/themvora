@@ -9,24 +9,36 @@ import { Prerequisites } from "../../../components/ui/prerequisites";
 import { RelatedLinks } from "../../../components/ui/related-links";
 import { InlineCode } from "../../../components/ui/inline-code";
 import { SectionHeading } from "../../../components/ui/section-heading";
+import { StepperSection } from "../../../components/ui/stepper-section";
 import { ApiExplorer } from "../../../components/api-explorer";
 import {
   InstallCommand,
   type PackageManager,
 } from "../../../components/install-command";
+import { InstallCommandPair } from "../../../components/install-command-pair";
 import {
-  frameworks,
+  allFrameworks,
+  frameworkExamplesPath,
+  frameworkGuidePath,
   CANONICAL_STYLES_NOTE,
 } from "../../../lib/frameworks";
 import type { FrameworkSnippet } from "../../../lib/frameworks";
 import { frameworkCompatibilityData } from "../../../lib/compatibility-data";
 import type { SupportLevel } from "../../../components/ui/support-badge";
 import { frameworkUseCases } from "../../../lib/use-cases";
-import { anchorForCategory, anchorForFeature } from "../../../lib/framework-examples";
+import {
+  anchorForCategory,
+  anchorForFeature,
+} from "../../../lib/framework-examples";
 import { highlightCode } from "../../../lib/highlight";
 import { ThemedExample } from "../../../components/example-ui/themed-example";
-import { PKG_VERSION } from "../../../lib/version";
+import { PKG_VERSION, getPackageVersion } from "../../../lib/version";
 import { docsUrl } from "../../../lib/site";
+import {
+  contractForSlug,
+  explicitInstallPackages,
+  formatInstallCommand,
+} from "../../../lib/package-contracts";
 import {
   WhichReactSetupPanel,
   OptimizedCsrBootstrap,
@@ -88,43 +100,40 @@ function ExampleBlock({
   );
 }
 
-function installCommand(pkgs: string, manager: PackageManager): string {
-  return manager === "npm" ? `npm install ${pkgs}` : `${manager} add ${pkgs}`;
-}
-
 /** Build one `InstallCommand` prop set — one entry per package manager. */
-function installCommandsFor(pkgs: string) {
+function installCommandsFor(packages: readonly string[]) {
   return Object.fromEntries(
-    MANAGERS.map((manager) => [
-      manager,
-      {
-        code: installCommand(pkgs, manager),
-        html: highlightCode(installCommand(pkgs, manager), "bash"),
-      },
-    ]),
+    MANAGERS.map((manager) => {
+      const code = formatInstallCommand(packages, manager);
+      return [manager, { code, html: highlightCode(code, "bash") }];
+    }),
   ) as Record<PackageManager, { code: string; html: string }>;
 }
 
 export function generateStaticParams() {
-  return frameworks.map((f) => ({ slug: f.slug }));
+  // A framework with a canonical `path` override is rendered by its own nested
+  // route (React Router under Remix), not by this single-segment page.
+  return allFrameworks
+    .filter((f) => !f.nested)
+    .map((f) => ({ slug: f.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const framework = frameworks.find((f) => f.slug === slug);
+  const framework = allFrameworks.find((f) => f.slug === slug);
   if (!framework) return { title: "Framework Guide" };
   return {
     title: framework.name,
     description: framework.tagline,
-    alternates: { canonical: docsUrl(`/framework-guides/${slug}`) },
+    alternates: { canonical: docsUrl(frameworkGuidePath(slug)) },
   };
 }
 
 export default async function FrameworkGuidePage({ params }: PageProps) {
   const { slug } = await params;
-  const framework = frameworks.find((f) => f.slug === slug);
+  const framework = allFrameworks.find((f) => f.slug === slug);
   if (!framework) notFound();
 
   // Astro's guide is shape-driven (Astro-only vs Astro + React) rather than a
@@ -132,16 +141,24 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
   // ones are skipped. See components/framework-guides/astro-guide.tsx.
   const isAstro = framework.slug === "astro";
 
-  // The same package list Quick Start installs, so the two pages cannot tell a
-  // reader to install different things: the shared core, this framework's
-  // adapter, and any runtime an integration needs on top (Tailwind's).
-  const pkgs = [
-    "@themvora/core",
-    framework.pkg,
-    ...(framework.extraPackages ?? []),
-  ].join(" ");
+  // The packages this page tells the reader to install, derived from the
+  // published manifest contract. Framework bindings declare core as a normal
+  // dependency; the docs still show the explicit pair so the runtime version is
+  // visible and pinned in the reader's own manifest.
+  const contract = contractForSlug(framework.slug);
+  const installPackages = contract
+    ? explicitInstallPackages(contract, {
+        extraPackages: framework.extraPackages ?? [],
+      })
+    : ["@themvora/core", framework.pkg, ...(framework.extraPackages ?? [])];
 
-  const commands = installCommandsFor(pkgs);
+  const commands = installCommandsFor(installPackages);
+
+  // A separate command for projects that do not have the framework installed
+  // yet. The primary command stays Themvora-only.
+  const prerequisiteCommands = framework.prerequisiteInstall
+    ? installCommandsFor(framework.prerequisiteInstall.packages)
+    : undefined;
 
   // Astro's two paths install different things. The Astro-only path stays
   // framework-free; the Astro + React path adds the renderer Astro needs to
@@ -150,7 +167,12 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
   // which extra packages the React path needs from the prose.
   const astroInstallCommands = {
     base: commands,
-    renderer: installCommandsFor(`${pkgs} @astrojs/react react react-dom`),
+    renderer: installCommandsFor([
+      ...installPackages,
+      "@astrojs/react",
+      "react",
+      "react-dom",
+    ]),
   };
 
   const useCases = frameworkUseCases[framework.slug] ?? [];
@@ -169,7 +191,7 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
     ),
   );
 
-  const examplesHref = `/framework-guides/${framework.slug}/examples`;
+  const examplesHref = frameworkExamplesPath(framework.slug);
 
   // Group label → examples-page category anchor, so each group header in the
   // index is a real link rather than a label the reader has to hunt past.
@@ -199,25 +221,27 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
     compatibility === undefined || compatibility.zeroFlash === "N/A"
       ? undefined
       : compatibility.zeroFlash === "Auto"
-        ? "yes"
+          ? "yes"
         : compatibility.zeroFlash === "Manual"
           ? "partial"
           : "no";
 
   return (
     <DocsLayout>
-      <article className="min-w-0 max-w-3xl">
+      <article className="min-w-0">
         <DocHeader
           title={framework.name}
           description={framework.tagline}
           metadata={{
             package: framework.pkg,
             framework: framework.name,
-            version: PKG_VERSION,
-            lastVerified: "2026-09-17",
+            version: getPackageVersion(framework.slug) ?? PKG_VERSION,
+            lastVerified: "2026-11-04",
             status: "stable",
             ...(ssrLevel ? { ssr: ssrLevel } : {}),
+            ...(compatibility ? { ssrLabel: compatibility.ssr } : {}),
             ...(zeroFlashLevel ? { zeroFlash: zeroFlashLevel } : {}),
+            ...(compatibility ? { zeroFlashLabel: compatibility.zeroFlash } : {}),
           }}
         />
 
@@ -228,13 +252,18 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
             {
               label: "Runtime",
               value:
-                "Node.js 18+ and a package manager (npm, pnpm, yarn, or bun)",
+                "Node.js 18+ (or the version your framework toolchain requires) and a package manager (npm, pnpm, yarn, or bun)",
             },
             {
               label: "Project",
               value:
                 framework.projectPrerequisite ??
-                `A ${framework.name} project${ssrLevel ? " with SSR support" : ""}`,
+                `A ${framework.name} project${
+                  compatibility?.ssr === "Full" ||
+                  compatibility?.ssr === "Helpers"
+                    ? " with SSR support"
+                    : ""
+                }`,
             },
             ...(framework.slug === "angular"
               ? [
@@ -280,18 +309,32 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
           <>
             {framework.guideSteps.map((step, index) => {
               const snippet = step.ref ? framework[step.ref] : undefined;
-              const extra = step.refExtra ? framework[step.refExtra] : undefined;
+              const extra = step.refExtra
+                ? framework[step.refExtra]
+                : undefined;
               const sectionId = STEP_ANCHORS[index];
               return (
-                <section
+                <StepperSection
                   key={step.label}
                   {...(sectionId ? { id: sectionId } : {})}
-                  className="mt-10 scroll-mt-24"
+                  className="mt-10"
+                  first={index === 0}
+                  last={index === (framework.guideSteps?.length ?? 1) - 1}
                 >
-                  <SectionHeading num={index + 1} desc={step.desc}>
+                  <SectionHeading num={index + 1} stepper desc={step.desc}>
                     {step.label}
                   </SectionHeading>
-                  {step.install ? <InstallCommand commands={commands} /> : null}
+                  {step.install ? (
+                    prerequisiteCommands && framework.prerequisiteInstall ? (
+                      <InstallCommandPair
+                        primary={commands}
+                        secondary={prerequisiteCommands}
+                        secondaryLabel={framework.prerequisiteInstall.label}
+                      />
+                    ) : (
+                      <InstallCommand commands={commands} />
+                    )
+                  ) : null}
                   {step.ref === "uiExample" ? (
                     <div
                       className="mb-4 rounded-xl border border-border p-5"
@@ -307,7 +350,9 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                       framework={framework.slug}
                       filename={snippet.title}
                       {...(snippet.js ? { js: snippet.js } : {})}
-                      {...(snippet.jsFilename ? { jsFilename: snippet.jsFilename } : {})}
+                      {...(snippet.jsFilename
+                        ? { jsFilename: snippet.jsFilename }
+                        : {})}
                       className="rounded-lg m-0"
                     />
                   ) : null}
@@ -318,7 +363,9 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                       framework={framework.slug}
                       filename={extra.title}
                       {...(extra.js ? { js: extra.js } : {})}
-                      {...(extra.jsFilename ? { jsFilename: extra.jsFilename } : {})}
+                      {...(extra.jsFilename
+                        ? { jsFilename: extra.jsFilename }
+                        : {})}
                       className="rounded-lg m-0 mt-3"
                     />
                   ) : null}
@@ -328,7 +375,10 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                     </p>
                   ) : null}
                   {step.note === "mode" ? (
-                    <Callout className="mt-3" title="Choosing the starting theme">
+                    <Callout
+                      className="mt-3"
+                      title="Choosing the starting theme"
+                    >
                       <InlineCode>{framework.modeNote}</InlineCode>
                     </Callout>
                   ) : null}
@@ -359,19 +409,24 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                       <code className="mono text-[0.9em]">card</code>,{" "}
                       <code className="mono text-[0.9em]">cardForeground</code>,{" "}
                       <code className="mono text-[0.9em]">border</code>,{" "}
-                      <code className="mono text-[0.9em]">mutedForeground</code>,{" "}
-                      <code className="mono text-[0.9em]">success</code>,{" "}
+                      <code className="mono text-[0.9em]">mutedForeground</code>
+                      , <code className="mono text-[0.9em]">success</code>,{" "}
                       <code className="mono text-[0.9em]">primary</code>,{" "}
-                      <code className="mono text-[0.9em]">primaryForeground</code>{" "}
-                      and <code className="mono text-[0.9em]">ring</code> — through
-                      the <code className="mono text-[0.9em]">@theme</code> block
-                      in <code className="mono text-[0.9em]">@themvora/tailwind</code>.
-                      This step only paints the document; the component styles
+                      <code className="mono text-[0.9em]">
+                        primaryForeground
+                      </code>{" "}
+                      and <code className="mono text-[0.9em]">ring</code> —
+                      through the{" "}
+                      <code className="mono text-[0.9em]">@theme</code> block in{" "}
+                      <code className="mono text-[0.9em]">
+                        @themvora/tailwind
+                      </code>
+                      . This step only paints the document; the component styles
                       are utilities, not a second stylesheet, and no typography
                       token is involved.
                     </p>
                   ) : null}
-                </section>
+                </StepperSection>
               );
             })}
 
@@ -384,21 +439,31 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                 lang={framework.quickStart.lang}
                 framework={framework.slug}
                 filename={framework.quickStart.title}
-                {...(framework.quickStart.js ? { js: framework.quickStart.js } : {})}
-                {...(framework.quickStart.jsFilename ? { jsFilename: framework.quickStart.jsFilename } : {})}
+                {...(framework.quickStart.js
+                  ? { js: framework.quickStart.js }
+                  : {})}
+                {...(framework.quickStart.jsFilename
+                  ? { jsFilename: framework.quickStart.jsFilename }
+                  : {})}
                 className="rounded-lg m-0"
               />
-              {framework.quickStartExtra ? (
-                <CodeExample
-                  code={framework.quickStartExtra.code}
-                  lang={framework.quickStartExtra.lang}
-                  framework={framework.slug}
-                  filename={framework.quickStartExtra.title}
-                  {...(framework.quickStartExtra.js ? { js: framework.quickStartExtra.js } : {})}
-                  {...(framework.quickStartExtra.jsFilename ? { jsFilename: framework.quickStartExtra.jsFilename } : {})}
-                  className="rounded-lg m-0 mt-3"
-                />
-              ) : null}
+              {(() => {
+                const configExtra =
+                  framework.quickStartExtra ?? framework.themeConfig;
+                return configExtra ? (
+                  <CodeExample
+                    code={configExtra.code}
+                    lang={configExtra.lang}
+                    framework={framework.slug}
+                    filename={configExtra.title}
+                    {...(configExtra.js ? { js: configExtra.js } : {})}
+                    {...(configExtra.jsFilename
+                      ? { jsFilename: configExtra.jsFilename }
+                      : {})}
+                    className="rounded-lg m-0 mt-3"
+                  />
+                ) : null;
+              })()}
               <Callout className="mt-3" title="Where the theme data lives">
                 <InlineCode>{framework.configNote}</InlineCode>
               </Callout>
@@ -419,7 +484,10 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
           <p className="text-sm opacity-70 mb-4">
             Three pages cover this package, and they do different jobs: this
             index says what exists, the{" "}
-            <a href={examplesHref} className="text-foreground underline hover:decoration-foreground">
+            <a
+              href={examplesHref}
+              className="text-foreground underline hover:decoration-foreground"
+            >
               examples page
             </a>{" "}
             shows each export in code with the problem it solves, and the{" "}
@@ -447,7 +515,10 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
             Short snippets you can drop into an existing app. For the same
             problems worked through end to end — problem, APIs, expectations,
             limitations — see the{" "}
-            <a href={examplesHref} className="text-foreground underline hover:decoration-foreground">
+            <a
+              href={examplesHref}
+              className="text-foreground underline hover:decoration-foreground"
+            >
               {framework.name} examples
             </a>
             .
@@ -467,7 +538,9 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                   framework={framework.slug}
                   {...(useCase.filename ? { filename: useCase.filename } : {})}
                   {...(useCase.js ? { js: useCase.js } : {})}
-                  {...(useCase.jsFilename ? { jsFilename: useCase.jsFilename } : {})}
+                  {...(useCase.jsFilename
+                    ? { jsFilename: useCase.jsFilename }
+                    : {})}
                   className="rounded-lg m-0"
                 />
               </div>
@@ -492,16 +565,28 @@ export default async function FrameworkGuidePage({ params }: PageProps) {
                   flow, so its runtime snippet is surfaced here rather than
                   being dropped. Every other entry shows its toggle in step 5. */}
               {framework.cssOnly && framework.switchSnippet ? (
-                <ExampleBlock snippet={framework.switchSnippet} slug={framework.slug} />
+                <ExampleBlock
+                  snippet={framework.switchSnippet}
+                  slug={framework.slug}
+                />
               ) : null}
-              <ExampleBlock snippet={framework.snippet2} slug={framework.slug} />
+              <ExampleBlock
+                snippet={framework.snippet2}
+                slug={framework.slug}
+              />
               {/* React renders its snippet3 through OptimizedCsrBootstrap below,
                   with its own prose. Every other framework shows it here. */}
               {framework.snippet3 && framework.slug !== "react" ? (
-                <ExampleBlock snippet={framework.snippet3} slug={framework.slug} />
+                <ExampleBlock
+                  snippet={framework.snippet3}
+                  slug={framework.slug}
+                />
               ) : null}
               {framework.snippet4 ? (
-                <ExampleBlock snippet={framework.snippet4} slug={framework.slug} />
+                <ExampleBlock
+                  snippet={framework.snippet4}
+                  slug={framework.slug}
+                />
               ) : null}
             </div>
             <p className="text-sm opacity-70 mt-4">

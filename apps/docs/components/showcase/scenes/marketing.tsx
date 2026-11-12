@@ -37,7 +37,7 @@ const FEATURES = [
 
 const STATS = [
   { value: "34", label: "built-in themes" },
-  { value: "15", label: "families" },
+  { value: "14", label: "families" },
   { value: "24", label: "packages" },
   { value: "0", label: "flashes" },
 ];
@@ -83,7 +83,7 @@ export function MarketingComposition({ chrome = true }: CompositionProps) {
           <div className="relative">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden />
-              v1.3 is out — 15 theme families
+              v1.3 is out — 14 theme families
             </span>
 
             <div className="mt-3.5 text-[26px] sm:text-[32px] font-semibold tracking-tight leading-[1.1] max-w-2xl mx-auto">

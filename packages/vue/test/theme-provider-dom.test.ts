@@ -19,19 +19,30 @@ const themes = [
 
 const Child = defineComponent({
   setup() {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme, setMode } = useTheme();
     return () =>
-      h("button", { id: "switcher", onClick: () => toggleTheme() }, String(theme.value.name));
+      h("div", [
+        h("button", { id: "switcher", onClick: () => toggleTheme() }, String(theme.value.name)),
+        h("button", { id: "system", onClick: () => setMode("system") }, "system"),
+        h("button", { id: "light", onClick: () => setMode("light") }, "light"),
+      ]);
   },
 });
 
 let app: ReturnType<typeof createApp>;
 
-function mountApp() {
+function mountApp(initialMode?: "light" | "dark" | "system") {
   app = createApp({
     render() {
-      return h(ThemeProvider, { themes, defaultTheme: "mint-light", persistence: null }, () =>
-        h(Child),
+      return h(
+        ThemeProvider,
+        {
+          themes,
+          defaultTheme: "mint-light",
+          persistence: null,
+          ...(initialMode !== undefined ? { initialMode } : {}),
+        },
+        () => h(Child),
       );
     },
   });
@@ -45,6 +56,8 @@ describe("vue ThemeProvider DOM binding", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+    document.documentElement.removeAttribute("data-theme-mode");
+    document.documentElement.removeAttribute("data-theme-selection-mode");
     document.documentElement.removeAttribute("style");
   });
 
@@ -68,5 +81,19 @@ describe("vue ThemeProvider DOM binding", () => {
     console.log("btn text:", btn.textContent);
 
     expect(el.getAttribute("data-theme")).toBe("mint-light");
+  });
+
+  it("mirrors the selection onto data-theme-selection-mode", async () => {
+    mountApp("system");
+    await nextTick();
+
+    const el = document.documentElement;
+    expect(el.getAttribute("data-theme-selection-mode")).toBe("system");
+
+    document.querySelector<HTMLButtonElement>("#light")!.click();
+    await nextTick();
+
+    expect(el.getAttribute("data-theme-selection-mode")).toBe("light");
+    expect(el.getAttribute("data-theme-mode")).toBe("light");
   });
 });

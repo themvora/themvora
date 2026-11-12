@@ -9,7 +9,7 @@ theme files that every `@themvora/*` framework package consumes.
 
 ## Requirements
 
-- **Node.js 22+** (any modern release). No browser package is needed.
+- **Node.js 18+** (any modern release). No browser package is needed.
 
 ## Install
 
@@ -151,13 +151,34 @@ into one you already have, then verifies it by running the project's own build
 and typecheck:
 
 ```bash
-themvora init my-app --framework react
-themvora init my-app --framework next --preset mint
+# Guided: asks for the project name, package manager, framework and styling
+themvora init
+
+# Explicit: no questions at all
+themvora init my-app --tool pnpm --framework react
+themvora init my-app --tool npm --framework next --preset mint
 themvora init my-app --framework react --plan
 ```
 
+The wizard asks only for what the command line did not supply, in a fixed order:
+project name, package manager, framework, Tailwind or plain CSS. `--tool` takes
+`npm`, `pnpm`, `yarn` or `bun`, and `--package-manager` is accepted as its
+compatibility alias. When neither is given the manager is detected from the
+corepack `packageManager` field, then the lockfile, then `npm`; the prompt
+preselects whichever manager invoked the CLI.
+
+The prompts need a terminal. `--json`, `--quiet`, `--plan`, `--dry-run`, CI, or
+a redirected stdin keep `init` non-interactive, and a missing value is then a
+usage error naming the flag that supplies it.
+
 Supported targets are React, Next.js, Vue, Svelte and Solid. Running it twice
 changes nothing the second time.
+
+Dependencies are installed **once**, by `init`, after the integration has edited
+`package.json` — the framework's generator is invoked with its own
+non-interactive flag so it never asks whether to install, and never installs a
+second copy. The development server is never started for you; `init` prints the
+command that starts it.
 
 The generated app mounts one provider at the framework's documented root, keeps
 the showcase UI in its own component, opens in a light theme, and styles itself
@@ -165,17 +186,23 @@ entirely from semantic tokens — no second palette. The theme registry lives in
 `themes/themes.ts` (or `src/themes/themes.ts`) and is passed to the provider as
 props; there is no `theme.config.ts` and no Themvora Vite plugin to register.
 
-`--styling` chooses the styling engine. Plain CSS is the default:
+`--styling` chooses the styling engine, and plain CSS is the default — the same
+default the wizard preselects, so an interactive run and a scripted one agree:
 
 ```bash
-themvora init my-app --framework react --styling css
-themvora init my-app --framework react --styling tailwind
+themvora init my-app --framework react                     # plain CSS
+themvora init my-app --framework react --styling tailwind  # Tailwind CSS
 ```
 
-`css` writes a stylesheet that reads `var(--theme-color-*)`. `tailwind` writes a
-Tailwind CSS v4 entry point that imports `@themvora/tailwind`, whose `@theme`
-mapping turns the same tokens into utilities such as `bg-background` and
-`bg-card`. Either way, switching themes repaints the whole starter.
+`css` writes a stylesheet that reads `var(--theme-color-*)` and adds no
+dependency. `tailwind` writes a Tailwind CSS v4 entry point that imports
+`@themvora/tailwind`, whose `@theme` mapping turns the same tokens into
+utilities such as `bg-background` and `bg-card`, and records `tailwindcss` plus
+the framework's plugin as dev dependencies before the single install runs.
+Either way, switching themes repaints the whole starter, and either way the
+starter is the same application — the choice changes how it is styled, not what
+it does. `--styling` does nothing to an existing project: its stylesheet is
+yours, and `init` says so rather than replacing it.
 
 In a project `init` scaffolded, the scaffold's unused demo files — its own
 stylesheet with a second palette, its demo component, its logo assets — are
@@ -231,15 +258,21 @@ MIT
 ## Editor integration
 
 The same theme files can be explored, previewed and validated inside VS Code
-with **Themvora for VS Code** — a companion extension that reads
-`defineTheme()` definitions and theme JSON statically, previews a theme across a
-dashboard and component gallery, and reports contrast failures per token. It is
-an editor extension, not an npm package, and it is not published to the Visual
-Studio Marketplace yet.
+with **[Themvora Theme Studio for VS Code](https://marketplace.visualstudio.com/items?itemName=themvora.themvora-for-vscode)** — a
+companion extension that reads `defineTheme()` definitions and theme JSON
+statically, previews a theme across a dashboard and component gallery, and
+reports contrast failures per token. It is published on the Visual Studio
+Marketplace as `themvora.themvora-for-vscode`; it is an editor extension, not an
+npm package.
+
+Install it from the Extensions view (`Ctrl+Shift+X`) by searching for
+**Themvora Theme Studio**, or run
+`code --install-extension themvora.themvora-for-vscode`.
 
 It does not replace the CLI: `init`, `add`, `doctor` and `export` remain
 terminal commands.
 
+- [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=themvora.themvora-for-vscode)
 - [Extension documentation](https://themvora-dev.vercel.app/vscode)
 - [Extension source](https://github.com/themvora/themvora/tree/main/packages/vscode)
 

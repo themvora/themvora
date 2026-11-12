@@ -102,12 +102,18 @@ createCSSVariablesBinding(store);
 ## Editor integration
 
 Themes you author with core can be inspected, previewed and validated inside
-VS Code with **Themvora for VS Code** — a companion extension that reads
-`defineTheme()` definitions and theme JSON statically, shows each token's
-measured contrast, and writes new themes in a format this package reads back. It
-is an editor extension, not an npm package, and it is not published to the
-Visual Studio Marketplace yet.
+VS Code with **[Themvora Theme Studio for VS Code](https://marketplace.visualstudio.com/items?itemName=themvora.themvora-for-vscode)** — a
+companion extension that reads `defineTheme()` definitions and theme JSON
+statically, shows each token's measured contrast, and writes new themes in a
+format this package reads back. It is published on the Visual Studio
+Marketplace as `themvora.themvora-for-vscode`; it is an editor extension, not an
+npm package.
 
+Install it from the Extensions view (`Ctrl+Shift+X`) by searching for
+**Themvora Theme Studio**, or run
+`code --install-extension themvora.themvora-for-vscode`.
+
+- [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=themvora.themvora-for-vscode)
 - [Extension documentation](https://themvora-dev.vercel.app/vscode)
 - [Extension source](https://github.com/themvora/themvora/tree/main/packages/vscode)
 

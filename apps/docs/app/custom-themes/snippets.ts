@@ -229,6 +229,12 @@ export const customThemeSnippets: Record<
     code: string;
     /** A second file the wiring needs, shown as its own block. */
     extra?: { title: string; lang: string; code: string };
+    /**
+     * Web Components only — the same registration expressed through the Vite
+     * plugin. Shown after the framework-native blocks, labelled as the Vite
+     * path; the native blocks stay useful for non-Vite pages.
+     */
+    vite?: { title: string; lang: string; code: string };
   }
 > = {
   react: {
@@ -474,13 +480,9 @@ export class FamilyPickerComponent {
     title: "index.html",
     lang: "html",
     code: `<script type="module">
-  // Registers every <themvora-*> element and their stylesheet.
   import "@themvora/web";
 </script>
 
-<!-- \`themes\` accepts a JSON array of theme definitions. A list of names
-     (\`themes="light dark"\`) selects from the themes that are already
-     registered instead. -->
 <themvora-provider
   default-theme="ocean-light"
   themes='[
@@ -503,8 +505,6 @@ export class FamilyPickerComponent {
       lang: "js",
       code: `import { useProvidedThemes, useThemeRuntime } from "@themvora/web";
 
-// useProvidedThemes() returns the families registered with the provider.
-// setFamily is called through the runtime's selection API.
 const families = useProvidedThemes();
 const runtime = useThemeRuntime();
 
@@ -521,6 +521,25 @@ select.addEventListener("change", (e) => {
 });
 
 document.getElementById("my-app")?.appendChild(select);`,
+    },
+    vite: {
+      title: "Using Vite — theme.config.ts",
+      lang: "ts",
+      code: `// vite.config.ts
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({ plugins: [themvoraVitePlugin()] });
+
+// theme.config.ts — the ocean themes from section 1.
+import { defineThemvoraConfig } from "@themvora/core";
+import { oceanLight, oceanDark } from "./src/themes";
+
+export default defineThemvoraConfig({
+  themes: [oceanLight, oceanDark],
+  defaultTheme: "ocean-light",
+  initialMode: "system",
+});`,
     },
   },
   tailwind: {
@@ -621,18 +640,16 @@ const { setFamily } = useTheme();
     },
   },
   remix: {
-    title: "app/root.tsx",
+    title: "app/root.tsx — theming configuration",
     lang: "tsx",
-    code: `import { ThemeProvider } from "@themvora/remix";
+    code: `// Swap the registry in the configuration the quick start already created.
 import { oceanLight, oceanDark } from "./themes";
 
-export default function App() {
-  return (
-    <ThemeProvider themes={[oceanLight, oceanDark]} defaultTheme="ocean-light">
-      <Outlet />
-    </ThemeProvider>
-  );
-}`,
+const theming = createThemeDocument({
+  themes: [oceanLight, oceanDark],
+  defaultTheme: "ocean-light",
+  mode: "system",
+});`,
     extra: {
       title: "app/routes/_index.tsx",
       lang: "tsx",

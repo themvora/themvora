@@ -1,7 +1,7 @@
 # `themvora explain`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 Explain how a theme came to be: its source, its recipe, the identity or brand

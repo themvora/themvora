@@ -1,29 +1,40 @@
-import type { ReactNode } from "react";
-
 export type VersionBadgeProps = {
   version: string;
   label?: string;
   className?: string;
+  prefix?: string;
 };
 
-export function VersionBadge({ version, label = "v", className }: VersionBadgeProps) {
+export function VersionBadge({
+  version,
+  label = "v",
+  className,
+  prefix,
+}: VersionBadgeProps) {
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono bg-muted/50 border border-border ${className ?? ""}`.trim()}
     >
-      <span className="opacity-60">{label}</span>
-      <span className="font-semibold">{version}</span>
+      {prefix && <span>{prefix}</span>}
+      <span>
+        <span className="opacity-60">{label}</span>
+        <span className="font-semibold">{version}</span>
+      </span>
     </span>
   );
 }
 
 export type VerifiedBadgeProps = {
   version: string;
-  date: string;
+  date?: string;
   className?: string;
 };
 
-export function VerifiedBadge({ version, date, className }: VerifiedBadgeProps) {
+export function VerifiedBadge({
+  version,
+  date,
+  className,
+}: VerifiedBadgeProps) {
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-muted/30 border border-border ${className ?? ""}`.trim()}
@@ -42,11 +53,12 @@ export function VerifiedBadge({ version, date, className }: VerifiedBadgeProps) 
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
         <path d="m9 12 2 2 4-4" />
       </svg>
-      <span className="opacity-80">
-        Verified with Themvora <span className="font-mono font-semibold">{version}</span>
-      </span>
+      <span className="opacity-80">Verified</span>
       <span className="opacity-50">·</span>
-      <span className="opacity-60">Updated {date}</span>
+
+      {date && <span className="opacity-60">Updated {date}</span>}
+
+      <VersionBadge prefix="Package version:" version={version} />
     </div>
   );
 }

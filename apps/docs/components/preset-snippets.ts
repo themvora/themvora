@@ -73,7 +73,7 @@ export const PRESET_FRAMEWORKS: { slug: string; name: string }[] = [
   { slug: "solid", name: "Solid" },
   { slug: "angular", name: "Angular" },
   { slug: "astro", name: "Astro" },
-  { slug: "remix", name: "Remix" },
+  { slug: "remix", name: "Remix v2" },
   { slug: "web", name: "Web Components" },
   { slug: "tailwind", name: "Tailwind CSS" },
 ];
@@ -82,8 +82,9 @@ export const PRESET_FRAMEWORKS: { slug: string; name: string }[] = [
  * Per-framework setup snippet for one preset family.
  *
  * Every snippet uses the framework package's own shipped API —
- * `ThemeProvider` / `provideTheme` / `defineCustomElements` — rather than
- * dropping down to `createThemeRuntime`. The preset itself always comes from
+ * `ThemeProvider`, `createThemeDocument`, `provideTheme` or
+ * `defineCustomElements` — rather than dropping down to
+ * `createThemeRuntime`. The preset itself always comes from
  * `@themvora/core` (`getPresetThemes` / `getBrandPresets`), and the whole
  * family is handed over so light and dark both resolve.
  */
@@ -270,37 +271,18 @@ export default defineNuxtConfig({
 });`,
     },
     remix: {
-      title: "app/root.tsx",
+      title: "app/root.tsx — theming configuration",
       lang: "tsx",
-      code: `import type { ReactNode } from "react";
-import { useLoaderData } from "@remix-run/react";
-import { ThemeHead, ThemeProvider } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
-import { ${getter} } from "@themvora/core";
+      code: `import { ${getter} } from "@themvora/core";
 
 // ${family} — light + dark in one family
 const themes = ${getter}().filter((t) => t.meta?.family === "${family}");
 
-// The loader resolves the selection server-side, so hydration matches exactly.
-export async function loader({ request }: { request: Request }) {
-  return { initial: await getInitialThemeState(request, { themes }) };
-}
-
-export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
-  return (
-    <html lang="en">
-      <head>
-        <ThemeHead themes={themes} />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes}>
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  );
-}`,
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "${themeName}",
+  mode: "system",
+});`,
     },
     tailwind: {
       title: "src/globals.css",
@@ -521,37 +503,18 @@ export default defineNuxtConfig({
 });`,
     },
     remix: {
-      title: "app/root.tsx",
+      title: "app/root.tsx — theming configuration",
       lang: "tsx",
-      code: `import type { ReactNode } from "react";
-import { useLoaderData } from "@remix-run/react";
-import { ThemeHead, ThemeProvider } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
-import { ${getter} } from "@themvora/core";
+      code: `import { ${getter} } from "@themvora/core";
 
 // All ${kind === "brand" ? "brand" : "default"} presets — every family, light + dark
 const themes = ${getter}();
 
-// The loader resolves the selection server-side, so hydration matches exactly.
-export async function loader({ request }: { request: Request }) {
-  return { initial: await getInitialThemeState(request, { themes }) };
-}
-
-export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
-  return (
-    <html lang="en">
-      <head>
-        <ThemeHead themes={themes} />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes}>
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  );
-}`,
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "${defaultTheme}",
+  mode: "system",
+});`,
     },
     tailwind: {
       title: "src/globals.css",

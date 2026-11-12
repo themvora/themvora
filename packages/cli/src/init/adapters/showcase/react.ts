@@ -11,6 +11,7 @@ import { generatedHeader } from "../../files.js";
 import type { ShowcaseClasses } from "../showcase-classes.js";
 import { CSS_SNIPPET, TAILWIND_SNIPPET, docsLinks } from "../showcase-content.js";
 import type { ShowcasePort } from "./port.js";
+import type { StylingEngine } from "../../types.js";
 
 /** A backtick, so the generated snippets can be delimited without escaping. */
 const BT = "`";
@@ -22,10 +23,17 @@ const BT = "`";
  * @param port - The framework-specific bits (package, edit path, guide slug).
  * @returns The component's source.
  */
-export function reactThemvoraDefault(c: ShowcaseClasses, port: ShowcasePort): string {
+export function reactThemvoraDefault(
+  c: ShowcaseClasses,
+  port: ShowcasePort,
+  styling: StylingEngine,
+): string {
   const links = docsLinks(port.guideSlug)
     .map((link) => `  { href: "${link.href}", label: "${link.label}" },`)
     .join("\n");
+  // A plain-CSS project is not shown a Tailwind snippet: the card would be
+  // documenting an engine the project does not have.
+  const tailwind = styling === "tailwind";
 
   return `${generatedHeader("The Themvora showcase.")}import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -41,8 +49,7 @@ const docsLinks = [
 ${links}
 ];
 
-const tailwindSnippet = ${BT}${TAILWIND_SNIPPET}${BT};
-
+${tailwind ? `const tailwindSnippet = ${BT}${TAILWIND_SNIPPET}${BT};\n` : ""}
 const cssSnippet = ${BT}${CSS_SNIPPET}${BT};
 
 /* ---------- Small building blocks ---------- */
@@ -381,16 +388,16 @@ const ThemvoraDefault = () => {
       <Card>
         <SectionHeading
           title="Use the tokens"
-          hint="Same tokens, two ways. Neither needs per-theme code."
+          hint="${tailwind ? "Same tokens, two ways. Neither needs per-theme code." : "Every colour on this page is one of these variables."}"
         />
-        <div className="${c.snippetGrid}">
-          <Snippet
+        <div className="${tailwind ? c.snippetGrid : c.snippetGridSingle}">
+${tailwind ? `          <Snippet
             label="Tailwind"
             code={tailwindSnippet}
             copied={copied === "snippet-tailwind"}
             onCopy={() => copy("snippet-tailwind", tailwindSnippet)}
           />
-          <Snippet
+` : ""}          <Snippet
             label="CSS variables"
             code={cssSnippet}
             copied={copied === "snippet-css"}

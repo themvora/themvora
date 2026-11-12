@@ -31,6 +31,106 @@ If the docs disagree with any of these, **the docs are wrong**.
 5. **Never start by editing the visible page.** Start at the shipped API.
 6. Prefer failing the gate over shipping drift.
 
+## Documentation conventions
+
+Every surface that teaches setup — the docs site's Quick Start, each framework
+guide, the npm README of every published package, and the root README — teaches
+**the same six steps, in the same order, with the same names**. A reader who
+learns Themvora on npm and then opens the docs must not have to re-learn the
+sequence.
+
+### The six steps
+
+| # | Heading | Contains |
+| - | ------- | -------- |
+| 1 | `Install` | The package-manager command(s) only. |
+| 2 | `Set up` | Provider or plugin registration in the app entry. |
+| 3 | `Run and choose a theme` | Script and template/markup only — class names, **no CSS**. |
+| 4 | `Add the global stylesheet` | The framework's global stylesheet: the document rule plus the classes step 3 uses. |
+| 5 | `Add a small UI` | The optional component example (`.themvora-example-*`). |
+| 6 | `Style it with Themvora tokens` | Component styles only. |
+
+Tailwind CSS is the one exception: it is build-time only and has no runtime, so
+it has no run step and its stylesheet step is numbered 3. Nothing else may skip
+a step or reorder them.
+
+### The stylesheet rules
+
+These three rules are what keep the split meaningful:
+
+1. **Step 3 carries no CSS.** No `<style>` element, no `style={{ … }}`, no
+   `var(--theme-*)` reference, no rule. Only markup and the four class names
+   `page`, `primary`, `card` and `muted`. If a reader cannot tell which file a
+   rule lives in, the step has failed.
+2. **Step 4 owns the document rule, exactly once per document.** It starts with
+   this block and comment, verbatim:
+
+   ```css
+   /* Themvora emits its design tokens as CSS custom properties on the root
+      element, so a stylesheet only has to read them. Nothing here is
+      theme-specific. */
+   html,
+   body {
+     background: var(--theme-color-background);
+     color: var(--theme-color-foreground);
+   }
+   ```
+
+   Then the page, toggle and card classes from step 3 follow it.
+3. **Step 6 never repeats the document rule.** It contains only the
+   `.themvora-example-*` component rules, and its prose points back to step 4.
+
+Each token is therefore defined or used in exactly one place per guide. A
+document with two `html, body` token blocks is a defect, not a stylistic
+choice — the second copy is the one that rots.
+
+### Framework stylesheet filenames
+
+Step 4 names the file the framework's own starter actually uses. These are
+verified against `examples/apps/*`, not chosen for tidiness:
+
+| Framework | File | Loaded from |
+| --------- | ---- | ----------- |
+| React (Vite) | `src/index.css` | `src/main.tsx` — `import "./index.css";` |
+| Next.js | `app/globals.css` | `app/layout.tsx` — `import "./globals.css";` |
+| Vue | `src/index.css` | `src/main.ts` — `import "./index.css";` |
+| Svelte | `src/index.css` | `src/main.ts` — `import "./index.css";` |
+| Solid | `src/index.css` | `src/index.tsx` — `import "./index.css";` |
+| Angular | `src/styles.css` | `angular.json` — `"styles": ["src/styles.css"]` |
+| Web Components | `src/styles.css` | `index.html` — `<link rel="stylesheet" href="/src/styles.css" />` |
+| Tailwind CSS | `src/index.css` | the app entry — `import "./index.css";` |
+| Astro | `src/styles/global.css` | `src/layouts/BaseLayout.astro` — `import "../styles/global.css";` |
+| Nuxt | `app/assets/css/main.css` | `nuxt.config.ts` — `css: ["~/assets/css/main.css"]` |
+| Remix | `app/styles.css` | `app/root.tsx` — `import styles from "./styles.css?url";` |
+| React Router | `app/app.css` | `app/root.tsx` — `import styles from "./app.css?url";` |
+
+If a starter template changes its stylesheet path, the guide and the README
+change with it. The docs site's copy of these names lives in
+`CANONICAL_STYLESHEETS` in `apps/docs/lib/frameworks.tsx`.
+
+### READMEs
+
+- A package README keeps the same step order but shows **only that framework's**
+  snippets, then links to the full docs for the rest.
+- A README may be shorter than a guide, but it may not drop a step, rename one,
+  or reorder them.
+- Snippets are identical wherever they appear — no wording drift between the
+  README and the guide. The prose around them may differ.
+- Every code block is labelled with its filename (` ```tsx title="src/main.tsx" `).
+- Install commands are accurate per package manager and are **not** restructured
+  when the surrounding steps change.
+
+### The gate
+
+```bash
+node scripts/docs/check-doc-setup-conventions.mjs   # or: pnpm docs:audit:setup
+```
+
+It fails when a README is missing a step, orders them wrongly, contains the
+`html, body` token block more than once, puts CSS in "Run and choose a theme",
+or leaves a block in steps 3–6 without a `title="<file>"`. It runs as part of
+`node scripts/docs/release-gate.mjs`.
+
 ## The change workflow
 
 Follow this order. **Never start by editing the visible docs page first** — the

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Themvora Vanilla JS example: the imperative runtime with no framework, no Tailwind and no shared example package.",
+  "description": "Themvora Vanilla JS example: the imperative runtime with no framework and no CSS framework, built by Vite so the plugin can inject the pre-paint assets.",
   "scripts": {
     "dev": "vite --port 5196 --strictPort",
     "build": "tsc --noEmit && vite build",

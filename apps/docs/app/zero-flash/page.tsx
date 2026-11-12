@@ -114,7 +114,7 @@ const pipeline = [
   },
 ];
 
-const frameworkExamples = [
+const allFrameworkExamples = [
   {
     label: "React (SPA)",
     lang: "tsx",
@@ -287,10 +287,11 @@ const MODE = "system";
 </html>`,
   },
   {
-    label: "Remix",
+    label: "Remix v2",
     lang: "tsx",
     code: `// app/root.tsx
 import type { ReactNode } from "react";
+import type { LinksFunction } from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -298,55 +299,53 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
-  type LoaderFunctionArgs,
 } from "@remix-run/react";
-import {
-  ThemeProvider,
-  ThemeHead,
-  getThemeShellProps,
-} from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
 import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
 
-// getInitialThemeState and ThemeHead both take the registry explicitly; the
-// built-in set is a valid registry, so no theme file is needed.
-const themes = getBuiltInThemes();
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: styles },
+];
 
-// The SAME mode for the loader and for ThemeHead below. Leaving it out of the
-// loader resolves the fallback theme's own mode (light) while the script
-// follows the OS — so on an OS-dark first visit the script paints dark and the
-// runtime corrects it.
-const MODE = "system";
+// One configuration. \`Document\` emits the blocking script in <head>, renders
+// the <html> shell the script writes, and mounts the runtime around children —
+// so there is nothing to inline by hand.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  mode: "system",
+});
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  return {
-    initial: await getInitialThemeState(request, { themes, mode: MODE }),
-  };
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
 }
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    // Remix owns the document, and ThemeHead's blocking script rewrites this
-    // element before React hydrates. Rendering the same attributes and CSS
-    // variables is what keeps hydration from reporting a mismatch — and
-    // suppressHydrationWarning covers the resolved mode, which the server
-    // cannot know for a "system" selection.
-    <html lang="en" {...getThemeShellProps(initial)}>
-      <head>
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} mode={MODE} />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes}>
-          {children}
-        </ThemeProvider>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    // Remix owns the document. \`Document\` supplies the theme-owned parts: the
+    // pre-paint script first in <head>, the matching attributes and CSS
+    // variables on <html>, and suppressHydrationWarning for the resolved mode
+    // the server cannot know for a "system" selection.
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
   );
 }
 
@@ -355,34 +354,100 @@ export default function App() {
 }`,
   },
   {
-    label: "Web Components",
-    lang: "html",
-    code: `<!doctype html>
-<html>
-  <head>
-    <!-- Inlined output of createThemeBootstrapScript({ themes, defaultTheme: "light", initialMode: "system" }).
-         It runs before the module below, so <html> already carries the right
-         variables and data-theme attributes when the first pixel is painted. -->
-    <script>
-      /* reads "theme-selection", resolves family + effective mode,
-         writes --theme-* vars + data-theme attrs before first paint */
-    </script>
-  </head>
-  <body>
-    <themvora-provider default-theme="light" initial-mode="system">
-      <my-app></my-app>
-    </themvora-provider>
+    label: "Remix · React Router",
+    lang: "tsx",
+    code: `// app/root.tsx — React Router Framework Mode
+import type { ReactNode } from "react";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteLoaderData,
+} from "react-router";
+import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix/react-router";
+import type { Route } from "./+types/root";
 
-    <!-- The element lifecycle alone cannot guarantee first paint: a module is
-         fetched and evaluated asynchronously. The provider adopts the state the
-         script above painted, so the two never disagree. -->
-    <script type="module">
-      import "@themvora/web";
-    </script>
-  </body>
-</html>`,
+const themes = getBuiltInThemes();
+
+// One configuration. The loader helper, the blocking script, the <html> shell
+// and the runtime all read the same registry, default theme, mode and
+// scrollbar option.
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+});
+
+export async function loader({ request }: Route.LoaderArgs) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  // The layout can render while the root loader is unavailable; Document then
+  // falls back to the configuration's static resolution.
+  const data = useRouteLoaderData<typeof loader>("root");
+
+  return (
+    <theming.Document
+      initial={data?.theme}
+      htmlProps={{ lang: "en" }}
+      head={[<Meta key="meta" />, <Links key="links" />]}
+      afterContent={<><ScrollRestoration /><Scripts /></>}
+    >
+      {children}
+    </theming.Document>
+  );
+}
+
+export default function App() {
+  return <Outlet />;
+}`,
+  },
+  {
+    label: "Web Components · theme.config.ts",
+    lang: "ts",
+    code: `// theme.config.ts — the registry both the plugin and the runtime read
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+});`,
+  },
+  {
+    label: "Web Components · vite.config.ts",
+    lang: "ts",
+    code: `// vite.config.ts — Web Components
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({
+  plugins: [themvoraVitePlugin()],
+});
+
+// The plugin discovers theme.config.ts at the project root and injects, in
+// order: the render-blocking stylesheet generated from the declared themes,
+// the transported configuration, and the classic blocking boot script that
+// restores the saved selection before the module graph loads.
+//
+// No theme attributes on <themvora-provider>: it adopts the state the CSS and
+// script painted, so the provider and the first frame never disagree.`,
   },
 ];
+
+/**
+ * Web Components is the one integration on this page that still needs the
+ * plugin: its provider upgrades with the module, so the pre-paint CSS and boot
+ * script have to come from the Vite integration. Every other framework either
+ * emits the bootstrap itself or is covered by its Quick Start / guide setup.
+ */
+const frameworkExamples = allFrameworkExamples.filter((example) =>
+  example.label.startsWith("Web Components"),
+);
 
 // Framework examples highlight server-side (Shiki lives in the Node bundle,
 // not the browser) — the client tab switcher just renders precomputed HTML.
@@ -409,10 +474,10 @@ const consequences = [
   },
 ];
 
-// Where the initial mode has to be declared on each surface. The pre-paint
-// script and the runtime resolve the mode independently — the script cannot
-// read the runtime's config — so every surface listed with two different places
-// needs the same value in both, or the runtime corrects the script's paint.
+// Where the initial mode has to be declared on each surface. A surface that
+// lists one source transports it to both the script and the runtime; a surface
+// that lists two places needs the same value in both, or the runtime corrects
+// the script's paint.
 const modeWiring = [
   {
     label: "React · Solid · Vue · Svelte",
@@ -423,8 +488,9 @@ const modeWiring = [
   {
     label: "Web Components",
     script:
-      "you inline createThemeBootstrapScript() output yourself — there is no build step to inject it",
-    runtime: "the initial-mode attribute on <themvora-provider>",
+      "injected by themvoraVitePlugin() from initialMode in theme.config.ts — or by createThemeBootstrapScript()/boot.js when you are not on Vite",
+    runtime:
+      "transported from the same theme.config.ts; the provider takes no initial-mode attribute",
   },
   {
     label: "Next.js",
@@ -447,9 +513,14 @@ const modeWiring = [
     runtime: "provideTheme({ initialMode })",
   },
   {
-    label: "Remix",
-    script: "mode on ThemeHead",
-    runtime: "initialMode on ThemeProvider",
+    label: "Remix v2",
+    script: "mode in createThemeDocument()",
+    runtime: "the same configuration, inside Document",
+  },
+  {
+    label: "Remix · React Router",
+    script: "mode in createThemeDocument()",
+    runtime: "the same configuration, inside Document",
   },
   {
     label: "Core · Vite plugin",
@@ -487,7 +558,7 @@ const astroHalves = [
 export default function ZeroFlashPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg
@@ -526,7 +597,7 @@ export default function ZeroFlashPage() {
             {
               label: "Framework",
               value:
-                "SSR-capable framework (Next.js, Nuxt, Astro, Remix) or client provider",
+                "SSR-capable framework (Next.js, Nuxt, Astro, Remix v2 / React Router) or client provider",
             },
             {
               label: "Knowledge",
@@ -539,7 +610,7 @@ export default function ZeroFlashPage() {
         <Callout variant="neutral" title="Known limitations" className="mb-8">
           <p className="text-sm leading-relaxed">
             Zero-flash behavior works as documented for supported SSR frameworks
-            (Next.js, Nuxt, Astro, Remix) and client providers with the blocking
+            (Next.js, Nuxt, Astro, Remix v2 / React Router) and client providers with the blocking
             bootstrap script. Some edge cases exist around{" "}
             <code className="mono text-[0.9em]">system</code> mode with
             JavaScript disabled and framework-specific SSR constraints. See{" "}
@@ -811,30 +882,42 @@ export default function ZeroFlashPage() {
         <section id="frameworks" className="scroll-mt-24 mb-10">
           <SectionHeading
             num={5}
-            desc="Same runtime, different integration — the visual result is identical, only the wiring changes."
+            desc="Only Web Components still needs explicit pre-paint wiring; every other integration emits the bootstrap itself or is covered by Quick Start."
           >
-            Every framework
+            Manual integrations
           </SectionHeading>
           <Callout
             variant="neutral"
-            title="Flash-proof by default (1.2.0)"
+            title="Already flash-proof?"
             className="mb-8"
           >
             <p className="text-sm leading-relaxed">
-              The React, Vue, Svelte and Solid providers now inject the blocking
-              bootstrap themselves — you just wrap your app in the provider and
-              the persisted theme is applied before first paint. The core{" "}
+              React, Vue, Svelte and Solid providers inject the blocking
+              bootstrap themselves. Next.js, Nuxt, Angular and Astro emit it
+              during SSR. Remix v2 and React Router emit it from{" "}
+              <code className="mono text-[0.9em]">createThemeDocument()</code>,
+              whose <code className="mono text-[0.9em]">Document</code> renders
+              the pre-paint script and the matching shell. Web Components is
+              different:{" "}
               <code className="mono text-[0.9em]">
-                createThemeBootstrapScript
+                &lt;themvora-provider&gt;
               </code>{" "}
-              and the{" "}
+              upgrades with the module, so it needs the{" "}
               <Link
                 href="/vite-plugin"
                 className="text-primary hover:underline"
               >
                 Vite plugin
               </Link>{" "}
-              remain available for custom heads and the pre-bundle first frame.
+              to inject the stylesheet, configuration and blocking boot script
+              before the bundle loads. The core{" "}
+              <code className="mono text-[0.9em]">
+                createThemeBootstrapScript
+              </code>{" "}
+              remains available for custom heads. The two files below —{" "}
+              <code className="mono text-[0.9em]">theme.config.ts</code> and{" "}
+              <code className="mono text-[0.9em]">vite.config.ts</code> — are
+              the whole setup.
             </p>
           </Callout>
 

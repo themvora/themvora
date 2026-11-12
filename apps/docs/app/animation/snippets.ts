@@ -36,10 +36,37 @@ export const presetTable = [
 ];
 
 // Concise, API-accurate "enable a transition" snippet per framework.
-export const enableExamples: Record<
-  string,
-  { label: string; lang: string; title: string; code: string }
-> = {
+type ExtraSnippet = { lang: string; title: string; code: string };
+type AnimationSnippet = {
+  label: string;
+  lang: string;
+  title: string;
+  code: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: ExtraSnippet;
+};
+
+const webViteTransitionSnippet: ExtraSnippet = {
+  title: "Using Vite — theme.config.ts",
+  lang: "ts",
+  code: `// vite.config.ts
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({ plugins: [themvoraVitePlugin()] });
+
+// theme.config.ts
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+  transition: { enabled: true, preset: "smooth" },
+});`,
+};
+
+export const enableExamples: Record<string, AnimationSnippet> = {
   react: {
     label: "React",
     lang: "tsx",
@@ -138,18 +165,16 @@ export const appConfig: ApplicationConfig = {
     lang: "html",
     title: "index.html",
     code: `<script type="module">
-  // Registers every <themvora-*> element and their stylesheet.
   import "@themvora/web";
 </script>
 
-<!-- \`transition\` is a provider attribute, so it is part of the markup and is
-     read when the element upgrades. -->
 <themvora-provider
   default-theme="light"
   transition='{"enabled":true,"preset":"smooth"}'
 >
   <your-app></your-app>
 </themvora-provider>`,
+    vite: webViteTransitionSnippet,
   },
   astro: {
     label: "Astro",
@@ -170,15 +195,13 @@ import { ThemeProviderClient } from "@themvora/astro/client";
     lang: "ts",
     title: "runtime.ts",
     code: `import { createThemeRuntime } from "@themvora/core";
-import { synchronizeDarkClass } from "@themvora/tailwind";
 
 // Tailwind maps tokens to CSS variables (via @import "@themvora/tailwind");
 // the actual transition is owned by the runtime in your framework shell.
 const runtime = createThemeRuntime({
   defaultTheme: "light",
   transition: { enabled: true, preset: "smooth" },
-});
-synchronizeDarkClass(runtime.store.get());`,
+});`,
   },
   nuxt: {
     label: "Nuxt",
@@ -197,17 +220,21 @@ export default defineNuxtConfig({
     label: "Remix",
     lang: "tsx",
     title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@themvora/remix";
+    code: `import type { ReactNode } from "react";
+import { createThemeDocument } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
 
-export default function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <Outlet />
-    </ThemeProvider>
-  );
+// One static configuration: the loader, the blocking head script, the <html>
+// shell and the runtime all read it. The transition is part of that object.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  transition: { enabled: true, preset: "smooth" },
+});
+
+// app/root.tsx — the loader returns { theme: await theming.resolveInitial(request) }.
+export function Layout({ children }: { children: ReactNode }) {
+  return <theming.Document>{children}</theming.Document>;
 }`,
   },
   vanilla: {
@@ -406,10 +433,7 @@ button {
 }`,
 };
 
-export const frameworkSnippets: Record<
-  string,
-  { label: string; lang: string; title: string; code: string }
-> = {
+export const frameworkSnippets: Record<string, AnimationSnippet> = {
   react: {
     label: "React",
     lang: "tsx",
@@ -560,11 +584,7 @@ export const appConfig: ApplicationConfig = {
     label: "Web Components",
     lang: "html",
     title: "index.html",
-    code: `<!-- Both the provider transition and the scope transition are attributes,
-     so nothing needs a script beyond the registration import. A scope inherits
-     the provider's transition unless \`theme-transition\` overrides it; pass
-     "false" to switch the animation off for one scope. -->
-<script type="module">
+    code: `<script type="module">
   import "@themvora/web";
 </script>
 
@@ -574,7 +594,6 @@ export const appConfig: ApplicationConfig = {
 >
   <your-app></your-app>
 
-  <!-- Nested scoped region -->
   <themvora-scope
     theme="plum-dark"
     theme-transition='{"enabled":true,"duration":300,"easing":"ease"}'
@@ -582,6 +601,7 @@ export const appConfig: ApplicationConfig = {
     <your-widget></your-widget>
   </themvora-scope>
 </themvora-provider>`,
+    vite: webViteTransitionSnippet,
   },
   tailwind: {
     label: "Tailwind CSS",
@@ -653,16 +673,36 @@ export default defineNuxtConfig({
     label: "Remix",
     lang: "tsx",
     title: "app/root.tsx",
-    code: `import { ThemeProvider } from "@themvora/remix";
+    code: `import type { ReactNode } from "react";
+import { createThemeDocument, ThemeScope } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
 
-export default function App() {
+// app/root.tsx — the document, the head script and the runtime share this
+// configuration, including the transition preset.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  transition: { enabled: true, preset: "smooth" },
+});
+
+export function Layout({ children }: { children: ReactNode }) {
+  return <theming.Document>{children}</theming.Document>;
+}
+
+// app/routes/home.tsx — a nested scope in the same runtime.
+export default function Home() {
   return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, preset: "smooth" }}
-    >
-      <Outlet />
-    </ThemeProvider>
+    <>
+      <YourApp />
+
+      {/* Nested scoped region */}
+      <ThemeScope
+        theme="plum-dark"
+        transition={{ enabled: true, duration: 300, easing: "ease" }}
+      >
+        <Widget />
+      </ThemeScope>
+    </>
   );
 }`,
   },
@@ -708,3 +748,8 @@ export const transitionPropSnippet = {
   title: "React / Next / Svelte / Solid — ThemeProvider",
   code: `transition={{ enabled: true, properties: ["color", "background-color"] }}`,
 };
+
+// React Router mounts the same package as Remix, so the configuration is
+// identical — only the file that owns the document differs. Reusing the
+// entry keeps the two from drifting.
+enableExamples["react-router"] = { ...enableExamples.remix!, label: "React Router" };

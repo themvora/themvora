@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from "react";
 import { CodeBlock } from "../code-block";
-import { highlightCode } from "../../lib/highlight";
 import { pairWithJavaScript } from "../../lib/code-language";
 import { useScrollToOnChange } from "../ui/use-scroll-to-on-change";
 import type { ScrollbarExample, ScrollbarFramework } from "./snippets";
@@ -33,7 +32,7 @@ export const SCROLLBAR_FRAMEWORKS: {
   { id: "astro", label: "Astro" },
   { id: "web", label: "Web Components" },
   { id: "nuxt", label: "Nuxt" },
-  { id: "remix", label: "Remix" },
+  { id: "remix", label: "Remix v2" },
   { id: "vanilla", label: "Vanilla JS" },
 ];
 
@@ -140,15 +139,12 @@ export function ScrollbarFrameworkCode({
   const variants = js
     ? pairWithJavaScript(example, js)?.map((variant) => ({
         ...variant,
-        html: highlightCode(variant.code, variant.lang),
       }))
     : undefined;
 
   const label = labels?.[example.code];
-
-  return (
+  const main = (
     <CodeBlock
-      html={highlightCode(example.code, example.lang)}
       code={example.code}
       language={example.lang}
       {...(example.filename ? { filename: example.filename } : {})}
@@ -156,5 +152,27 @@ export function ScrollbarFrameworkCode({
       {...(variants ? { variants } : {})}
       className="rounded-lg m-0"
     />
+  );
+  if (!example.vite) return main;
+
+  const vite = example.vite;
+  const viteJs = jsSources?.[vite.code];
+  const viteVariants = viteJs
+    ? pairWithJavaScript(vite, viteJs)?.map((variant) => ({ ...variant }))
+    : undefined;
+  const viteLabel = labels?.[vite.code];
+
+  return (
+    <>
+      {main}
+      <CodeBlock
+        code={vite.code}
+        language={vite.lang}
+        {...(vite.filename ? { filename: vite.filename } : {})}
+        {...(viteLabel ? { displayLanguage: viteLabel } : {})}
+        {...(viteVariants ? { variants: viteVariants } : {})}
+        className="rounded-lg m-0 mt-3"
+      />
+    </>
   );
 }

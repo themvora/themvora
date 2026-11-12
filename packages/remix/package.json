@@ -1,7 +1,7 @@
 {
   "name": "@themvora/remix",
   "license": "MIT",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -15,6 +15,11 @@
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"
+    },
+    "./react-router": {
+      "types": "./dist/react-router.d.ts",
+      "import": "./dist/react-router.js",
+      "require": "./dist/react-router.cjs"
     }
   },
   "files": [
@@ -30,15 +35,20 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@remix-run/react": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@themvora/core": "workspace:^",
     "@themvora/react": "workspace:^"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   },
-  "description": "Remix integration for Themvora.",
+  "description": "Remix v2 and React Router Framework Mode integration for Themvora.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/themvora/themvora.git"
@@ -50,6 +60,7 @@
   "keywords": [
     "theme",
     "remix",
+    "react-router",
     "theming",
     "dark-mode"
   ],

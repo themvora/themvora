@@ -33,6 +33,19 @@ export type ThemeDiagnosticCode =
   | "TV_MODE_INVALID"
   /** A theme definition is missing a required semantic token. */
   | "TV_THEME_TOKEN_MISSING"
+  /**
+   * The runtime initialized after the document had already painted, and no
+   * pre-paint setup (generated theme CSS plus the blocking boot script) was
+   * found. The saved theme therefore corrects the first visible frame instead
+   * of painting it.
+   */
+  | "TV_PREPAINT_MISSING"
+  /**
+   * The state the pre-paint script painted disagrees with what the runtime
+   * resolved — a stale attribute, a registry that changed, or a theme that only
+   * exists at runtime. The runtime still recovers; the first frame may move.
+   */
+  | "TV_PREPAINT_MISMATCH"
   /** A request named a theme family that is not registered in the effective catalog. */
   | "TV_THEME_FAMILY_UNKNOWN"
   /**

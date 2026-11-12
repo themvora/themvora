@@ -6,17 +6,29 @@ import { PageHeader } from "../../components/ui/page-header";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { ThemeShot } from "../../components/vscode/theme-shot";
-import { GITHUB_ISSUES, GITHUB_URL, docsUrl } from "../../lib/site";
+import {
+  GITHUB_ISSUES,
+  GITHUB_URL,
+  VSCODE_EXTENSION_ID,
+  VSCODE_EXTENSION_NAME,
+  VSCODE_EXTENSION_PUBLISHER,
+  VSCODE_EXTENSION_SEARCH,
+  VSCODE_INSTALL_COMMAND,
+  VSCODE_MARKETPLACE_URL,
+  VSCODE_OPEN_URL,
+  docsUrl,
+} from "../../lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/vscode") },
-  title: "Themvora for VS Code",
+  title: "Themvora Theme Studio for VS Code",
   description:
     "Explore, preview, create, inspect, compare and validate Themvora themes without leaving VS Code. A theme library, live preview canvas, token inspector and generator for the themes in your app.",
 };
 
 /** The canonical screenshot set, shared with the extension and repository READMEs. */
 const SHOT = "/vscode";
+const LISTING_SHOT = `${SHOT}/marketplace-listing.png`;
 
 interface Command {
   readonly label: string;
@@ -75,10 +87,6 @@ const COMMANDS: readonly Command[] = [
 
 const STEPS: readonly { readonly title: string; readonly body: string }[] = [
   {
-    title: "Install the extension",
-    body: "Install Themvora for VS Code and reload the window. A Themvora icon appears in the Activity Bar.",
-  },
-  {
     title: "Open a project — or skip this",
     body: "Studio reads themes from the folder you have open. No project yet? Browse Presets works anywhere, because the catalog ships with the extension.",
   },
@@ -131,10 +139,10 @@ const BEHAVIOUR: readonly { readonly title: string; readonly body: string }[] =
 export default function VSCodePage() {
   return (
     <DocsLayout wide>
-      <div className="max-w-4xl">
+      <div>
         <PageHeader
           eyebrow="Editor extension"
-          title="Themvora for VS Code"
+          title={VSCODE_EXTENSION_NAME}
           description={
             <>
               Explore, preview, create, inspect, compare and validate Themvora
@@ -157,6 +165,24 @@ export default function VSCodePage() {
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <a
+            href={VSCODE_OPEN_URL}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-transparent text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{
+              background: "var(--theme-color-primary)",
+              color: "var(--theme-color-primaryForeground)",
+            }}
+          >
+            Open in VS Code
+          </a>
+          <a
+            href={VSCODE_MARKETPLACE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-semibold hover:border-ring transition-colors"
+          >
+            Marketplace listing ↗
+          </a>
+          <a
             href="#capabilities"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-semibold hover:border-ring transition-colors"
           >
@@ -165,7 +191,9 @@ export default function VSCodePage() {
         </div>
 
         <p className="mb-6 text-xs opacity-55">
-          Not yet published to the Visual Studio Marketplace.
+          Published on the Visual Studio Marketplace as{" "}
+          <code className="mono">{VSCODE_EXTENSION_ID}</code> · VS Code 1.94.0
+          or newer.
         </p>
 
         <ThemeShot
@@ -176,9 +204,124 @@ export default function VSCodePage() {
           priority
         />
 
-        <section id="capabilities" className="scroll-mt-24 mb-12">
+        <section id="install" className="scroll-mt-24 mb-12">
           <SectionHeading
             num={1}
+            desc="Search for it in the Extensions view, or open the published listing directly in the editor."
+          >
+            Install the extension
+          </SectionHeading>
+
+          <p className="mb-4 text-sm leading-relaxed opacity-80">
+            The extension is published as{" "}
+            <strong>{VSCODE_EXTENSION_NAME}</strong> by{" "}
+            <strong>{VSCODE_EXTENSION_PUBLISHER}</strong>. Its identifier is{" "}
+            <code className="mono text-[0.9em]">{VSCODE_EXTENSION_ID}</code> —
+            that is the name to use when searching, installing or filing an
+            issue, and it is why the listing title differs from the package name.
+          </p>
+
+          <ol className="mb-5 space-y-3">
+            <li className="flex gap-3">
+              <span className="w-6 h-6 shrink-0 rounded-full grid place-items-center text-[11px] font-bold bg-muted text-foreground/60" aria-hidden="true">
+                1
+              </span>
+              <div className="min-w-0 text-sm leading-relaxed opacity-80">
+                Open the Extensions view with <strong>Ctrl+Shift+X</strong> (
+                <strong>Cmd+Shift+X</strong> on macOS).
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-6 h-6 shrink-0 rounded-full grid place-items-center text-[11px] font-bold bg-muted text-foreground/60" aria-hidden="true">
+                2
+              </span>
+              <div className="min-w-0 text-sm leading-relaxed opacity-80">
+                Search for <strong>Themvora Theme Studio</strong>. For one exact
+                result, paste{" "}
+                <code className="mono text-[0.9em]">
+                  {VSCODE_EXTENSION_SEARCH}
+                </code>{" "}
+                into the search box instead.
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-6 h-6 shrink-0 rounded-full grid place-items-center text-[11px] font-bold bg-muted text-foreground/60" aria-hidden="true">
+                3
+              </span>
+              <div className="min-w-0 text-sm leading-relaxed opacity-80">
+                Open the result published by{" "}
+                <strong>{VSCODE_EXTENSION_PUBLISHER}</strong> and choose{" "}
+                <strong>Install</strong>.
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-6 h-6 shrink-0 rounded-full grid place-items-center text-[11px] font-bold bg-muted text-foreground/60" aria-hidden="true">
+                4
+              </span>
+              <div className="min-w-0 text-sm leading-relaxed opacity-80">
+                Run <strong>Developer: Reload Window</strong>. A Themvora icon
+                appears in the Activity Bar.
+              </div>
+            </li>
+          </ol>
+
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <a
+              href={VSCODE_OPEN_URL}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-transparent text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--theme-color-primary)",
+                color: "var(--theme-color-primaryForeground)",
+              }}
+            >
+              Open in VS Code
+            </a>
+            <a
+              href={VSCODE_MARKETPLACE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-semibold hover:border-ring transition-colors"
+            >
+              Open the Marketplace listing ↗
+            </a>
+          </div>
+
+          <p className="mb-5 text-sm leading-relaxed opacity-75">
+            <strong>Open in VS Code</strong> hands the listing to the editor:
+            your browser asks to confirm opening an external application, then
+            VS Code shows the extension with its Install button. It requires VS
+            Code to be installed locally — use the Marketplace link if you are
+            on another machine. From a terminal, the same install is:
+          </p>
+
+          <pre className="mb-6 overflow-x-auto rounded-xl border border-border bg-muted/40 p-4">
+            <code className="mono text-xs">{VSCODE_INSTALL_COMMAND}</code>
+          </pre>
+
+          <p className="mb-2 text-xs opacity-60 leading-relaxed">
+            <a
+              href={LISTING_SHOT}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Screenshot of the published listing ↗
+            </a>{" "}
+            ·{" "}
+            <a
+              href={VSCODE_MARKETPLACE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Open the Marketplace listing ↗
+            </a>
+          </p>
+        </section>
+
+        <section id="capabilities" className="scroll-mt-24 mb-12">
+          <SectionHeading
+            num={2}
             desc="Everything below works on themes that are already in your project, plus a preset catalog that ships with the extension."
           >
             What you can do
@@ -301,8 +444,8 @@ export default function VSCodePage() {
 
         <section id="get-started" className="scroll-mt-24 mb-12">
           <SectionHeading
-            num={2}
-            desc="From nothing installed to a saved theme file."
+            num={3}
+            desc="From an installed extension to a saved theme file."
           >
             Get started
           </SectionHeading>
@@ -328,12 +471,12 @@ export default function VSCodePage() {
 
         <section id="commands" className="scroll-mt-24 mb-12">
           <SectionHeading
-            num={3}
+            num={4}
             desc="Open the Command Palette with Ctrl+Shift+P (Cmd+Shift+P on macOS), then type “Themvora”. Every command sits under the Themvora category."
           >
             Commands
           </SectionHeading>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
@@ -378,7 +521,7 @@ export default function VSCodePage() {
 
         <section id="behaviour" className="scroll-mt-24 mb-12">
           <SectionHeading
-            num={4}
+            num={5}
             desc="Requirements, and the behaviour worth knowing before you rely on it."
           >
             Requirements and behaviour
@@ -429,6 +572,18 @@ export default function VSCodePage() {
             Documentation and support
           </SectionHeading>
           <ul className="space-y-2 list-disc pl-5 text-sm leading-relaxed">
+            <li>
+              <a
+                href={VSCODE_MARKETPLACE_URL}
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Visual Studio Marketplace
+              </a>{" "}
+              — the published listing ({VSCODE_EXTENSION_ID}), release notes and
+              version history.
+            </li>
             <li>
               <a
                 href={`${GITHUB_URL}/blob/main/packages/vscode/README.md`}

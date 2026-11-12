@@ -43,7 +43,7 @@ export default async function BlogPostPage({
 
   return (
     <DocsLayout>
-      <article className="max-w-3xl">
+      <article>
         <PageHeader
           eyebrow={
             <span className="flex items-center gap-1.5">

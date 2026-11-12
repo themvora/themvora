@@ -1,7 +1,7 @@
 {
   "name": "@themvora/astro",
   "license": "MIT",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -45,6 +45,7 @@
     "src/transport.ts",
     "src/runtime.ts",
     "src/navigation-script.ts",
+    "src/scroll-restoration.ts",
     "src/server.ts",
     "src/client.tsx",
     "src/fingerprint.ts",
@@ -78,11 +79,11 @@
     "@themvora/web": "workspace:^"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "astro": "^7.4.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "astro": "^7.4.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "description": "Astro integration for Themvora.",
   "repository": {

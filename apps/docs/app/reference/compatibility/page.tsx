@@ -151,7 +151,7 @@ function LibraryTable({ data }: { data: LibraryCompatibility[] }) {
 export default function CompatibilityMatrixPage() {
   return (
     <DocsLayout>
-      <div className="max-w-5xl">
+      <div>
         <PageHeader
           eyebrow="Reference"
           title="Compatibility & Support Matrix"
@@ -166,8 +166,9 @@ export default function CompatibilityMatrixPage() {
               <strong>v{VERIFIED_VERSION}</strong>
             </p>
             <p className="text-muted-foreground text-xs mt-2">
-              All data sourced from actual package.json peer dependencies and
-              source code audits. For feature-by-feature caveats, visit{" "}
+              All data sourced from the actual package manifests — normal
+              dependencies, peer dependencies and optional peers — plus source
+              audits. For feature-by-feature caveats, visit{" "}
               <a href="/known-limitations" className="underline">
                 Known Limitations
               </a>
@@ -189,6 +190,95 @@ export default function CompatibilityMatrixPage() {
             <LibraryTable data={libraryCompatibilityData} />
           </section>
 
+          <section id="node-js-support-policy" className="scroll-mt-24">
+            <h2 className="text-lg font-semibold mb-4">
+              Node.js support policy
+            </h2>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 border-b border-border">
+                  <tr>
+                    <th className="text-left px-3 py-2.5 font-medium">
+                      Category
+                    </th>
+                    <th className="text-left px-3 py-2.5 font-medium">
+                      Declared requirement
+                    </th>
+                    <th className="text-left px-3 py-2.5 font-medium">
+                      Why
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-border">
+                    <td className="px-3 py-3">Browser runtime packages</td>
+                    <td className="px-3 py-3 font-mono">
+                      No Node.js runtime requirement
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      These packages run in the browser. They have no
+                      Node.js-only APIs at runtime; use whatever Node version
+                      your bundler and test runner support.
+                    </td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="px-3 py-3">
+                      Framework integrations and adapters
+                    </td>
+                    <td className="px-3 py-3 font-mono">
+                      No Node.js engine declared
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      The framework&apos;s own toolchain sets the build-time
+                      minimum. Use the newer of Node.js 18 and your
+                      framework&apos;s supported Node range.
+                    </td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="px-3 py-3">
+                      <code className="mono">@themvora/core</code>
+                    </td>
+                    <td className="px-3 py-3 font-mono">node &gt;=18</td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      Declared for the package&apos;s tooling surface. The
+                      browser runtime itself does not call Node.js APIs.
+                    </td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="px-3 py-3">
+                      <code className="mono">@themvora/cli</code>
+                    </td>
+                    <td className="px-3 py-3 font-mono">node &gt;=18</td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      The published CLI declares Node.js 18+ and runs on Node.js
+                      18 and newer. It is a separate executable, so its
+                      requirement is independent of the browser runtime.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-3">Repository contributors</td>
+                    <td className="px-3 py-3 font-mono">node &gt;=22.23.4</td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      The monorepo root declares this engine and{" "}
+                      <code className="mono">.nvmrc</code> pins 22.23.4. The
+                      docs toolchain and release gates run on it.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              The CLI carries its own{" "}
+              <code className="mono">engines.node</code> declaration because it
+              is an executable, separate from the browser-runtime packages. Use
+              the{" "}
+              <a href="/cli/installation" className="underline">
+                CLI installation guide
+              </a>{" "}
+              for its install paths.
+            </p>
+          </section>
+
           <section className="mt-8 space-y-4 text-sm text-muted-foreground">
             <div>
               <h3 className="font-medium text-foreground mb-2">Legend</h3>
@@ -196,18 +286,23 @@ export default function CompatibilityMatrixPage() {
                 <div className="flex gap-3">
                   <dt className="font-medium min-w-[8rem]">SSR:</dt>
                   <dd>
-                    <strong>Full</strong> = server resolves theme and renders
-                    shell; <strong>Helpers</strong> = exports bootstrap utils
-                    (user wires); <strong>Client-only</strong> = runtime created
-                    client-side
+                    <strong>Full</strong> = the server resolves the theme and
+                    renders the themed shell; <strong>Helpers</strong> = the
+                    package exports bootstrap utilities that you wire into your
+                    own server render; <strong>Client-only</strong> = the
+                    runtime is created in the browser and does not resolve
+                    request-specific server cookies; <strong>N/A</strong> = not
+                    a runtime integration.
                   </dd>
                 </div>
                 <div className="flex gap-3">
                   <dt className="font-medium min-w-[8rem]">Zero-flash:</dt>
                   <dd>
-                    <strong>Auto</strong> = blocking script injected
-                    automatically; <strong>Manual</strong> = user must inline
-                    script; <strong>None</strong> = not applicable
+                    <strong>Auto</strong> = the integration emits the blocking
+                    pre-paint script automatically; <strong>Manual</strong> =
+                    you must inline the documented bootstrap script yourself;{" "}
+                    <strong>None</strong> = no supported pre-paint path;{" "}
+                    <strong>N/A</strong> = not a runtime integration.
                   </dd>
                 </div>
                 <div className="flex gap-3">
@@ -249,8 +344,11 @@ export default function CompatibilityMatrixPage() {
                   renders theme before hydration.
                 </li>
                 <li>
-                  <strong>Remix:</strong> SSR-capable but requires manual
-                  tv-scrollbar class on &lt;html&gt; element.
+                  <strong>Remix v2 and React Router:</strong> both use
+                  <code>@themvora/remix</code>; React Router Framework Mode is
+                  the <code>/react-router</code> entry point. Both are
+                  SSR-capable and coordinate the scrollbar class through
+                  <code>createThemeDocument()</code>.
                 </li>
                 <li>
                   <strong>Angular:</strong> Uses own bootstrap implementation

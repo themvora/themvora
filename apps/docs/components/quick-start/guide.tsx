@@ -3,6 +3,9 @@
 import { useState } from "react";
 
 import { CodeBlock } from "../code-block";
+import { InstallCommandPair } from "../install-command-pair";
+import { SectionHeading } from "../ui/section-heading";
+import { StepperSection } from "../ui/stepper-section";
 import { Callout } from "../ui/callout";
 import { InlineCode } from "../ui/inline-code";
 import { PickCard } from "../ui/pick-card";
@@ -14,15 +17,28 @@ import {
   CANONICAL_STYLES_NOTE,
   CANONICAL_STYLES_STEP,
 } from "../../lib/frameworks";
+import {
+  QUICK_START_COMPONENT_STYLES,
+  QUICK_START_DOCUMENT_STYLES,
+  QUICK_START_GLOBAL_STYLES,
+  QUICK_START_LOADERS,
+  QUICK_START_SWITCHES,
+} from "../../lib/quick-start-snippets";
 import type { CodeContent } from "../../lib/code-variants";
 import { InstallCommand, type PackageManager } from "../install-command";
 
 export function QuickStartGuide({
   frameworkContent,
   setupExtraContent,
+  buildConfigContent,
+  themeConfigContent,
   switchContent,
-  stylesHtml,
+  appFileContent,
+  globalStylesHtml,
+  globalStylesOnlyHtml,
+  styleContent,
   installCommands,
+  prerequisiteInstallCommands,
   astroContent,
   uiExampleContent,
 }: {
@@ -37,20 +53,43 @@ export function QuickStartGuide({
   frameworkContent: Record<string, CodeContent>;
   /** Content for a second setup file, where a framework needs one. */
   setupExtraContent: Record<string, CodeContent | undefined>;
+  /**
+   * Web Components only — the Vite integration and the `theme.config.ts`
+   * registry. Both are defined on the entry's `buildConfig`/`themeConfig`
+   * slots and rendered before the page markup in step 2.
+   */
+  buildConfigContent: Record<string, CodeContent | undefined>;
+  themeConfigContent: Record<string, CodeContent | undefined>;
   /** Content for the switching snippet. */
   switchContent: Record<string, CodeContent>;
+  /** Content for the file that mounts the components, where a framework needs one. */
+  appFileContent: Record<string, CodeContent | undefined>;
   /**
-   * Shiki HTML for the canonical stylesheet.
+   * Shiki HTML for the global stylesheet.
    *
-   * One string, not a per-framework map: every entry points at the same
-   * stylesheet, and only the file name differs — the name comes from the entry,
-   * the highlighted source does not. CSS has no language variants.
+   * `globalStylesHtml` is the document rule plus the four run-step classes;
+   * `globalStylesOnlyHtml` is the document rule alone, which is all Tailwind
+   * needs. Only the file name differs per framework, so these are one string
+   * each rather than a map. CSS has no language variants.
    */
-  stylesHtml: string;
+  globalStylesHtml: string;
+  globalStylesOnlyHtml: string;
+  /**
+   * Shiki HTML for the styling step, per framework.
+   *
+   * Runtime frameworks render the component half of the canonical stylesheet;
+   * Tailwind renders its token→utility map instead.
+   */
+  styleContent: Record<string, CodeContent | undefined>;
   /** Precomputed install-command HTML per framework package name. */
   installCommands: Record<
     string,
     Record<PackageManager, { code: string; html: string }>
+  >;
+  /** Optional second command for a project that has no framework yet. */
+  prerequisiteInstallCommands: Record<
+    string,
+    Record<PackageManager, { code: string; html: string }> | undefined
   >;
   /**
    * Astro only — its two application shapes.
@@ -61,7 +100,7 @@ export function QuickStartGuide({
    */
   astroContent?:
     | {
-        /** `snippet2` — the framework-free switch (`<ThemeToggle />`). */
+        /** The framework-free switch (`<ThemeToggle />`). */
         onlySwitch: CodeContent;
         /** `reactSetup` — the integration config with the React renderer. */
         reactSetup: CodeContent | undefined;
@@ -77,7 +116,7 @@ export function QuickStartGuide({
   const [slug, setSlug] = useState("next");
   const fw = frameworks.find((f) => f.slug === slug) ?? frameworks[0]!;
 
-  const switcher = fw.switchSnippet ?? fw.snippet;
+  const quickStartSwitcher = QUICK_START_SWITCHES[fw.slug];
 
   // Astro has two shapes; every other framework has one setup, so the shape
   // state is inert for them. The framework-free shape is the default, because
@@ -99,7 +138,7 @@ export function QuickStartGuide({
   // not, so the command follows the shape rather than being shared.
   const install = reactShape
     ? astroContent!.reactInstall
-    : installCommands[fw.pkg]!;
+    : installCommands[fw.slug]!;
 
   // Step 2 — registration. Astro's setup is three files (the theme config, the
   // integration config, and the layout that mounts the provider); every other
@@ -117,14 +156,44 @@ export function QuickStartGuide({
   // Step 3 — the switcher. The framework-free shape uses the native
   // `<ThemeToggle />`; the React shape uses the island.
   const showReactSwitcher = reactShape || !isAstro;
-  const switchSnippet = showReactSwitcher ? switcher : fw.snippet2;
+  const switchSnippet = showReactSwitcher
+    ? (quickStartSwitcher ?? fw.switchSnippet ?? fw.snippet)
+    : QUICK_START_SWITCHES["astro-native"]!;
   const switchSnippetContent = showReactSwitcher
     ? switchContent[fw.slug]
     : astroContent!.onlySwitch;
 
+  // Step 4 (3 for CSS-only) — the global stylesheet. Runtime frameworks get the
+  // document rule plus the four classes from step 3; Tailwind has no run step,
+  // so it gets the document rule alone.
+  const globalStylesCode = fw.cssOnly
+    ? QUICK_START_DOCUMENT_STYLES
+    : QUICK_START_GLOBAL_STYLES;
+  const globalStylesMarkup = fw.cssOnly
+    ? globalStylesOnlyHtml
+    : globalStylesHtml;
+  const stylesheetLoader = QUICK_START_LOADERS[fw.slug];
+
+  // Step 6 (5 for CSS-only) — the component rules. Tailwind's styling step is
+  // the token→utility map instead, because its utilities need no component
+  // stylesheet.
+  const styleSnippet =
+    fw.cssOnly && fw.snippet2
+      ? fw.snippet2
+      : {
+          title: fw.styles.title,
+          lang: "css",
+          code: QUICK_START_COMPONENT_STYLES,
+        };
+
   // Scroll to the Install step after the framework change commits, so the
   // reader lands on the updated install command for the framework they picked.
   useScrollToOnChange("install", slug);
+
+  // The runtime flow is six steps; Tailwind is CSS-only and has no run step, so
+  // its later steps shift down by one. Deriving the offset once keeps the badge
+  // numbers and the prose ("the classes from step 3") from drifting apart.
+  const stepOffset = fw.cssOnly ? -1 : 0;
 
   return (
     <div>
@@ -137,7 +206,7 @@ export function QuickStartGuide({
           tokens entirely and still get a complete, toggleable light/dark theme.
           These snippets are the whole setup.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="docs-card-grid">
           {frameworks.map((f) => (
             <PickCard
               key={f.slug}
@@ -194,35 +263,54 @@ export function QuickStartGuide({
         </div>
       ) : null}
 
-      <section id="install" className="mb-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight mb-2">
-          1 · Install
-        </h2>
-        <p className="opacity-70 text-sm mb-4 max-w-2xl">
-          {reactShape
-            ? "The same Themvora packages, plus the React renderer Astro needs to hydrate an island."
-            : fw.cssOnly
-              ? "Install the mapping package, Tailwind v4 itself, and the core package it builds on."
-              : fw.extraPackages?.length
-                ? "Install the core package, the integration, and the runtime adapter the snippets below use."
-                : "Install the core package and the adapter for your framework."}
-        </p>
-        <InstallCommand commands={install} />
-      </section>
+      <StepperSection id="install" className="mb-10" first>
+        <SectionHeading
+          num={1}
+          stepper
+          desc={
+            <span className="block max-w-2xl">
+              {reactShape
+                ? "The same Themvora packages, plus the React renderer Astro needs to hydrate an island."
+                : fw.cssOnly
+                  ? "Install the mapping package, Tailwind v4 itself, and the core package it builds on."
+                  : fw.extraPackages?.length
+                    ? "Install the core package, the integration, and the runtime adapter the snippets below use."
+                    : "Install the core package and the adapter for your framework."}
+            </span>
+          }
+        >
+          Install
+        </SectionHeading>
+        {fw.prerequisiteInstall &&
+        prerequisiteInstallCommands[fw.slug] ? (
+          <InstallCommandPair
+            primary={install}
+            secondary={prerequisiteInstallCommands[fw.slug]!}
+            secondaryLabel={fw.prerequisiteInstall.label}
+          />
+        ) : (
+          <InstallCommand commands={install} />
+        )}
+      </StepperSection>
 
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold tracking-tight mb-2">
-          2 · Set up
-        </h2>
-        <p className="opacity-70 text-sm mb-4 max-w-2xl">
-          {astroSetup ? (
-            "Three files. theme.config.ts declares the themes and the starting mode, the integration config registers themvora(), and the layout mounts the provider that server-renders the themed <html>."
-          ) : fw.guideSteps ? (
-            <InlineCode>{fw.guideSteps[1]!.desc}</InlineCode>
-          ) : (
-            "Themvora ships the built-in themes, so there is nothing to define yet."
-          )}
-        </p>
+      <StepperSection className="mb-10">
+        <SectionHeading
+          num={2}
+          stepper
+          desc={
+            <span className="block max-w-2xl">
+              {astroSetup ? (
+                "Three files. theme.config.ts declares the themes and the starting mode, the integration config registers themvora(), and the layout mounts the provider that server-renders the themed <html>."
+              ) : fw.guideSteps ? (
+                <InlineCode>{fw.guideSteps[1]!.desc}</InlineCode>
+              ) : (
+                "Themvora ships the built-in themes, so there is nothing to define yet."
+              )}
+            </span>
+          }
+        >
+          Set up
+        </SectionHeading>
         {astroSetup ? (
           astroSetup.map((snippet, index) => {
             const content = astroContent!.setupContent[snippet.title];
@@ -244,12 +332,36 @@ export function QuickStartGuide({
           })
         ) : (
           <>
+            {fw.slug === "web" &&
+            fw.buildConfig &&
+            buildConfigContent[fw.slug] ? (
+              <CodeBlock
+                {...buildConfigContent[fw.slug]}
+                code={fw.buildConfig.code}
+                language={fw.buildConfig.lang}
+                filename={fw.buildConfig.title}
+                className="rounded-lg m-0"
+              />
+            ) : null}
+            {fw.slug === "web" &&
+            fw.themeConfig &&
+            themeConfigContent[fw.slug] ? (
+              <CodeBlock
+                {...themeConfigContent[fw.slug]}
+                code={fw.themeConfig.code}
+                language={fw.themeConfig.lang}
+                filename={fw.themeConfig.title}
+                className="rounded-lg m-0 mt-3"
+              />
+            ) : null}
             <CodeBlock
               {...setupContent}
               code={setup.code}
               language={setup.lang}
               filename={setup.title}
-              className="rounded-lg m-0"
+              className={`rounded-lg m-0 ${
+                fw.slug === "web" && fw.buildConfig ? "mt-3" : ""
+              }`}
             />
             {fw.setupExtra && setupExtraContent[fw.slug] ? (
               <CodeBlock
@@ -272,21 +384,106 @@ export function QuickStartGuide({
             <InlineCode>{fw.configNote}</InlineCode>
           </p>
         </Callout>
-      </section>
+      </StepperSection>
 
-      <section id="ui" className="mb-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight mb-2">
-          3 · Add a small UI
-        </h2>
-        <p className="opacity-70 text-sm mb-4 max-w-2xl">
-          {reactShape ? (
-            "A small status card rendered inside the island, with the framework's own class attribute. The native <ThemeToggle /> still works alongside it with no client runtime; nothing is styled yet."
-          ) : fw.slug === "tailwind" ? (
-            "The same card with Tailwind utilities. Every class resolves to a semantic token, so a theme switch repaints it without a re-render."
-          ) : (
-            "A small status card with a heading, a description, a status label and a primary button. The class names are ordinary CSS; the next step connects them to the theme."
-          )}
-        </p>
+      {!fw.cssOnly ? (
+        <StepperSection id="choose-a-theme" className="mb-10">
+          <SectionHeading
+            num={3}
+            stepper
+            desc={
+              <span className="block max-w-2xl">
+                {reactShape || fw.slug === "astro"
+                  ? "The toggle below writes to the runtime the provider installed. Flip light and dark and the card below repaints. "
+                  : fw.slug === "nuxt"
+                    ? "The toggle below reads and writes the runtime. Mount it with the card in app/app.vue — Nuxt auto-registers anything in app/components/. "
+                    : fw.slug === "remix"
+                      ? "The route below reads and writes the runtime. The toggle flips light and dark, and the card below repaints. "
+                      : "The toggle below reads and writes the runtime. Flip light and dark and the card below repaints. "}
+                The markup carries only the four classes —{" "}
+                <InlineCode>page</InlineCode>, <InlineCode>primary</InlineCode>,{" "}
+                <InlineCode>card</InlineCode> and <InlineCode>muted</InlineCode>{" "}
+                — and no CSS.
+              </span>
+            }
+          >
+            Run and choose a theme
+          </SectionHeading>
+          <CodeBlock
+            {...switchSnippetContent}
+            code={switchSnippet.code}
+            language={switchSnippet.lang}
+            filename={switchSnippet.title}
+            className="rounded-lg m-0"
+          />
+          {fw.appFile ? (
+            <div className="mt-4">
+              <p className="opacity-70 text-sm mb-2">
+                Mount both components in <code className="mono">app/app.vue</code>:
+              </p>
+              <CodeBlock
+                {...(appFileContent[fw.slug] ?? {})}
+                code={fw.appFile.code}
+                language={fw.appFile.lang}
+                filename={fw.appFile.title}
+                className="rounded-lg m-0"
+              />
+            </div>
+          ) : null}
+        </StepperSection>
+      ) : null}
+
+      <StepperSection id="global-stylesheet" className="mb-10">
+        <SectionHeading
+          num={4 + stepOffset}
+          stepper
+          desc={
+            <span className="block max-w-2xl">
+              {fw.cssOnly
+                ? "Put the document rule in "
+                : "Put the document rule and the four classes from step 3 in "}
+              <InlineCode>{fw.styles.title}</InlineCode>. Themvora emits its
+              design tokens as CSS custom properties on the root element, so
+              this stylesheet only reads them.
+            </span>
+          }
+        >
+          Add the global stylesheet
+        </SectionHeading>
+        <CodeBlock
+          html={globalStylesMarkup}
+          code={globalStylesCode}
+          language="css"
+          filename={fw.styles.title}
+          className="rounded-lg m-0"
+        />
+        {stylesheetLoader ? (
+          <p className="opacity-70 text-sm mt-3 max-w-2xl">
+            Load it once from <InlineCode>{stylesheetLoader.file}</InlineCode>{" "}
+            with <InlineCode>{stylesheetLoader.code}</InlineCode>, so{" "}
+            {fw.cssOnly
+              ? "the document rule applies before any component styles."
+              : "the classes from step 3 pick up the theme."}
+          </p>
+        ) : null}
+      </StepperSection>
+
+      <StepperSection id="ui" className="mb-10">
+        <SectionHeading
+          num={5 + stepOffset}
+          stepper
+          desc={
+            <span className="block max-w-2xl">
+              {reactShape
+                ? "A small status card rendered inside the island, with the framework's own class attribute. The native <ThemeToggle /> still works alongside it with no client runtime; the card's own classes are not styled yet."
+                : fw.slug === "tailwind"
+                  ? "The same card with Tailwind utilities. Every class resolves to a semantic token, so a theme switch repaints it without a re-render."
+                  : "A small status card with a heading, a description, a status label and a primary button. The class names are ordinary CSS; the next step connects them to the theme."}
+            </span>
+          }
+        >
+          Add a small UI
+        </SectionHeading>
         {uiSnippet && uiSnippetContent ? (
           <CodeBlock
             {...uiSnippetContent}
@@ -307,17 +504,23 @@ export function QuickStartGuide({
             </p>
           </Callout>
         ) : null}
-      </section>
+      </StepperSection>
 
-      <section id="themed-component" className="mb-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold tracking-tight mb-2">
-          4 · {CANONICAL_STYLES_STEP.label}
-        </h2>
-        <p className="opacity-70 text-sm mb-4 max-w-2xl">
-          {CANONICAL_STYLES_STEP.desc} The document rule uses only the two
-          required foundational colours; the component rules use only required
-          semantic colours, so no typography token is involved.
-        </p>
+      <StepperSection id="themed-component" className="mb-10" last>
+        <SectionHeading
+          num={6 + stepOffset}
+          stepper
+          desc={
+            <span className="block max-w-2xl">
+              {CANONICAL_STYLES_STEP.desc}{" "}
+              {fw.cssOnly
+                ? "The global stylesheet above paints the document; the utilities from the previous step only read the required colour roles."
+                : "These component rules use only required semantic colours, so no typography token is involved. The document rule lives in the global stylesheet above."}
+            </span>
+          }
+        >
+          {CANONICAL_STYLES_STEP.label}
+        </SectionHeading>
         <div
           className="rounded-xl border border-border p-5 mb-4"
           style={{ background: "var(--theme-color-background)" }}
@@ -325,15 +528,15 @@ export function QuickStartGuide({
           <ThemedExample />
         </div>
         <CodeBlock
-          html={stylesHtml}
-          code={fw.styles.code}
-          language={fw.styles.lang}
+          {...styleContent[fw.slug]}
+          code={styleSnippet.code}
+          language={styleSnippet.lang}
           filename={fw.styles.title}
           className="rounded-lg m-0"
         />
         <Callout
           className="mt-3"
-          title="Why this never needs a second stylesheet"
+          title="This never needs a second stylesheet"
         >
           <p className="text-sm leading-relaxed">
             <InlineCode>{CANONICAL_STYLES_NOTE}</InlineCode>
@@ -341,7 +544,7 @@ export function QuickStartGuide({
         </Callout>
         {fw.cssOnly ? (
           <p className="opacity-70 text-sm mt-4 max-w-2xl">
-            The utilities in step 3 read the same required colour roles —{" "}
+            The utilities in step 4 read the same required colour roles —{" "}
             <code className="mono text-[0.9em]">background</code>,{" "}
             <code className="mono text-[0.9em]">foreground</code>,{" "}
             <code className="mono text-[0.9em]">card</code>,{" "}
@@ -353,17 +556,15 @@ export function QuickStartGuide({
             <code className="mono text-[0.9em]">primaryForeground</code> and{" "}
             <code className="mono text-[0.9em]">ring</code> — through the{" "}
             <code className="mono text-[0.9em]">@theme</code> block in{" "}
-            <code className="mono text-[0.9em]">@themvora/tailwind</code>. This
-            step only paints the document; the component styles are utilities,
-            not a second stylesheet.
+            <code className="mono text-[0.9em]">@themvora/tailwind</code>. The
+            global stylesheet above paints the document; the component styles
+            are utilities, not a second stylesheet.
           </p>
         ) : (
           <p className="opacity-70 text-sm mt-4 max-w-2xl">
-            The stylesheet is identical in every framework, and it is where the
-            theme actually reaches the component. It reads ten required colour
-            tokens —{" "}
-            <code className="mono text-[0.9em]">background</code>,{" "}
-            <code className="mono text-[0.9em]">foreground</code>,{" "}
+            These component rules are identical in every framework, and they are
+            where the theme actually reaches the component. They read eight
+            required colour tokens —{" "}
             <code className="mono text-[0.9em]">card</code>,{" "}
             <code className="mono text-[0.9em]">cardForeground</code>,{" "}
             <code className="mono text-[0.9em]">border</code>,{" "}
@@ -381,41 +582,7 @@ export function QuickStartGuide({
             valid theme may define no typography.
           </p>
         )}
-      </section>
-
-      {!fw.cssOnly ? (
-        <section id="choose-a-theme" className="mb-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold tracking-tight mb-2">
-            5 · Run and choose a theme
-          </h2>
-          <p className="opacity-70 text-sm mb-4 max-w-2xl">
-            {reactShape || fw.slug === "astro"
-              ? "The toggle below writes to the runtime the provider installed. Switch between the supplied families — or a custom theme with the required colours — and the card from step 3 repaints."
-              : fw.slug === "nuxt"
-                ? "The control below reads and writes the runtime. Render it in app/app.vue as <ThemeSwitcher /> — Nuxt auto-registers anything in app/components/. Switch between the supplied families and the card from step 3 repaints."
-                : "The control below reads and writes the runtime. Switch between the supplied families — or a custom theme with the required colours — and the card from step 3 repaints."}
-          </p>
-          <CodeBlock
-            {...switchSnippetContent}
-            code={switchSnippet.code}
-            language={switchSnippet.lang}
-            filename={switchSnippet.title}
-            className="rounded-lg m-0"
-          />
-        </section>
-      ) : null}
-
-      <section className="mt-10 rounded-xl border border-border bg-card p-5">
-        <h2 className="text-base font-semibold tracking-tight mb-1">
-          You&apos;re ready
-        </h2>
-        <p className="text-sm opacity-80 leading-relaxed">
-          You have a provider, a small UI and a stylesheet that reads only the
-          token contract every valid theme guarantees. Choose another supplied
-          family — or pass a custom theme with the 21 required colours and
-          nothing else — and the same card repaints.
-        </p>
-      </section>
+      </StepperSection>
 
       <NextSteps
         className="mt-12"

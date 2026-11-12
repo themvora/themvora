@@ -21,10 +21,12 @@ the build/verify results live in [`implementation-report.md`](./implementation-r
 | [`angular/`](./angular)       | Angular 22 (CLI)      | `@themvora/angular`      | 5194 | `provideTheme()`, `injectTheme()`, `[themvoraScope]`, `[themvoraScrollbar]`         |
 | [`web/`](./web)               | Web Components (Vite) | `@themvora/web`          | 5195 | `import "@themvora/web"` + `<themvora-provider                                      | scope | toggle | select | scrollbar | inspector>` |
 | [`vanilla-js/`](./vanilla-js) | Plain JS (Vite)       | `@themvora/core/vanilla` | 5196 | `new Themvora(...)` + core bindings — standalone, static markup, no shared package  |
+| [`vanilla/`](./vanilla)       | Plain HTML/JS, no bundler | `@themvora/core/vanilla` | 5205 | `prepaint.js` in `<head>` + `new Themvora()` — the documented non-Vite setup, zero-flash on reload |
 | [`astro/`](./astro)           | Astro 5               | `@themvora/astro`        | 5197 | `themvora()` integration, `provider.astro`, `ThemeToggle.astro`, runtime controller |
 | [`nextjs/`](./nextjs)         | Next.js 15 App Router | `@themvora/next`         | 5198 | server `ThemeProvider` + `@themvora/next/client` hooks                              |
 | [`nuxt/`](./nuxt)             | Nuxt 4                | `@themvora/nuxt`         | 5199 | Nuxt module (auto-imports + runtime plugin + cookie SSR)                            |
 | [`remix/`](./remix)           | Remix v2 (Vite)       | `@themvora/remix`        | 5200 | `ThemeHead` + `ThemeProvider` + `getInitialThemeState` (server)                     |
+| [`react-router/`](./react-router) | React Router 8.5 Framework Mode | `@themvora/remix/react-router` | 5203 | `createThemeDocument()` root loader + root `Layout` document |
 | [`astro-native/`](./astro-native) | Astro 5           | `@themvora/astro`        | 5201 | `themvora()` + `provider.astro`, `ThemeToggle`, `ThemeFamilySelect`, `ThemeScope`, `<ClientRouter />` |
 | [`astro-react/`](./astro-react)   | Astro 5 + React 19 | `@themvora/astro`        | 5202 | the same native surface plus one `client:load` island (`ThemeProviderClient` + `useTheme`) |
 
@@ -34,11 +36,12 @@ families, shared copy/code snippets, SVG scrollbar icons, and shared UI class
 strings + base CSS. Presets come from `@themvora/core`'s `getPresetThemes()`, so
 no app hardcodes a preset palette.
 
-Four apps are deliberately **standalone** and do not import it: [`web/`](./web),
-[`vanilla-js/`](./vanilla-js), [`astro-native/`](./astro-native) and
-[`astro-react/`](./astro-react) declare their own brand pair, copy, styles and
-markup, so each can be read — and copied — on its own. They are the reference
-for "what does this look like with nothing else in the room".
+Five apps are deliberately **standalone** and do not import it: [`web/`](./web),
+[`vanilla-js/`](./vanilla-js), [`vanilla/`](./vanilla),
+[`astro-native/`](./astro-native) and [`astro-react/`](./astro-react) declare
+their own brand pair, copy, styles and markup, so each can be read — and copied —
+on its own. They are the reference for "what does this look like with nothing
+else in the room".
 
 The two Astro apps are also built **from the framework guide alone** — no shared
 fixtures, no cross-imports between them, and no code lifted from `astro/`. They
@@ -47,9 +50,12 @@ uses only server-rendered components plus the runtime controller, while
 `astro-react/` adds a single hydrated island to show the same page working across
 the framework boundary. Each can be copied into a project as-is.
 
-[`web/`](./web) is the one deliberate exception: it is a standalone HTML-first
-lab that imports no shared package and declares its own `solar` palette, so it
-can demonstrate installing a theme pack at runtime.
+[`web/`](./web) is the first-paint reference: a standalone Vite vanilla-TS page
+that imports no shared package, declares a custom `harbor` family in
+`theme.config.ts`, and contains ordinary HTML text. It uses
+`themvoraVitePlugin()` with no manual bootstrap script, so it is the app behind
+the documented Web Components zero-flash guarantee (and the real-browser
+`scripts/web/first-paint-check.mjs` evidence).
 
 ## Prerequisites
 

@@ -204,12 +204,13 @@ export interface InitPlan {
   /** The install command, or `null` when `--no-install` was passed. */
   installStep: CommandStep | null;
   /**
-   * The dev-dependency install command, or `null` when there are none.
+   * Build-time dependencies, with the ranges recorded in `package.json`.
    *
-   * A separate step rather than a second argument list because the dev flag is
-   * per-manager (`-D`, `-d`) and cannot be mixed into a single install line.
+   * They are part of the single install rather than a second command: the
+   * manifest is written first, so one `add` resolves runtime and build-time
+   * packages together. Empty for a plain-CSS project.
    */
-  devInstallStep: CommandStep | null;
+  devDependencies: Readonly<Record<string, string>>;
   /** Changes the user must make by hand. */
   manualSteps: readonly ManualStep[];
   /** The checks that will run after applying. */
@@ -295,6 +296,10 @@ export interface InitReport {
   projectPath: string;
   /** The framework that was integrated. */
   framework: string;
+  /** The package manager the run used, for the completion summary. */
+  packageManager: PackageManager;
+  /** The styling engine the generated project uses. */
+  styling: StylingEngine;
   /** Files written for the first time. */
   created: readonly string[];
   /** Files rewritten. */

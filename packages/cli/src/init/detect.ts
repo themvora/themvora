@@ -28,6 +28,21 @@ export interface ProjectManifest {
   packageManagerField: string | undefined;
 }
 
+/**
+ * How a package-manager answer was reached.
+ *
+ * - `declared` — the corepack `packageManager` field named it.
+ * - `lockfile` — a lockfile identified it.
+ * - `fallback` — nothing identified it and `npm` was assumed.
+ *
+ * The distinction matters for the interactive wizard: `fallback` is an
+ * *assumption*, so a terminal user is asked instead of being handed npm. It
+ * also keeps the non-interactive path unchanged — `fallback` still resolves to
+ * `npm` there, which is what every script written against the previous release
+ * already relies on.
+ */
+export type PackageManagerSource = "declared" | "lockfile" | "fallback";
+
 /** What `init` learned about the target directory. */
 export interface ProjectInspection {
   /** Absolute, normalized project root. */
@@ -40,6 +55,8 @@ export interface ProjectInspection {
   manifest: ProjectManifest | null;
   /** The package manager detection settled on. */
   packageManager: PackageManager;
+  /** How that answer was reached. */
+  packageManagerSource: PackageManagerSource;
   /** Every lockfile found, for the ambiguity warning. */
   lockfiles: readonly string[];
   /** Whether several lockfiles made the package-manager choice ambiguous. */
@@ -125,7 +142,12 @@ export function readManifest(projectPath: string): ProjectManifest | null {
 export function detectPackageManager(
   projectPath: string,
   manifest: ProjectManifest | null,
-): { manager: PackageManager; lockfiles: string[]; ambiguous: boolean } {
+): {
+  manager: PackageManager;
+  lockfiles: string[];
+  ambiguous: boolean;
+  source: PackageManagerSource;
+} {
   const lockfiles = LOCKFILES.filter((entry) => existsSync(join(projectPath, entry.file))).map(
     (entry) => entry.file,
   );
@@ -133,10 +155,17 @@ export function detectPackageManager(
   const declared = manifest?.packageManagerField
     ? managerFromField(manifest.packageManagerField)
     : undefined;
-  if (declared) return { manager: declared, lockfiles, ambiguous: lockfiles.length > 1 };
+  if (declared) {
+    return { manager: declared, lockfiles, ambiguous: lockfiles.length > 1, source: "declared" };
+  }
 
   const found = LOCKFILES.find((entry) => lockfiles.includes(entry.file));
-  return { manager: found?.manager ?? "npm", lockfiles, ambiguous: lockfiles.length > 1 };
+  return {
+    manager: found?.manager ?? "npm",
+    lockfiles,
+    ambiguous: lockfiles.length > 1,
+    source: found ? "lockfile" : "fallback",
+  };
 }
 
 /**
@@ -182,7 +211,7 @@ export function inspectProject(target: string): ProjectInspection {
   const projectPath = resolve(target);
   const kind = classifyProject(projectPath);
   const manifest = kind === "existing" ? readManifest(projectPath) : null;
-  const { manager, lockfiles, ambiguous } = detectPackageManager(projectPath, manifest);
+  const { manager, lockfiles, ambiguous, source } = detectPackageManager(projectPath, manifest);
 
   const dependencyNames = manifest
     ? [...manifest.dependencies, ...manifest.devDependencies]
@@ -194,6 +223,7 @@ export function inspectProject(target: string): ProjectInspection {
     kind,
     manifest,
     packageManager: manager,
+    packageManagerSource: source,
     lockfiles,
     ambiguousPackageManager: ambiguous,
     detectedFramework: detectFramework(dependencyNames),

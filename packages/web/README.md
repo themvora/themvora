@@ -12,62 +12,272 @@ npm install @themvora/core @themvora/web
 `@themvora/web` builds on `@themvora/core`, so it is installed explicitly rather
 than relied on transitively.
 
-## Load it once
+## Set up
 
-```ts
-// src/main.ts
+Four files. The Vite plugin injects the render-blocking theme CSS, the transported configuration and the blocking boot script; `theme.config.ts` declares the catalog once; `<themvora-provider>` owns the runtime; and the module import registers the custom elements.
+
+```ts title="vite.config.ts"
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({
+  plugins: [themvoraVitePlugin()],
+});
+```
+
+```ts title="theme.config.ts"
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+});
+```
+
+```html title="index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <!-- Render-blocking on purpose: a CSS file imported from main.ts is
+         injected by JavaScript, so in dev the first paint happens before it
+         exists and the page flashes unstyled. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- No controls, no script beyond the module import: the provider applies
+         the theme and ordinary HTML reads the variables. -->
+    <themvora-provider default-theme="light" initial-mode="system">
+      <h1>Hello, themed world</h1>
+      <p>Current theme: <strong id="theme-name"></strong></p>
+    </themvora-provider>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+```
+
+```ts title="src/main.ts"
+// The whole setup. This one import registers the elements and injects their
+// stylesheet, so the markup in index.html upgrades on its own. The page's own
+// stylesheet is a <link> in index.html, not an import here — see the comment
+// in that file.
 import "@themvora/web";
+
+// Optional: read the current theme in application code. The runtime's helpers
+// are getters, so subscribe and re-read.
+import { useThemeRuntime } from "@themvora/web";
+
+const runtime = useThemeRuntime();
+const readout = document.querySelector<HTMLElement>("#theme-name");
+
+if (!readout) {
+  throw new Error("index.html must contain a #theme-name element.");
+}
+
+const render = () => {
+  readout.textContent = runtime.store.get().name;
+};
+
+runtime.store.subscribe(render);
+render();
 ```
 
-That single import registers `<themvora-provider>`, `<themvora-scope>`,
-`<themvora-toggle>`, `<themvora-select>`, `<themvora-scrollbar>` and
-`<themvora-inspector>`, and injects their stylesheet once. There is no
-`defineCustomElements()` call to remember, no CSS file to import and no icon
-package to add.
+## Run and choose a theme
 
-It is safe to import during a server render (Next.js, Remix, Nuxt, Astro,
-SvelteKit): registration is skipped when `customElements` is unavailable.
+`<themvora-provider>` owns the runtime, and the toggle writes to it through the element API. The markup carries only four classes — `page`, `primary`, `card` and `muted` — and no CSS.
 
-## Write HTML
+```html title="index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themvora</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <themvora-provider>
+      <main class="page">
+        <h1>Themvora</h1>
+        <p>Current theme: <strong id="theme-name"></strong></p>
 
-```html
-<themvora-provider
-  themes="light dark plum-light plum-dark"
-  default-theme="light"
-  initial-mode="system"
->
-  <themvora-toggle></themvora-toggle>
-  <themvora-select type="family"></themvora-select>
+        <button id="theme-toggle" class="primary" type="button">Toggle theme</button>
 
-  <themvora-scope theme="plum-dark">
-    <section class="card">
-      <h2>Scoped to plum-dark</h2>
-      <p>Variables inherit from the scope.</p>
-    </section>
-  </themvora-scope>
-</themvora-provider>
+        <section class="card">
+          <h2>Themed card</h2>
+          <p class="muted">Surface, border and text follow the theme.</p>
+        </section>
+      </main>
+    </themvora-provider>
+
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module">
+      import { useThemeRuntime } from "@themvora/web";
+
+      const runtime = useThemeRuntime();
+      document
+        .querySelector("#theme-toggle")
+        ?.addEventListener("click", () => runtime.toggleTheme());
+    </script>
+  </body>
+</html>
 ```
 
-Nothing is re-rendered on a switch: the variables change and the styles follow.
-The document itself is themed too — it takes the active theme's `background`
-and `foreground`, and the scoped card reads the same tokens:
+Those four classes are plain CSS. The next step puts the document rule and those classes in a global stylesheet; nothing is inlined or scoped here.
 
-```css
+## Add the global stylesheet
+
+Put the document rule and the four classes from step 3 in `src/styles.css`. Themvora emits its design tokens as CSS custom properties on the root element, so this stylesheet only reads them.
+
+```css title="src/styles.css"
+/* Themvora emits its design tokens as CSS custom properties on the root
+   element, so a stylesheet only has to read them. Nothing here is
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
   color: var(--theme-color-foreground);
 }
 
+.page {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.primary {
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
 .card {
   background: var(--theme-color-card);
-  color: var(--theme-color-cardForeground);
   border: 1px solid var(--theme-color-border);
-  border-radius: var(--theme-radius-lg, 12px);
-  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+}
+
+.muted {
+  color: var(--theme-color-mutedForeground);
 }
 ```
 
+Load it once from `index.html` with `<link rel="stylesheet" href="/src/styles.css" />`, so the classes from step 3 pick up the theme.
+
+## Add a small UI
+
+The same card in ordinary HTML. It needs no JavaScript, because it only reads CSS variables.
+
+```html title="index.html"
+<div class="themvora-example-card">
+  <div class="themvora-example-header">
+    <h3 class="themvora-example-title">Design system</h3>
+    <span class="themvora-example-status">Active</span>
+  </div>
+  <p class="themvora-example-description">
+    Tokens resolve at runtime, so this card follows whichever theme is active.
+  </p>
+  <p class="themvora-example-meta">Updated 2 minutes ago</p>
+  <button class="themvora-example-button" type="button">View themes</button>
+</div>
+```
+
+## Style it with Themvora tokens
+
+Only the component rules live here — the document rule is in the global stylesheet from step 4, so it is not repeated below. Every colour is a required semantic token, so any theme that passes `validateTheme()` emits it; radius and shadow are optional and carry fallbacks, and no typography token is read.
+
+```css title="src/styles.css"
+.themvora-example-card {
+  display: grid;
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+```
+
+`.themvora-example-card` and its children read Themvora tokens, so switching the active theme repaints them — no re-render, and no per-theme CSS.
 ## Configuration
 
 Every provider option is an attribute, and every attribute is live — changing
@@ -127,7 +337,7 @@ Load the standalone bundle — it inlines `@themvora/core`, so there is no impor
 map and no bare specifier to resolve:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@themvora/web@1.4.0/dist/cdn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@themvora/web@1.6.0/dist/cdn.js"></script>
 
 <themvora-provider default-theme="light">
   <themvora-toggle></themvora-toggle>

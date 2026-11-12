@@ -301,17 +301,21 @@ describe("real repository examples", () => {
     expect(found?.reason).toContain("build-time theme config");
   });
 
-  it("recognizes the Web Components example's provider attribute", () => {
+  it("recognizes the Web Components example's attribute-free provider", () => {
     const document = readSourceDocument("web/index.html", example("web/index.html"));
     const [found] = recognizeHtmlConsumers(document);
 
+    // The element is deliberately attribute-free: the catalog, default theme
+    // and initial mode come from `theme.config.ts` through the Vite plugin, and
+    // declaring them here as well would be a second source of truth the plugin
+    // fails the build over.
     expect(found).toMatchObject({
       integration: "web",
-      input: "static",
+      input: "absent",
       region: "element",
     });
-    expect(found?.names).toHaveLength(10);
-    expect(found?.names).toContain("oat-light");
+    expect(found?.names).toEqual([]);
+    expect(found?.reason).toContain("no themes attribute");
   });
 });
 

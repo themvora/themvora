@@ -21,7 +21,7 @@ export const PAGE_SECTIONS: PageSectionEntry[] = [
   },
   {
     route: "/choose-package",
-    intro: "Start from what you're building. Every framework package pulls the core runtime, so you install the integration, not everything at once.",
+    intro: "Start from what you're building. @themvora/core is a normal dependency of every framework binding, so the binding brings the runtime with it. The guides still install both explicitly so the core version stays visible in your manifest.",
     sections: [
       { title: "Pick your entry point" },
       { title: "Common combinations" },

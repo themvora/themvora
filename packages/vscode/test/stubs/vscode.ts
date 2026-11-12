@@ -140,10 +140,14 @@ export const __state = {
   written: [] as WrittenFile[],
   /** Messages shown through `showInformationMessage`. */
   info: [] as string[],
+  /** The action a notification's buttons resolve to. `undefined` dismisses it. */
+  infoAnswer: undefined as string | undefined,
   /** Messages shown through `showErrorMessage`. */
   errors: [] as string[],
   /** Paths offered as `defaultUri` to the save dialog. */
   saveDialogDefaults: [] as (string | undefined)[],
+  /** The extension filters offered to the save dialog, in order. */
+  saveDialogFilters: [] as (Record<string, string[]> | undefined)[],
   /** What the next `showOpenDialog` resolves to. `undefined` means cancelled. */
   openDialog: undefined as Uri[] | undefined,
   /**
@@ -247,8 +251,10 @@ export function __reset(): void {
   __state.executed = [];
   __state.written.length = 0;
   __state.info.length = 0;
+  __state.infoAnswer = undefined;
   __state.errors.length = 0;
   __state.saveDialogDefaults.length = 0;
+  __state.saveDialogFilters.length = 0;
   __state.openDialog = undefined;
   __state.openDialogQueue = [];
   __state.warnings.length = 0;
@@ -782,8 +788,12 @@ export const window = {
     );
   },
 
-  showSaveDialog(options: { defaultUri?: Uri }): Promise<Uri | undefined> {
+  showSaveDialog(options: {
+    defaultUri?: Uri;
+    filters?: Record<string, string[]>;
+  }): Promise<Uri | undefined> {
     __state.saveDialogDefaults.push(options.defaultUri?.fsPath);
+    __state.saveDialogFilters.push(options.filters);
     return Promise.resolve(__state.saveDialog);
   },
 
@@ -796,9 +806,12 @@ export const window = {
     return Promise.resolve({ document: { uri } });
   },
 
-  showInformationMessage(message: string): Promise<undefined> {
+  showInformationMessage(message: string, ...items: string[]): Promise<string | undefined> {
     __state.info.push(message);
-    return Promise.resolve(undefined);
+    // A notification with actions is a question; `infoAnswer` is the item the
+    // user clicked, and `undefined` is a dismissal.
+    if (items.length === 0) return Promise.resolve(undefined);
+    return Promise.resolve(__state.infoAnswer);
   },
 
   showWarningMessage(

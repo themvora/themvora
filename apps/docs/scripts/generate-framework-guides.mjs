@@ -191,6 +191,8 @@ function topLevelDeclaration(src, name) {
 const SLOTS = [
   ["quickStart", "Quick Start"],
   ["quickStartExtra", "Quick Start"],
+  ["buildConfig", "Quick Start"],
+  ["themeConfig", "Quick Start"],
   ["noTheme", "Quick Start"],
   // The entry file comes after the file it complements: React's App.tsx, Vue's
   // and Svelte's Vite entry, and the web guide's module all read as the second
@@ -202,6 +204,7 @@ const SLOTS = [
   // framework entry carries the same one.
   ["styles", "Quick Start"],
   ["snippet", "Use Cases"],
+  ["appFile", "Use Cases"],
   ["switchSnippet", "Use Cases"],
   ["snippet2", "More Examples"],
   ["snippet3", "More Examples"],
@@ -273,6 +276,14 @@ function render(frameworks) {
     if (fw.extraPackages?.length) {
       out.push(`**Also installs:** ${fw.extraPackages.map((p) => `\`${p}\``).join(", ")}`, "");
     }
+    if (fw.prerequisiteInstall?.packages?.length) {
+      out.push(
+        `**${fw.prerequisiteInstall.label}:** ${fw.prerequisiteInstall.packages
+          .map((p) => `\`${p}\``)
+          .join(", ")}`,
+        "",
+      );
+    }
 
     out.push("### Feature map", "");
     for (const group of fw.groups ?? []) {
@@ -303,7 +314,7 @@ function render(frameworks) {
 
   out.push("---", "");
   out.push(
-    `${frameworks.length} frameworks. Generated from \`lib/frameworks.tsx\`.`,
+    `${frameworks.length} framework entries. Generated from \`lib/frameworks.tsx\`.`,
     "",
   );
   return out.join("\n");
@@ -347,5 +358,5 @@ if (check) {
 writeFileSync(targetPath, generated);
 const lines = generated.split("\n").length;
 console.log(
-  `wrote content/framework-guides.md — ${frameworks.length} frameworks, ${lines} lines`,
+  `wrote content/framework-guides.md — ${frameworks.length} framework entries, ${lines} lines`,
 );

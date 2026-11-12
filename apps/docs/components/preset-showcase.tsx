@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CodeBlock } from "./code-block";
-import { highlightCode } from "../lib/highlight";
 import { DocsLayout } from "./docs-layout";
 import { PresetVisualHarness } from "./preset-visual-fixture";
 import { PageHeader } from "./ui/page-header";
@@ -173,7 +172,6 @@ export function PresetShowcase({
             Default presets
           </h3>
           <CodeBlock
-            html={highlightCode(DEFAULT_PRESET_SNIPPET, "ts")}
             code={DEFAULT_PRESET_SNIPPET}
             language="ts"
             {...(labels?.[DEFAULT_PRESET_SNIPPET]
@@ -186,7 +184,6 @@ export function PresetShowcase({
             Brand presets
           </h3>
           <CodeBlock
-            html={highlightCode(BRAND_PRESET_SNIPPET, "ts")}
             code={BRAND_PRESET_SNIPPET}
             language="ts"
             {...(labels?.[BRAND_PRESET_SNIPPET]

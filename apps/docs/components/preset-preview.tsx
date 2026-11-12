@@ -5,7 +5,6 @@ import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { Select } from "./ui/select";
 import { CopyButton } from "./ui/copy-button";
 import { CodeBlock } from "./code-block";
-import { highlightCode } from "../lib/highlight";
 import { c, colorsOf } from "../lib/contrast";
 import { ContrastPanel } from "./preset-catalog";
 import { type PresetFamilyGroup, FrameworkSelector } from "./presets";
@@ -129,7 +128,6 @@ function PreviewedVariables({ theme }: { theme: ThemeDefinition }) {
       </div>
 
       <CodeBlock
-        html={highlightCode(active.code, active.lang)}
         code={active.code}
         language={active.lang}
         filename={filename}
@@ -555,7 +553,6 @@ function PresetFrameworkSetup({
       js,
     )?.map((variant) => ({
       ...variant,
-      html: highlightCode(variant.code, variant.lang),
     }));
   }, [jsSources, framework, mode, family, snippet]);
 
@@ -569,7 +566,6 @@ function PresetFrameworkSetup({
       template,
     )?.map((variant) => ({
       ...variant,
-      html: highlightCode(variant.code, variant.lang),
     }));
   }, [jsSourcesUnfiltered, framework, mode, snippetUnfiltered]);
 
@@ -583,7 +579,6 @@ function PresetFrameworkSetup({
       template,
     )?.map((variant) => ({
       ...variant,
-      html: highlightCode(variant.code, variant.lang),
     }));
   }, [jsSourcesFamilyPicker, framework, snippetFamilyPicker]);
 
@@ -598,7 +593,6 @@ function PresetFrameworkSetup({
             Filtered to this family
           </div>
           <CodeBlock
-            html={highlightCode(snippet.code, snippet.lang)}
             code={snippet.code}
             language={snippet.lang}
             filename={snippet.title}
@@ -612,7 +606,6 @@ function PresetFrameworkSetup({
             All presets (no filtering)
           </div>
           <CodeBlock
-            html={highlightCode(snippetUnfiltered.code, snippetUnfiltered.lang)}
             code={snippetUnfiltered.code}
             language={snippetUnfiltered.lang}
             filename={snippetUnfiltered.title}
@@ -626,7 +619,6 @@ function PresetFrameworkSetup({
             Family picker with useProvidedThemes()
           </div>
           <CodeBlock
-            html={highlightCode(snippetFamilyPicker.code, snippetFamilyPicker.lang)}
             code={snippetFamilyPicker.code}
             language={snippetFamilyPicker.lang}
             filename={snippetFamilyPicker.title}

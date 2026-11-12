@@ -12,7 +12,18 @@ import { frameworks } from "../../lib/frameworks";
 import type { FrameworkSnippet } from "../../lib/frameworks";
 import { highlightCode } from "../../lib/highlight";
 import { codeContent, type CodeContent } from "../../lib/code-variants";
+import {
+  QUICK_START_COMPONENT_STYLES,
+  QUICK_START_DOCUMENT_STYLES,
+  QUICK_START_GLOBAL_STYLES,
+  QUICK_START_SWITCHES,
+} from "../../lib/quick-start-snippets";
 import { docsUrl } from "../../lib/site";
+import {
+  contractForSlug,
+  explicitInstallPackages,
+  formatInstallCommand,
+} from "../../lib/package-contracts";
 
 export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/quick-start") },
@@ -64,31 +75,82 @@ const setupExtraContent: Record<string, CodeContent | undefined> =
     ]),
   );
 
+const buildConfigContent: Record<string, CodeContent | undefined> =
+  Object.fromEntries(
+    frameworks.map((fw) => [
+      fw.slug,
+      fw.buildConfig ? contentFor(fw.buildConfig, fw.slug) : undefined,
+    ]),
+  );
+
+const themeConfigContent: Record<string, CodeContent | undefined> =
+  Object.fromEntries(
+    frameworks.map((fw) => [
+      fw.slug,
+      fw.themeConfig ? contentFor(fw.themeConfig, fw.slug) : undefined,
+    ]),
+  );
+
+// Quick Start's run step is class-only, so it reads its own snippets rather
+// than the ones the framework guides render. The Astro entry carries the React
+// island shape; `astro-native` is selected separately below.
 const switchContent: Record<string, CodeContent> = Object.fromEntries(
   frameworks.map((fw) => {
-    const snippet = fw.switchSnippet ?? fw.snippet;
+    const snippet =
+      QUICK_START_SWITCHES[fw.slug] ?? fw.switchSnippet ?? fw.snippet;
     return [fw.slug, contentFor(snippet, fw.slug)];
   }),
 );
+
+const appFileContent: Record<string, CodeContent | undefined> =
+  Object.fromEntries(
+    frameworks.map((fw) => [
+      fw.slug,
+      fw.appFile ? contentFor(fw.appFile, fw.slug) : undefined,
+    ]),
+  );
 
 const installCommands: Record<
   string,
   Record<PackageManager, InstallCommandEntry>
 > = Object.fromEntries(
   frameworks.map((fw) => {
-    const pkgsArg = ["@themvora/core", fw.pkg, ...(fw.extraPackages ?? [])].join(
-      " ",
-    );
+    const contract = contractForSlug(fw.slug);
+    const packages = contract
+      ? explicitInstallPackages(contract, {
+          extraPackages: fw.extraPackages ?? [],
+        })
+      : ["@themvora/core", fw.pkg, ...(fw.extraPackages ?? [])];
     const byManager = Object.fromEntries(
       MANAGERS.map((manager) => {
-        const code =
-          manager === "npm"
-            ? `npm install ${pkgsArg}`
-            : `${manager} add ${pkgsArg}`;
+        const code = formatInstallCommand(packages, manager);
         return [manager, { code, html: highlightCode(code, "bash") }];
       }),
     ) as Record<PackageManager, InstallCommandEntry>;
-    return [fw.pkg, byManager];
+    // Keyed by slug, not package: Remix v2 and React Router share
+    // `@themvora/remix` but install different framework packages.
+    return [fw.slug, byManager];
+  }),
+);
+
+/**
+ * The optional second command for projects that do not have the framework
+ * installed yet. Kept separate from `installCommands` so the primary command
+ * never presents framework packages as Themvora requirements.
+ */
+const prerequisiteInstallCommands: Record<
+  string,
+  Record<PackageManager, InstallCommandEntry> | undefined
+> = Object.fromEntries(
+  frameworks.map((fw) => {
+    if (!fw.prerequisiteInstall) return [fw.slug, undefined];
+    const byManager = Object.fromEntries(
+      MANAGERS.map((manager) => {
+        const code = formatInstallCommand(fw.prerequisiteInstall!.packages, manager);
+        return [manager, { code, html: highlightCode(code, "bash") }];
+      }),
+    ) as Record<PackageManager, InstallCommandEntry>;
+    return [fw.slug, byManager];
   }),
 );
 
@@ -97,32 +159,50 @@ const installCommands: Record<
  * so a reader meets the React island as an explicit choice rather than as step 3
  * of an otherwise React-free setup.
  *
- * The snippets come from the Astro entry itself — `snippet2` is the
- * framework-free switch, `reactSetup` is the config with the renderer — so the
- * two pages render one definition.
+ * `astro-native` is the framework-free switch and the Astro entry's
+ * `reactSetup` is the config with the renderer; the React island itself is the
+ * class-only Quick Start variant.
  */
 const astro = frameworks.find((fw) => fw.slug === "astro");
 
 /**
- * The canonical stylesheet, highlighted once.
+ * The two halves of the stylesheet, highlighted once each.
  *
- * Every framework entry points its `styles` slot at the same source — only the
- * file name differs — so this is one string rather than a per-framework map.
- * It is CSS, so it has no language variants.
+ * The global step renders the document rule plus the four classes from the run
+ * step. The styling step renders only the component rules, so the document rule
+ * exists in one place on the page. CSS has no language variants; only the file
+ * name changes per framework.
  */
-const stylesHtml = highlightCode(
-  frameworks[0]!.styles.code,
-  frameworks[0]!.styles.lang,
+const globalStylesHtml = highlightCode(QUICK_START_GLOBAL_STYLES, "css");
+const globalStylesOnlyHtml = highlightCode(QUICK_START_DOCUMENT_STYLES, "css");
+
+/**
+ * The styling step per framework.
+ *
+ * Every runtime framework renders the component half of `CANONICAL_STYLES`.
+ * Tailwind is CSS-only and has no component stylesheet, so it renders the
+ * token→utility map that explains why its utilities need no second file.
+ */
+const styleContent: Record<string, CodeContent | undefined> = Object.fromEntries(
+  frameworks.map((fw) => {
+    const snippet = fw.cssOnly
+      ? fw.snippet2
+      : {
+          title: fw.styles.title,
+          lang: "css",
+          code: QUICK_START_COMPONENT_STYLES,
+        };
+    return [fw.slug, snippet ? contentFor(snippet, fw.slug) : undefined];
+  }),
 );
 
 /**
  * The small themed UI both this page and every guide render.
  *
  * Highlighted per framework here because the guide is a client component and
- * Shiki lives in the Node bundle; the stylesheet is one string because it is
- * deliberately identical in every framework. Every framework entry defines one
- * today, but the slot is optional in the type, so the guide omits the block
- * rather than rendering an empty one.
+ * Shiki lives in the Node bundle. Every framework entry defines one today, but
+ * the slot is optional in the type, so the guide omits the block rather than
+ * rendering an empty one.
  */
 const uiExampleContent: Record<string, CodeContent | undefined> =
   Object.fromEntries(
@@ -152,24 +232,29 @@ if (astro) {
 
 const astroContent = astro
   ? {
-      onlySwitch: contentFor(astro.snippet2, astro.slug),
+      onlySwitch: contentFor(QUICK_START_SWITCHES["astro-native"]!, astro.slug),
       reactSetup: astro.reactSetup
         ? contentFor(astro.reactSetup, astro.slug)
         : undefined,
       setupContent: astroSetupContent,
       reactInstall: Object.fromEntries(
         MANAGERS.map((manager) => {
-          const pkgsArg = [
-            "@themvora/core",
-            astro.pkg,
-            "@astrojs/react",
-            "react",
-            "react-dom",
-          ].join(" ");
-          const code =
-            manager === "npm"
-              ? `npm install ${pkgsArg}`
-              : `${manager} add ${pkgsArg}`;
+          const astroContract = astro ? contractForSlug("astro") : undefined;
+          const packages = astro && astroContract
+            ? [
+                ...explicitInstallPackages(astroContract),
+                "@astrojs/react",
+                "react",
+                "react-dom",
+              ]
+            : [
+                "@themvora/core",
+                "@themvora/astro",
+                "@astrojs/react",
+                "react",
+                "react-dom",
+              ];
+          const code = formatInstallCommand(packages, manager);
           return [manager, { code, html: highlightCode(code, "bash") }];
         }),
       ) as Record<PackageManager, InstallCommandEntry>,
@@ -194,7 +279,7 @@ const themes = [...getBuiltInThemes(), ...myThemes];`;
 export default function QuickStartPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Quickstart"
           title="Quick Start"
@@ -202,7 +287,7 @@ export default function QuickStartPage() {
         />
         <Prerequisites
           items={[
-            { label: "Node.js", value: "18.x or later" },
+            { label: "Node.js", value: "18+ (or your framework toolchain's minimum)" },
             { label: "Package manager", value: "npm, pnpm, yarn, or bun" },
             { label: "Framework", value: "Any supported framework", href: "/framework-guides" },
           ]}
@@ -211,9 +296,15 @@ export default function QuickStartPage() {
         <QuickStartGuide
           frameworkContent={frameworkContent}
           setupExtraContent={setupExtraContent}
+          buildConfigContent={buildConfigContent}
+          themeConfigContent={themeConfigContent}
           switchContent={switchContent}
-          stylesHtml={stylesHtml}
+          appFileContent={appFileContent}
+          globalStylesHtml={globalStylesHtml}
+          globalStylesOnlyHtml={globalStylesOnlyHtml}
+          styleContent={styleContent}
           installCommands={installCommands}
+          prerequisiteInstallCommands={prerequisiteInstallCommands}
           astroContent={astroContent}
           uiExampleContent={uiExampleContent}
         />

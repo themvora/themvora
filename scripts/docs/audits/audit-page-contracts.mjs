@@ -53,15 +53,24 @@ const fail = (where, what, detail) => failures.push({ where, what, detail });
 const routesSrc = readFileSync(join(siteRoot, "lib", "docs-routes.ts"), "utf8");
 const docsRoutes = [...routesSrc.matchAll(/href:\s*"([^"]+)"/g)].map((m) => m[1]);
 
-// The sidebar is a component, not data, so its link list is read by pattern like
-// the other authorities. Both spellings count: `href: "/x"` in the link arrays
-// and `href="/x"` as a JSX attribute (`NavGroup`'s index link, which renders the
-// group's "Overview" child). A computed `<Link href={...}>` is an expression and
-// does not match — nothing in the sidebar needs one.
-const layoutSrc = readFileSync(join(siteRoot, "components", "docs-layout.tsx"), "utf8");
-const sidebarHrefs = new Set(
-  [...layoutSrc.matchAll(/href[=:]\s*"(\/[^"]*)"/g)].map((m) => m[1]),
-);
+// The sidebar tree is data, and every destination resolves to a literal path —
+// passed to `link("/x", …)`, to `frameworkGuide("/guide", "/guide/examples", …)`,
+// to `libraryGuide("slug", …)` (whose two hrefs are derived from the slug by the
+// same `/libraries/{slug}` rule the routes use), or written as `href: "/x"`.
+// All four forms are statically readable. A slug that came from a variable
+// would not be, and none does: the helpers take literals at every call site.
+const navSrc = readFileSync(join(siteRoot, "lib", "docs-nav.ts"), "utf8");
+const sidebarHrefs = new Set([
+  ...[...navSrc.matchAll(/href[=:]\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+  ...[...navSrc.matchAll(/\blink\(\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+  ...[...navSrc.matchAll(/\bframeworkGuide\(\s*"(\/[^"]*)"\s*,\s*"(\/[^"]*)"/g)].flatMap(
+    (m) => [m[1], m[2]],
+  ),
+  ...[...navSrc.matchAll(/\blibraryGuide\(\s*"([^"]+)"/g)].flatMap((m) => [
+    `/libraries/${m[1]}`,
+    `/libraries/${m[1]}/examples`,
+  ]),
+]);
 
 const capabilitiesSrc = readFileSync(join(repoRoot, "docs", "reference", "capabilities.ts"), "utf8");
 const capabilityGuides = [...capabilitiesSrc.matchAll(/guide:\s*"([^"]+)"/g)].map((m) => m[1]);
@@ -320,12 +329,30 @@ const libCount = checkItem(
 // had a route, a page, a content file and a docs-routes.ts entry, and were still
 // unreachable from the rail: the assertion was measuring the wrong list. It now
 // reads the sidebar component's own link arrays, which is what the claim means.
+/**
+ * Canonical guide paths that override `/framework-guides/<slug>`.
+ *
+ * A nested integration (React Router under Remix) declares its route in the
+ * entry's `path` field; the old top-level URL is only an alias.
+ */
+function frameworkPathOverrides(src) {
+  const overrides = new Map();
+  const entries = src.matchAll(/^ {2}\{\n {4}slug: "([^"]+)",([\s\S]*?)^ {2}\},?$/gm);
+  for (const entry of entries) {
+    const path = /^ {4}path: "([^"]+)",/m.exec(entry[2])?.[1];
+    if (path) overrides.set(entry[1], path);
+  }
+  return overrides;
+}
+
+const frameworkPaths = frameworkPathOverrides(frameworksSrc);
+
 for (const [src, prefix, label] of [
   [frameworksSrc, "/framework-guides", "§3.2 framework pages"],
   [librariesSrc, "/libraries", "§3.3 adapter pages"],
 ]) {
   for (const slug of [...src.matchAll(/^\s{2,}slug:\s*"([^"]+)"/gm)].map((m) => m[1])) {
-    const href = `${prefix}/${slug}`;
+    const href = frameworkPaths.get(slug) ?? `${prefix}/${slug}`;
     if (!docsRoutes.includes(href)) {
       fail(label, slug, `has a page but no docs-routes entry (${href} is missing from docs-routes.ts)`);
     }
@@ -346,7 +373,7 @@ for (const href of docsRoutes) {
     fail(
       "§3.4 sidebar coverage",
       href,
-      "has a page but no sidebar link (add it to components/docs-layout.tsx)",
+      "has a page but no sidebar link (add it to lib/docs-nav.ts)",
     );
   }
 }

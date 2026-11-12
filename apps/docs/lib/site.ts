@@ -22,6 +22,32 @@ export const NPM_ORG_URL = "https://www.npmjs.com/org/themvora";
 export const npmPackageUrl = (pkg: string) =>
   `https://www.npmjs.com/package/${pkg}`;
 
+/**
+ * The published editor extension.
+ *
+ * The Marketplace identifier is `publisher.name`, which is **not** the same as
+ * the package name or the display name: the package is `themvora-for-vscode`,
+ * the listing reads "Themvora Theme Studio for VS Code", and the identifier
+ * users search for is `themvora.themvora-for-vscode`. Keeping all four here
+ * stops the docs, READMEs and deep links from drifting apart at the next
+ * rename.
+ */
+export const VSCODE_EXTENSION_PACKAGE = "themvora-for-vscode";
+export const VSCODE_EXTENSION_NAME = "Themvora Theme Studio for VS Code";
+export const VSCODE_EXTENSION_ID = `themvora.${VSCODE_EXTENSION_PACKAGE}`;
+export const VSCODE_EXTENSION_PUBLISHER = "Themvora";
+/** The exact filter that returns this one extension in the Extensions view. */
+export const VSCODE_EXTENSION_SEARCH = `@id:${VSCODE_EXTENSION_ID}`;
+export const VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${VSCODE_EXTENSION_ID}`;
+/**
+ * Opens the listing *inside* VS Code, where the Install button lives.
+ *
+ * This is the URI the Marketplace's own Install button uses. A browser asks the
+ * user to confirm opening an external application before handing it to VS Code.
+ */
+export const VSCODE_OPEN_URL = `vscode:extension/${VSCODE_EXTENSION_ID}`;
+export const VSCODE_INSTALL_COMMAND = `code --install-extension ${VSCODE_EXTENSION_ID}`;
+
 const ADAPTER_PACKAGES = new Set([
   "shadcn",
   "mui",

@@ -25,6 +25,13 @@ updates:
     # Patch and minor updates are the routine work and are safe to batch.
     # Majors arrive one at a time: a framework major is a fixture rewrite, not a
     # version bump, and must not be buried in a group.
+    #
+    # Peer ranges in `packages/*` are part of the published contract and are
+    # maintained by hand. Dependabot classifies `peerDependencies` as production
+    # dependencies, so a patch/minor bump also rewrites the lower bound of a peer
+    # range (`svelte: ^5.0.0` → `^5.57.3`) and locks consumers out of versions
+    # the package still supports. When reviewing these pull requests, take the
+    # `devDependencies` change and leave `peerDependencies` alone.
     groups:
       production-patch-and-minor:
         applies-to: "version-updates"

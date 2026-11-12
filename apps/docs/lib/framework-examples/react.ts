@@ -735,7 +735,7 @@ export function FamilyPicker() {
   return (
     <select value={family} onChange={(event) => setFamily(event.target.value)}>
       {families.map((entry) => (
-        <option key={entry.name} value={entry.name}>
+        <option key={entry.family} value={entry.family}>
           {entry.name}
         </option>
       ))}
@@ -797,7 +797,7 @@ export function BrandSummary() {
 
 export function Preview() {
   return (
-    <ThemeScope theme="cocoa-dark" className="rounded-lg p-6">
+    <ThemeScope theme="cocoa-dark">
       <h3>Always cocoa</h3>
       <p>This panel keeps its own theme while the page changes.</p>
     </ThemeScope>
@@ -809,7 +809,7 @@ export function Preview() {
               lang: "tsx",
               code: `// \`family\` without \`mode\` flips light/dark with the page — the usual choice
 // for a second brand surface rather than a fixed preview.
-<ThemeScope family="plum" className="p-6">
+<ThemeScope family="plum">
   <PricingTable />
 </ThemeScope>`,
             },
@@ -1135,7 +1135,7 @@ export function FamilyPicker() {
       Theme family
       <select value={family} onChange={(e) => setFamily(e.target.value)}>
         {families.map((entry) => (
-          <option key={entry.name} value={entry.name}>
+          <option key={entry.family} value={entry.family}>
             {entry.name}
           </option>
         ))}
@@ -1254,12 +1254,12 @@ export function ThemeGallery() {
   const setFamily = useSetThemeFamily();
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div>
       {families.map((entry) => (
         <button key={entry.name} onClick={() => setFamily(entry.name)}>
-          <ThemeScope family={entry.name} className="p-4 rounded-lg">
+          <ThemeScope family={entry.name}>
             <strong>{entry.name}</strong>
-            <p className="muted">The quick brown fox</p>
+            <p>The quick brown fox</p>
           </ThemeScope>
         </button>
       ))}

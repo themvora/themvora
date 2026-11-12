@@ -9,10 +9,12 @@ export default function ThemeIsland() {
   return (
     <>
       {/*
-        No theme props. The registry, the default theme and the initial
-        mode/family all come from the theme.config.ts the integration
-        transported to the browser, so restating initialMode/initialFamily here
+        No theme props. The registry, the default theme, the initial
+        mode/family and the transition all come from the theme.config.ts the
+        integration transported to the browser, so restating any of them here
         would be a second source of truth for a decision the app already made.
+        A transition prop is supported as a per-island override, but it must not
+        be needed for the declared animation to apply.
       */}
       <ThemeProviderClient />
       <ThemePanel />

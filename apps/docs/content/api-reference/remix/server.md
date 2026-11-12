@@ -31,4 +31,4 @@ cookie contract every integration shares.
 
 ## Related docs
 
-- [Remix](/framework-guides/remix) — the framework integration
+- [Remix v2](/framework-guides/remix) — the framework integration

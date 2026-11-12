@@ -234,7 +234,7 @@ jobs:
 export default function MigrationPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Migration"
           title="Keep themes current across versions"
@@ -560,7 +560,7 @@ export default function MigrationPage() {
             Work through this in order. Steps 1–3 are read-only; nothing in your
             project changes until step 4.
           </p>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">

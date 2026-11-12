@@ -733,17 +733,6 @@ const tailwind: UseCase[] = [
 @import "@themvora/tailwind";`,
   },
   {
-    title: "Dark variant",
-    desc: "The plugin wires the .dark class so dark: works out of the box.",
-    lang: "css",
-    code: `@custom-variant dark (&:where(.dark, .dark *));
-
-/* bg-background, text-foreground, bg-primary, ring-ring, ... are all tokens */
-.card {
-  @apply bg-card text-foreground border border-border rounded-lg;
-}`,
-  },
-  {
     title: "Use tokens as utilities",
     desc: "Every semantic token maps to --color-*, --radius-*, --shadow-* and friends.",
     lang: "tsx",
@@ -756,16 +745,6 @@ const tailwind: UseCase[] = [
     </div>
   );
 }`,
-  },
-  {
-    title: "Keep the dark class in sync",
-    desc: "synchronizeDarkClass bridges a themvora runtime with Tailwind's dark variant.",
-    lang: "ts",
-    code: `import { synchronizeDarkClass } from "@themvora/tailwind";
-import { getProviderRuntime } from "@themvora/web";
-
-const runtime = getProviderRuntime();
-synchronizeDarkClass(runtime.store.get());`,
   },
   {
     title: "Smooth theme transitions",
@@ -977,54 +956,68 @@ export default defineNuxtConfig({
 
 const remix: UseCase[] = [
   {
-    title: "Loader-driven initial theme",
-    desc: "Resolve the theme on the server from the request, then hydrate with it.",
+    title: "One configuration for the whole document",
+    desc: "Declare the theme document once; the loader, the pre-paint script, the <html> shell and the runtime all read it.",
     lang: "tsx",
     code: `// app/root.tsx
-import { useLoaderData } from "@remix-run/react";
-import { ThemeProvider } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
+import type { LinksFunction } from "@remix-run/node";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
 
-// getInitialThemeState takes the registry as a required option; the built-in
-// set is a valid registry, so no theme file is needed.
-const themes = getBuiltInThemes();
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  return { initial: await getInitialThemeState(request, { themes }) };
+// One static configuration. Nothing here depends on the request.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  mode: "system",
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const { theme } = useLoaderData<typeof loader>();
+
+  return (
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[<Meta key="meta" />, <Links key="links" />]}
+      afterContent={<><ScrollRestoration /><Scripts /></>}
+    >
+      {children}
+    </theming.Document>
+  );
 }
 
 export default function App() {
-  const { initial } = useLoaderData();
-  return (
-    <ThemeProvider initial={initial}>
-      <Outlet />
-    </ThemeProvider>
-  );
+  return <Outlet />;
 }`,
   },
   {
-    title: "Blocking script",
-    desc: "Emit the blocking head script so there is no theme flash.",
+    title: "Zero-flash first paint",
+    desc: "The blocking script and the matching <html> shell come from the same configuration, so the server markup is already correct.",
     lang: "tsx",
-    code: `import { Links, Scripts } from "@remix-run/react";
-import { ThemeHead } from "@themvora/remix";
-import { getBuiltInThemes } from "@themvora/core";
+    code: `// app/root.tsx — the document owns both halves of the pre-paint contract.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  mode: "system",
+  scrollbar: true, // also hides the native scrollbar before first paint
+});
 
-// ThemeHead.themes is required — the built-in set is a valid registry.
-const themes = getBuiltInThemes();
-
-export function Layout({ children }) {
-  return (
-    <html>
-      <head>
-        <ThemeHead themes={themes} defaultTheme="light" />
-        <Links />
-      </head>
-      <body>{children}<Scripts /></body>
-    </html>
-  );
-}`,
+// <theming.Document initial={theme}> renders:
+//   1. <ThemeHead>      — the blocking bootstrap, first in <head>
+//   2. <html> shell     — the attributes and CSS variables the script writes
+//   3. <ThemeProvider>  — the runtime, hydrated against the loader's value
+//
+// Assembling the document by hand is still supported: pass the same
+// \`themes\`, \`defaultTheme\` and \`mode\` to ThemeHead, getThemeShellProps()
+// and ThemeProvider, or they will disagree and paint a different theme.`,
   },
   {
     title: "Client switcher",
@@ -1051,9 +1044,11 @@ export function ThemeControls() {
     code: `import { createRemixThemePersistence } from "@themvora/remix";
 import { getBuiltInThemes } from "@themvora/core";
 
-// The registry is the first positional argument; the built-in set works.
+// The registry is the first positional argument, the fallback theme the second.
 const themes = getBuiltInThemes();
 
+// Returns null during SSR — there is no storage on the server, and the runtime
+// accepts null, so the same module can be imported on both sides.
 export const persistence = createRemixThemePersistence(themes, "light", {
   key: "theme",
 });`,
@@ -1063,18 +1058,17 @@ export const persistence = createRemixThemePersistence(themes, "light", {
     desc: "Enable CSS transitions on theme changes for a polished user experience.",
     lang: "tsx",
     code: `// app/root.tsx
-import { ThemeProvider } from "@themvora/remix";
+import { createThemeDocument } from "@themvora/remix";
+import { getBuiltInThemes } from "@themvora/core";
 
-export default function App() {
-  return (
-    <ThemeProvider
-      defaultTheme="light"
-      transition={{ enabled: true, duration: 300, easing: "ease-in-out" }}
-    >
-      <Outlet />
-    </ThemeProvider>
-  );
-}`,
+// Declared once: the provider the document renders receives the same object,
+// so a nested route cannot end up with a different transition setting.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  mode: "system",
+  transition: { enabled: true, duration: 300, easing: "ease-in-out" },
+});`,
   },
 ];
 

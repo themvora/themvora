@@ -116,7 +116,7 @@ export function createProcessRunner(stdio: StdioOptions = childCommandStdio()): 
  * a path with a space splits in two. Direct spawning passes the arguments
  * verbatim, which is what makes the runner faithful.
  */
-function needsShell(command: string): boolean {
+export function needsShell(command: string): boolean {
   if (process.platform !== "win32") return false;
   // An explicit executable (node.exe, a resolved binary) never needs a shell.
   if (/\.(exe|com)$/i.test(command)) return false;

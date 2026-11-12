@@ -188,8 +188,8 @@ function FooterColumn({
 
 export function SiteFooter() {
   return (
-    <footer className="relative z-10 border-t border-border">
-      <div className="mx-auto max-w-6xl px-6 pt-14 pb-8">
+    <footer className="site-footer relative z-10 border-t border-border">
+      <div className="site-shell px-6 pt-14 pb-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-8">
           <div className="max-w-sm">
             <Link href="/" className="no-underline">

@@ -129,7 +129,7 @@ export function CommandReference({
       {exitCodes && exitCodes.length > 0 ? (
         <div>
           <h3 className="text-lg font-semibold mb-3">Exit Codes</h3>
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 border-b border-border">
                 <tr>

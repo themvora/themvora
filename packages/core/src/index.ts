@@ -15,6 +15,7 @@ export * from "./registry-loader";
 export * from "./adapters";
 export * from "./createThemeStore";
 export * from "./bootstrap";
+export * from "./prepaint";
 export * from "./app-config";
 // Deliberately NOT exported here: the loader uses node builtins and is only
 // meaningful at build time. It lives at `@themvora/core/config` so a browser
@@ -37,6 +38,12 @@ export * from "./diagnostics";
 export * from "./errors";
 export * from "./validate-theme";
 export * from "./configuration";
+// One function from the colour engine is public on purpose: naming a colour is
+// an authoring concern (a theme family, a preset label), and the alternative is
+// every caller re-implementing hue bucketing outside the one module allowed to
+// do colour math. The rest of the engine stays internal — this returns a string,
+// not a colour, so it exposes no representation.
+export { colorName } from "./color";
 export * from "./css";
 export * from "./default-themes";
 export * from "./generate-theme";

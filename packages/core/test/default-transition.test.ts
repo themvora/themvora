@@ -39,7 +39,7 @@ describe("default transition behavior (no transition option)", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("CSS binding attaches a transition to :root when no transition option is passed", async () => {
+  it("swaps in one step with the default transition when no option is passed", async () => {
     const runtime = createThemeRuntime({
       themes,
       defaultTheme: "mint-light",
@@ -51,20 +51,27 @@ describe("default transition behavior (no transition option)", () => {
     const css = createCSSVariablesBinding(runtime.store, {});
     const el = document.documentElement;
 
-    // Toggle: colors change → plan should be non-null → coordinator should
-    // attach the transition stylesheet + the animating attribute.
+    // Toggle: colors change → the planner reports a duration → the fallback
+    // opens a suppression window around the swap.
     runtime.selection.toggleTheme();
 
-    // First frame runs the swap; by then the transition rule should be present.
-    await flushAnimationFrames();
-
-    const transitionStyle = document.head.querySelector("style[data-themvora-transition]");
-    const animatingAttr = el.hasAttribute("data-themvora-animating");
-
-    // The coordinator removes the attribute after the animation finishes, but
-    // the persistent :root transition rule stays installed for future runs.
+    // The swap is synchronous and atomic. There is no persistent `:root`
+    // transition rule, so nothing interpolates the `--theme-*` values — that is
+    // what keeps adapter-driven components and the token surfaces in step.
     expect(el.style.getPropertyValue("--theme-color-background")).toBe("#020617");
-    expect(!!transitionStyle).toBe(true);
+    expect(el.style.transition).toBe("");
+    expect(
+      document.head.querySelector("style[data-themvora-transition]"),
+    ).toBeNull();
+
+    // The default duration is spent muting descendants, not easing variables.
+    expect(el.hasAttribute("data-themvora-animating")).toBe(true);
+    expect(
+      document.head.querySelector("style[data-themvora-animating-style]"),
+    ).not.toBeNull();
+
+    await flushAnimationFrames();
+    expect(el.style.getPropertyValue("--theme-color-background")).toBe("#020617");
 
     css?.destroy();
     runtime.destroy();

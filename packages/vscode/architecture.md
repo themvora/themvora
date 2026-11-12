@@ -5,9 +5,9 @@ extension as implemented today. Historical milestone and phase reports are
 archived under [`docs/history/`](./docs/history/) and are **not** a description
 of current behaviour; where the two disagree, this document and the code win.
 
-- Package: `themvora-vscode` (private, not published to npm)
-- Extension identifier: `themvora.themvora-vscode`
-- Version: `0.1.0`
+- Package: `themvora-for-vscode` (private, not published to npm)
+- Extension identifier: `themvora.themvora-for-vscode`
+- Version: `0.1.1`
 - Minimum engine: VS Code `^1.94.0`
 - Entry point: `dist/index.js` (ESM)
 
@@ -400,18 +400,18 @@ Run from the repository root.
 
 ```bash
 pnpm install
-pnpm --filter themvora-vscode build        # tsup bundle + tsc declarations + webview
-pnpm --filter themvora-vscode typecheck    # src and webview
-pnpm --filter themvora-vscode test         # vitest
-pnpm --filter themvora-vscode test:host    # real VS Code, dev path
-pnpm --filter themvora-vscode test:host:vsix  # real VS Code, packaged archive
+pnpm --filter themvora-for-vscode build        # tsup bundle + tsc declarations + webview
+pnpm --filter themvora-for-vscode typecheck    # src and webview
+pnpm --filter themvora-for-vscode test         # vitest
+pnpm --filter themvora-for-vscode test:host    # real VS Code, dev path
+pnpm --filter themvora-for-vscode test:host:vsix  # real VS Code, packaged archive
 ```
 
 Packaging:
 
 ```bash
-pnpm --filter themvora-vscode build
-cd packages/vscode && pnpm package   # -> themvora-vscode-0.1.0.vsix
+pnpm --filter themvora-for-vscode build
+cd packages/vscode && pnpm package   # -> themvora-for-vscode-0.1.1.vsix
 node scripts/verify-vsix.mjs         # self-containment check
 ```
 
@@ -450,10 +450,10 @@ feature breaks:
 ### 7.3 Making a change
 
 1. Change `src/` or `webview/`.
-2. `pnpm --filter themvora-vscode typecheck` — the webview has its own tsconfig,
+2. `pnpm --filter themvora-for-vscode typecheck` — the webview has its own tsconfig,
    so a host-only typecheck misses it.
-3. `pnpm --filter themvora-vscode test`.
-4. `pnpm --filter themvora-vscode build`, then `test:host`. The host test is the
+3. `pnpm --filter themvora-for-vscode test`.
+4. `pnpm --filter themvora-for-vscode build`, then `test:host`. The host test is the
    only check that proves the ESM entry point loads and `activate()` runs.
 5. If packaging changed, `test:host:vsix`. A `.vsix` that omits a file fails
    here rather than after publishing.

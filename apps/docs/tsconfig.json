@@ -13,11 +13,14 @@
     "incremental": true
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "tools/cli-test.mjs"
+    "next-env.d.ts",
+    "tools/cli-test.mjs",
+    ".next-verify/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

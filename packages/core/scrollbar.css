@@ -74,6 +74,21 @@ html.tv-scrollbar *::-webkit-scrollbar-corner {
   background: transparent;
 }
 
+/* OUT-OF-SCOPE containers (`scope.exclude`) collapse their gutter.
+   The rules above reserve a scrollbar's width on every element so an overlay
+   never reflows the page. An excluded container never receives an overlay, so
+   that reservation would be dead space — an empty 15px strip down its edge with
+   nothing drawn in it. The engine marks those elements
+   (`data-themvora-scrollbar="excluded"`); zeroing the pseudo-element collapses
+   the reservation, and the container keeps scrolling normally by wheel,
+   trackpad and touch.
+   Scoped to `html.tv-scrollbar` on purpose: outside an active overlay there is
+   no reservation to undo, and the native scrollbar must stay untouched. */
+html.tv-scrollbar [data-themvora-scrollbar="excluded"]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* Engines without WebKit pseudo-elements (Firefox) reserve the same space
    through the standard properties. */
 @supports not selector(::-webkit-scrollbar) {
@@ -89,6 +104,11 @@ html.tv-scrollbar *::-webkit-scrollbar-corner {
   [data-themvora-scrollbar="overlay"] {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
+  }
+
+  /* Same collapse for engines without WebKit pseudo-elements. */
+  html.tv-scrollbar [data-themvora-scrollbar="excluded"] {
+    scrollbar-width: none;
   }
 }
 

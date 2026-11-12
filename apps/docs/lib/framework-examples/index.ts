@@ -10,6 +10,7 @@ import { tailwindExamples } from "./tailwind";
 import { astroExamples } from "./astro";
 import { nuxtExamples } from "./nuxt";
 import { remixExamples } from "./remix";
+import { reactRouterExamples } from "./react-router";
 
 export type {
   ApiExample,
@@ -40,6 +41,7 @@ export const frameworkExamples: Record<string, FrameworkExamples> = {
   astro: astroExamples,
   nuxt: nuxtExamples,
   remix: remixExamples,
+  "react-router": reactRouterExamples,
 };
 
 /** The examples page for one framework, or `undefined` for an unknown slug. */

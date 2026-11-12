@@ -33,6 +33,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --site-header-height: 4rem;
+  /* Docs shell widths. Two values so the layout can widen when the
+     navigation is collapsed without the article reflowing twice. */
+  --site-shell-max: 77rem;
+  --docs-shell-max: 93.75rem;
+  --docs-shell-max-collapsed: 85rem;
 }
 
 /* Tailwind v4 defaults `border-color` to `currentColor`, so this restores the
@@ -68,6 +73,103 @@ body {
 
 ::selection {
   background: color-mix(in srgb, var(--theme-color-primary) 30%, transparent);
+}
+
+/* Default focus indicator for elements that don't ship their own. It must live
+   in the base layer: unlayered rules beat Tailwind's utilities, which stacked
+   this outline on top of `focus:border-ring` / `focus-visible:ring-2` styles
+   and read as a double border on every focused input. */
+@layer base {
+  :root :focus-visible {
+    outline: 1.89px solid var(--theme-color-ring);
+    outline-offset: 0.4px;
+  }
+}
+
+.search-dialog-input:focus-visible {
+  outline: none;
+}
+.search-input-wrap:focus-within {
+  border-bottom-color: var(--theme-color-ring);
+}
+
+/* ---------- The chrome accent ----------
+
+   The colour the site's own furniture is painted in: the logo mark, the TOC
+   rail, the active nav link, the code-block syntax roles, the scrollbar, prose
+   links, badges.
+
+   It defaults to `primary` — correct for every generated theme, and what these
+   rules read before the variable existed. Where a theme pins `primary` to a
+   brand anchor that cannot stand off its own canvas, the root layout emits a
+   corrected value for that theme alone (`lib/chrome-accent.ts`). `slack-dark`
+   is the case that exposed this: its aubergine is 1.42:1 on its own canvas, so
+   the logo, the rail, the active sidebar link and the whole syntax palette were
+   effectively invisible.
+
+   The correction covers the chrome as a whole, not just the marks. Splitting it
+   — corrected marks, raw `primary` in navigation — left the active sidebar link
+   as a 1.42:1 fill at 12% opacity with a 1.42:1 inset bar, identifiable only by
+   its font weight. A highlight that cannot be seen is a control the reader
+   cannot find, so navigation is corrected too. It is still exactly one theme in
+   the catalogue; every other theme resolves the accent to its own `primary`.
+
+   Filled surfaces paired with `primaryForeground` (buttons, the selected
+   language chip) still use `primary` directly — those are solved semantic
+   pairs, and repainting them would break the ink contrast.
+
+   Two details in the rule below are load-bearing:
+
+   - **`@layer base`.** The generated sheet is unlayered, and an unlayered rule
+     outranks every layered one regardless of specificity. That lets the
+     per-theme correction win without having to out-specify this rule — the same
+     trap the `border-color` reset below documents.
+
+   - **`[data-theme]` in the selector.** A custom property's `var()` is
+     substituted where it is *declared*, so a default on `:root` alone would hand
+     every scoped theme container the page's accent instead of its own.
+     Declaring it on any element that carries `data-theme` makes each scope
+     resolve against its own `--theme-color-primary`. */
+@layer base {
+  :root,
+  [data-theme] {
+    --docs-accent: var(--theme-color-primary);
+  }
+}
+
+/* Tailwind v4 defaults `border-color` to `currentColor`, so this restores the
+   neutral default. It has to live in `@layer base`: an unlayered rule outranks
+   every layered one regardless of specificity, which meant this was beating
+   `@layer utilities` and every `border-<color>` utility in the docs rendered as
+   the neutral border — the coloured Callout variants included. */
+@layer base {
+  * {
+    border-color: var(--theme-color-border);
+  }
+}
+
+html {
+  min-height: 100%;
+  background-color: var(--theme-color-background);
+  scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-geist-sans);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--docs-accent) 30%, transparent);
 }
 
 /* Default focus indicator for elements that don't ship their own. It must live
@@ -252,7 +354,6 @@ body {
   text-shadow: 0.035em 0.035em 0
     color-mix(in srgb, var(--theme-color-primary) 70%, transparent);
 }
-
 
 @keyframes gradient-shift {
   0% {
@@ -530,6 +631,145 @@ body {
   border-bottom: 1px solid var(--theme-color-border);
 }
 
+/* ---------- Hero controls ---------- */
+
+/*
+ * The palette picker.
+ *
+ * The product's central claim made clickable, so it is sized like a control and
+ * not like a tag: a real target, the family's own colour in the swatch, and a
+ * selected state that survives being looked at from across the room.
+ */
+.palette-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem 0.5rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.palette-chip:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--docs-accent) 55%,
+    var(--theme-color-border)
+  );
+  transform: translateY(-1px);
+}
+
+.palette-chip:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+
+.palette-chip-active {
+  border-color: var(--docs-accent);
+  background: color-mix(
+    in srgb,
+    var(--docs-accent) 12%,
+    var(--theme-color-background)
+  );
+  box-shadow: 0 0 0 1px var(--docs-accent) inset;
+}
+
+.palette-dot {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--theme-color-foreground) 18%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, #fff 22%, transparent);
+  flex: none;
+}
+
+/* The install command, with its copy affordance on the same line. */
+.install-command {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.35rem 0.35rem 0.35rem 0.9rem;
+  border: 1px solid var(--theme-color-border);
+  border-radius: 0.6rem;
+  /* background: color-mix(
+    in srgb,
+    var(--theme-color-muted) 55%,
+    var(--theme-color-background)
+  ); */
+}
+
+.install-copy {
+  flex: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.install-copy:hover {
+  background: var(--theme-color-muted);
+}
+
+.install-copy:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+
+/* "Switched to X — Undo". */
+.theme-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 95;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: 0 12px 32px -12px
+    color-mix(in srgb, var(--theme-color-foreground) 35%, transparent);
+  animation: toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.theme-toast-undo {
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
 /* ---------- Sidebar ---------- */
 
 .site-nav-link {
@@ -687,13 +927,27 @@ body {
      stop here. Each role maps to a *distinct* mix of semantic tokens so the
      palette stays harmonized with the theme while every syntax element stays
      distinguishable. */
-  --tv-code-bg: var(
-    --theme-code-background,
-    color-mix(
-      in srgb,
-      var(--theme-color-muted) 56%,
-      var(--theme-color-background)
-    )
+  /* The code surface is derived from the page, never from
+     `--theme-code-background`.
+
+     A theme's `code.background` is part of the published contract, and the
+     generated one is a fixed neutral slate (`#ffffff` / `#0f172a`) on purpose —
+     a code block is a neutral container in the theme's own terms. On *this*
+     site that slate is the one surface that does not belong to the palette
+     around it: applying a pink or red theme to the studio left a blue-grey
+     panel sitting in a tinted page, and a `#ffffff` panel inside a warm light
+     one.
+
+     Deriving the surface from `muted`/`background` puts the pane on top of the
+     page it lives in, which is what the docs theme itself already encodes:
+     its curated `code.background` is `#f6f7fc` / `#111322`, within a single
+     step per channel of the mix below (`#f5f6fd` / `#111323`). So this changes
+     nothing for the site's own theme and makes every other theme — preset,
+     brand, generated — sit correctly. */
+  --tv-code-bg: color-mix(
+    in srgb,
+    var(--theme-color-muted) 56%,
+    var(--theme-color-background)
   );
   --tv-syntax-plain: var(
     --theme-code-foreground,
@@ -703,37 +957,50 @@ body {
     --theme-code-comment,
     color-mix(in srgb, var(--theme-color-foreground) 55%, transparent)
   );
-  --tv-syntax-keyword: var(--theme-code-keyword, var(--theme-color-primary));
+  /* Syntax roles are mixed from `--docs-accent`, not `--theme-color-primary`.
+
+     An anchored brand fill can be too dark to read on its own canvas — Slack's
+     aubergine `#4a154b` is 1.42:1 on the `slack-dark` background — and painting
+     the syntax palette in it made highlighted code effectively invisible on
+     `/quick-start` and every other page with a snippet. `--docs-accent` is the
+     corrected role the logo mark, the TOC rail, the active nav link and the
+     scrollbar already read (see `lib/chrome-accent.ts`); the code pane is the
+     fifth consumer of the same correction.
+
+     For every theme whose `primary` clears the floor the accent *is* the
+     primary, so these declarations resolve to exactly what they did before —
+     only a theme that needed correcting renders differently. */
+  --tv-syntax-keyword: var(--theme-code-keyword, var(--docs-accent));
   --tv-syntax-operator: var(
     --theme-code-operator,
     color-mix(
       in srgb,
       var(--theme-color-foreground) 70%,
-      var(--theme-color-primary)
+      var(--docs-accent)
     )
   );
   --tv-syntax-string: var(
     --theme-code-string,
-    color-mix(in srgb, var(--theme-color-primary) 70%, #10b981)
+    color-mix(in srgb, var(--docs-accent) 70%, #10b981)
   );
   --tv-syntax-function: var(
     --theme-code-function,
-    color-mix(in srgb, var(--theme-color-primary) 75%, #3b82f6)
+    color-mix(in srgb, var(--docs-accent) 75%, #3b82f6)
   );
   --tv-syntax-type: var(
     --theme-code-type,
-    color-mix(in srgb, var(--theme-color-primary) 70%, #8b5cf6)
+    color-mix(in srgb, var(--docs-accent) 70%, #8b5cf6)
   );
   --tv-syntax-tag: var(
     --theme-code-tag,
-    color-mix(in srgb, var(--theme-color-primary) 75%, #ec4899)
+    color-mix(in srgb, var(--docs-accent) 75%, #ec4899)
   );
   --tv-syntax-attr: var(
     --theme-code-attribute,
     color-mix(
       in srgb,
       var(--theme-color-foreground) 82%,
-      var(--theme-color-primary)
+      var(--docs-accent)
     )
   );
   --tv-syntax-variable: var(
@@ -745,16 +1012,16 @@ body {
     color-mix(
       in srgb,
       var(--theme-color-foreground) 85%,
-      var(--theme-color-primary)
+      var(--docs-accent)
     )
   );
   --tv-syntax-number: var(
     --theme-code-number,
-    color-mix(in srgb, var(--theme-color-primary) 65%, #f97316)
+    color-mix(in srgb, var(--docs-accent) 65%, #f97316)
   );
   --tv-syntax-diff-add: color-mix(
     in srgb,
-    var(--theme-color-primary) 60%,
+    var(--docs-accent) 60%,
     var(--theme-color-foreground)
   );
   --tv-syntax-diff-remove: var(--theme-color-destructive);
@@ -780,42 +1047,34 @@ html.dark {
   );
   --tv-syntax-keyword: var(
     --theme-code-keyword,
-    color-mix(
-      in srgb,
-      var(--theme-color-primary) 88%,
-      var(--theme-color-foreground)
-    )
+    color-mix(in srgb, var(--docs-accent) 88%, var(--theme-color-foreground))
   );
   --tv-syntax-operator: var(
     --theme-code-operator,
-    color-mix(
-      in srgb,
-      var(--theme-color-primary) 80%,
-      var(--theme-color-foreground)
-    )
+    color-mix(in srgb, var(--docs-accent) 80%, var(--theme-color-foreground))
   );
   --tv-syntax-string: var(
     --theme-code-string,
-    color-mix(in srgb, var(--theme-color-primary) 40%, #4ade80)
+    color-mix(in srgb, var(--docs-accent) 40%, #4ade80)
   );
   --tv-syntax-function: var(
     --theme-code-function,
-    color-mix(in srgb, var(--theme-color-primary) 45%, #60a5fa)
+    color-mix(in srgb, var(--docs-accent) 45%, #60a5fa)
   );
   --tv-syntax-type: var(
     --theme-code-type,
-    color-mix(in srgb, var(--theme-color-primary) 50%, #c084fc)
+    color-mix(in srgb, var(--docs-accent) 50%, #c084fc)
   );
   --tv-syntax-tag: var(
     --theme-code-tag,
-    color-mix(in srgb, var(--theme-color-primary) 45%, #f472b6)
+    color-mix(in srgb, var(--docs-accent) 45%, #f472b6)
   );
   --tv-syntax-attr: var(
     --theme-code-attribute,
     color-mix(
       in srgb,
       var(--theme-color-foreground) 88%,
-      var(--theme-color-primary)
+      var(--docs-accent)
     )
   );
   --tv-syntax-variable: var(
@@ -827,12 +1086,12 @@ html.dark {
     color-mix(
       in srgb,
       var(--theme-color-foreground) 90%,
-      var(--theme-color-primary)
+      var(--docs-accent)
     )
   );
   --tv-syntax-number: var(
     --theme-code-number,
-    color-mix(in srgb, var(--theme-color-primary) 40%, #fbbf24)
+    color-mix(in srgb, var(--docs-accent) 40%, #fbbf24)
   );
   --tv-syntax-diff-add: color-mix(
     in srgb,
@@ -1033,9 +1292,13 @@ html.dark {
   white-space: pre;
 }
 
+/* The line marker and the expand button are marks and reading text, so they
+   follow the same corrected accent as the syntax roles above: on `slack-dark`
+   an aubergine bar at 12% and an aubergine "Show N more lines" label were both
+   invisible on the code surface. */
 .code-block pre.shiki .highlighted {
-  background: color-mix(in srgb, var(--theme-color-primary) 12%, transparent);
-  box-shadow: inset 2px 0 0 var(--theme-color-primary);
+  background: color-mix(in srgb, var(--docs-accent) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--docs-accent);
 }
 
 /* Collapsible code blocks — collapsed state shows a max-height cut-off with
@@ -1069,7 +1332,7 @@ html.dark {
   font-size: 0.78rem;
   font-weight: 600;
   font-family: var(--font-mono);
-  color: var(--theme-color-primary);
+  color: var(--docs-accent);
   background: color-mix(
     in srgb,
     var(--tv-code-bg, var(--theme-color-muted)) 90%,
@@ -1081,7 +1344,7 @@ html.dark {
 }
 
 .code-block .code-block-expand:hover {
-  background: color-mix(in srgb, var(--theme-color-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--docs-accent) 10%, transparent);
 }
 
 .code-block pre.shiki .diff-add,
@@ -1089,11 +1352,11 @@ html.dark {
   position: relative;
   display: block;
   box-shadow: inset 2px 0 0
-    color-mix(in srgb, var(--theme-color-primary) 55%, transparent);
+    color-mix(in srgb, var(--docs-accent) 55%, transparent);
 }
 
 .code-block pre.shiki .diff-add {
-  background: color-mix(in srgb, var(--theme-color-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--docs-accent) 14%, transparent);
 }
 
 .code-block pre.shiki .diff-remove {
@@ -1392,5 +1655,940 @@ html.dark .shot-pair > .shot-dark {
   #mobile-menu nav * {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* ---------- Docs layout ----------
+
+   The navigation track, the article column and the table-of-contents rail.
+
+   Restored from the build cache after an editing mistake removed this layer
+   from the source. The rules are the ones the site was shipping; the prose
+   comments that accompanied them in the source are gone, so each block keeps
+   only what it does.
+*/
+
+@layer components {
+  .docs-grid[data-content-width="standard"] [data-toc-root] :where(p) {
+    max-width: 44rem;
+  }
+}
+
+@layer components {
+  .docs-grid[data-content-width="wide"] [data-toc-root] :where(p) {
+    max-width: 48rem;
+  }
+}
+
+@layer components {
+  .docs-grid[data-content-width="full"] [data-toc-root] :where(p) {
+    max-width: 52rem;
+  }
+}
+
+.site-shell {
+  width: 100%;
+  max-width: var(--site-shell-max);
+  margin-inline: auto;
+}
+
+/* The width transition is armed only after the first paint
+   (`data-shell-ready`, set by the docs layout). Before that, a docs page is
+   correcting the header from `--site-shell-max` to `--docs-shell-max` before
+   anything is painted, and easing that correction would look like the header
+   sliding open on every load. Afterwards every width change eases — the route
+   change back to the homepage included. */
+body[data-shell-ready] .site-shell {
+  transition: max-width 0.24s;
+}
+
+/* The docs layout mirrors its state onto `<body>` (see `docs-layout.tsx`), so
+   these rules key off an attribute on the body itself rather than
+   `body:has([data-docs-layout])`.
+
+   That distinction is the difference between smooth and stuttering. `:has()`
+   is re-evaluated on every DOM mutation, and a client-side route change is
+   thousands of them — the header's width transition was competing with that
+   invalidation the whole time it ran. A plain attribute selector costs one
+   match per style recalculation and leaves the transition to do its work. */
+body[data-docs-layout] .site-shell {
+  padding-inline: clamp(1rem, 3vw, 2.75rem);
+}
+
+/* The header follows the docs shell, so the logo, the search field and the
+   account controls sit on the same edges as the navigation rail and the
+   article. The homepage has no docs layout, so it keeps `--site-shell-max`.
+
+   Collapsing the rail moves `--docs-shell-max` to `--docs-shell-max-collapsed`,
+   and `.site-shell` transitions `max-width`, so the header widens and narrows
+   with the rail over the same 240ms. `prefers-reduced-motion` disables it
+   further down. */
+body[data-docs-layout] .site-header .site-shell {
+  max-width: var(--docs-shell-max);
+}
+
+body[data-docs-layout][data-nav-collapsed="true"] .site-header .site-shell {
+  max-width: var(--docs-shell-max-collapsed);
+}
+
+/* The footer follows the same shell as the header. It used to stop at
+   `--site-shell-max` on every page, so a docs page ended on a column 1232px
+   wide underneath a navigation bar 1500px wide — the content above it flush to
+   one edge and the footer inset from both.
+
+   It also has to move when the rail collapses, and it does: the transition on
+   `body[data-shell-ready] .site-shell` is what animates both, so the two edges
+   travel together instead of the footer snapping at the end. */
+body[data-docs-layout] .site-footer .site-shell {
+  max-width: var(--docs-shell-max);
+}
+
+body[data-docs-layout][data-nav-collapsed="true"] .site-footer .site-shell {
+  max-width: var(--docs-shell-max-collapsed);
+}
+
+.docs-shell {
+  width: 100%;
+  max-width: var(--docs-shell-max);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2.75rem);
+  transition: max-width 0.24s;
+}
+
+.docs-shell[data-nav-collapsed="true"] {
+  max-width: var(--docs-shell-max-collapsed);
+}
+
+.docs-grid {
+  align-items: start;
+  column-gap: var(--docs-column-gap, 1.75rem);
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 3rem;
+  transition: grid-template-columns 0.24s;
+  display: grid;
+}
+
+.docs-article {
+  min-width: 0;
+  padding: 1.75rem 0 0;
+}
+
+[data-toc-root] {
+  container: docs-article/inline-size;
+}
+
+.docs-grid[data-content-width="wide"] .prose-doc,
+.docs-grid[data-content-width="full"] .prose-doc {
+  max-width: none;
+}
+
+@media (min-width: 1024px) {
+  .docs-grid {
+    grid-template-columns: var(--docs-nav-width, 16rem) minmax(0, 1fr);
+    --docs-column-gap: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .docs-grid-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .docs-article {
+    padding-top: 2rem;
+  }
+}
+
+@media (min-width: 1360px) {
+  .docs-grid {
+    grid-template-columns: var(--docs-nav-width, 17rem) minmax(0, 1fr) var(
+        --docs-toc-width,
+        12.5rem
+      );
+    --docs-nav-width: 17rem;
+    --docs-toc-width: 12.5rem;
+    --docs-column-gap: 1.75rem;
+  }
+}
+
+@media (min-width: 1360px) {
+  .docs-grid-collapsed {
+    grid-template-columns: minmax(0, 1fr) var(--docs-toc-width, 12.5rem);
+  }
+}
+
+@media (min-width: 1360px) {
+  .docs-grid-wide,
+  .docs-grid-no-toc {
+    grid-template-columns: var(--docs-nav-width, 17rem) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1360px) {
+  .docs-grid-wide.docs-grid-collapsed,
+  .docs-grid-no-toc.docs-grid-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* `body[data-shell-ready]` is how the shell transition is armed, so it has to
+     be repeated here: a bare `.site-shell` selector would lose to it. */
+  body[data-shell-ready] .site-shell,
+  .site-shell,
+  .docs-shell,
+  .docs-grid {
+    transition: none;
+  }
+}
+
+.docs-article-controls {
+  margin-bottom: 1rem;
+}
+
+.docs-nav-trigger {
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-card);
+  color: var(--theme-color-foreground);
+  cursor: pointer;
+  border-radius: 0.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+  display: inline-flex;
+}
+
+.docs-nav-trigger:hover {
+  border-color: var(--theme-color-ring);
+  background: var(--theme-color-muted);
+}
+
+.docs-nav-restore {
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-card);
+  border-radius: 0.75rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.7rem;
+  display: inline-flex;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-restore {
+    background: color-mix(
+      in srgb,
+      var(--theme-color-card) 84%,
+      var(--theme-color-background)
+    );
+  }
+}
+
+.docs-nav-restore {
+  color: var(--theme-color-foreground);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.docs-nav-restore:hover {
+  border-color: var(--theme-color-ring);
+  background: var(--theme-color-card);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-restore:hover {
+    background: color-mix(
+      in srgb,
+      var(--theme-color-card) 65%,
+      var(--theme-color-muted)
+    );
+  }
+}
+
+.docs-nav-restore-icon {
+  background: var(--theme-color-muted);
+  border-radius: 0.45rem;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  display: grid;
+}
+
+.docs-nav-restore-text {
+  flex-direction: column;
+  gap: 0.05rem;
+  line-height: 1.25;
+  display: flex;
+}
+
+.docs-nav-panel {
+  width: 100%;
+  max-height: calc(100dvh - var(--site-header-height) - 2rem);
+  overscroll-behavior: contain;
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-card);
+  border-radius: 0.875rem;
+  flex-direction: column;
+  margin-top: 2rem;
+  display: none;
+  overflow-y: auto;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-panel {
+    background: color-mix(
+      in srgb,
+      var(--theme-color-card) 84%,
+      var(--theme-color-background)
+    );
+  }
+}
+
+.docs-nav-panel {
+  box-shadow: 0 1px 2px var(--theme-color-foreground);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-panel {
+    box-shadow: 0 1px 2px
+      color-mix(in srgb, var(--theme-color-foreground) 5%, transparent);
+  }
+}
+
+.docs-nav-panel {
+  scroll-behavior: auto;
+}
+
+@media (min-width: 1024px) {
+  .docs-nav-panel {
+    top: calc(var(--site-header-height) + 2rem);
+    height: calc(100dvh - var(--site-header-height) - 3.5rem);
+    max-height: none;
+    display: flex;
+    position: sticky;
+  }
+}
+
+@media (min-width: 1024px) {
+  .docs-nav-panel-collapsed {
+    display: none;
+  }
+}
+
+.docs-nav-head {
+  z-index: 10;
+  border-bottom: 1px solid var(--theme-color-border);
+  background: var(--theme-color-card);
+  border-radius: 0.875rem 0.875rem 0 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  position: sticky;
+  top: 0;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-head {
+    background: color-mix(
+      in srgb,
+      var(--theme-color-card) 94%,
+      var(--theme-color-background)
+    );
+  }
+}
+
+.docs-nav-head {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.docs-nav-collapse-toggle {
+  width: 1.85rem;
+  height: 1.85rem;
+  color: var(--theme-color-foreground);
+  cursor: pointer;
+  border: 1px solid #0000;
+  border-radius: 0.45rem;
+  flex-shrink: 0;
+  place-items: center;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+  display: grid;
+}
+
+.docs-nav-collapse-toggle:hover {
+  background: var(--theme-color-muted);
+  border-color: var(--theme-color-border);
+}
+
+.docs-nav-scroll,
+.docs-drawer-tree {
+  padding: 0.55rem 0.6rem 0.85rem;
+}
+
+.docs-nav-section + .docs-nav-section {
+  margin-top: 0.65rem;
+}
+
+.docs-nav-section-heading {
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+}
+
+.docs-nav-section-toggle {
+  width: 100%;
+  color: var(--theme-color-foreground);
+  border-radius: 0.4rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.34rem 0.55rem;
+  display: flex;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-section-toggle {
+    color: color-mix(in srgb, var(--theme-color-foreground) 58%, transparent);
+  }
+}
+
+.docs-nav-section-toggle {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.docs-nav-section-toggle:hover {
+  background: var(--theme-color-muted);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-section-toggle:hover {
+    background: color-mix(in srgb, var(--theme-color-muted) 65%, transparent);
+  }
+}
+
+.docs-nav-section-toggle:hover {
+  color: var(--theme-color-foreground);
+}
+
+.docs-nav-list,
+.docs-nav-sublist {
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+}
+
+.docs-nav-sublist {
+  border-left: 1px solid var(--theme-color-border);
+  margin-top: 1px;
+  margin-left: 0.45rem;
+  padding-left: 0.5rem;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-sublist {
+    border-left: 1px solid
+      color-mix(in srgb, var(--theme-color-border) 75%, transparent);
+  }
+}
+
+.docs-nav-link,
+.docs-nav-group-toggle {
+  width: 100%;
+  min-height: 1.85rem;
+  color: var(--theme-color-foreground);
+  border-radius: 0.42rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.33rem 0.6rem;
+  display: flex;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-link,
+  .docs-nav-group-toggle {
+    color: color-mix(in srgb, var(--theme-color-foreground) 82%, transparent);
+  }
+}
+
+.docs-nav-link,
+.docs-nav-group-toggle {
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.docs-nav-link:hover,
+.docs-nav-group-toggle:hover {
+  background: var(--theme-color-muted);
+  color: var(--theme-color-foreground);
+}
+
+.docs-nav-section-toggle[aria-expanded="true"],
+.docs-nav-group-toggle[aria-expanded="true"] {
+  color: var(--theme-color-foreground);
+}
+
+.docs-nav-section-toggle[aria-expanded="true"] .docs-nav-chevron,
+.docs-nav-group-toggle[aria-expanded="true"] .docs-nav-chevron {
+  opacity: 0.7;
+}
+
+.docs-nav-link-active {
+  background: var(--docs-accent);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-link-active {
+    background: color-mix(in srgb, var(--docs-accent) 12%, transparent);
+  }
+}
+
+.docs-nav-link-active {
+  color: var(--theme-color-foreground);
+  box-shadow: inset 2px 0 0 var(--docs-accent);
+  font-weight: 600;
+}
+
+.docs-nav-link-active:hover {
+  background: var(--docs-accent);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-nav-link-active:hover {
+    background: color-mix(in srgb, var(--docs-accent) 17%, transparent);
+  }
+}
+
+.docs-nav-link-active:hover {
+  color: var(--theme-color-foreground);
+}
+
+.docs-nav-chevron {
+  opacity: 0.45;
+  transition: transform 0.2s;
+  transform: rotate(-90deg);
+}
+
+.docs-nav-chevron-open {
+  transform: rotate(0);
+}
+
+.docs-nav-collapse {
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  display: grid;
+}
+
+.docs-nav-collapse-open {
+  grid-template-rows: 1fr;
+}
+
+.docs-nav-collapse-inner {
+  min-height: 0;
+  overflow: clip;
+}
+
+.docs-nav-collapse-open > .docs-nav-collapse-inner > .docs-nav-list,
+.docs-nav-collapse-open > .docs-nav-collapse-inner > .docs-nav-sublist {
+  padding-top: 0.1rem;
+}
+
+.docs-toc-list,
+.docs-toc-sublist {
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+}
+
+.docs-toc-list {
+  border-left: 1px solid var(--theme-color-border);
+}
+
+.docs-toc-sublist {
+  margin-left: 0.8rem;
+}
+
+.docs-toc-link {
+  color: var(--theme-color-foreground);
+  border-left: 2px solid #0000;
+  margin-left: -1px;
+  padding: 0.22rem 0.45rem 0.22rem 0.7rem;
+  display: block;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-link {
+    color: color-mix(in srgb, var(--theme-color-foreground) 62%, transparent);
+  }
+}
+
+.docs-toc-link {
+  overflow-wrap: break-word;
+  font-size: 0.8125rem;
+  line-height: 1.32;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.docs-toc-link:hover {
+  background: var(--theme-color-muted);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-link:hover {
+    background: color-mix(in srgb, var(--theme-color-muted) 60%, transparent);
+  }
+}
+
+.docs-toc-link:hover {
+  color: var(--theme-color-foreground);
+}
+
+.docs-toc-link-sub {
+  color: var(--theme-color-foreground);
+  padding-left: 0.6rem;
+  font-size: 0.78rem;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-link-sub {
+    color: color-mix(in srgb, var(--theme-color-foreground) 55%, transparent);
+  }
+}
+
+.docs-toc-link-active,
+.docs-toc-link-active:hover {
+  color: var(--docs-accent);
+  font-weight: 600;
+}
+
+.docs-toc-rail {
+  display: none;
+}
+
+@media (min-width: 1360px) {
+  .docs-toc-rail {
+    display: block;
+  }
+}
+
+.docs-toc-column {
+  top: calc(var(--site-header-height) + 2rem);
+  max-height: calc(100dvh - var(--site-header-height) - 3.5rem);
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+  align-self: start;
+  margin-top: 2rem;
+  padding-bottom: 1rem;
+  position: sticky;
+  overflow-y: auto;
+}
+
+.docs-toc-mobile {
+  border: 1px solid var(--theme-color-border);
+  background: var(--theme-color-card);
+  border-radius: 0.75rem;
+  margin: 0 0 1.75rem;
+  display: block;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-mobile {
+    background: color-mix(
+      in srgb,
+      var(--theme-color-card) 72%,
+      var(--theme-color-background)
+    );
+  }
+}
+
+.docs-toc-mobile {
+  overflow: hidden;
+}
+
+@media (min-width: 1360px) {
+  .docs-toc-mobile {
+    display: none;
+  }
+}
+
+.docs-toc-mobile-summary {
+  cursor: pointer;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  list-style: none;
+  display: flex;
+}
+
+.docs-toc-mobile-summary::-webkit-details-marker {
+  display: none;
+}
+
+.docs-toc-mobile-chevron {
+  opacity: 0.45;
+  transition: transform 0.2s;
+  transform: rotate(-90deg);
+}
+
+.docs-toc-mobile[open] .docs-toc-mobile-chevron {
+  transform: rotate(0);
+}
+
+.docs-toc-mobile-list {
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0 0.5rem 0.55rem 0.85rem;
+  list-style: none;
+  display: flex;
+}
+
+.docs-toc-mobile-link {
+  color: var(--theme-color-foreground);
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  display: block;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-mobile-link {
+    color: color-mix(in srgb, var(--theme-color-foreground) 68%, transparent);
+  }
+}
+
+.docs-toc-mobile-link {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.docs-toc-mobile-link:hover {
+  background: var(--theme-color-muted);
+  color: var(--theme-color-foreground);
+}
+
+.docs-toc-mobile-sublist {
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0 0 0 0.85rem;
+  list-style: none;
+  display: flex;
+}
+
+.docs-toc-mobile-link-nested {
+  padding-left: 0.55rem;
+  font-size: 0.78rem;
+}
+
+.docs-toc-mobile-link-active {
+  color: var(--docs-accent);
+  background: var(--docs-accent);
+  font-weight: 600;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .docs-toc-mobile-link-active {
+    background: color-mix(in srgb, var(--docs-accent) 10%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-nav-collapse,
+  .docs-nav-chevron,
+  .docs-toc-mobile-chevron,
+  .docs-nav-link,
+  .docs-nav-group-toggle,
+  .docs-nav-trigger {
+    transition: none;
+  }
+}
+
+.prose-doc :is(h1, h2, h3, h4),
+[data-toc-root] :is(h1, h2, h3, h4) {
+  scroll-margin-top: calc(var(--site-header-height) + 1.5rem);
+}
+
+/* ---------- Restored from the build cache ----------
+
+   Rules the stylesheet was serving that an earlier edit removed. Recovered
+   from the webpack cache, so the declarations are exact; only the original
+   prose comments are gone.
+*/
+
+.trail-toggle {
+  border:1px solid var(--theme-color-border);
+  background:var(--theme-color-background);
+  border-radius:9999px;
+  align-items:center;
+  gap:.375rem;
+  padding:.3rem .65rem;
+  display:inline-flex;
+}
+@supports (color:color-mix(in lab, red, red)) {
+.trail-toggle {
+  background:color-mix(in srgb, var(--theme-color-background) 80%, transparent);
+}
+}
+.trail-toggle {
+  color:var(--theme-color-mutedForeground);
+  letter-spacing:.02em;
+  cursor:pointer;
+  font-size:.6875rem;
+  font-weight:600;
+  transition:color .16s,border-color .16s,background-color .16s;
+}
+.trail-toggle:hover {
+  color:var(--theme-color-foreground);
+  border-color:var(--docs-accent);
+}
+@supports (color:color-mix(in lab, red, red)) {
+.trail-toggle:hover {
+  border-color:color-mix(in srgb, var(--docs-accent) 45%, var(--theme-color-border));
+}
+}
+.trail-toggle:focus-visible {
+  outline:2px solid var(--theme-color-ring);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion:reduce) {
+.trail-toggle {
+  transition:none;
+}
+}
+.scroll-cue {
+  flex-direction:column;
+  align-items:center;
+  gap:.4rem;
+  display:inline-flex;
+}
+.scroll-cue-label {
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  opacity:.45;
+  font-size:.625rem;
+  font-weight:600;
+}
+.scroll-cue-dot {
+  background:var(--docs-accent);
+  border-radius:9999px;
+  width:.35rem;
+  height:.35rem;
+  animation:1.9s ease-in-out infinite scroll-cue;
+}
+.docs-card-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.75rem;
+  display:grid;
+}
+.docs-card-grid-packages {
+  grid-template-columns:minmax(0,1fr);
+  gap:1rem;
+  display:grid;
+}
+@container docs-article (min-width:34rem) {
+.docs-card-grid {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.docs-card-grid-packages {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+}
+@container docs-article (min-width:46rem) {
+.docs-card-grid {
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+}
+@container docs-article (min-width:50rem) {
+.docs-card-grid-packages {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+}
+.docs-drawer-tree {
+  padding:.75rem .75rem 1.5rem;
+}
+.docs-drawer-panel {
+  scroll-behavior:auto;
+}
+.docs-eyebrow {
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--theme-color-foreground);
+  font-size:.6875rem;
+  font-weight:600;
+  line-height:1.3;
+}
+@supports (color:color-mix(in lab, red, red)) {
+.docs-eyebrow {
+  color:color-mix(in srgb, var(--theme-color-foreground) 52%, transparent);
+}
+}
+.prose-table-scroll {
+  overscroll-behavior-x:contain;
+  max-width:100%;
+  margin:1rem 0;
+  overflow-x:auto;
+}
+.prose-table-scroll>table {
+  border-collapse:collapse;
+  width:100%;
+  font-size:1rem;
+}
+@media (max-width:1023px) {
+.trail-toggle {
+  display:none;
+}
+}
+
+/* The scroll cue and the toast are decorative motion; a reader who asked for
+   less motion gets neither. */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-dot,
+  .theme-toast {
+    animation: none;
   }
 }

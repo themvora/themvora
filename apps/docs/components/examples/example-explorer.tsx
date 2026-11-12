@@ -97,7 +97,7 @@ function Chip({
       aria-pressed={active}
       className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
         active
-          ? "border-primary bg-primary/10 text-primary font-medium"
+          ? "border-[var(--docs-accent)] bg-primary/10 text-[var(--docs-accent)] font-medium"
           : "border-border bg-card hover:border-ring"
       }`}
     >
@@ -415,7 +415,7 @@ export function ExamplesExplorer({
             <button
               type="button"
               onClick={reset}
-              className="text-xs text-primary hover:underline cursor-pointer"
+              className="text-xs text-[var(--docs-accent)] hover:underline cursor-pointer"
             >
               Clear filters
             </button>
@@ -429,7 +429,7 @@ export function ExamplesExplorer({
           <button
             type="button"
             onClick={reset}
-            className="text-primary hover:underline cursor-pointer"
+            className="text-[var(--docs-accent)] hover:underline cursor-pointer"
           >
             Clear them
           </button>
@@ -450,7 +450,7 @@ export function ExamplesExplorer({
             you have a working themed app.
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))]">
             {filteredStarters.map((s) => (
               <div
                 key={s.id}
@@ -469,7 +469,7 @@ export function ExamplesExplorer({
                   {s.devCommand}
                 </code>
                 <div className="flex flex-wrap items-center gap-3 mt-auto pt-1">
-                  <Link href={s.docsHref} className="text-xs text-primary hover:underline">
+                  <Link href={s.docsHref} className="text-xs text-[var(--docs-accent)] hover:underline">
                     Framework guide →
                   </Link>
                   <a

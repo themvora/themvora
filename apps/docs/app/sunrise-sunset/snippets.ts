@@ -8,16 +8,48 @@
  * highlighter, or the compiler.
  */
 
-const frameworkSnippet = (lang: string, title: string, code: string) => ({
+type ExtraSnippet = { lang: string; title: string; code: string };
+
+const frameworkSnippet = (
+  lang: string,
+  title: string,
+  code: string,
+  vite?: ExtraSnippet,
+) => ({
   lang,
   title,
   code,
+  ...(vite ? { vite } : {}),
 });
 
-export const mountExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+const webViteScheduledSnippet: ExtraSnippet = {
+  title: "Using Vite — theme.config.ts",
+  lang: "ts",
+  code: `// vite.config.ts
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({ plugins: [themvoraVitePlugin()] });
+
+// theme.config.ts
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "mint-light",
+  initialMode: "system",
+  scheduled: { enabled: true },
+});`,
+};
+
+type SunriseSnippet = {
+  lang: string;
+  title: string;
+  code: string;
+  vite?: ExtraSnippet;
+};
+
+export const mountExamples: Record<string, SunriseSnippet> = {
   react: frameworkSnippet(
     "tsx",
     "App.tsx",
@@ -148,19 +180,16 @@ export const appConfig: ApplicationConfig = {
     "html",
     "index.html",
     `<script type="module">
-  // Registers every <themvora-*> element and their stylesheet.
   import "@themvora/web";
 </script>
 
-<!-- The schedule is an attribute like every other provider option, so it can be
-     declared before the element upgrades. Omit latitude/longitude to resolve
-     the visitor's own location from their timezone. -->
 <themvora-provider
   default-theme="mint-light"
   scheduled='{"latitude":27.7172,"longitude":85.324,"lightTheme":"mint-light","darkTheme":"mint-dark"}'
 >
   <your-app></your-app>
 </themvora-provider>`,
+    webViteScheduledSnippet,
   ),
   astro: frameworkSnippet(
     "astro",
@@ -193,31 +222,21 @@ import themeConfig from "../../theme.config";
   ),
   remix: frameworkSnippet(
     "tsx",
-    "app/root.tsx",
-    `import { ThemeProvider } from "@themvora/remix";
-import { themes } from "./themes";
-
-export default function App() {
-  return (
-    <ThemeProvider
-      themes={themes}
-      defaultTheme="mint-light"
-      scheduled={{
-        // Optional: light/dark adapt to the current family, coordinates
-        // auto-detect from the visitor's timezone.
-      }}
-    >
-      <Outlet />
-    </ThemeProvider>
-  );
-}`,
+    "app/root.tsx — theming configuration",
+    `const theming = createThemeDocument({
+  themes,
+  defaultTheme: "mint-light",
+  mode: "system",
+  scheduled: {
+    enabled: true,
+    // Optional: light/dark adapt to the current family, coordinates
+    // auto-detect from the visitor's timezone.
+  },
+});`,
   ),
 };
 
-export const controllerExamples: Record<
-  string,
-  { lang: string; title: string; code: string }
-> = {
+export const controllerExamples: Record<string, SunriseSnippet> = {
   react: frameworkSnippet(
     "tsx",
     "ScheduleToggle.tsx",
@@ -425,8 +444,6 @@ export class ScheduleToggleComponent {
     "schedule.ts",
     `import { getThemeSchedule } from "@themvora/web";
 
-// Web Components expose the same reactive accessor as the hooks.
-// Returns null when the provider has no scheduled option configured.
 const schedule = getThemeSchedule();
 
 schedule?.enable();   // starts the sunrise/sunset timer
@@ -434,6 +451,7 @@ schedule?.disable();  // stops it — theme stays where it is
 schedule?.set({ timeZone: "Asia/Kathmandu" });           // pin a timezone
 schedule?.set({ latitude: 51.5074, longitude: -0.1278 }); // …or coordinates
 schedule?.set({ autoDetectLocation: true });             // back to auto-detection`,
+    webViteScheduledSnippet,
   ),
   astro: frameworkSnippet(
     "astro",
@@ -505,3 +523,8 @@ export default function ScheduleToggle() {
 }`,
   ),
 };
+
+// React Router mounts the same package as Remix, so the configuration is
+// identical — only the file that owns the document differs. Reusing the
+// entry keeps the two from drifting.
+controllerExamples["react-router"] = { ...controllerExamples.remix! };

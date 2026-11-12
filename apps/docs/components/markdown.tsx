@@ -63,6 +63,22 @@ function parseMeta(meta?: string): {
  */
 function createComponents(withLanguageChoice: boolean): Components {
   return {
+    /**
+     * Tables are wrapped, not restyled.
+     *
+     * The generated API reference emits member tables whose min-content width
+     * (long generic types in the `Type` column) is several times a phone's
+     * column, and `overflow` on the `<table>` box is not a scroll container, so
+     * the last column was clipped and unreachable. The wrapper is the scroll
+     * container; the table keeps its own layout so columns stay aligned.
+     */
+    table({ children }) {
+      return (
+        <div className="prose-table-scroll">
+          <table>{children}</table>
+        </div>
+      );
+    },
     pre({ children }) {
       const child = Children.toArray(children)[0];
 

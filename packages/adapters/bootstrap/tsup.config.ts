@@ -2,7 +2,7 @@ import { cpSync } from "node:fs";
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: [
+  entry: ["src/prepaint.ts", "src/prepaint.ts", 
     "src/index.ts",
     "src/factory.ts",
     "src/react.ts",

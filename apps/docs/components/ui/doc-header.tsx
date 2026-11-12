@@ -13,7 +13,11 @@ interface DocHeaderProps {
     lastVerified?: string;
     status?: "stable" | "experimental" | "deprecated";
     ssr?: SupportLevel;
+    /** Canonical matrix label, e.g. `Client-only`, `Full`, `Helpers`, `N/A`. */
+    ssrLabel?: string;
     zeroFlash?: SupportLevel;
+    /** Canonical matrix label, e.g. `Auto`, `Manual`, `None`, `N/A`. */
+    zeroFlashLabel?: string;
   };
   children?: ReactNode;
 }
@@ -55,14 +59,11 @@ export function DocHeader({
             </code>
           ) : null}
 
-          {metadata.framework ? (
-            <span className="px-2 py-1 rounded bg-muted/40 text-muted-foreground">
-              {metadata.framework}
-            </span>
-          ) : null}
-
           {metadata.version ? (
-            <VersionBadge version={metadata.version} />
+            <VersionBadge
+              prefix="Package version:"
+              version={metadata.version}
+            />
           ) : null}
 
           {metadata.status ? (
@@ -83,14 +84,22 @@ export function DocHeader({
           {metadata.ssr !== undefined ? (
             <span className="inline-flex items-center gap-1.5">
               <span className="text-xs opacity-60">SSR:</span>
-              <SupportBadge level={metadata.ssr} />
+              <SupportBadge
+                level={metadata.ssr}
+                {...(metadata.ssrLabel ? { label: metadata.ssrLabel } : {})}
+              />
             </span>
           ) : null}
 
           {metadata.zeroFlash !== undefined ? (
             <span className="inline-flex items-center gap-1.5">
               <span className="text-xs opacity-60">Zero-flash:</span>
-              <SupportBadge level={metadata.zeroFlash} />
+              <SupportBadge
+                level={metadata.zeroFlash}
+                {...(metadata.zeroFlashLabel
+                  ? { label: metadata.zeroFlashLabel }
+                  : {})}
+              />
             </span>
           ) : null}
 

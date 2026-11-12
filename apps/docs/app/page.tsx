@@ -2,16 +2,14 @@ import type { Metadata } from "next";
 
 import { Hero } from "../components/home/hero";
 import { Pillars } from "../components/home/pillars";
+import { Architecture } from "../components/home/architecture";
 import { FrameworkMatrix } from "../components/home/framework-matrix";
 import { SsrIntegrations } from "../components/home/ssr-integrations";
 import { AdapterStory } from "../components/home/adapter-story";
 import { Capabilities } from "../components/home/capabilities";
-import { ThemeGallery } from "../components/home/theme-gallery";
 import { LearningPath } from "../components/learning-path";
 import { GetStarted } from "../components/home/get-started";
-import { HERO_SNIPPET_LANG, HERO_SNIPPET_TEMPLATE } from "../components/home/hero-snippet";
 import { Reveal } from "../components/reveal";
-import { compatibilityLabel } from "../lib/code-variants";
 import { docsUrl } from "../lib/site";
 
 // Title/description/OG are inherited from the root layout (which describes the
@@ -23,22 +21,29 @@ export const metadata: Metadata = {
 };
 
 /**
- * The hero's compatibility badge.
+ * The section order is the argument:
  *
- * Derived from the template rather than written by hand: the sample's only
- * interpolations sit inside string literals and a comment, so the template
- * parses as TypeScript on its own and the label is a fact about the source
- * instead of a claim about it.
+ *   Hero         — the claim, demonstrated by a live application preview.
+ *   Pillars      — the five primitives it is built from.
+ *   Architecture — how those primitives compose into one system.
+ *   Frameworks / SSR / runtime / adapters — what follows from that system.
+ *   Path / Start — how to begin.
+ *
+ * The built-in preset gallery used to sit between "Bring your existing UI
+ * system" and the learning path. It listed every shipped family a second time
+ * — the navigation and the hero picker already expose them — so the collection
+ * lives on `/presets`, the page built for browsing it, and the architecture
+ * section links there instead.
  */
-const heroSnippetLabel =
-  compatibilityLabel(HERO_SNIPPET_TEMPLATE, HERO_SNIPPET_LANG) ?? undefined;
-
 export default function Home() {
   return (
     <>
-      <Hero {...(heroSnippetLabel ? { snippetLabel: heroSnippetLabel } : {})} />
+      <Hero />
       <Reveal>
         <Pillars />
+      </Reveal>
+      <Reveal delay={60}>
+        <Architecture />
       </Reveal>
       <Reveal delay={60}>
         <FrameworkMatrix />
@@ -51,9 +56,6 @@ export default function Home() {
       </Reveal>
       <Reveal delay={60}>
         <AdapterStory />
-      </Reveal>
-      <Reveal delay={60}>
-        <ThemeGallery />
       </Reveal>
       <Reveal delay={60}>
         <LearningPath />

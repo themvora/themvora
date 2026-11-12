@@ -1,0 +1,19 @@
+---
+// Provider + React island + overlay scrollbar, router present.
+import Provider from "@themvora/astro/provider.astro";
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+import { ClientRouter } from "astro:transitions";
+import themeConfig from "../../../theme.config";
+import ThemeIsland from "../../../src/components/ThemeIsland";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false} scrollbar>
+  <title slot="head">provider + island + scrollbar + router</title>
+  <ClientRouter slot="head" />
+  <ThemeScrollbar appearance={{ arrows: false }} />
+  <ScrollFixtureStyle />
+  <ThemeIsland client:load />
+  <ScrollFixtureBody />
+</Provider>

@@ -93,12 +93,23 @@ function TokenComparison({
   );
 }
 
-/** The target the host will write, or an empty string until one is chosen. */
+/** The separator a path already uses, so a joined display path looks native. */
+function separatorOf(path: string): string {
+  return path.includes("\\") && !path.includes("/") ? "\\" : "/";
+}
+
+/** The target the host will write, or an empty string until one is known. */
 function saveTarget(selected: StudioSelection, ui: StudioUiState): string {
-  if (ui.targetPath !== undefined) return ui.targetPath;
+  const name = ui.fileName.trim();
+  if (ui.saveDirectory !== undefined) {
+    const separator = separatorOf(ui.saveDirectory);
+    const directory = ui.saveDirectory.replace(/[\\/]+$/u, "");
+    // With no name yet, the folder alone still says where the write lands.
+    return `${directory}${separator}${name}`;
+  }
   if (ui.destination !== "source" || selected.source === undefined) return "";
-  const slash = selected.source.lastIndexOf("/");
-  return slash < 0 ? ui.fileName : `${selected.source.slice(0, slash + 1)}${ui.fileName}`;
+  const slash = Math.max(selected.source.lastIndexOf("/"), selected.source.lastIndexOf("\\"));
+  return slash < 0 ? name : `${selected.source.slice(0, slash + 1)}${name}`;
 }
 
 /** The save dialog. */
@@ -202,32 +213,44 @@ function SavePanel({
               onChange={(event) => dispatch({ type: "set-file-name", fileName: event.target.value })}
             />
           </label>
-          <label className="field">
-            <span className="overline">Where</span>
-            <select
-              value={selected.source === undefined ? "choose" : ui.destination}
-              onChange={(event) =>
-                dispatch({
-                  type: "set-destination",
-                  destination: event.target.value === "choose" ? "choose" : "source",
-                })
-              }
-            >
-              <option value="source" disabled={selected.source === undefined}>
-                Beside the theme source
-              </option>
-              <option value="choose">Choose a location…</option>
-            </select>
-          </label>
-        </div>
-
-        {hasTarget ? null : (
-          <div className="save-location">
-            <button type="button" className="link-button" onClick={onChooseLocation}>
-              Choose a location…
-            </button>
+          <div className="field">
+            <span className="overline" id="save-where-label">
+              Where
+            </span>
+            <div className="field-inline">
+              <select
+                aria-labelledby="save-where-label"
+                value={selected.source === undefined ? "choose" : ui.destination}
+                onChange={(event) =>
+                  dispatch({
+                    type: "set-destination",
+                    destination: event.target.value === "choose" ? "choose" : "source",
+                  })
+                }
+              >
+                <option value="source" disabled={selected.source === undefined}>
+                  Beside the theme source
+                </option>
+                <option value="choose">Choose a location…</option>
+              </select>
+              {/* The select cannot re-fire on the option it already shows, so
+                  picking (or changing) a folder needs a control of its own.
+                  Without it the location was fixed at the first pick. */}
+              <button
+                type="button"
+                className="secondary"
+                title={
+                  ui.saveDirectory === undefined
+                    ? "Pick the folder to write into"
+                    : "Pick a different folder"
+                }
+                onClick={onChooseLocation}
+              >
+                {ui.saveDirectory === undefined ? "Browse…" : "Change…"}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
         {ui.fileText === undefined ? null : (
           <pre className="file-preview" aria-label="Exact file contents">

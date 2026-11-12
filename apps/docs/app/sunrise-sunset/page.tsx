@@ -71,14 +71,14 @@ const optionRows: { name: string; type: string; desc: string }[] = [
  * and `Object.values` would have discarded the only copy of it.
  */
 const snippets = [
-  ...Object.entries(mountExamples).map(([framework, snippet]) => ({
-    ...snippet,
-    framework,
-  })),
-  ...Object.entries(controllerExamples).map(([framework, snippet]) => ({
-    ...snippet,
-    framework,
-  })),
+  ...Object.entries(mountExamples).flatMap(([framework, snippet]) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]),
+  ...Object.entries(controllerExamples).flatMap(([framework, snippet]) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]),
 ];
 
 /**

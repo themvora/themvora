@@ -199,7 +199,7 @@ const runtime = useThemeRuntime();
               title: "app/pages/preview.vue",
               lang: "vue",
               code: `<template>
-  <ThemeScope theme="cocoa-dark" class="rounded-lg p-6">
+  <ThemeScope theme="cocoa-dark">
     <h3>Always cocoa</h3>
   </ThemeScope>
 </template>`,
@@ -210,6 +210,43 @@ const runtime = useThemeRuntime();
               code: `// The auto-import scope does not apply in a plain module. Import from the
 // Vue integration — Nuxt's import protection rejects a module's entry point.
 import { useThemeRuntime } from "@themvora/vue";`,
+            },
+          ],
+        },
+        {
+          id: "nuxt-provided-themes",
+          name: "useProvidedThemes()",
+          covers: ["useProvidedThemes()"],
+          what: "An auto-imported composable that returns a ref of the family entries the module's runtime was configured with. Each entry is a family, not a variant; `entry.family` is the identifier to select, `entry.name` is the display label.",
+          when: "A page or settings panel that must list the families the app actually ships, including families installed by a pack later.",
+          effect: "The template unwraps the ref, so a pack installed after mount appears without extra wiring. `useTheme().setFamily()` changes the active family and the cookie mirror updates.",
+          related: ["nuxt-auto-imports", "nuxt-runtime-plugin"],
+          code: [
+            {
+              title: "app/components/FamilyPicker.vue",
+              lang: "vue",
+              code: `<script setup lang="ts">
+const families = useProvidedThemes();
+const family = useThemeFamily();
+const { setFamily } = useTheme();
+
+function handleFamilyChange(event: Event) {
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLSelectElement)) return;
+  setFamily(target.value);
+}
+</script>
+
+<template>
+  <label>
+    Theme family
+    <select :value="family" @change="handleFamilyChange">
+      <option v-for="entry in families" :key="entry.family" :value="entry.family">
+        {{ entry.name }}
+      </option>
+    </select>
+  </label>
+</template>`,
             },
           ],
         },
@@ -417,6 +454,46 @@ export default defineNuxtConfig({
     initialMode: "system",
   },
 });`,
+        },
+      ],
+    },
+    {
+      id: "family-picker",
+      title: "A family picker driven by the registry",
+      problem:
+        "A hand-kept array of family names in the settings page drifts from what the app actually ships — a renamed family lingers, and a pack's families never appear.",
+      apis: ["useProvidedThemes()", "useTheme()"],
+      why: "`useProvidedThemes()` returns a ref, so the template unwraps it and the option list follows the registry. `useTheme()` exposes both the active family and its setter.",
+      expect:
+        "The options come from the composable and the active one matches the current family. Choosing another repaints immediately; a pack installed later adds its families to the list.",
+      caveats:
+        "The composables are auto-imported inside Nuxt. In a plain module outside the auto-import scope, import the Vue equivalents from `@themvora/vue`.",
+      code: [
+        {
+          title: "app/components/FamilyPicker.vue",
+          lang: "vue",
+          code: `<script setup lang="ts">
+const families = useProvidedThemes();
+const family = useThemeFamily();
+const { setFamily } = useTheme();
+
+function handleFamilyChange(event: Event) {
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLSelectElement)) return;
+  setFamily(target.value);
+}
+</script>
+
+<template>
+  <label>
+    Theme family
+    <select :value="family" @change="handleFamilyChange">
+      <option v-for="entry in families" :key="entry.family" :value="entry.family">
+        {{ entry.name }}
+      </option>
+    </select>
+  </label>
+</template>`,
         },
       ],
     },

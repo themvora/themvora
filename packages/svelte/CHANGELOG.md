@@ -1,5 +1,28 @@
 # @themvora/svelte
 
+## 3.0.0
+
+### Major Changes
+
+- Require Svelte `^5.56.0`: the compiled components pass a `Set` to the runtime's
+  `rest_props`.
+
+  Svelte 5.56 changed that handler from `exclude.includes(...)` to
+  `exclude.has(...)`, and 5.56 and later no longer accept the array form. The
+  components are compiled with Svelte 5.57, which emits
+  `new Set(["$$slots", "$$events", "$$legacy"])`, so every earlier 5.x runtime
+  throws `exclude.includes is not a function` as soon as `ThemeProvider`,
+  `ThemeScope` or `ThemeScrollbar` mounts. Compiling with an older compiler is not
+  a workaround — it produces the array form that current runtimes reject, which is
+  why the floor moves instead of the output.
+
+  `VERSIONING.md` treats raising a peer floor as a breaking change, so this ships
+  as `3.0.0` rather than `2.1.1`. Nothing in the public API changed: no export was
+  removed or renamed, no prop or option moved, and no behaviour differs on a
+  supported runtime. An application already on Svelte 5.56 or newer upgrades with
+  no code change; one on an earlier 5.x was not working and now gets a peer
+  warning instead of a runtime crash at mount.
+
 ## 2.1.0
 
 ### Minor Changes

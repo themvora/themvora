@@ -128,11 +128,18 @@ if (!wsPath)
     "The gate talks to Chromium over CDP, which needs a WebSocket client.",
   );
 
-const remixCli = join(repoRoot, "node_modules", "@remix-run", "dev", "dist", "cli.js");
-if (!existsSync(remixCli))
+const remixCliCandidates = [
+  // Isolated pnpm install: the CLI lives under the app's own node_modules.
+  join(appDir, "node_modules", "@remix-run", "dev", "dist", "cli.js"),
+  // Hoisted install: the same CLI is at the workspace root.
+  join(repoRoot, "node_modules", "@remix-run", "dev", "dist", "cli.js"),
+];
+const remixCli = remixCliCandidates.find((candidate) => existsSync(candidate));
+if (!remixCli)
   fatal(
-    `the Remix CLI is missing at ${remixCli}`,
-    "Run `pnpm install` at the repository root.",
+    "the Remix CLI is missing",
+    `Looked in:\n${remixCliCandidates.map((c) => `      ${c}`).join("\n")}\n` +
+      "Run `pnpm install` at the repository root.",
   );
 
 const require = createRequire(import.meta.url);
@@ -485,12 +492,19 @@ expect(
   systemDark.attrs["data-theme-mode"] ?? null,
   "dark",
 );
+const coldTheme = String(cold.attrs["data-theme"] ?? "");
+// The docs' minimal setup uses the neutral `light` theme, whose dark
+// counterpart is named `dark`; family variants use `<family>-light` /
+// `<family>-dark`. Handle both without assuming a suffix.
+const expectedDarkTheme = coldTheme.includes("dark")
+  ? coldTheme
+  : coldTheme === "light"
+    ? "dark"
+    : coldTheme.replace(/-light$/, "-dark");
 expect(
   "system+dark: the canvas is the dark theme",
   systemDark.attrs["data-theme"] ?? null,
-  cold.attrs["data-theme"]?.includes("dark")
-    ? cold.attrs["data-theme"]
-    : String(cold.attrs["data-theme"]).replace("-light", "-dark"),
+  expectedDarkTheme,
 );
 
 // The server HTML for this request must still say `light` — otherwise the

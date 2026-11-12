@@ -141,7 +141,7 @@ interface PostedState {
 }
 
 async function studio(profileFor?: (root: string) => Promise<ProjectProfile>) {
-  const saves: { names: string[]; format: string }[] = [];
+  const saves: { names: string[]; format: string; path: string; fileName: string }[] = [];
   let refreshes = 0;
 
   const panel = createStudioPanel({
@@ -150,8 +150,16 @@ async function studio(profileFor?: (root: string) => Promise<ProjectProfile>) {
     ...(profileFor === undefined ? {} : { profileFor }),
     client: createThemvoraClient(),
     save: async (themes, options) => {
-      saves.push({ names: themes.map((theme) => theme.name), format: options.format });
-      return { ok: true, path: "/app/new.ts" };
+      // The written path is the target the host resolved, so a test can tell
+      // "the folder the user picked" from "the first workspace folder".
+      const path = options.target?.fsPath ?? "/app/new.ts";
+      saves.push({
+        names: themes.map((theme) => theme.name),
+        format: options.format,
+        path,
+        fileName: options.fileName,
+      });
+      return { ok: true, path };
     },
     applyPatch: async () => ({ ok: true, path: "/app/patched.ts" }) as never,
     refresh: async () => {
@@ -495,6 +503,114 @@ describe("Create workflows", () => {
     expect(refreshes()).toBe(1);
     expect(state().selected.saved).toBe(true);
     expect(state().notice?.text).toContain("re-scanned");
+
+    panel.dispose();
+  });
+
+  it("writes where the picker said instead of asking for a location twice", async () => {
+    const { panel, send, saves } = await studio();
+
+    send({ type: "generate", seed: "#0f172a", kind: "generate" });
+    await flush();
+
+    __state.saveDialog = Uri.file("/out/themes/themvora-theme.ts");
+    send({ type: "chooseSaveLocation", format: "ts-generate", fileName: "themvora-theme.ts" });
+    await flush();
+    expect(__state.saveDialogDefaults).toHaveLength(1);
+
+    send({ type: "save", format: "ts-generate", fileName: "themvora-theme.ts", destination: "choose" });
+    await flush();
+    await flush();
+
+    // One dialog for the whole save: the folder the picker returned is the
+    // folder the write used.
+    expect(__state.saveDialogDefaults).toHaveLength(1);
+    expect(saves[0]?.path).toBe("/out/themes/themvora-theme.ts");
+
+    panel.dispose();
+  });
+
+  it("reuses the picked folder when the form still says 'beside the source'", async () => {
+    // A draft has no source to sit beside, so "source" cannot be its
+    // destination. Treating it literally is what re-opened the dialog.
+    const { panel, send, saves } = await studio();
+
+    send({ type: "generate", seed: "#0f172a", kind: "generate" });
+    await flush();
+
+    __state.saveDialog = Uri.file("/out/themes/themvora-theme.ts");
+    send({ type: "chooseSaveLocation", format: "ts-generate", fileName: "themvora-theme.ts" });
+    await flush();
+
+    send({ type: "save", format: "ts-generate", fileName: "themvora-theme.ts", destination: "source" });
+    await flush();
+    await flush();
+
+    expect(__state.saveDialogDefaults).toHaveLength(1);
+    expect(saves[0]?.path).toBe("/out/themes/themvora-theme.ts");
+
+    panel.dispose();
+  });
+
+  it("names the file the picker returned, in the folder it was picked in", async () => {
+    const { panel, send, saves } = await studio();
+
+    send({ type: "generate", seed: "#0f172a", kind: "generate" });
+    await flush();
+
+    // The user renamed the file in the native dialog; that name is what the
+    // form now shows and what the write must use.
+    __state.saveDialog = Uri.file("/out/themes/brand.ts");
+    send({ type: "chooseSaveLocation", format: "ts", fileName: "themvora-theme.ts" });
+    await flush();
+
+    send({ type: "save", format: "ts", fileName: "brand.ts", destination: "choose" });
+    await flush();
+    await flush();
+
+    expect(saves[0]?.path).toBe("/out/themes/brand.ts");
+    expect(saves[0]?.fileName).toBe("brand.ts");
+
+    panel.dispose();
+  });
+
+  it("offers the extension the file gets, not the format key", async () => {
+    const { panel, send } = await studio();
+
+    send({ type: "generate", seed: "#0f172a", kind: "generate" });
+    await flush();
+
+    __state.saveDialog = Uri.file("/out/themes/themvora-theme.ts");
+    send({ type: "chooseSaveLocation", format: "ts-generate", fileName: "themvora-theme.ts" });
+    await flush();
+
+    // `ts-generate` is a format, not an extension: filtering on it makes Windows
+    // write `themvora-theme.ts.ts-generate`.
+    expect(__state.saveDialogFilters[0]).toEqual({ "Theme file": ["ts"] });
+
+    panel.dispose();
+  });
+
+  it("says where the theme was saved, with a way to open it", async () => {
+    const { panel, send } = await studio();
+
+    send({ type: "generate", seed: "#0f172a", kind: "generate" });
+    await flush();
+
+    __state.saveDialog = Uri.file("/out/themes/themvora-theme.ts");
+    send({ type: "chooseSaveLocation", format: "ts-generate", fileName: "themvora-theme.ts" });
+    await flush();
+
+    __state.infoAnswer = "Open file";
+    send({ type: "save", format: "ts-generate", fileName: "themvora-theme.ts", destination: "choose" });
+    await flush();
+    await flush();
+
+    const announcement = __state.info.find((text) => text.includes("/out/themes/themvora-theme.ts"));
+    expect(announcement).toBeDefined();
+    expect(__state.openedDocuments.map((document) => document.path)).toContain(
+      "/out/themes/themvora-theme.ts",
+    );
 
     panel.dispose();
   });

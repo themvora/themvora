@@ -163,8 +163,7 @@ export function WorkspaceCard() {
 ```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -341,6 +340,7 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 - **ThemeBootstrap** — Injects the SSR dark-mode CSS via `useServerInsertedHTML`.
 - **createNextThemePersistence()** — Builds the adapter `ClientThemeProvider` uses: localStorage plus the `theme-mode`, `theme-family` and `theme-fingerprint` cookies the server reads on the next request.
 - **useThemeSchedule()** — Reactive sunrise/sunset controller: `enabled`, `active`, `status`, `sunrise`, `sunset`, `nextTransition` plus `enable()`/`disable()`/`set()`.
+- **useProvidedThemes()** — The families the server provider was given, as a client component sees them. Pair it with `useThemeFamily()` for the current selection and `useSetThemeFamily()` to change it — select by `entry.family`, not `entry.name`, because the name is only the display label.
 
 **Transition**
 
@@ -364,13 +364,28 @@ App Router theming with server-resolved themes, cookie persistence, and zero-fla
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from "react";
+import { Geist } from "next/font/google";
 import { ThemeProvider } from "@themvora/next";
 import "./globals.css";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+const geist = Geist({
+  subsets: ["latin"],
+});
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <ThemeProvider defaultTheme="mint-light">
-      {children}
+    // ThemeProvider renders <html> and <body> itself — do not wrap it in them.
+    <ThemeProvider
+      defaultTheme="light"
+      body={{ className: geist.className }}
+    >
+      <main>
+        {children}
+      </main>
     </ThemeProvider>
   );
 }
@@ -380,13 +395,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from "react";
+import { Geist } from "next/font/google";
 import { ThemeProvider } from "@themvora/next";
 import "./globals.css";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+const geist = Geist({
+  subsets: ["latin"],
+});
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <ThemeProvider defaultTheme="light">
-      {children}
+    // ThemeProvider renders <html> and <body> itself — do not wrap it in them.
+    <ThemeProvider
+      defaultTheme="light"
+      body={{ className: geist.className }}
+    >
+      <main>
+        {children}
+      </main>
     </ThemeProvider>
   );
 }
@@ -417,8 +447,7 @@ export function WorkspaceCard() {
 ```css title="app/globals.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -680,7 +709,7 @@ import { ThemeProvider } from "@themvora/vue";
 ```ts title="src/main.ts"
 // The Vite entry: mount the app and load the stylesheet once.
 import { createApp } from "vue";
-import "./style.css";
+import "./index.css";
 import App from "./App.vue";
 
 createApp(App).mount("#app");
@@ -706,11 +735,10 @@ createApp(App).mount("#app");
 
 #### styles
 
-```css title="src/style.css"
+```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -961,7 +989,7 @@ Provider and readable stores for Svelte 5, with scoped themes and transitions.
 ```ts title="src/main.ts"
 // The Vite entry: mount the app and load the stylesheet once.
 import { mount } from "svelte";
-import "./app.css";
+import "./index.css";
 import App from "./App.svelte";
 
 mount(App, { target: document.getElementById("app")! });
@@ -985,11 +1013,10 @@ mount(App, { target: document.getElementById("app")! });
 
 #### styles
 
-```css title="src/app.css"
+```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -1263,8 +1290,7 @@ export function WorkspaceCard() {
 ```css title="src/index.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -1485,7 +1511,7 @@ Standalone-API theming with DI providers, reactive injectables, and a scoping di
 
 ### Notes
 
-- **Zero-flash:** Not automatic. Render `createBlockingScriptContent()` into `index.html`’s `<head>` to paint the persisted theme before the bundle loads — without it the first frame is the default theme.
+- **Zero-flash:** Automatic during SSR. `provideTheme()` emits the critical CSS and blocking bootstrap into the rendered `<head>` before the bundle loads. `createBlockingScriptContent()` remains available when you need custom server placement.
 - **Starting mode:** `provideTheme({ defaultTheme, initialMode })` chooses the starting theme. `initialMode: "system"` follows the visitor's OS.
 - **Configuration:** Themes and the starting mode are passed to `provideTheme()` when the app bootstraps. Angular does not use Vite, so there is no bundler plugin to add: the provider emits the pre-paint script. The stylesheet lives in `src/styles.css`, which the Angular CLI already registers in `angular.json`.
 
@@ -1536,8 +1562,7 @@ bootstrapApplication(AppComponent, {
 ```css title="src/styles.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -1808,7 +1833,7 @@ HTML-first theming for any page: import the package once, then write custom elem
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Themvora</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <!-- The provider owns the runtime. Every option is an attribute: a theme
@@ -1828,6 +1853,29 @@ HTML-first theming for any page: import the package once, then write custom elem
 </html>
 ```
 
+#### buildConfig
+
+```ts title="vite.config.ts"
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({
+  plugins: [themvoraVitePlugin()],
+});
+```
+
+#### themeConfig
+
+```ts title="theme.config.ts"
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+});
+```
+
 #### noTheme
 
 ```html title="index.html"
@@ -1841,7 +1889,7 @@ HTML-first theming for any page: import the package once, then write custom elem
     <!-- Render-blocking on purpose: a CSS file imported from main.ts is
          injected by JavaScript, so in dev the first paint happens before it
          exists and the page flashes unstyled. -->
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <!-- No controls, no script beyond the module import: the provider applies
@@ -1902,11 +1950,10 @@ render();
 
 #### styles
 
-```css title="src/style.css"
+```css title="src/styles.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -2006,7 +2053,7 @@ body {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Themvora</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <themvora-provider default-theme="light" initial-mode="system">
@@ -2047,7 +2094,7 @@ body {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Themvora</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <themvora-provider default-theme="light" initial-mode="system">
@@ -2135,7 +2182,7 @@ Map every semantic token to Tailwind v4 utilities and theme variables.
 
 #### quickStart
 
-```css title="src/globals.css"
+```css title="src/index.css"
 @import "tailwindcss";
 @import "@themvora/tailwind";
 
@@ -2146,7 +2193,7 @@ body {
 
 #### noTheme
 
-```css title="src/globals.css"
+```css title="src/index.css"
 @import "tailwindcss";
 @import "@themvora/tailwind";
 ```
@@ -2176,7 +2223,7 @@ body {
 
 #### styles
 
-```css title="src/globals.css"
+```css title="src/index.css"
 /* Pick one of the two document rules below. Both rely only on the
    required `background` and `foreground` colours. */
 
@@ -2336,8 +2383,13 @@ Astro-native theming: an integration for the pre-paint bootstrap, a React-free <
 
 **Transition**
 
-- **transition prop** — Pass `transition` to the island provider (`@themvora/astro/client`) to enable CSS transitions on theme changes.
-- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The `transition` prop is live: change it after mount and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
+- **transition in theme.config.ts** — Declare `transition` once in `theme.config.ts` — `{ enabled, duration, easing, useViewTransition }`, or `true` / `false`. The runtime is built from the transported config, so native controls, the overlay scrollbar and a React island all cross-fade without per-island props. The island provider still accepts `transition` as an override for that island.
+- **runtime.store.set(theme, { suppressTransition: true })** — Applies the theme immediately, without animating. Use it for a one-off instant switch. The configured `transition` is live: change it on the runtime and the next theme change uses the new options (no reload, no remount). Compose the core diff/plan/runner APIs for custom animation.
+
+**Scrolling**
+
+- **Zero-flash scroll restoration** — On a reload or cross-document back/forward, `<ClientRouter />` stores the position in `history.state` and restores it from its deferred module — which can run after the first paint. `@themvora/astro` restores that same Astro-managed position from an inline end-of-body script, so the first frame is already at the saved position. Native restoration is left alone, no sessionStorage key is involved, and there is nothing to enable.
+- **ThemeScrollbar keeps native scrolling** — The overlay draws rails over the page and never replaces `document.scrollingElement` or changes document height. Reload, back/forward and client-side navigation keep working with or without it. Pass `scrollbar` to the provider (or `themvora({ scrollbar })`) only to hide the native bar before first paint.
 
 ### Notes
 
@@ -2406,11 +2458,10 @@ export default defineConfig({
 
 #### styles
 
-```css title="src/styles.css"
+```css title="src/styles/global.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -2508,7 +2559,7 @@ body {
 // The one place the provider is mounted.
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
-import "../styles.css";
+import "../styles/global.css";
 ---
 
 <Provider config={themeConfig} lang="en" bootstrap={false}>
@@ -2761,7 +2812,7 @@ import ThemeScope from "@themvora/astro/ThemeScope.astro";
 import { ClientRouter } from "astro:transitions";
 import Provider from "@themvora/astro/provider.astro";
 import themeConfig from "../../theme.config";
-import "../styles.css";
+import "../styles/global.css";
 ---
 
 <Provider config={themeConfig} lang="en" bootstrap={false}>
@@ -2812,6 +2863,7 @@ Nuxt 4 module with server-rendered theming, cookie sync, auto-imported composabl
 - **Auto-imports** — Composables (`useTheme`, `useThemeMode`, `useThemeHistory`, …) and components (`ThemeScope`, `ThemeScrollbar`) are auto-imported — no manual imports. Outside the auto-import scope, import them from `@themvora/vue`; Nuxt's import protection rejects a module's entry point in app code.
 - **configKey: "themvora"** — Configure `themes`, `defaultTheme`, `initialMode`, `initialFamily`, `transition`, `scrollbar`, `storageKey` and `scheduled` in `nuxt.config.ts`.
 - **useThemeSchedule()** — Auto-imported composable exposing the sunrise/sunset schedule: reactive `state` (`enabled`, `status`, `sunrise`, `sunset`, `nextTransition`) plus `enable()`/`disable()`/`set()`. Configure via `scheduled` in the module config.
+- **useProvidedThemes()** — The auto-imported family catalogue, as a `ref` the template unwraps. Each entry is a family: select by `entry.family`, not `entry.name`, because the name is only the display label.
 
 **Transition**
 
@@ -2885,8 +2937,7 @@ export default defineNuxtConfig({
 ```css title="app/assets/css/main.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -3026,6 +3077,17 @@ const { theme, mode, toggleTheme } = useTheme();
 </style>
 ```
 
+#### appFile
+
+```vue title="app/app.vue"
+<template>
+  <div>
+    <ThemeSwitcher />
+    <WorkspaceCard />
+  </div>
+</template>
+```
+
 ### More Examples
 
 #### snippet2
@@ -3063,38 +3125,40 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 **Server**
 
-- **getInitialThemeState()** — Reads the `theme-mode` / `theme-family` cookies off the request and resolves the initial state. Imported from `@themvora/remix/server`.
-- **ThemeHead** — Emits the blocking bootstrap in the document <head> so the page paints already themed, plus the `prefers-color-scheme` dark fallback.
-- **getThemeShellProps()** — Renders the `<html>` attributes and CSS variables the blocking script writes, plus `suppressHydrationWarning` for the resolved mode the server cannot know. Remix owns the document, so the shell has to be written by the app — this is what keeps it in agreement with the script instead of hand-copying seven attributes.
-- **SSR-first resolution** — Request → loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.
+- **createThemeDocument()** — Pass the registry, fallback theme, `mode` and the optional `transition` / `scrollbar` settings once. Returns `resolveInitial(request)` plus a `Document` component that renders the blocking head script, the matching `<html>` shell and the runtime provider from the same configuration. This is the preferred root setup.
+- **theming.resolveInitial()** — Reads the `theme-mode` / `theme-family` / `theme-fingerprint` cookies off the request and resolves them against the frozen configuration. Call it in the root loader; request state is never stored on the handle, so concurrent requests stay isolated.
+- **getInitialThemeState()** — The lower-level resolver behind `resolveInitial()`, imported from `@themvora/remix/server`. Reach for it only when you assemble the document yourself — the factory exists so the loader, script, shell and provider cannot drift apart.
+- **ThemeHead** — The lower-level head script: emits the blocking bootstrap so the page paints already themed, plus the `prefers-color-scheme` dark fallback for `system` mode. `<theming.Document>` renders it for you; use it directly only in a hand-written `<head>`.
+- **getThemeShellProps()** — The lower-level `<html>` shell: the attributes and CSS variables the blocking script writes, plus `suppressHydrationWarning` for the resolved mode the server cannot know. `<theming.Document>` spreads it for you — hand-copying seven attributes is what this prevents.
+- **SSR-first resolution** — Request → root loader → resolve initial state → HTML document → browser hydration. The server resolves the theme, so the first paint already matches the hydrated client.
 
 **Client**
 
-- **ThemeProvider** — Hydrates against the loader-resolved `initial` state and mirrors the selection back to cookies on change.
-- **createRemixThemePersistence()** — Builds the adapter `ThemeProvider` uses: localStorage plus the `theme-mode`, `theme-family` and `theme-fingerprint` cookies the loader reads on the next request.
+- **ThemeProvider** — Mounted by `Document` around the route tree with the loader-resolved state, and it mirrors the selection back to cookies on change. Mount the provider once, in `app/root.tsx`; nested routes inherit it through `<Outlet />`.
+- **createRemixThemePersistence()** — Builds the adapter the provider uses: localStorage plus the `theme-mode`, `theme-family` and `theme-fingerprint` cookies the loader reads on the next request.
 - **Full hook set + ThemeScope** — Every React hook plus scoped subtrees — re-exported from `@themvora/react`.
 - **Intentional React dependency** — Remix is a React framework, so `@themvora/remix` depends on `@themvora/core` + `@themvora/react` directly. No other framework or adapter package is pulled in.
 
 **Routing**
 
-- **Provider lives in the root** — Mount `ThemeProvider` in `app/root.tsx`; nested routes and layouts inherit it through `<Outlet />`.
+- **Provider lives in the root** — `app/root.tsx` declares the document once; nested routes and layouts inherit the runtime through `<Outlet />`.
 - **Route-level scopes** — Wrap a route subtree in `ThemeScope` to pin it to a theme without changing the global selection.
 
 **Transition**
 
-- **transition prop** — Pass `transition` to ThemeProvider to enable CSS transitions on theme changes.
+- **transition option** — Pass `transition` to `createThemeDocument()` to animate theme changes — `true`, `false`, or `{ enabled, duration, easing, preset }`. The provider receives the same object, so the document and the runtime cannot disagree.
 - **runtime.store.set(theme, { suppressTransition: true })** — Per-update escape hatch: `runtime.store.set(theme, { suppressTransition: true })` skips the configured animation. For custom animation orchestration, compose the core diff/plan/runner APIs.
 
 **Scrollbar**
 
-- **scrollbar prop** — Pass `scrollbar` to `ThemeHead` to hide the native scrollbar from the very first paint and hand over to Themvora's overlay engine once the runtime hydrates.
-- **Import the pre-paint styles** — Needs `import "@themvora/core/scrollbar.css"` plus the `tv-scrollbar` class on `<html>` — `getThemeShellProps(initial, { scrollbar: true })` renders that class, and the snippet above uses it. Without both, the native bar is painted and then hidden once the runtime hydrates.
+- **scrollbar option** — The `scrollbar` option in `createThemeDocument()` adds `tv-scrollbar` to `<html>` and emits the pre-paint hiding stylesheet in `<head>`, so the native bar is never painted. Import `@themvora/core/scrollbar.css` yourself — a CSS import is a bundler concern.
+- **Import the pre-paint styles** — Both halves are required: the class without the stylesheet hides nothing, and the stylesheet without the class has no effect. `Document` renders the class; your global stylesheet supplies the import.
 
 ### Notes
 
-- **Zero-flash:** Included, but you wire it: the loader resolves the theme and `ThemeHead` emits the script in `<head>`. The `<html>` element declares the same attributes so hydration matches.
-- **Starting mode:** The loader resolves the initial state from the request cookies, so the first paint already matches. `mode` on `ThemeHead` and `initialMode` on `ThemeProvider` decide what a first-time visitor gets — keep them in one constant.
-- **Configuration:** Themes and the starting mode come from the loader and the provider props. Remix renders its own document, so there is no bundler plugin to add: `ThemeHead` emits the pre-paint script from the server.
+- **Zero-flash:** Included: `createThemeDocument()` derives the pre-paint script, the `<html>` shell and the provider from one configuration, so the first byte already carries the resolved theme. The lower-level `ThemeHead` + `getThemeShellProps()` pair does the same thing when you assemble the document by hand.
+- **Starting mode:** The loader resolves the initial state from the request cookies, so the first paint already matches. `mode` in `createThemeDocument()` is the single value the pre-paint script and the runtime both read — there is no second copy to keep in step.
+- **Configuration:** Themes and the starting mode are declared once, in `createThemeDocument()`, and the loader, the script, the shell and the runtime all read that object. Remix renders its own document, so there is no bundler plugin to add.
 
 ### Quick Start
 
@@ -3102,6 +3166,7 @@ Resolve the theme in a loader, paint it before first paint, then hydrate a match
 
 ```tsx title="app/root.tsx"
 import type { ReactNode } from "react";
+import type { LinksFunction } from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -3111,64 +3176,69 @@ import {
   useLoaderData,
 } from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
-import { ThemeHead, ThemeProvider, getThemeShellProps } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
+import "@themvora/core/scrollbar.css";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
+
+// The stylesheet is linked, not imported for side effects: Remix's Vite
+// plugin expects the `links` export to own the document's CSS.
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: styles },
+];
 
 const themes = getBuiltInThemes();
 
-// One source of truth for the starting mode: the pre-paint script and the
-// runtime resolve it independently, so both have to be told the same thing.
-const INITIAL_MODE = "system";
+// One static configuration. The loader helper, the blocking head script, the
+// <html> shell and the runtime are all derived from this object, so they
+// cannot drift apart — which is what removes both the flash and the
+// hydration mismatch.
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+  transition: { enabled: true, duration: 250 },
+  scrollbar: true,
+});
 
-// Resolve the selection server-side so hydration matches exactly.
 export async function loader({ request }: { request: Request }) {
-  return {
-    initial: await getInitialThemeState(request, {
-      themes,
-      defaultTheme: "light",
-      mode: INITIAL_MODE,
-    }),
-  };
+  return { theme: await theming.resolveInitial(request) };
 }
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    // Remix owns the document, so this element is hand-written — and the
-    // blocking script rewrites it before first paint. getThemeShellProps
-    // renders the same attributes and CSS variables the script writes, plus
-    // suppressHydrationWarning for the resolved mode the server cannot know,
-    // so React hydrates against the DOM it was given. The scrollbar option
-    // adds the tv-scrollbar class the pre-paint stylesheet is scoped to.
-    <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
-      <head>
-        <meta charSet="utf-8" />
-        <Meta />
-        <Links />
-        <ThemeHead
-          themes={themes}
-          defaultTheme="light"
-          mode={INITIAL_MODE}
-          scrollbar
-        />
-      </head>
-      <body>
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    // Remix owns the document; Document supplies the theme-owned parts: the
+    // blocking bootstrap, the matching <html> shell and the runtime provider.
+    // `scrollbar` adds the tv-scrollbar class the pre-paint stylesheet is
+    // scoped to, and `transition` reaches the runtime through the provider.
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <meta
+          key="viewport"
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
   );
 }
 
 export default function App() {
-  const { initial } = useLoaderData<typeof loader>();
-  return (
-    <ThemeProvider initial={initial} themes={themes} defaultTheme="light">
-      <Outlet />
-    </ThemeProvider>
-  );
+  return <Outlet />;
 }
 ```
 
@@ -3185,49 +3255,47 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "@remix-run/react";
-import {
-  ThemeHead,
-  ThemeProvider,
-  getThemeShellProps,
-} from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
 import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix";
 import styles from "./styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
 const themes = getBuiltInThemes();
 
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+});
+
 export async function loader({ request }: { request: Request }) {
-  return {
-    initial: await getInitialThemeState(request, { themes, defaultTheme: "light" }),
-  };
+  return { theme: await theming.resolveInitial(request) };
 }
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
+  const { theme } = useLoaderData<typeof loader>();
 
   return (
-    // Remix owns the document, so <html> is written here — and the blocking
-    // script in <ThemeHead> rewrites it before first paint. getThemeShellProps
-    // renders the same attributes and CSS variables that script writes, plus
-    // suppressHydrationWarning for the resolved mode the server cannot know,
-    // so React hydrates against the DOM it was actually given.
-    <html lang="en" {...getThemeShellProps(initial)}>
-      <head>
-        <meta charSet="utf-8" />
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} defaultTheme="light" />
-      </head>
-      <body>
-        <ThemeProvider initial={initial} themes={themes} defaultTheme="light">
-          {children}
-        </ThemeProvider>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    // Remix owns the document; Document supplies the theme-owned parts: the
+    // blocking bootstrap, the matching <html> shell and the runtime provider.
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
   );
 }
 
@@ -3261,8 +3329,7 @@ export function WorkspaceCard() {
 ```css title="app/styles.css"
 /* Themvora emits its design tokens as CSS custom properties on the root
    element, so a stylesheet only has to read them. Nothing here is
-   theme-specific: these rules render every theme, including ones you add
-   later. */
+   theme-specific. */
 html,
 body {
   background: var(--theme-color-background);
@@ -3356,7 +3423,7 @@ body {
 #### snippet
 
 ```tsx title="app/routes/_index.tsx"
-// The provider in app/root.tsx supplies the runtime, so a route just reads it.
+// The document in app/root.tsx supplies the runtime, so a route just reads it.
 import { useTheme } from "@themvora/remix";
 
 export default function Index() {
@@ -3453,4 +3520,436 @@ export function HistoryScope() {
 
 ---
 
-11 frameworks. Generated from `lib/frameworks.tsx`.
+## React Router (`@themvora/remix`)
+
+One configuration for the root loader, the blocking head script, the document shell and the runtime.
+
+**Tags:** SSR · Framework Mode · Hydration
+
+**Only if you haven't created the React Router project yet:** `react-router`, `@react-router/dev`, `@react-router/node`, `@react-router/serve`
+
+### Feature map
+
+**Server**
+
+- **createThemeDocument()** — Pass the registry, default theme, mode and scrollbar option once. Returns `resolveInitial(request)` and the `Document` component, so the loader, script, shell and provider cannot disagree.
+- **theming.resolveInitial()** — Reads `theme-mode` / `theme-family` / `theme-fingerprint` from the request and resolves them against the same frozen configuration. Request state is never stored on the handle.
+- **SSR-first resolution** — Root loader → static configuration → resolved `initial` state → server-rendered document → hydration. The first byte already carries the correct theme.
+
+**Client**
+
+- **ThemeProvider** — Mounted by `Document` around the route tree, with the request-resolved state. Selection changes mirror back to the cookies the root loader reads.
+- **Full hook set + ThemeScope** — Every React hook plus scoped subtrees, re-exported from `@themvora/react` through this package.
+- **createRemixThemePersistence()** — The adapter behind the provider: localStorage plus the cookie contract the root loader reads. The name is historical; it is framework-neutral.
+
+**Routing**
+
+- **Root route owns the document** — The root `Layout` still renders `<html>`, `<head>` and `<body>`; `Document` only supplies the theme-owned parts. Ownership stays with React Router.
+- **Route-level scopes** — Wrap a route subtree in `ThemeScope` to pin it to a theme without changing the global selection.
+- **Error-boundary fallback** — `Layout` can render while the root loader is unavailable. Passing a missing `initial` falls back to the configuration's static resolution instead of throwing inside the boundary.
+
+**Scrollbar**
+
+- **scrollbar option** — The `scrollbar` option in `createThemeDocument()` adds `tv-scrollbar` to `<html>` and emits the pre-paint hiding stylesheet in `<head>`.
+- **Import the pre-paint styles** — Import `@themvora/core/scrollbar.css`; the class and the stylesheet are both required, and `Document` renders the class for you.
+
+### Notes
+
+- **Zero-flash:** The root loader resolves the request cookies and `Document` emits the blocking script in `<head>` before the runtime mounts. The shell renders the same attributes the script writes, so hydration matches.
+- **Starting mode:** The `mode` in `createThemeDocument()` is the only starting-mode input. The loader, the pre-paint script and the provider all read it from the same object — there is no second constant to keep in sync.
+- **Configuration:** The configuration lives in `app/root.tsx`: `createThemeDocument({ themes, defaultTheme, mode, scrollbar })`. React Router itself is configured in `app/routes.ts`, `vite.config.ts` and `react-router.config.ts`.
+
+### Quick Start
+
+#### quickStart
+
+```tsx title="app/root.tsx"
+import type { ReactNode } from "react";
+import {
+  isRouteErrorResponse,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteLoaderData,
+} from "react-router";
+import { getBuiltInThemes } from "@themvora/core";
+import "@themvora/core/scrollbar.css";
+import { ThemeScrollbar } from "@themvora/remix";
+import { createThemeDocument } from "@themvora/remix/react-router";
+import type { Route } from "./+types/root";
+import "./app.css";
+
+const themes = getBuiltInThemes();
+
+// One static configuration. The loader helper, the blocking head script, the
+// <html> shell and the runtime are all derived from this object.
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+  scrollbar: true,
+});
+
+export async function loader({ request }: Route.LoaderArgs) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  // The layout can render while the root loader is unavailable (an error
+  // response). Document then uses its static fallback instead of throwing.
+  const data = useRouteLoaderData<typeof loader>("root");
+
+  return (
+    <theming.Document
+      initial={data?.theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <meta
+          key="viewport"
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <ThemeScrollbar />
+      <Outlet />
+    </>
+  );
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const message = isRouteErrorResponse(error)
+    ? error.status === 404
+      ? "404"
+      : "Error"
+    : "Oops!";
+
+  return <main className="page">{message}</main>;
+}
+```
+
+#### quickStartExtra
+
+```ts title="app/routes.ts"
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
+
+// Framework Mode route config. The root route itself is implicit: app/root.tsx
+// owns the document, and the loader there resolves the theme for every request.
+export default [
+  index("routes/home.tsx"),
+  route("about", "routes/about.tsx"),
+] satisfies RouteConfig;
+```
+
+#### noTheme
+
+```tsx title="app/root.tsx"
+import type { ReactNode } from "react";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteLoaderData,
+} from "react-router";
+import { getBuiltInThemes } from "@themvora/core";
+import "@themvora/core/scrollbar.css";
+import { ThemeScrollbar } from "@themvora/remix";
+import { createThemeDocument } from "@themvora/remix/react-router";
+import type { Route } from "./+types/root";
+import "./app.css";
+
+const themes = getBuiltInThemes();
+
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+  scrollbar: true,
+});
+
+export async function loader({ request }: Route.LoaderArgs) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+
+  return (
+    <theming.Document
+      initial={data?.theme}
+      htmlProps={{ lang: "en" }}
+      head={[
+        <meta key="charset" charSet="utf-8" />,
+        <Meta key="meta" />,
+        <Links key="links" />,
+      ]}
+      afterContent={
+        <>
+          <ScrollRestoration />
+          <Scripts />
+        </>
+      }
+    >
+      {children}
+    </theming.Document>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <ThemeScrollbar />
+      <Outlet />
+    </>
+  );
+}
+```
+
+#### setupExtra
+
+```ts title="app/routes.ts"
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
+
+export default [
+  index("routes/home.tsx"),
+  route("about", "routes/about.tsx"),
+] satisfies RouteConfig;
+```
+
+#### uiExample
+
+```tsx title="app/components/workspace-card.tsx"
+export function WorkspaceCard() {
+  return (
+    <div className="themvora-example-card">
+      <div className="themvora-example-header">
+        <h3 className="themvora-example-title">Design system</h3>
+        <span className="themvora-example-status">Active</span>
+      </div>
+      <p className="themvora-example-description">
+        Tokens resolve at runtime, so this card follows whichever theme is active.
+      </p>
+      <p className="themvora-example-meta">Updated 2 minutes ago</p>
+      <button className="themvora-example-button" type="button">View themes</button>
+    </div>
+  );
+}
+```
+
+#### styles
+
+```css title="app/app.css"
+/* Themvora emits its design tokens as CSS custom properties on the root
+   element, so a stylesheet only has to read them. Nothing here is
+   theme-specific: these rules render every theme, including ones you add
+   later. */
+html,
+body {
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
+}
+
+.themvora-example-card {
+  display: grid;
+  gap: 10px;
+  max-width: 22rem;
+  padding: 16px;
+  border: 1px solid var(--theme-color-border);
+  border-radius: var(--theme-radius-lg, 12px);
+  background: var(--theme-color-card);
+  color: var(--theme-color-cardForeground);
+  font-family: inherit;
+  line-height: 1.5;
+  box-shadow: var(--theme-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+
+.themvora-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.themvora-example-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.themvora-example-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-color-success);
+}
+
+.themvora-example-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.themvora-example-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-color-mutedForeground);
+}
+
+.themvora-example-button {
+  justify-self: start;
+  padding: 8px 14px;
+  border: 0;
+  /* Presets and generated themes emit --theme-radius-lg and nothing else on
+     the radius scale, so the smaller step is derived from it rather than
+     assumed — the same proportion the utility-class mapping uses. */
+  border-radius: calc(var(--theme-radius-lg, 12px) * 0.8);
+  background: var(--theme-color-primary);
+  color: var(--theme-color-primaryForeground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.themvora-example-button:hover {
+  filter: brightness(1.08);
+}
+
+.themvora-example-button:focus-visible {
+  outline: 2px solid var(--theme-color-ring);
+  outline-offset: 2px;
+}
+```
+
+### Use Cases
+
+#### snippet
+
+```tsx title="app/routes/home.tsx"
+// The root document mounted the provider, so a route just reads the runtime.
+import {
+  useProvidedThemes,
+  useSetThemeFamily,
+  useTheme,
+} from "@themvora/remix";
+import type { Route } from "./+types/home";
+
+const modes = ["system", "light", "dark"] as const;
+
+export function meta({}: Route.MetaArgs) {
+  return [{ title: "Themvora + React Router" }];
+}
+
+export default function Home() {
+  const { theme, mode, effectiveMode, setMode, toggleTheme } = useTheme();
+  const families = useProvidedThemes();
+  const setFamily = useSetThemeFamily();
+
+  return (
+    <main>
+      <p>
+        {theme.name} · requested {mode} · showing {effectiveMode}
+      </p>
+
+      <div role="group" aria-label="Theme mode">
+        {modes.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={mode === option}
+            onClick={() => setMode(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+
+      <label>
+        Family
+        <select
+          value={theme.meta?.family ?? ""}
+          onChange={(event) => setFamily(event.target.value)}
+        >
+          {families.map((family) => (
+            <option key={family.id} value={family.family}>
+              {family.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <button type="button" onClick={toggleTheme}>
+        Toggle light/dark
+      </button>
+    </main>
+  );
+}
+```
+
+### More Examples
+
+#### snippet2
+
+```ts title="app/themes.ts"
+// Imported as `./themes` from app/root.tsx.
+import { defineTheme } from "@themvora/core";
+
+export const themes = [
+  defineTheme({
+    name: "mint-light",
+    meta: { family: "mint", mode: "light" },
+    tokens: {
+      colors: { primary: "#10b981", background: "#f0fdf9" },
+    },
+  }),
+];
+```
+
+#### snippet3
+
+```tsx title="app/routes/pricing.tsx"
+import { ThemeScope } from "@themvora/remix";
+
+export default function Pricing() {
+  return (
+    <ThemeScope theme="plum-dark">
+      <h1>Pricing</h1>
+    </ThemeScope>
+  );
+}
+```
+
+---
+
+12 framework entries. Generated from `lib/frameworks.tsx`.

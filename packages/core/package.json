@@ -1,7 +1,7 @@
 {
   "name": "@themvora/core",
   "license": "MIT",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -27,7 +27,8 @@
       "types": "./dist/config.d.ts",
       "import": "./dist/config.js",
       "require": "./dist/config.cjs"
-    }
+    },
+    "./prepaint.js": "./dist/prepaint.js"
   },
   "files": [
     "dist",

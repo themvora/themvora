@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { highlightCode } from "../../lib/highlight";
 import { pairWithJavaScript } from "../../lib/code-language";
 import { CodeBlock } from "../../components/code-block";
 import { GENERATION_STYLE_NAMES } from "@themvora/core";
@@ -44,15 +43,14 @@ function snippetBlock(
   const variants = js
     ? pairWithJavaScript(snippet, js)?.map((variant) => ({
         ...variant,
-        html: highlightCode(variant.code, variant.lang),
       }))
     : undefined;
 
   return (
     <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
       code={snippet.code}
       language={snippet.lang}
+      filename={snippet.title}
       {...(labels?.[snippet.code] ? { displayLanguage: labels[snippet.code] } : {})}
       {...(variants ? { variants } : {})}
       className={className}
@@ -239,20 +237,6 @@ export function CustomThemesGuide({
             .
           </p>
           <CodeBlock
-            html={highlightCode(
-              `import { getPresetThemes } from "@themvora/core";
-
-// All nine families, light + dark.
-const themes = getPresetThemes();
-
-// Or restyle a family as you take it.
-const restyled = getPresetThemes({
-  plum: {
-    light: { tokens: { colors: { primary: "#6d28d9" } } },
-  },
-});`,
-              "ts",
-            )}
             code={`import { getPresetThemes } from "@themvora/core";
 
 // All nine families, light + dark.
@@ -282,15 +266,6 @@ const restyled = getPresetThemes({
           examples, not official brand themes.
         </p>
         <CodeBlock
-          html={highlightCode(
-            `import { getBrandPresets } from "@themvora/core";
-
-const themes = getBrandPresets();
-
-const brand = themes.filter((t) => t.meta?.family === "github");
-createThemeRuntime({ themes: brand, defaultTheme: "github-light" });`,
-            "ts",
-          )}
           code={`import { getBrandPresets } from "@themvora/core";
 
 const themes = getBrandPresets();
@@ -348,6 +323,9 @@ createThemeRuntime({ themes: brand, defaultTheme: "github-light" });`}
         {block(customSnippet)}
         {customSnippet.extra
           ? block(customSnippet.extra, "rounded-lg m-0 mt-3")
+          : null}
+        {customSnippet.vite
+          ? block(customSnippet.vite, "rounded-lg m-0 mt-3")
           : null}
         <Callout className="mt-3">
           The <code className="mono text-[0.9em]">oceanLight</code> and{" "}

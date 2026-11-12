@@ -87,7 +87,7 @@ export default function ApiReferencePage({
 
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <MarkdownDoc
           content={content}
           title={pageTitle}

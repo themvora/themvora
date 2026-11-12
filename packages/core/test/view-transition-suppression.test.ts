@@ -161,31 +161,79 @@ describe("View Transition path — descendant suppression", () => {
     binding!.destroy();
   });
 
-  it("keeps the window open across overlapping transitions", async () => {
-    const { resolveFinished, calls } = installViewTransition();
+  it("coalesces a change that arrives during a crossfade", async () => {
+    const { resolveFinished, calls, startViewTransition } = installViewTransition();
     const store = storeWith(light);
-    const binding = createCSSVariablesBinding(store, { transition: { enabled: true } });
+    // A short duration so the coalesced change's own suppression window closes
+    // inside the test.
+    const binding = createCSSVariablesBinding(store, {
+      transition: { enabled: true, duration: 10 },
+    });
 
     store.set(dark as never);
     // A second toggle before the first crossfade settles.
     store.set(light as never);
 
+    // One crossfade, not two. Starting a second one aborts the first, and an
+    // aborted crossfade leaves the page mid-fade before snapping to the new
+    // palette — on repeated clicks that reads as the theme flickering rather
+    // than changing.
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(1);
+
+    // The latest choice still wins, immediately: the variables are written now
+    // and the running crossfade simply finishes over them.
+    expect(
+      document.documentElement.style.getPropertyValue("--theme-color-background"),
+    ).toBe("#ffffff");
+
+    // Two windows are open — the crossfade's and the coalesced swap's — so
+    // descendants stay muted until both release.
     expect(document.documentElement.hasAttribute("data-themvora-animating")).toBe(true);
 
-    expect(calls).toHaveLength(2);
-
-    // The first window closing must not clear the flag the second still needs.
     resolveFinished(0);
     await Promise.resolve();
     await Promise.resolve();
 
+    // The crossfade's window closed, the swap's is still open: the flag must not
+    // drop while anything still needs it.
     expect(document.documentElement.hasAttribute("data-themvora-animating")).toBe(true);
 
-    resolveFinished(1);
-    await Promise.resolve();
-    await Promise.resolve();
-
+    await new Promise((resolve) => setTimeout(resolve, 40));
     expect(document.documentElement.hasAttribute("data-themvora-animating")).toBe(false);
+
+    binding!.destroy();
+  });
+
+  it("reports each applied change after the variables are on the target", () => {
+    installViewTransition();
+    const store = storeWith(light);
+    const seen: Array<{ theme: string; background: string }> = [];
+
+    const binding = createCSSVariablesBinding(store, {
+      transition: { enabled: true },
+      onAfterSwap: (theme) => {
+        seen.push({
+          theme: String(theme.name),
+          background: document.documentElement.style.getPropertyValue(
+            "--theme-color-background",
+          ),
+        });
+      },
+    });
+
+    // The initial suppressed apply is reported too, so a consumer can rely on
+    // the hook rather than on a separate first-run path.
+    expect(seen).toEqual([{ theme: "vt-light", background: "#ffffff" }]);
+
+    store.set(dark as never);
+
+    // One report per applied change, and the document already holds the new
+    // value when it fires. That is the contract the vanilla runtime publishes
+    // `themeChange` from: a consumer reading the document inside the handler
+    // sees the theme it is being told about, not the previous one.
+    expect(seen).toHaveLength(2);
+    expect(seen[1]).toEqual({ theme: "vt-dark", background: "#000000" });
 
     binding!.destroy();
   });

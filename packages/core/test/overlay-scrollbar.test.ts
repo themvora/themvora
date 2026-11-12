@@ -1378,7 +1378,7 @@ describe("overlay scrollbar spacing contract", () => {
     el.remove();
   });
 
-  it("does not move the document scrollbar when a per-side offset is set", async () => {
+  it("applies a per-side offset to the document scrollbar", async () => {
     Object.defineProperty(document.documentElement, "scrollHeight", { value: 5000, configurable: true });
     Object.defineProperty(document.documentElement, "clientHeight", { value: 1000, configurable: true });
     const store = createThemeStore({ initialTheme: theme });
@@ -1388,12 +1388,32 @@ describe("overlay scrollbar spacing contract", () => {
 
     const rootV = document.querySelector<HTMLElement>(".tv-scrollbar.tv-v:not([data-overlay])")!;
     expect(rootV).not.toBeNull();
-    // The page rail keeps the physical-right side and the default inset, not
-    // the configured per-side offset.
+    // The page rail keeps the physical-right side, but `offset` is the public
+    // knob for edge clearance and means the same thing on every host — so a
+    // per-side value moves the document rail too. (It used to be pinned to the
+    // defaults here, which made `offset: 0` a no-op on the one scrollbar a
+    // reader sees on every page.)
     expect(rootV.getAttribute("data-rail")).toBe("right");
     expect(
       window.innerWidth - (parseFloat(rootV.style.left) + parseFloat(rootV.style.width)),
-    ).toBeCloseTo(EDGE_INSET);
+    ).toBeCloseTo(40);
+
+    handle!.destroy();
+  });
+
+  it("puts the document scrollbar flush to the edge at offset 0", async () => {
+    Object.defineProperty(document.documentElement, "scrollHeight", { value: 5000, configurable: true });
+    Object.defineProperty(document.documentElement, "clientHeight", { value: 1000, configurable: true });
+    const store = createThemeStore({ initialTheme: theme });
+    const handle = createOverlayScrollbar(store, { offset: 0 });
+    handle!.update();
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+
+    const rootV = document.querySelector<HTMLElement>(".tv-scrollbar.tv-v:not([data-overlay])")!;
+    expect(rootV).not.toBeNull();
+    expect(
+      window.innerWidth - (parseFloat(rootV.style.left) + parseFloat(rootV.style.width)),
+    ).toBeCloseTo(0);
 
     handle!.destroy();
   });

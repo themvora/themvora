@@ -266,13 +266,23 @@ function clickButton(label) {
  * @returns The number of failed assertions.
  */
 async function runNativeApp(ctx) {
-  const { base, evaluate, settle, goto, expect } = ctx;
+  const { base, evaluate, settle, waitForPath, goto, expect } = ctx;
 
   await goto(`${base}/`);
 
   let s = await evaluate(SNAPSHOT);
   expect("cold load: page path", s.path, "/");
   expect("cold load: theme", s.theme, ctx.themeOf(ctx.fallbackFamily, "light"));
+  // The selection is not the resolution. The app declares `initialMode:
+  // "system"`, so the document must keep the visitor's *selection* on
+  // `data-theme-selection-mode` while `data-theme-mode` carries what the OS
+  // preference resolved it to. A server that dropped "system" and resolved the
+  // fallback theme's own mode instead would render "light" in both attributes
+  // and flip on hydration — the Nuxt defect; Astro resolves through the same
+  // helper, so the same property is asserted here.
+  expect("cold load: selection stays system", s.selectionMode, "system");
+  expect("cold load: effective mode is resolved", ["light", "dark"].includes(s.resolvedMode), true);
+  expect("cold load: theme follows the effective mode", s.theme, ctx.themeOf(ctx.fallbackFamily, s.resolvedMode));
   expect("cold load: selection family", s.selectionFamily, ctx.fallbackFamily);
   expect("cold load: select shows the selection", s.selects, [ctx.fallbackFamily]);
   expect("cold load: readout family", s.readouts.family, ctx.fallbackFamily);
@@ -314,7 +324,7 @@ async function runNativeApp(ctx) {
   // --- client-side navigation to a second page -----------------------------
   const nav1 = await evaluate(navigate("/about"));
   if (nav1?.error) fail(`/about is not linked from /: ${nav1.error}`);
-  await settle(1800);
+  await waitForPath("/about");
   s = await evaluate(SNAPSHOT);
   expect("nav → /about: path", s.path, "/about");
   expect("nav → /about: theme preserved", s.theme, ctx.themeOf(ctx.familyA, "dark"));
@@ -333,7 +343,7 @@ async function runNativeApp(ctx) {
   // --- back, then select again --------------------------------------------
   const nav2 = await evaluate(navigate("/"));
   if (nav2?.error) fail(`/ is not linked from /about: ${nav2.error}`);
-  await settle(1800);
+  await waitForPath("/");
   s = await evaluate(SNAPSHOT);
   expect("nav → /: path", s.path, "/");
   expect("nav → /: theme preserved", s.theme, ctx.themeOf(ctx.familyB, "dark"));
@@ -352,7 +362,7 @@ async function runNativeApp(ctx) {
   // --- several controls of the same kind -----------------------------------
   const nav3 = await evaluate(navigate("/two"));
   if (nav3?.error) fail(`/two is not linked from /: ${nav3.error}`);
-  await settle(1800);
+  await waitForPath("/two");
   s = await evaluate(SNAPSHOT);
   expect("nav → /two: path", s.path, "/two");
   expect("nav → /two: both controls show the selection", s.selects, [ctx.familyA, ctx.familyA]);
@@ -369,6 +379,8 @@ async function runNativeApp(ctx) {
 }
 
 async function runReactApp(ctx) {
+  // No `waitForPath`: this app drives the runtime through the island's own
+  // button rather than `<ClientRouter />` links, so it never navigates.
   const { base, evaluate, settle, goto, expect } = ctx;
 
   await goto(`${base}/`);
@@ -376,8 +388,19 @@ async function runReactApp(ctx) {
   const cold = await evaluate(SNAPSHOT);
   expect("cold load: page path", cold.path, "/");
   expect("cold load: theme", cold.theme, ctx.themeOf(ctx.fallbackFamily, "light"));
-  expect("cold load: the island is present", cold.islands.length, 1);
-  expect("cold load: the island hydrated", cold.islands[0]?.hydrated, true);
+  expect("cold load: selection stays system", cold.selectionMode, "system");
+  expect("cold load: effective mode is resolved", ["light", "dark"].includes(cold.resolvedMode), true);
+  expect("cold load: theme follows the effective mode", cold.theme, ctx.themeOf(ctx.fallbackFamily, cold.resolvedMode));
+  // Two client islands on this page — `<ThemeIsland>` and `<FamilySwitcher>` —
+  // sharing one runtime. The contract is that every island hydrates and that the
+  // theme panel is one of them; asserting the exact count only recorded how many
+  // the page happened to render, and broke when the second island was added.
+  expect(
+    "cold load: the theme island is present",
+    cold.islands.some((i) => i.text.includes("selection:")),
+    true,
+  );
+  expect("cold load: every island hydrated", cold.islands.every((i) => i.hydrated), true);
   expect("cold load: readout family", cold.readouts.family, ctx.fallbackFamily);
 
   // The reported "Resolved: fluctuates between mint-light and mint-dark".
@@ -589,8 +612,23 @@ async function main() {
       );
     }
 
+    // The family whose themes are *not* prefixed in the name map. The pre-paint
+    // script keys a family's themes as `"family:mode"`, except for the default
+    // family, whose themes are the unprefixed `"light"` / `"dark"` pair.
+    const defaultFamily = families.find(
+      (f) => names[`${f}:light`] === undefined && names[`${f}:dark`] === undefined,
+    );
+
     const themeOf = (family, mode) => {
-      const name = names[`${family}:${mode}`] ?? names[`__default-${mode}`];
+      // `names["default:light"]` does not exist — the default family's light
+      // theme is simply "light". Falling straight through to `__default-light`
+      // (the *configured* default theme, here "mint-light") made selecting the
+      // default family look like a failure to reach mint, when "light" is
+      // exactly right.
+      const name =
+        names[`${family}:${mode}`] ??
+        (family === defaultFamily ? names[mode] : undefined) ??
+        names[`__default-${mode}`];
       if (!name) {
         fail(
           `could not derive the ${mode} theme name for family "${family}" in ${app.name}`,
@@ -756,6 +794,25 @@ async function main() {
     const settle = (ms) => new Promise((r) => setTimeout(r, ms));
 
     /**
+     * Wait until `location.pathname` is `expected`, then let the page settle.
+     *
+     * A fixed sleep was the flakiest step in this gate: `<ClientRouter />`
+     * navigates on its own schedule, and the first run after a build pushed the
+     * second navigation past the 1800 ms the harness waited — so the assertion
+     * read the page we were leaving. Polling for the destination does not weaken
+     * the assertion: if the path never arrives, the wait gives up and the
+     * assertion below still reports the wrong path.
+     */
+    const waitForPath = async (expected, timeout = 10000) => {
+      const deadline = Date.now() + timeout;
+      while (Date.now() < deadline) {
+        if ((await evaluate("location.pathname")) === expected) break;
+        await settle(50);
+      }
+      await settle(400);
+    };
+
+    /**
      * A full page load, waiting for the load event.
      *
      * @param url - The URL to load.
@@ -799,6 +856,7 @@ async function main() {
       base,
       evaluate,
       settle,
+      waitForPath,
       goto,
       expect,
       families,

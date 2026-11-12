@@ -1,5 +1,70 @@
 # @themvora/chakra
 
+## 1.3.2
+
+### Patch Changes
+
+- Give every UI-library adapter a correct first frame, and expose the theme on
+  the variables each library actually paints from.
+
+  An adapter that writes only `--theme-*` styles the _Themvora_ layer. Each
+  library paints from its own variable namespace — Bootstrap's `--bs-*`, Mantine's
+  `--mantine-color-*`, Ant Design's cssinjs tokens — and those are produced when
+  the library's provider mounts, which is after the server-rendered markup has
+  been parsed. The visible result was a first frame of unstyled surfaces: white
+  cards on a dark theme, stock greys, native form controls.
+
+  **New subpaths (minor).**
+
+  - `@themvora/bootstrap/prepaint` — `createBootstrapPrePaintCss()` emits the
+    `--bs-*` layer as a stylesheet, one block per theme, so a server-rendered
+    document can inline it and paint before any script runs. Plain function, no
+    DOM access.
+  - `@themvora/mantine/prepaint` — `createMantinePrePaintCss()` does the same for
+    `--mantine-color-*`. It carries no React import and no `"use client"`, so a
+    server component can call it without crossing a client boundary.
+  - `@themvora/antd/next` — `AntdStyleRegistry` serialises Ant Design's cssinjs
+    cache into the server HTML through `useServerInsertedHTML`. Ant Design ships
+    no stylesheet, so without it the server HTML carries the markup and none of
+    the styling. The snapshot is emitted inside a cascade layer, so the live cache
+    outranks it the moment it produces a rule for the same element, and a theme
+    change is never overridden by the colours of the first render.
+    `@ant-design/cssinjs` is a new peer, and `next` is a new _optional_ peer — the
+    subpath is the only thing that needs it.
+
+  **Corrected variable mapping.**
+
+  - `@themvora/mantine` supplies a `cssVariablesResolver` and exports
+    `useMantineCssVariables`, so cards, inputs and borders follow the palette
+    instead of Mantine's stock greys.
+  - `@themvora/antd` selects Ant Design's algorithm from the resolved theme's
+    mode rather than always running the light one, and seeds the semantic roles
+    from the matching Themvora token. Warning and success were previously seeded
+    from `accent` and `muted`.
+  - `@themvora/bootstrap` points `--bs-card-bg`, `--bs-dropdown-bg`,
+    `--bs-popover-bg`, `--bs-modal-bg`, `--bs-offcanvas-bg`, `--bs-accordion-bg`,
+    `--bs-list-group-bg` and `--bs-toast-bg` at the Themvora role that means the
+    same thing. Bootstrap declares these _on the component_, so a `:root` value
+    could never reach them; they are re-declared where Bootstrap declares them.
+  - `@themvora/daisyui` recolours the focus indicator from the `ring` token.
+    daisyUI paints focus with `--color-base-content` — the _text_ colour — which
+    is the near-black ring a focused input showed on a light theme. Width, style
+    and offset are untouched, so the indicator stays visible and keyboard
+    accessible.
+  - `@themvora/unocss` contributes preflights. UnoCSS ships utilities, not a
+    reset, so a bare `<input>` kept the user agent's `2px inset` border and
+    `outline: auto` ring, which no generated utility can theme. The rules are
+    element selectors, so any `border-*`, `bg-*` or `outline-*` utility on the
+    same element still wins.
+
+  `@themvora/mui`, `@themvora/chakra`, `@themvora/open-props` and
+  `@themvora/shadcn` take a patch: their regenerated READMEs document the shared
+  pre-paint contract, and their development dependencies move to React 19.3.
+
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+
 ## 1.3.1
 
 ### Patch Changes

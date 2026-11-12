@@ -1,7 +1,7 @@
 # CLI reference
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - @themvora/cli installed or available via npx
 
 A compact reference for `themvora`. The command set has two halves: the **theme**
@@ -39,7 +39,7 @@ rendered from the same contract as the tables below.
 | `explain` | `why` | `themvora explain <file> [options]` | `--preset`, `--brand`, `--seed`, `--json`, `--quiet` |
 | `audit` | — | `themvora audit <file\|presets> [options]` | `--strict`, `--json`, `--quiet` |
 | `doctor` | — | `themvora doctor [dir] [options]` | `--json`, `--quiet` |
-| `init` | — | `themvora init [dir] [options]` | `--framework`, `--preset`, `--brand`, `--seed`, `--styling`, `--package-manager`, `--example`, `--plan`, `--dry-run`, `--no-install`, `--force`, `--json`, `--quiet` |
+| `init` | — | `themvora init [dir] [options]` | `--framework`, `--preset`, `--brand`, `--seed`, `--styling`, `--tool`, `--example`, `--plan`, `--dry-run`, `--no-install`, `--force`, `--json`, `--quiet` |
 | `add` | — | `themvora add <preset\|brand\|seed> <value> [options]` | `--dir`, `--family`, `--style`, `--plan`, `--dry-run`, `--force`, `--json`, `--quiet` |
 | `migrate` | — | `themvora migrate <file> [options]` | `--file`, `--output`, `--write`, `--dry-run`, `--json` |
 | `export` | — | `themvora export <file> [options]` | `--file`, `--format`, `--output` |
@@ -402,8 +402,8 @@ Usage:
 | `--preset <id>` | Generate the theme from a canonical preset. Run `themvora list presets` for the available values. | — |
 | `--brand <id>` | Generate the theme from a brand-inspired recipe. Run `themvora list brands` for the available values. | — |
 | `--seed <color>` | Generate the theme from a seed colour. | — |
-| `--styling <engine>` | Styling engine for the generated app: `css` (plain semantic stylesheet) or `tailwind` (Tailwind v4 via @themvora/tailwind). | `css` |
-| `--package-manager <name>` | Package manager to use. Defaults to detection from the lockfile. One of: `npm`, `pnpm`, `yarn`, `bun`. | — |
+| `--styling <engine>` | Styling engine for the generated app: `css` (plain semantic stylesheet, no extra dependency) or `tailwind` (Tailwind v4 via @themvora/tailwind). Plain CSS is the default in both modes: the wizard asks this as "Would you like to use Tailwind CSS with Themvora?" and preselects `css`, and a run without a terminal resolves to the same value. Supplying the flag skips the question. In an existing project it only rewrites the stylesheets `init` generated — one you wrote yourself needs --force. | `css` |
+| `--tool <name>` | Package manager to drive the framework generator and install dependencies: `npm`, `pnpm`, `yarn` or `bun`. When omitted, detection decides: the corepack `packageManager` field, then the lockfile, then npm. The interactive wizard preselects the manager you invoked the CLI with. `--package-manager` is accepted as a compatibility alias. One of: `npm`, `pnpm`, `yarn`, `bun`. | — |
 | `--example` | Accepted and ignored. The showcase is always generated; kept so older scripts do not break. | — |
 | `--plan` | Print what would happen and exit. Never writes or installs. | — |
 | `--dry-run` | Print the file operations and exit. Never writes, installs or scaffolds. | — |
@@ -420,11 +420,17 @@ Usage:
 | `3` | the project was written but a verification step failed |
 | `1` | command/runtime error, or existing files block the run |
 | `2` | usage/argument error |
+| `130` | the interactive wizard was cancelled (Ctrl+C); nothing was written |
 
 ### Examples
 
 ```bash
-themvora init my-app --framework react
+themvora init
+themvora init my-app --tool pnpm --framework react
+themvora init my-app --tool pnpm --framework react --styling tailwind
+themvora init my-app --tool npm --framework next --styling css
+themvora init my-app --tool npm --framework next
+themvora init my-app --package-manager pnpm --framework react
 themvora init my-app --framework next --preset mint
 themvora init my-app --framework react --plan
 themvora init my-app --framework react --no-install
@@ -606,6 +612,7 @@ themvora completion powershell
 | `1` | `ExitCodes.Error` | A runtime or command error occurred. |
 | `2` | `ExitCodes.Usage` | Invalid arguments / usage error. |
 | `3` | `ExitCodes.ValidationFailed` | A theme failed validation (the `validate` command). |
+| `130` | `ExitCodes.Cancelled` | The user cancelled an interactive prompt (Ctrl+C). `128 + SIGINT`, the conventional shell value, so a wrapper script can tell "the user changed their mind" from "the command failed". Nothing is written before the prompt is answered, so a cancellation leaves no partial project. |
 
 CI and editors can switch on these without parsing stdout. The per-command exit codes listed above are the subset each command can actually return.
 <!-- cli-reference:generated:end -->
@@ -619,9 +626,15 @@ CI and editors can switch on these without parsing stdout. The per-command exit 
 
 ## Environment & non-interactive mode
 
-The CLI never prompts, always respects `--output` for file writes, never
-overwrites without being told to, and prints plain text. It has no
-environment-variable knobs; behavior is fully driven by arguments.
+Every command except `init` is non-interactive by construction. `init` has a
+guided wizard, and it runs only when a terminal is attached and the invocation
+is not `--json`, `--quiet`, `--plan` or `--dry-run`; in every other context it
+reports a missing value as a usage error that names the flag supplying it.
+
+Otherwise the CLI always respects `--output` for file writes, never overwrites
+without being told to, and prints plain text when colour or animation is
+unavailable. Colour follows `NO_COLOR` and `FORCE_COLOR`; animation and prompts
+are disabled in CI, on `TERM=dumb`, and whenever stdout or stdin is not a TTY.
 
 ## Troubleshooting
 
@@ -666,7 +679,7 @@ Run `themvora --help` for the list, or `themvora <command> --help`.
 
 ### Node version
 
-The CLI needs **Node.js 22+**. Running an older Node surfaces a loader error.
+The CLI declares **Node.js 18+** in its published `engines.node` field. The repository build tooling requires Node.js 22.23.4, but the published CLI runs on Node.js 18 and newer.
 
 ## Next Steps
 

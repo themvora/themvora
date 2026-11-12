@@ -18,17 +18,25 @@ stale) that no unit test would have caught.
 
 ## How to run it
 
-`code --install-extension` does not work on this host — it launches the full
-application and never returns — so the extension is installed by hand:
+Install the published extension, or a locally built `.vsix` from this
+repository:
 
 ```bash
-pnpm --filter themvora-vscode build
-cd packages/vscode && pnpm package             # themvora-vscode-<version>.vsix
+code --install-extension themvora.themvora-for-vscode      # published build
 
-# unpack into the user extensions directory and register it in extensions.json
-unzip -q themvora-vscode-0.1.0.vsix -d /tmp/tv
+# or, from source:
+pnpm --filter themvora-for-vscode build
+cd packages/vscode && pnpm package       # themvora-for-vscode-<version>.vsix
+code --install-extension themvora-for-vscode-0.1.1.vsix --force
+```
+
+On a host where `code --install-extension` never returns, unpack the archive by
+hand and register it in `extensions.json`:
+
+```bash
+unzip -q themvora-for-vscode-0.1.1.vsix -d /tmp/tv
 cp -r /tmp/tv/extension/. \
-  "$USERPROFILE/.vscode/extensions/themvora.themvora-vscode-0.1.0/"
+  "$USERPROFILE/.vscode/extensions/themvora.themvora-for-vscode-0.1.1/"
 ```
 
 Then **`Ctrl+Shift+P` → "Developer: Reload Window"**. A hand-installed extension

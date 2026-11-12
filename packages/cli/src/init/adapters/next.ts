@@ -26,6 +26,7 @@ import { planScaffoldCleanup } from "./shared.js";
 import { renderShowcaseCss, renderShowcaseTailwind } from "./showcase-css.js";
 import { renderThemesModule } from "./themes-module.js";
 import { nextThemeSwitcher, nextThemvoraDefault } from "./showcase/next.js";
+import { TAILWIND_POSTCSS_DEV_DEPENDENCIES } from "./tailwind-deps.js";
 import {
   viteVerification,
   type FrameworkAdapter,
@@ -165,7 +166,7 @@ function integrate(context: IntegrationContext): IntegrationResult {
   files.push(
     planFile({
       path: PAGE,
-      contents: nextThemvoraDefault(c, port),
+      contents: nextThemvoraDefault(c, port, context.styling),
       existing: context.read(PAGE),
       generated: true,
       reason: "the Themvora showcase",
@@ -276,7 +277,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     manualSteps,
     warnings,
     ...(tailwind
-      ? { packages: ["@themvora/tailwind"], devPackages: ["tailwindcss", "@tailwindcss/postcss"] }
+      ? {
+          packages: ["@themvora/tailwind"],
+          devDependencies: TAILWIND_POSTCSS_DEV_DEPENDENCIES,
+        }
       : {}),
   };
 }

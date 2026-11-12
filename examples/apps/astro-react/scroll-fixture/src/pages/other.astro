@@ -1,0 +1,17 @@
+---
+// A second route for navigation and history scenarios.
+import Provider from "@themvora/astro/provider.astro";
+import { ClientRouter } from "astro:transitions";
+import themeConfig from "../../../theme.config";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false}>
+  <title slot="head">other route</title>
+  <ClientRouter slot="head" />
+  <ScrollFixtureStyle />
+  <main style="padding: 40px">
+    <h1 id="other">Other route</h1>
+    <p><a href="/provider-scrollbar/">Go to the scroll fixture</a></p>
+  </main>
+</Provider>

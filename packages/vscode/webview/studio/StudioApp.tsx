@@ -123,7 +123,11 @@ export function StudioApp({
       if (message.type === "fileText")
         dispatch({ type: "set-file-text", text: message.text });
       if (message.type === "saveLocation")
-        dispatch({ type: "set-target-path", path: message.path });
+        dispatch({
+          type: "set-save-location",
+          directory: message.directory,
+          fileName: message.fileName,
+        });
       if (message.type === "saveResult") dispatch({ type: "close-save" });
       if (message.type === "patchPreview")
         dispatch({ type: "open-patch-preview", patch: message.patch });
@@ -480,7 +484,10 @@ export function StudioApp({
                 type: "save",
                 format: ui.format,
                 fileName: ui.fileName,
-                destination: ui.destination,
+                // A draft has no source to sit beside, so "source" is not a
+                // destination it can have. Sending it anyway is what made the
+                // host ask for a location a second time.
+                destination: selected?.source === undefined ? "choose" : ui.destination,
               })
             }
             onSerialize={() => post({ type: "serialize", format: ui.format })}

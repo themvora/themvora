@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function SemanticRolesPage() {
   return (
     <DocsLayout wide>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

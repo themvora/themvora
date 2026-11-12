@@ -41,15 +41,15 @@
     },
     "counts": {
       "packages": 24,
-      "entrypoints": 56,
-      "symbols": 1377,
+      "entrypoints": 61,
+      "symbols": 1458,
       "byClass": {
-        "CORE_PUBLIC": 407,
-        "FRAMEWORK_PUBLIC": 733,
-        "ADAPTER_PUBLIC": 109,
+        "CORE_PUBLIC": 414,
+        "FRAMEWORK_PUBLIC": 796,
+        "ADAPTER_PUBLIC": 117,
         "LOW_LEVEL_PUBLIC": 50,
-        "INTERNAL": 71,
-        "DEPRECATED": 7
+        "INTERNAL": 73,
+        "DEPRECATED": 8
       }
     },
     "skippedEntrypoints": [
@@ -94,6 +94,11 @@
         "reason": "non-TypeScript entrypoint (CSS or component asset) — no exported symbols"
       },
       {
+        "package": "@themvora/core",
+        "entrypoint": "./prepaint.js",
+        "reason": "non-TypeScript entrypoint (CSS or component asset) — no exported symbols"
+      },
+      {
         "package": "@themvora/daisyui",
         "entrypoint": "./daisyui.css",
         "reason": "non-TypeScript entrypoint (CSS or component asset) — no exported symbols"
@@ -121,6 +126,11 @@
       {
         "package": "@themvora/tailwind",
         "entrypoint": "./preflight.css",
+        "reason": "non-TypeScript entrypoint (CSS or component asset) — no exported symbols"
+      },
+      {
+        "package": "@themvora/web",
+        "entrypoint": "./boot.js",
         "reason": "non-TypeScript entrypoint (CSS or component asset) — no exported symbols"
       }
     ],
@@ -217,6 +227,10 @@
       "createAntdAdapter": "ADAPTER_PUBLIC",
       "createAntdTheme": "ADAPTER_PUBLIC",
       "useAntdTheme": "ADAPTER_PUBLIC"
+    },
+    "./next": {
+      "ANTD_SSR_STYLE_ID": "ADAPTER_PUBLIC",
+      "AntdStyleRegistry": "ADAPTER_PUBLIC"
     }
   },
   "@themvora/astro": {
@@ -309,6 +323,10 @@
       "CreateBootstrapAdapterOptions": "ADAPTER_PUBLIC",
       "createBootstrapAdapter": "ADAPTER_PUBLIC"
     },
+    "./prepaint": {
+      "BootstrapPrePaintOptions": "ADAPTER_PUBLIC",
+      "createBootstrapPrePaintCss": "ADAPTER_PUBLIC"
+    },
     "./react": {
       "useBootstrapTheme": "ADAPTER_PUBLIC"
     },
@@ -378,6 +396,7 @@
       "AdapterStrategy": "CORE_PUBLIC",
       "AnimatedGroupKey": "CORE_PUBLIC",
       "AnimationsPluginOptions": "CORE_PUBLIC",
+      "ApplyThemeBootstrapOptions": "CORE_PUBLIC",
       "ArrowButton": "INTERNAL",
       "ArrowIcon": "INTERNAL",
       "AxisState": "INTERNAL",
@@ -410,6 +429,7 @@
       "CoreColor": "CORE_PUBLIC",
       "CreateDiagnosticInput": "CORE_PUBLIC",
       "CreateRootLike": "CORE_PUBLIC",
+      "DEFAULT_PREPAINT_STORAGE_KEY": "INTERNAL",
       "DEFAULT_SCHEDULED_DARK_THEME": "CORE_PUBLIC",
       "DEFAULT_SCHEDULED_LIGHT_THEME": "CORE_PUBLIC",
       "DEFAULT_THEME_TRANSITION": "CORE_PUBLIC",
@@ -521,6 +541,7 @@
       "TRANSITION_PRESETS": "CORE_PUBLIC",
       "ThemeAdapter": "CORE_PUBLIC",
       "ThemeAnimationInput": "CORE_PUBLIC",
+      "ThemeBootstrapApplied": "CORE_PUBLIC",
       "ThemeBootstrapConfig": "CORE_PUBLIC",
       "ThemeBootstrapCookieSource": "INTERNAL",
       "ThemeBootstrapPlan": "INTERNAL",
@@ -578,6 +599,7 @@
       "ThemePersistenceOptions": "CORE_PUBLIC",
       "ThemePlugin": "CORE_PUBLIC",
       "ThemePluginHooks": "CORE_PUBLIC",
+      "ThemePrePaintCssOptions": "CORE_PUBLIC",
       "ThemeRegistry": "CORE_PUBLIC",
       "ThemeRegistryOptions": "CORE_PUBLIC",
       "ThemeRuntime": "CORE_PUBLIC",
@@ -615,6 +637,7 @@
       "ValidationIssue": "CORE_PUBLIC",
       "ValidationLevel": "CORE_PUBLIC",
       "ValidationResult": "CORE_PUBLIC",
+      "applyThemeBootstrap": "CORE_PUBLIC",
       "auditActionProminence": "CORE_PUBLIC",
       "auditSemanticContexts": "CORE_PUBLIC",
       "auto": "CORE_PUBLIC",
@@ -627,6 +650,7 @@
       "chooseForeground": "CORE_PUBLIC",
       "clamp": "INTERNAL",
       "clearMigrations": "CORE_PUBLIC",
+      "colorName": "CORE_PUBLIC",
       "composeTheme": "CORE_PUBLIC",
       "computeFingerprint": "CORE_PUBLIC",
       "computeMaxScroll": "INTERNAL",
@@ -669,6 +693,7 @@
       "createThemeLifecycle": "CORE_PUBLIC",
       "createThemeModeController": "CORE_PUBLIC",
       "createThemePersistence": "CORE_PUBLIC",
+      "createThemePrePaintCss": "CORE_PUBLIC",
       "createThemeReadoutScript": "CORE_PUBLIC",
       "createThemeRegistry": "CORE_PUBLIC",
       "createThemeRuntime": "CORE_PUBLIC",
@@ -792,6 +817,7 @@
     },
     "./config": {
       "THEMVORA_CONFIG_FILES": "CORE_PUBLIC",
+      "findThemvoraConfigPath": "CORE_PUBLIC",
       "loadThemvoraConfig": "CORE_PUBLIC"
     },
     "./vanilla": {
@@ -868,8 +894,14 @@
     ".": {
       "MantineThemeProvider": "ADAPTER_PUBLIC",
       "MantineThemeProviderProps": "ADAPTER_PUBLIC",
+      "createMantineCssVariables": "ADAPTER_PUBLIC",
       "createMantineTheme": "ADAPTER_PUBLIC",
+      "useMantineCssVariables": "ADAPTER_PUBLIC",
       "useMantineTheme": "ADAPTER_PUBLIC"
+    },
+    "./prepaint": {
+      "MantinePrePaintOptions": "ADAPTER_PUBLIC",
+      "createMantinePrePaintCss": "ADAPTER_PUBLIC"
     }
   },
   "@themvora/mui": {
@@ -944,6 +976,7 @@
       "AdapterStrategy": "FRAMEWORK_PUBLIC",
       "AnimatedGroupKey": "FRAMEWORK_PUBLIC",
       "AnimationsPluginOptions": "FRAMEWORK_PUBLIC",
+      "ApplyThemeBootstrapOptions": "FRAMEWORK_PUBLIC",
       "ArrowButton": "INTERNAL",
       "ArrowIcon": "INTERNAL",
       "AxisState": "INTERNAL",
@@ -976,6 +1009,7 @@
       "CoreColor": "FRAMEWORK_PUBLIC",
       "CreateDiagnosticInput": "FRAMEWORK_PUBLIC",
       "CreateRootLike": "FRAMEWORK_PUBLIC",
+      "DEFAULT_PREPAINT_STORAGE_KEY": "INTERNAL",
       "DEFAULT_SCHEDULED_DARK_THEME": "FRAMEWORK_PUBLIC",
       "DEFAULT_SCHEDULED_LIGHT_THEME": "FRAMEWORK_PUBLIC",
       "DEFAULT_THEME_TRANSITION": "FRAMEWORK_PUBLIC",
@@ -1090,6 +1124,7 @@
       "TRANSITION_PRESETS": "FRAMEWORK_PUBLIC",
       "ThemeAdapter": "FRAMEWORK_PUBLIC",
       "ThemeAnimationInput": "FRAMEWORK_PUBLIC",
+      "ThemeBootstrapApplied": "FRAMEWORK_PUBLIC",
       "ThemeBootstrapConfig": "FRAMEWORK_PUBLIC",
       "ThemeBootstrapCookieSource": "INTERNAL",
       "ThemeBootstrapPlan": "INTERNAL",
@@ -1149,6 +1184,7 @@
       "ThemePersistenceOptions": "FRAMEWORK_PUBLIC",
       "ThemePlugin": "FRAMEWORK_PUBLIC",
       "ThemePluginHooks": "FRAMEWORK_PUBLIC",
+      "ThemePrePaintCssOptions": "FRAMEWORK_PUBLIC",
       "ThemeProvider": "FRAMEWORK_PUBLIC",
       "ThemeProviderProps": "FRAMEWORK_PUBLIC",
       "ThemeRegistry": "FRAMEWORK_PUBLIC",
@@ -1194,6 +1230,7 @@
       "ValidationIssue": "FRAMEWORK_PUBLIC",
       "ValidationLevel": "FRAMEWORK_PUBLIC",
       "ValidationResult": "FRAMEWORK_PUBLIC",
+      "applyThemeBootstrap": "FRAMEWORK_PUBLIC",
       "auditActionProminence": "FRAMEWORK_PUBLIC",
       "auditSemanticContexts": "FRAMEWORK_PUBLIC",
       "auto": "FRAMEWORK_PUBLIC",
@@ -1206,6 +1243,7 @@
       "chooseForeground": "FRAMEWORK_PUBLIC",
       "clamp": "INTERNAL",
       "clearMigrations": "FRAMEWORK_PUBLIC",
+      "colorName": "FRAMEWORK_PUBLIC",
       "composeTheme": "FRAMEWORK_PUBLIC",
       "computeFingerprint": "FRAMEWORK_PUBLIC",
       "computeMaxScroll": "INTERNAL",
@@ -1249,6 +1287,7 @@
       "createThemeLifecycle": "FRAMEWORK_PUBLIC",
       "createThemeModeController": "FRAMEWORK_PUBLIC",
       "createThemePersistence": "FRAMEWORK_PUBLIC",
+      "createThemePrePaintCss": "FRAMEWORK_PUBLIC",
       "createThemeReadoutScript": "FRAMEWORK_PUBLIC",
       "createThemeRegistry": "FRAMEWORK_PUBLIC",
       "createThemeRuntime": "FRAMEWORK_PUBLIC",
@@ -1469,6 +1508,15 @@
   "@themvora/remix": {
     ".": {
       "RemixThemePersistenceOptions": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentBodyProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentConfig": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHandle": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadContent": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadElement": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadTag": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHtmlProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentProviderProps": "FRAMEWORK_PUBLIC",
       "ThemeHead": "FRAMEWORK_PUBLIC",
       "ThemeHeadProps": "FRAMEWORK_PUBLIC",
       "ThemeInspector": "FRAMEWORK_PUBLIC",
@@ -1481,6 +1529,52 @@
       "ThemeShellOptions": "FRAMEWORK_PUBLIC",
       "ThemeShellProps": "FRAMEWORK_PUBLIC",
       "createRemixThemePersistence": "FRAMEWORK_PUBLIC",
+      "createThemeDocument": "FRAMEWORK_PUBLIC",
+      "getThemeShellProps": "FRAMEWORK_PUBLIC",
+      "useGeneratedTheme": "FRAMEWORK_PUBLIC",
+      "useProvidedThemes": "FRAMEWORK_PUBLIC",
+      "useSetThemeFamily": "FRAMEWORK_PUBLIC",
+      "useSetThemeMode": "FRAMEWORK_PUBLIC",
+      "useTheme": "FRAMEWORK_PUBLIC",
+      "useThemeBatch": "FRAMEWORK_PUBLIC",
+      "useThemeFamily": "FRAMEWORK_PUBLIC",
+      "useThemeHistory": "FRAMEWORK_PUBLIC",
+      "useThemeLifecycle": "FRAMEWORK_PUBLIC",
+      "useThemeMode": "FRAMEWORK_PUBLIC",
+      "useThemePacks": "FRAMEWORK_PUBLIC",
+      "useThemeRestore": "FRAMEWORK_PUBLIC",
+      "useThemeRuntime": "FRAMEWORK_PUBLIC",
+      "useThemeSchedule": "FRAMEWORK_PUBLIC",
+      "useThemeSnapshot": "FRAMEWORK_PUBLIC",
+      "useThemeTimeTravel": "FRAMEWORK_PUBLIC",
+      "useThemeTokens": "FRAMEWORK_PUBLIC",
+      "useThemeValue": "FRAMEWORK_PUBLIC",
+      "useToggleTheme": "FRAMEWORK_PUBLIC"
+    },
+    "./react-router": {
+      "RemixThemePersistenceOptions": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentBodyProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentConfig": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHandle": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadContent": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadElement": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHeadTag": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentHtmlProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentProps": "FRAMEWORK_PUBLIC",
+      "ThemeDocumentProviderProps": "FRAMEWORK_PUBLIC",
+      "ThemeHead": "FRAMEWORK_PUBLIC",
+      "ThemeHeadProps": "FRAMEWORK_PUBLIC",
+      "ThemeInspector": "FRAMEWORK_PUBLIC",
+      "ThemeInspectorProps": "FRAMEWORK_PUBLIC",
+      "ThemeProvider": "FRAMEWORK_PUBLIC",
+      "ThemeProviderProps": "FRAMEWORK_PUBLIC",
+      "ThemeScope": "FRAMEWORK_PUBLIC",
+      "ThemeScrollbar": "FRAMEWORK_PUBLIC",
+      "ThemeScrollbarProps": "FRAMEWORK_PUBLIC",
+      "ThemeShellOptions": "FRAMEWORK_PUBLIC",
+      "ThemeShellProps": "FRAMEWORK_PUBLIC",
+      "createRemixThemePersistence": "FRAMEWORK_PUBLIC",
+      "createThemeDocument": "FRAMEWORK_PUBLIC",
       "getThemeShellProps": "FRAMEWORK_PUBLIC",
       "useGeneratedTheme": "FRAMEWORK_PUBLIC",
       "useProvidedThemes": "FRAMEWORK_PUBLIC",
@@ -1680,6 +1774,13 @@
       "useThemeRuntime": "FRAMEWORK_PUBLIC",
       "useThemeTokens": "FRAMEWORK_PUBLIC",
       "useThemeValue": "FRAMEWORK_PUBLIC"
+    },
+    "./vite": {
+      "ThemvoraThemeConfig": "DEPRECATED",
+      "ThemvoraViteInjectedTag": "FRAMEWORK_PUBLIC",
+      "ThemvoraVitePlugin": "FRAMEWORK_PUBLIC",
+      "ThemvoraVitePluginOptions": "FRAMEWORK_PUBLIC",
+      "themvoraVitePlugin": "FRAMEWORK_PUBLIC"
     }
   }
 }

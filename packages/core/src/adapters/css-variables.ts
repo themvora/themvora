@@ -11,7 +11,6 @@ import {
   createThemeDiff,
   createTransitionPlan,
   disposeThemeTransitionStyles,
-  runThemeAnimation,
 } from "../animation";
 
 /**
@@ -49,6 +48,26 @@ export interface CSSVariablesOptions {
     theme: ThemeDefinition,
     emitOptions?: { suppressTransition?: boolean },
   ) => void;
+  /**
+   * Called immediately **after** the new variables are on the target — in the
+   * same task as the write, and inside the View Transition's update callback
+   * when one is running.
+   *
+   * @remarks
+   * This is the "the document now shows this theme" signal. A View Transition
+   * applies its update callback in a *later* task than the store commit, so
+   * anything a consumer derives from the theme (a label, a scoped region, an
+   * adapter-driven UI) is one frame ahead of the pixels if it renders on the
+   * store's own notification. A framework-free runtime uses this to publish
+   * `themeChange` only once the document agrees with it.
+   *
+   * It fires on every applied change, including the initial suppressed one, so
+   * a consumer must be idempotent.
+   */
+  onAfterSwap?: (
+    theme: ThemeDefinition,
+    emitOptions?: { suppressTransition?: boolean },
+  ) => void;
 }
 
 function prefersReducedMotion(): boolean {
@@ -57,6 +76,66 @@ function prefersReducedMotion(): boolean {
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+/** Marker on the stylesheet that carries the configured crossfade timing. */
+const VIEW_TRANSITION_TIMING_ATTR = "data-themvora-view-transition-timing";
+
+let viewTransitionTimingGeneration = 0;
+
+/**
+ * The configured `duration`/`easing` for a native View Transition.
+ *
+ * The UA's default crossfade is ~250 ms and ignores the theme configuration, so
+ * `transition: { duration: 600 }` used to look identical to the default on the
+ * View Transition path — the one path a supporting browser takes. The duration
+ * lives in a pseudo-element rule, so it is written to a temporary stylesheet
+ * rather than an inline style, and the stylesheet is removed when the
+ * transition finishes so later (e.g. Astro client-router) transitions keep
+ * their own timing.
+ *
+ * @returns A disposer for this transition's stylesheet.
+ */
+function applyViewTransitionTiming(transition: {
+  duration: number;
+  easing: string;
+}): () => void {
+  if (
+    typeof document === "undefined" ||
+    !document.head ||
+    typeof document.createElement !== "function"
+  ) {
+    return () => {};
+  }
+
+  // App-supplied CSS, inserted into a stylesheet: strip the characters that
+  // could end the declaration or the rule. This is not a security boundary
+  // (the config is the app's own), only a guard against a malformed value
+  // breaking every later rule in the sheet.
+  const easing = transition.easing.replace(/[;{}]/g, "").trim();
+  const css =
+    "::view-transition-group(root),::view-transition-old(root),::view-transition-new(root){" +
+    `animation-duration:${transition.duration}ms;` +
+    (easing ? `animation-timing-function:${easing};` : "") +
+    "}";
+
+  let node = document.head.querySelector<HTMLStyleElement>(
+    `style[${VIEW_TRANSITION_TIMING_ATTR}]`,
+  );
+  if (!node) {
+    node = document.createElement("style");
+    node.setAttribute(VIEW_TRANSITION_TIMING_ATTR, "");
+    document.head.appendChild(node);
+  }
+
+  // A second toggle before the first finishes must not have its stylesheet
+  // removed by the first transition's cleanup.
+  const generation = ++viewTransitionTimingGeneration;
+  node.textContent = css;
+
+  return () => {
+    if (generation === viewTransitionTimingGeneration) node.remove();
+  };
 }
 
 /**
@@ -88,6 +167,18 @@ export function createCSSVariablesBinding(
   // rebuild — see `setTransition` on the returned object.
   let transitionOption = options.transition;
 
+  /**
+   * The View Transition currently animating a theme change, if any.
+   *
+   * A second change that arrives while one is running is applied **without**
+   * starting another crossfade. Starting a second one aborts the first, and an
+   * aborted crossfade leaves the page mid-fade before snapping to the new
+   * palette — which, on repeated clicks, reads as the theme "fluctuating"
+   * rather than changing. The visitor's latest choice still wins: the variables
+   * are written immediately, the running crossfade just finishes over them.
+   */
+  let activeTransition: { finished?: Promise<unknown> } | null = null;
+
   let appliedVariables = new Map<string, string>();
   let styleElement: HTMLStyleElement | null = null;
 
@@ -112,6 +203,7 @@ export function createCSSVariablesBinding(
       if (cssNode && document.head.contains(cssNode)) {
         document.head.removeChild(cssNode);
       }
+      options.onAfterSwap?.(theme, emitOptions);
       return;
     }
 
@@ -123,6 +215,19 @@ export function createCSSVariablesBinding(
     const applyNow = () => {
       options.onBeforeSwap?.(theme, emitOptions);
       applyInlineVariables(element!, variables);
+    };
+
+    /**
+     * Apply, then report that the document now shows this theme.
+     *
+     * The report has to happen here rather than from the store subscription:
+     * inside a View Transition this callback runs a task *after* the store
+     * committed, so a consumer notified from the store is one frame ahead of
+     * the pixels it describes.
+     */
+    const commit = () => {
+      applyNow();
+      options.onAfterSwap?.(theme, emitOptions);
     };
 
     // Prefer a native cross-fade (View Transition API). It paints the NEW theme
@@ -139,10 +244,12 @@ export function createCSSVariablesBinding(
       transition.enabled &&
       !prefersReducedMotion() &&
       transition.useViewTransition &&
-      supportsViewTransition;
+      supportsViewTransition &&
+      // One crossfade at a time — see `activeTransition`.
+      activeTransition === null;
 
     if (suppressTransition) {
-      applyNow();
+      commit();
     } else if (useViewTransition) {
       // Mute descendant transitions for the crossfade, exactly as the CSS-property
       // run does. The snapshot the browser fades out already carries the old
@@ -152,11 +259,25 @@ export function createCSSVariablesBinding(
       // swapped in 1 frame while MUI's Button needed 30 (540 ms), and MUI's own
       // Paper had already snapped — three different timings for one change.
       const releaseSuppression = beginDescendantTransitionSuppression(element!);
+      // The configured duration/easing must reach the native crossfade too;
+      // the UA default is a fixed ~250 ms and would silently ignore the app's
+      // `transition.duration`.
+      const releaseTiming = applyViewTransitionTiming(transition);
 
       const viewTransition = (document as any).startViewTransition(() => {
-        applyNow();
+        commit();
         return Promise.resolve();
       });
+
+      // Marks the crossfade window. Cleared on both outcomes, because an
+      // aborted transition still ends the window — and a flag left set would
+      // disable the crossfade for the rest of the session.
+      activeTransition = viewTransition;
+      const release = () => {
+        if (activeTransition === viewTransition) activeTransition = null;
+        releaseSuppression();
+        releaseTiming();
+      };
 
       // A skipped transition is normal — a second toggle in the same frame, a
       // provider removed mid-swap, a tab going hidden — and the API reports it
@@ -170,9 +291,9 @@ export function createCSSVariablesBinding(
       // aborted transition, so the release runs on both outcomes; the disposer
       // is idempotent, so the double call is harmless.
       if (viewTransition?.finished?.then) {
-        viewTransition.finished.then(releaseSuppression, releaseSuppression);
+        viewTransition.finished.then(release, release);
       } else {
-        releaseSuppression();
+        release();
       }
     } else {
       const plan = createTransitionPlan(
@@ -182,13 +303,28 @@ export function createCSSVariablesBinding(
       );
 
       if (plan) {
-        runThemeAnimation({
-          target: element!,
-          plan,
-          swap: applyNow,
-        });
+        // No View Transition available, so the page cannot be crossfaded as one
+        // image. Interpolating the variables here is *not* an equivalent
+        // fallback: adapter-driven libraries (Ant Design, MUI, Mantine, Chakra)
+        // re-render with the new tokens synchronously and cannot be
+        // interpolated alongside the variables, so their components finish
+        // changing on the first frame while every `--theme-*` surface is still
+        // mid-fade. Measured on a themed dashboard: twelve intermediate sidebar
+        // colours over ~170 ms, with the page visibly half-switched.
+        //
+        // The variables are therefore swapped in one step and descendant
+        // transitions are muted for the configured duration, so nothing eases
+        // into the new palette behind the swap. The change is atomic, which is
+        // the property that matters when two systems paint the same pixels.
+        //
+        // This is also the path a change takes while a crossfade is already
+        // running (see `activeTransition`): the latest choice is committed
+        // immediately instead of stacking a second, aborting crossfade.
+        const release = beginDescendantTransitionSuppression(element!);
+        commit();
+        setTimeout(release, plan.duration);
       } else {
-        applyNow();
+        commit();
       }
     }
 

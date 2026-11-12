@@ -74,6 +74,42 @@ export const THEMVORA_CONFIG_FILES = [
 ] as const;
 
 /**
+ * Resolves the path of the application's `theme.config.*` without loading it.
+ *
+ * @param root - The project root to search.
+ * @param configPath - An explicit path, relative to `root` or absolute. When
+ *   omitted the conventional filenames are tried in order.
+ * @returns The absolute path, or `null` when no config file exists.
+ *
+ * @remarks
+ * Separate from {@link loadThemvoraConfig} because a *watch* registration needs
+ * the path and nothing else: Astro's `addWatchFile` and the Vite plugin's
+ * watcher both restart or reload on a change to this file, and neither can pay
+ * for a full esbuild config load just to learn where it lives.
+ *
+ * @see {@link loadThemvoraConfig}
+ */
+export async function findThemvoraConfigPath(
+  root: string,
+  configPath?: string,
+): Promise<string | null> {
+  const { existsSync } = await import("node:fs");
+  const { isAbsolute, join } = await import("node:path");
+
+  if (configPath) {
+    const path = isAbsolute(configPath) ? configPath : join(root, configPath);
+    return existsSync(path) ? path : null;
+  }
+
+  for (const name of THEMVORA_CONFIG_FILES) {
+    const candidate = join(root, name);
+    if (existsSync(candidate)) return candidate;
+  }
+
+  return null;
+}
+
+/**
  * Finds and loads the application's {@link ThemvoraConfig}.
  *
  * @typeParam T - The theme definition type used by the application.
@@ -101,20 +137,7 @@ export async function loadThemvoraConfig<T extends ThemeDefinition>(
   configPath?: string,
 ): Promise<ThemvoraConfig<T> | null> {
   const { existsSync } = await import("node:fs");
-  const { isAbsolute, join } = await import("node:path");
-
-  let path: string | null = null;
-  if (configPath) {
-    path = isAbsolute(configPath) ? configPath : join(root, configPath);
-  } else {
-    for (const name of THEMVORA_CONFIG_FILES) {
-      const candidate = join(root, name);
-      if (existsSync(candidate)) {
-        path = candidate;
-        break;
-      }
-    }
-  }
+  const path = await findThemvoraConfigPath(root, configPath);
   if (!path || !existsSync(path)) return null;
 
   try {

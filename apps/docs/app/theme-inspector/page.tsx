@@ -134,7 +134,7 @@ import ThemeInspector from "@themvora/astro/ThemeInspector.astro";
 </template>`,
   },
   remix: {
-    label: "Remix",
+    label: "Remix v2",
     lang: "tsx",
     title: "app/root.tsx",
     code: `import { ThemeProvider, ThemeInspector } from "@themvora/remix";
@@ -200,7 +200,7 @@ const stylingRows = [
 export default function ThemeInspectorPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Developer Tools"
           title="Theme Inspector"
@@ -278,7 +278,7 @@ export default function ThemeInspectorPage() {
           >
             Props
           </SectionHeading>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-left">
@@ -309,7 +309,7 @@ export default function ThemeInspectorPage() {
           >
             Styling
           </SectionHeading>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-sm">
               <tbody>
                 {stylingRows.map(([sel, desc]) => (

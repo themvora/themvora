@@ -99,6 +99,25 @@ export function generateBootstrapVariables(
     "--bs-body-bg-rgb": rgbTriplet(background) ?? "",
     "--bs-body-color-rgb": rgbTriplet(foreground) ?? "",
 
+    /* -------------------------------------------------------- surfaces -- */
+    // Bootstrap defaults every container surface to the *page* colour:
+    // `--bs-card-bg`, `--bs-dropdown-bg`, `--bs-popover-bg`, `--bs-modal-bg`,
+    // `--bs-offcanvas-bg`, `--bs-accordion-bg` and `--bs-list-group-bg` are all
+    // `var(--bs-body-bg)`. Overriding only `--bs-body-bg` therefore paints
+    // cards, menus and modals the same colour as the page — the "surfaces are
+    // indistinguishable" report. Each role is pointed at the Themvora token that
+    // means the same thing, so the elevation survives into every component that
+    // reads these variables.
+    "--bs-card-bg": rc("card") || background,
+    "--bs-card-cap-bg": "transparent",
+    "--bs-dropdown-bg": rc("popover") || rc("card") || background,
+    "--bs-popover-bg": rc("popover") || rc("card") || background,
+    "--bs-modal-bg": rc("card") || background,
+    "--bs-offcanvas-bg": rc("card") || background,
+    "--bs-accordion-bg": rc("card") || background,
+    "--bs-list-group-bg": rc("card") || background,
+    "--bs-toast-bg": rc("popover") || rc("card") || background,
+
     /* ------------------------------------------------- emphasis tiers -- */
     // Bootstrap's three text tiers. `secondary` is dimmed body text,
     // `tertiary` is the faintest — both derived from foreground so they stay

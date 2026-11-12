@@ -1,7 +1,7 @@
 # `themvora add`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - A project that `themvora init` already integrated
 
 Add a theme source to a project `init` already set up.

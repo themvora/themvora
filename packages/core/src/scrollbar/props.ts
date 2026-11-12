@@ -39,6 +39,10 @@ export interface ScrollbarAppearanceOptions {
   /** Arrow glyph size, in CSS px (see {@link OverlayScrollbarOptions.iconSize}).
    *  Adapters surface this as `icons.size`. */
   iconSize?: number;
+  /** Edge clearance between a rail and its container, in px — one number for
+   *  every side, or per-side values. `0` means flush against the edge and is
+   *  honoured on every host, the page scrollbar included (see
+   *  {@link OverlayScrollbarOptions.offset}). */
   offset?: OverlayScrollbarOptions["offset"];
   trackOpacity?: number;
   thumbOpacity?: number;
@@ -57,7 +61,12 @@ export interface ScrollbarAppearanceOptions {
  * `appearance`.
  */
 export interface ScrollbarScopeOptions {
+  /** Track only these containers (the document is always tracked). */
   include?: string[] | null;
+  /** Skip these containers when tracking. An excluded container also loses the
+   *  scrollbar gutter the pre-paint CSS would reserve for it, so it does not
+   *  keep an empty strip where a bar would have been. It still scrolls
+   *  normally; it just has no bar of ours. */
   exclude?: string[] | null;
 }
 

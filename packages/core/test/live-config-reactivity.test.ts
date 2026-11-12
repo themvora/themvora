@@ -120,44 +120,68 @@ describe("runtime.configure — transition", () => {
     runtime.destroy();
   });
 
-  it("uses the updated duration for the next transition", async () => {
+  it("uses the updated duration for the next suppression window", async () => {
     const runtime = createThemeRuntime({
       ...baseOptions,
       transition: { enabled: true, duration: 300 },
     });
 
     runtime.configure({ transition: { enabled: true, duration: 900 } });
-    runtime.selection.toggleTheme();
 
-    // The coordinator attaches the `:root` transition synchronously, before the
-    // frame-batched swap.
-    expect(document.documentElement.style.transition).toContain("900ms");
+    // The configured duration is no longer a CSS interpolation length — it is
+    // how long descendant transitions stay muted around the atomic swap, so a
+    // live change has to reach that timer.
+    const timer = vi.spyOn(globalThis, "setTimeout");
+    try {
+      runtime.selection.toggleTheme();
+
+      expect(timer.mock.calls.map((call) => call[1])).toContain(900);
+      expect(document.documentElement.style.transition).toBe("");
+      expect(
+        document.documentElement.hasAttribute("data-themvora-animating"),
+      ).toBe(true);
+    } finally {
+      timer.mockRestore();
+    }
 
     runtime.destroy();
     await flushFrames();
   });
 
-  it("disables transitions after mount and clears the persistent root rule", async () => {
+  it("disables transitions after mount and releases every transition style", async () => {
     const runtime = createThemeRuntime({
       ...baseOptions,
       transition: { enabled: true, duration: 300 },
     });
 
-    // An animated change installs the persistent `:root` transition stylesheet.
+    // An animated change opens a suppression window — and never installs the
+    // persistent `:root` interpolation rule the old fallback used.
     runtime.selection.toggleTheme();
-    expect(document.head.querySelector("style[data-themvora-transition]")).not.toBeNull();
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(true);
+    expect(document.head.querySelector("style[data-themvora-transition]")).toBeNull();
     await flushFrames();
 
     runtime.configure({ transition: false });
 
     expect(runtime.transition?.enabled).toBe(false);
-    // The stale rule must go, otherwise later variable swaps keep interpolating.
+    // Everything the window owned is gone: a stale rule would keep easing later
+    // swaps, and a stale attribute would keep muting descendants forever.
     expect(document.head.querySelector("style[data-themvora-transition]")).toBeNull();
+    expect(
+      document.head.querySelector("style[data-themvora-animating-style]"),
+    ).toBeNull();
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(false);
     expect(document.documentElement.style.transition).toBe("");
 
-    // The next change is immediate: no transition is attached.
-    document.documentElement.style.removeProperty("transition");
+    // The next change is immediate: no suppression window opens at all.
     runtime.selection.toggleTheme();
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(false);
     expect(document.documentElement.style.transition).toBe("");
 
     runtime.destroy();
@@ -218,23 +242,39 @@ describe("runtime.configure — transition", () => {
 });
 
 describe("createCSSVariablesBinding.setTransition", () => {
-  it("changes subsequent transitions and releases styles when disabled", async () => {
+  it("changes subsequent windows and releases styles when disabled", async () => {
     const store = createThemeStore<ThemeDefinition>({ initialTheme: light });
     const binding = createCSSVariablesBinding(store, {
       transition: { enabled: true, duration: 300 },
     })!;
 
+    // Each change swaps atomically; the duration only sizes the mute window.
+    const first = vi.spyOn(globalThis, "setTimeout");
     store.set(dark);
-    expect(document.documentElement.style.transition).toContain("300ms");
+    expect(first.mock.calls.map((call) => call[1])).toContain(300);
+    expect(document.documentElement.style.transition).toBe("");
+    expect(
+      document.documentElement.style.getPropertyValue("--theme-color-background"),
+    ).toBe(dark.tokens.colors.background);
+    first.mockRestore();
     await flushFrames();
 
     binding.setTransition({ enabled: true, duration: 700 });
+    const second = vi.spyOn(globalThis, "setTimeout");
     store.set(light);
-    expect(document.documentElement.style.transition).toContain("700ms");
+    expect(second.mock.calls.map((call) => call[1])).toContain(700);
+    expect(document.documentElement.style.transition).toBe("");
+    second.mockRestore();
     await flushFrames();
 
     binding.setTransition({ enabled: false });
     expect(document.head.querySelector("style[data-themvora-transition]")).toBeNull();
+    expect(
+      document.head.querySelector("style[data-themvora-animating-style]"),
+    ).toBeNull();
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(false);
     expect(document.documentElement.style.transition).toBe("");
 
     binding.destroy();

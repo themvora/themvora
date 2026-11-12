@@ -44,6 +44,7 @@ const DYNAMIC_SITEMAP_SOURCES = {
   "/api-reference/:": "lib/api-reference.ts (apiPackages)",
   "/packages/:": "lib/packages.tsx (packages)",
   "/libraries/:": "lib/libraries.tsx (libraries)",
+  "/libraries/:/examples": "lib/docs-routes.ts (one per library)",
   "/framework-guides/:": "lib/frameworks.tsx (frameworks)",
   "/framework-guides/:/examples": "lib/docs-routes.ts (one per framework)",
 };

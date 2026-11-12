@@ -4,6 +4,7 @@ import { useState, useRef, useLayoutEffect } from "react";
 import { CopyButton } from "./ui/copy-button";
 import { CodeLanguageSwitch } from "./ui/code-language-switch";
 import { useCodeLanguage } from "./code-language";
+import { useHighlightedHtml } from "./ui/use-highlighted-html";
 import type { CodeLanguageId, CodeVariant } from "../lib/code-variants";
 
 const COLLAPSE_THRESHOLD = 25;
@@ -71,6 +72,24 @@ export function CodeBlock({
   const currentLanguage = active?.lang ?? language;
   const currentFilename = active?.filename ?? filename;
 
+  /**
+   * Highlight on demand when the caller did not ship precomputed markup.
+   *
+   * Pages that render code inside a client component used to import Shiki and
+   * highlight during render, which put the highlighter and every grammar in the
+   * route's initial JavaScript bundle. This hook loads the same highlighter as a
+   * separate chunk after hydration; the plain-text `<pre>` below is the fallback
+   * for the frame before it resolves. Server-rendered blocks pass `html` (or
+   * `variants` with `html`) and never take this path.
+   */
+  const lazyHtml = useHighlightedHtml(
+    currentCode,
+    currentLanguage,
+    !currentHtml,
+  );
+
+  const renderedHtml = currentHtml || lazyHtml || "";
+
   // The badge describes the source that is on screen. A selected JavaScript
   // variant is JavaScript whatever the TypeScript one claimed, so the combined
   // label belongs to the unpaired case only.
@@ -109,7 +128,9 @@ export function CodeBlock({
     setHiddenCount(Math.max(0, lineCount - visible));
     // `lineCount` is derived from the selected variant, so switching language
     // re-measures the collapsed height instead of keeping the previous count.
-  }, [canCollapse, expanded, lineCount]);
+    // `renderedHtml` is included because the fallback `<pre>` has no `.line`
+    // elements to measure until the on-demand highlighter resolves.
+  }, [canCollapse, expanded, lineCount, renderedHtml]);
 
   return (
     <div
@@ -147,7 +168,9 @@ export function CodeBlock({
         // Only the selected variant is rendered. Rendering both and hiding one
         // would leave the unselected snippet in the accessibility tree and in
         // `Ctrl+F`, which is worse than not offering the choice at all.
-        dangerouslySetInnerHTML={{ __html: currentHtml }}
+        {...(renderedHtml
+          ? { dangerouslySetInnerHTML: { __html: renderedHtml } }
+          : {})}
         data-code-language={active?.id}
         // The Shiki language the pane was highlighted with — `tsx` becomes
         // `jsx` on a switch. Exposed because the token colours are CSS
@@ -155,7 +178,19 @@ export function CodeBlock({
         // "was it re-highlighted as JavaScript?" is unanswerable from the DOM.
         data-code-lang={active?.lang ?? language}
         className={`code-block-content${canCollapse && !expanded ? " code-block-collapsed" : ""}`}
-      />
+      >
+        {renderedHtml ? null : (
+          <pre
+            className="shiki themvora"
+            style={{
+              background: "var(--tv-code-bg)",
+              color: "var(--tv-syntax-plain)",
+            }}
+          >
+            <code>{currentCode}</code>
+          </pre>
+        )}
+      </div>
       {canCollapse ? (
         <button
           type="button"

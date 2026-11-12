@@ -10,6 +10,29 @@ server-side cookie + bootstrap helpers (`defineNuxtTheme`,
 
 ## Functions
 
+### `applyThemeBootstrap(plan, options?): ThemeBootstrapApplied | null`
+Apply a ThemeBootstrapPlan to the document before first paint.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `plan` | `ThemeBootstrapPlan` | The plan built by `buildBootstrapPlan`. |
+| `options` | `ApplyThemeBootstrapOptions` (optional) | Storage/document/window overrides, for tests and SSR shells. |
+
+**Returns** `ThemeBootstrapApplied | null` — The state written, or `null` when there is no document to patch.
+
+This is the browser-side half of the static `boot.js` asset. It performs the
+same writes as the generated inline script: the `.dark` class,
+`color-scheme`, the canonical `data-theme*` attributes, the resolved CSS
+variables, and the `window.__THEMVORA_BOOTSTRAP__` handoff payload.
+
+It is idempotent. Running it twice, or running it after the Vite plugin's
+inline script has already painted, leaves the first result untouched — the
+same rule that makes an accidental plugin-plus-manual setup harmless rather
+than a second, conflicting initialization.
+
+---
+
+
 ### `auditActionProminence(theme): ActionProminence`
 Measure whether a theme's action fill reads as a control.
 
@@ -194,6 +217,32 @@ Remove all registered migration steps, resetting the migration system to an
 empty state.
 
 **Returns** `void`
+
+---
+
+
+### `colorName(hex): string | null`
+A short, readable name for a colour, chosen by its hue and tone.
+
+Intended for naming a generated theme family after its seed: the result is
+lowercase letters only — no separators, no digits — so it survives being used
+as an identifier stem (`indigoLight`) and reads as a name in a UI.
+
+Names are `hue` on its own (`indigo`) or a camelCase tone plus hue
+(`deepIndigo`, `paleAmber`). A seed with almost no chroma has no meaningful
+hue, so it is named for its tone instead (`ash`, `slate`).
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `hex` | `string` | A hex colour string. |
+
+**Returns** `string | null` — The name, or `null` when the string is not a valid colour.
+
+```ts
+colorName("#6366f1"); // "indigo"
+colorName("#0b0b0f"); // "slate"
+colorName("not a colour"); // null
+```
 
 ---
 
@@ -422,7 +471,7 @@ manager.use(createDebuggerPlugin({ label: "[my-app]" }));
 ---
 
 
-### `createDefaultPersistence(): ThemeSelectionPersistenceAdapter | null`
+### `createDefaultPersistence(options?): ThemeSelectionPersistenceAdapter | null`
 Creates the default persistence adapter: a `localStorage`-backed
 selection adapter under the `"theme-selection"` key.
 
@@ -430,6 +479,10 @@ Returns `null` when `window` is unavailable (SSR) or storage access
 throws. Cross-tab changes are surfaced through the `storage` event.
 
 **See also:** `ThemeSelectionPersistenceAdapter`, `createThemePersistence`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `options` | `{ key?: string }` (optional) | — |
 
 **Returns** `ThemeSelectionPersistenceAdapter | null` — A persistence adapter, or `null` when storage is unavailable.
 
@@ -1110,6 +1163,45 @@ persistence?.set("dark");
 ---
 
 
+### `createThemePrePaintCss<T extends ThemeDefinition<string>>(options): string`
+Generate the render-blocking stylesheet for the declared theme collection.
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `options` | `ThemePrePaintCssOptions<T>` | The registry and fallback configuration. |
+
+**Returns** `string` — A stylesheet that themes the document before any JavaScript runs.
+
+The output has three layers, in cascade order:
+
+1. `:root` carries the fallback theme's variables. It is the only layer a
+   no-JavaScript page can rely on, so it is always a complete, readable
+   palette — never a partial one.
+2. When the fallback mode is `"system"`, a
+   `@media (prefers-color-scheme: dark)` block overrides the fallback while
+   the root carries no resolved theme attribute. The guard is deliberate:
+   once the boot script (or a server render) names a concrete theme, the
+   media block must not override it.
+3. One `:root[data-theme="…"], [data-theme="…"]` rule per declared theme.
+   The generic half is what pre-styles a scoped element such as
+   `<themvora-scope data-theme="plum-dark">` before it upgrades; the `:root`
+   half is what a server-rendered document and the boot script select. Both
+   use the same canonical identity attribute, so any declared theme can be
+   painted without JavaScript.
+
+Variables come from themeToCSSVariables, the canonical serializer, so
+a token emitted here is byte-identical to the one the runtime writes inline.
+
+The stylesheet is returned as text for an inline `<style>` element. Inline is
+used rather than an emitted asset because the CSS has to be present in Vite
+development *and* in a production build with identical contents, and because
+the only consumer-visible cost is one extra block in the document head — no
+second request, no base-path rewriting and no build-only asset path that can
+drift from the config.
+
+---
+
+
 ### `createThemeReadoutScript(): string`
 Builds the inline script that fills in **bootstrap readouts** and reconciles
 **selection controls**: the parts of the page that display or reflect a
@@ -1127,7 +1219,7 @@ bug in a smaller window:
 
 | Attribute | Written | Meaning |
 | --------- | ------- | ------- |
-| `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"family"`, or `"var:<custom-property>"` |
+| `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"effective-mode"`, `"family"`, or `"var:<custom-property>"` |
 | `data-tv-pressed` + `data-tv-value` | `aria-pressed` | this element represents that option of `"mode"` / `"family"` |
 | `data-tv-select` | `value` | this `<select>` edits `"mode"` / `"family"` |
 
@@ -3602,6 +3694,19 @@ Options for createAnimationsPlugin.
 ---
 
 
+### `ApplyThemeBootstrapOptions`
+Options for applyThemeBootstrap.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `document` (optional) | `Document \| null` | Document to patch. Defaults to the global document. |
+| `storage` (optional) | `Storage \| null` | Storage implementation. Defaults to `window.localStorage` when readable. |
+| `storageKey` (optional) | `string` | localStorage key holding `{ mode, family }`. Defaults to `"theme-selection"`. |
+| `window` (optional) | `Window \| null` | Window used for `matchMedia` and the handoff payload. Defaults to the global window. |
+
+---
+
+
 ### `BrandReferenceColor`
 One colour from a brand's reference material.
 
@@ -3817,6 +3922,7 @@ in a cascade layer.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `layerName` (optional) | `string` | Cascade layer name used when `styleSheet` is enabled. |
+| `onAfterSwap` (optional) | `__type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void` | Called immediately **after** the new variables are on the target — in the same task as the write, and inside the View Transition's update callback when one is running. |
 | `onBeforeSwap` (optional) | `__type(theme: ThemeDefinition, emitOptions?: { suppressTransition?: boolean }): void` | Applied inside the single View Transition lightswitch right before the CSS variables are swapped, so the old snapshot shows the old attributes AND old colors together. Lets a co-binding (e.g. the DOM binding's `apply`) stay in sync with the crossfade instead of starting its own View Transition (which would skip/abort the first one). |
 | `prefix` (optional) | `string` | Prefix for the emitted custom properties. |
 | `styleSheet` (optional) | `boolean` | When `true`, write variables into a `<style>` element (in a cascade layer) instead of inline on the target. |
@@ -4184,13 +4290,13 @@ scrollbar and synchronizes with native scrolling.
 | `dir` (optional) | `"auto" \| "ltr" \| "rtl"` | Text direction. Defaults to the resolved `dir` / CSS `direction`. |
 | `draggable` (optional) | `boolean` | Allow dragging the thumb to scroll. Default `true`. |
 | `duration` (optional) | `number` | CSS transition duration (ms) for thickness/opacity/color. Default `250`. |
-| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. |
+| `exclude` (optional) | `string[] \| null` | Skip these CSS selectors when tracking inner scrollables. A selector matches a *region*, not only the element itself: a scroll container nested inside a matched element is excluded too. That is what makes `exclude: [".code-block"]` mean what it reads as, rather than nothing at all unless the code block is the scroller. An excluded container gets no overlay **and no reserved gutter**: the pre-paint CSS reserves a native scrollbar's width on every element so the overlay never reflows the page, and that reservation is collapsed for excluded containers so the element does not keep an empty strip down its edge. The container still scrolls normally by wheel, trackpad and touch — it simply has no visible bar of ours. |
 | `hoverExpand` (optional) | `boolean` | Grow the strip on hover / drag. Default `false` (thickness stays constant so the scrollbar never shifts while scrolling). |
 | `hoverThickness` (optional) | `number` | Thumb thickness while hovered / dragged — only used when `hoverExpand` is true. Default `thickness + 4`. |
 | `iconSize` (optional) | `number` | Arrow glyph size in CSS px, for all four directions (the built-in CSS triangle and custom icons alike). Clamped to the button's usable area, so it can never overflow an unusually thin rail. Omitted keeps the existing default sizing. Adapters surface this as `icons.size`. |
 | `include` (optional) | `string[] \| null` | Scope overlay to these CSS selectors for inner scrollables (the window is always tracked). When empty, all scrollable elements are tracked. |
 | `minThumbSize` (optional) | `number` | Minimum thumb travel size. Default `32`. |
-| `offset` (optional) | `ScrollbarOffset` | Distance from the container edges to the rail. A number insets every side equally; an object sets individual sides, with omitted sides defaulting to the component default (`4`, except `left`, which defaults to `0`). A side set to `0` gets no inset — the rail sits flush against that edge, like a native scrollbar. The rail follows the writing direction (a vertical rail sits on the inline-end edge), so in RTL it uses `left`. The content is kept clear of the rail by the native scrollbar gutter the component reserves, not by extra padding, so no content width is taken and nothing reflows. |
+| `offset` (optional) | `ScrollbarOffset` | Distance from the container edges to the rail. A number insets every side equally; an object sets individual sides, with omitted sides defaulting to the component default (`4`, except `left`, which defaults to `0`). `0` is a value, not "unset": a side set to `0` gets no inset at all and the rail sits flush against that edge, like a native scrollbar. That holds for every host, **including the page/window scrollbar** — `offset: 0` puts the document rail hard against the viewport edge rather than a few px in. The rail follows the writing direction (a vertical rail sits on the inline-end edge), so in RTL it uses `left`. The content is kept clear of the rail by the native scrollbar gutter the component reserves, not by extra padding, so no content width is taken and nothing reflows. |
 | `overscroll` (optional) | `boolean` | Subtly compress the thumb at the scroll boundaries (rubber-band feel). Default `true`. |
 | `radius` (optional) | `number` | Thumb corner radius in px. Default `999`. |
 | `smooth` (optional) | `boolean` | Use rAF-lerped (eased) thumb motion instead of a hard snap. Default `true`. |
@@ -4675,7 +4781,7 @@ The look and size of every rail.
 | `hoverThickness` (optional) | `number` | — |
 | `iconSize` (optional) | `number` | Arrow glyph size, in CSS px (see OverlayScrollbarOptions.iconSize). Adapters surface this as `icons.size`. |
 | `minThumbSize` (optional) | `number` | — |
-| `offset` (optional) | `ScrollbarOffset` | — |
+| `offset` (optional) | `ScrollbarOffset` | Edge clearance between a rail and its container, in px — one number for every side, or per-side values. `0` means flush against the edge and is honoured on every host, the page scrollbar included (see OverlayScrollbarOptions.offset). |
 | `radius` (optional) | `number` | — |
 | `thickness` (optional) | `number` | — |
 | `thumbColor` (optional) | `string` | — |
@@ -4763,8 +4869,8 @@ appears, not how it looks — so it is its own group rather than part of
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
-| `exclude` (optional) | `string[] \| null` | — |
-| `include` (optional) | `string[] \| null` | — |
+| `exclude` (optional) | `string[] \| null` | Skip these containers when tracking. An excluded container also loses the scrollbar gutter the pre-paint CSS would reserve for it, so it does not keep an empty strip where a bar would have been. It still scrolls normally; it just has no bar of ours. |
+| `include` (optional) | `string[] \| null` | Track only these containers (the document is always tracked). |
 
 ---
 
@@ -4941,6 +5047,20 @@ Input consumed by the Animation Coordinator for a single theme change.
 | `plan` | `TransitionPlan` | The concrete transition decided by the planner. |
 | `swap` | `__type(): void` | Writes the new CSS custom-property values to `target`. |
 | `target` | `HTMLElement` | Element receiving the theme custom properties (usually <html>). |
+
+---
+
+
+### `ThemeBootstrapApplied`
+What applyThemeBootstrap wrote to the document.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `family` | `string \| null` | Resolved family, or `null` when the plan has none. |
+| `label` | `string \| null` | The theme's `meta.label`, when it declares one. |
+| `mode` | `"light" \| "dark"` | Concrete mode applied (`"light"` or `"dark"`). |
+| `selection` | `ThemeSelectionState` | The visitor's selection, which may still be `"system"`. |
+| `theme` | `string \| null` | Resolved theme name, or `null` when the plan could not name one. |
 
 ---
 
@@ -5598,6 +5718,21 @@ every registered plugin when the manager is destroyed.
 ---
 
 
+### `ThemePrePaintCssOptions<T extends ThemeDefinition>`
+Options for createThemePrePaintCss.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `attributeName` (optional) | `string` | HTML attribute that names the resolved theme on the root element. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Theme to fall back to when no persisted selection exists. |
+| `initialFamily` (optional) | `string` | Initial family used when no persisted selection exists. |
+| `initialMode` (optional) | `ThemeMode` | Initial mode used when no persisted selection exists. |
+| `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
+| `themes` | `readonly T[]` | The theme definitions to emit. |
+
+---
+
+
 ### `ThemeProviderProps<T extends ThemeDefinition>`
 
 **Extends** `ThemeRuntimeOptions<T>`
@@ -5619,9 +5754,11 @@ remaining props and destroys it on unmount.
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
+| `prefix` (optional) | `string` | CSS custom property prefix used by the CSS-variables binding. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | An existing runtime to provide. When omitted, the provider creates and owns a runtime from the other props. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `storageKey` (optional) | `string` | The `localStorage` key the default persistence adapter reads and writes. |
 | `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
@@ -5730,8 +5867,10 @@ localStorage persistence, and default bindings when an option is omitted.
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
+| `prefix` (optional) | `string` | CSS custom property prefix used by the CSS-variables binding. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `storageKey` (optional) | `string` | The `localStorage` key the default persistence adapter reads and writes. |
 | `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |
@@ -6100,10 +6239,10 @@ the runtime and the pre-paint bootstrap.
 | `persistence` (optional) | `unknown` | Whether the selection is persisted across visits. `false` or `null` disables it. |
 | `plugins` (optional) | `readonly unknown[]` | Runtime plugins. Runtime-only, and **not serializable** — pass it to the provider, not here. |
 | `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
-| `scrollbar` (optional) | `unknown` | Overlay scrollbar options. Serializable, so it crosses to the browser. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Pre-paint native-scrollbar hiding for the overlay scrollbar. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted selection. Defaults to `"theme-selection"`. |
 | `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
-| `transition` (optional) | `unknown` | Transition configuration. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. |
 
 This exists to remove a class of bug rather than to add a feature. When the
 theme registry, the fallback theme and the initial mode are declared twice —
@@ -6142,8 +6281,10 @@ passed straight to themvoraVitePlugin.
 | `initialFamily` (optional) | `string` | Family used when no persisted selection exists. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when no persisted selection exists. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to, so a `defaultTheme="light"` app paints light from frame one. |
 | `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Pre-paint hiding of the native scrollbar for the overlay scrollbar. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. |
 | `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme-change transition. `true` uses the defaults, `false` swaps synchronously, and an object configures the animation. |
 
 ---
 
@@ -6670,7 +6811,7 @@ speculative entries.
 
 **See also:** `ThemeDiagnostic`
 
-`"TV_MODE_INVALID" | "TV_THEME_TOKEN_MISSING" | "TV_THEME_FAMILY_UNKNOWN" | "TV_THEME_OVERRIDE_UNRESOLVED" | "TV_THEME_NEUTRAL_FALLBACK" | "TV_THEME_TOKEN_INVALID" | "TV_A11Y_CONTRAST_VIOLATION" | "TV_SCHEDULE_THEME_UNRESOLVED" | "TV_CONFIG_OPTION_INVALID" | "TV_SCROLLBAR_OPTION_INVALID" | "TV_PLUGIN_DESTROY_FAILED" | "TV_SYNC_FAILED" | "TV_GENERATION_INVALID_SEED" | "TV_GENERATION_CONTRAST_REPAIR" | "TV_GENERATION_ROLE_COLLISION" | "TV_GENERATION_CONSTRAINT_UNSATISFIED" | "TV_GENERATION_THEME_NOT_FOUND" | "TV_GENERATION_THEME_AMBIGUOUS" | "TV_DIFF_UNRESOLVED_EXTENDS" | "TV_DIFF_UNRESOLVED_SYSTEM"`
+`"TV_MODE_INVALID" | "TV_THEME_TOKEN_MISSING" | "TV_PREPAINT_MISSING" | "TV_PREPAINT_MISMATCH" | "TV_THEME_FAMILY_UNKNOWN" | "TV_THEME_OVERRIDE_UNRESOLVED" | "TV_THEME_NEUTRAL_FALLBACK" | "TV_THEME_TOKEN_INVALID" | "TV_A11Y_CONTRAST_VIOLATION" | "TV_SCHEDULE_THEME_UNRESOLVED" | "TV_CONFIG_OPTION_INVALID" | "TV_SCROLLBAR_OPTION_INVALID" | "TV_PLUGIN_DESTROY_FAILED" | "TV_SYNC_FAILED" | "TV_GENERATION_INVALID_SEED" | "TV_GENERATION_CONTRAST_REPAIR" | "TV_GENERATION_ROLE_COLLISION" | "TV_GENERATION_CONSTRAINT_UNSATISFIED" | "TV_GENERATION_THEME_NOT_FOUND" | "TV_GENERATION_THEME_AMBIGUOUS" | "TV_DIFF_UNRESOLVED_EXTENDS" | "TV_DIFF_UNRESOLVED_SYSTEM"`
 
 ---
 

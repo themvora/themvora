@@ -250,8 +250,12 @@ describe("themvoraVitePlugin — syncFirstRender scoping", () => {
     const withConfig = themvoraVitePlugin({
       config: { themes: [only], defaultTheme: "plum-dark", initialMode: "dark" },
     });
-    const tags = (await withConfig.transformIndexHtml("")) as { children?: string }[];
-    const script = tags[0]?.children ?? "";
+    const tags = (await withConfig.transformIndexHtml("")) as {
+      attrs?: { id?: string };
+      children?: string;
+    }[];
+    const script =
+      tags.find((tag) => tag.attrs?.id === "themvora-bootstrap")?.children ?? "";
     expect(script).toContain("plum-dark");
     expect(script).toContain('"__default-dark"');
   });
@@ -269,8 +273,12 @@ describe("themvoraVitePlugin — syncFirstRender scoping", () => {
       defaultTheme: "mint-light",
       config: { themes: [only], defaultTheme: "plum-dark" },
     });
-    const tags = (await plugin.transformIndexHtml("")) as { children?: string }[];
-    const script = tags[0]?.children ?? "";
+    const tags = (await plugin.transformIndexHtml("")) as {
+      attrs?: { id?: string };
+      children?: string;
+    }[];
+    const script =
+      tags.find((tag) => tag.attrs?.id === "themvora-bootstrap")?.children ?? "";
     expect(script).toContain("plum-dark");
     expect(script).not.toContain("mint-light");
   });

@@ -10,7 +10,6 @@ import {
 import { themeToCSSVariables, type ThemeDefinition } from "@themvora/core";
 import { CopyButton } from "./ui/copy-button";
 import { PageHeader } from "./ui/page-header";
-import { highlightCode } from "../lib/highlight";
 import { PRESET_FRAMEWORKS } from "./preset-snippets";
 
 export type PresetKind = "default" | "brand";

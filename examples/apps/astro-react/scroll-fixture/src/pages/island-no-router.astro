@@ -1,0 +1,15 @@
+---
+// Provider + React island, no client router.
+import Provider from "@themvora/astro/provider.astro";
+import themeConfig from "../../../theme.config";
+import ThemeIsland from "../../../src/components/ThemeIsland";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false}>
+  <title slot="head">provider + island</title>
+  <ScrollFixtureStyle />
+  <ThemeIsland client:load />
+  <ScrollFixtureBody />
+</Provider>

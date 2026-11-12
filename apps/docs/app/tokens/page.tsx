@@ -345,7 +345,7 @@ console.log(light.tokens.code); // Full code token set`,
 export default function TokensPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

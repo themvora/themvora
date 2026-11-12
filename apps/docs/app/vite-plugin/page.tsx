@@ -18,30 +18,7 @@ export const metadata: Metadata = {
   alternates: { canonical: docsUrl("/vite-plugin") },
   title: "Vite Plugin",
   description:
-    "Connect your theme.config.ts to Vite's HTML pipeline: the plugin discovers the configuration and injects the pre-paint bootstrap into index.html, so you never repeat themes, defaultTheme or initialMode in vite.config.ts.",
-};
-
-const antiPatternSnippet = {
-  lang: "tsx",
-  title: "the duplication this replaces",
-  code: `themvoraVitePlugin({
-  themes,
-  initialMode: "system",
-});
-
-<ThemeProvider themes={themes} initialMode="system">
-  <App />
-</ThemeProvider>`,
-};
-
-const declaredOnceSnippet = {
-  lang: "tsx",
-  title: "declared once, in theme.config.ts",
-  code: `themvoraVitePlugin();
-
-<ThemeProvider>
-  <App />
-</ThemeProvider>`,
+    "For Web Components and framework-free Vite apps: connect theme.config.ts to Vite's HTML pipeline so the pre-paint bootstrap is injected into index.html without repeating themes, defaultTheme or initialMode.",
 };
 
 /**
@@ -66,86 +43,26 @@ export default defineThemvoraConfig({
 };
 
 /**
- * Registration, per Vite-hosted framework.
+ * Registration, for the integrations that actually need the plugin.
  *
- * Every entry is the same one line in a different config file — that is the
- * point. The framework's own plugin stays as it was; Themvora's is appended.
+ * SSR frameworks never serve index.html and already emit their own bootstrap,
+ * so they are not listed here. Web Components and framework-free Vite apps do
+ * serve index.html, and get the same one-line registration.
  */
 const registrationExamples = [
   {
-    label: "React",
+    label: "Web Components",
     lang: "ts",
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { themvoraVitePlugin } from "@themvora/core/vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
 
 export default defineConfig({
-  plugins: [react(), themvoraVitePlugin()],
+  plugins: [themvoraVitePlugin()],
 });`,
   },
   {
-    label: "Vue",
-    lang: "ts",
-    filename: "vite.config.ts",
-    code: `import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import { themvoraVitePlugin } from "@themvora/core/vite";
-
-export default defineConfig({
-  plugins: [vue(), themvoraVitePlugin()],
-});`,
-  },
-  {
-    label: "Svelte",
-    lang: "ts",
-    filename: "vite.config.ts",
-    code: `import { defineConfig } from "vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { themvoraVitePlugin } from "@themvora/core/vite";
-
-export default defineConfig({
-  plugins: [svelte(), themvoraVitePlugin()],
-});`,
-  },
-  {
-    label: "Solid",
-    lang: "ts",
-    filename: "vite.config.ts",
-    code: `import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
-import { themvoraVitePlugin } from "@themvora/core/vite";
-
-export default defineConfig({
-  plugins: [solid(), themvoraVitePlugin()],
-});`,
-  },
-  {
-    label: "Astro",
-    lang: "ts",
-    filename: "astro.config.ts",
-    code: `import { defineConfig } from "astro/config";
-import themvora from "@themvora/astro";
-
-export default defineConfig({
-  integrations: [themvora()],
-});`,
-  },
-  {
-    label: "Nuxt",
-    lang: "ts",
-    filename: "nuxt.config.ts",
-    code: `export default defineNuxtConfig({
-  modules: ["@themvora/nuxt"],
-  themvora: {
-    themes,
-    defaultTheme: "mint-light",
-    initialMode: "system",
-  },
-});`,
-  },
-  {
-    label: "Vanilla",
+    label: "Framework-free",
     lang: "ts",
     filename: "vite.config.ts",
     code: `import { defineConfig } from "vite";
@@ -230,30 +147,6 @@ export const themes = [
 ];`,
 };
 
-/**
- * The runtime side, shown as `App.tsx` rather than `main.tsx` so the snippet
- * stands alone — a `main.tsx` that imports `./App` would be a file the page
- * never declares.
- */
-const providerSnippet = {
-  lang: "tsx",
-  title: "src/App.tsx",
-  code: `import { ThemeProvider, useTheme } from "@themvora/react";
-
-function Header() {
-  const { theme, toggleTheme } = useTheme();
-  return <button onClick={toggleTheme}>{theme.name}</button>;
-}
-
-export function App() {
-  return (
-    <ThemeProvider>
-      <Header />
-    </ThemeProvider>
-  );
-}`,
-};
-
 const optionsSnippet = {
   lang: "ts",
   title: "themvoraVitePlugin — every option, at once",
@@ -313,7 +206,7 @@ const pipelineSteps = [
     internal: false,
   },
   {
-    label: "ThemeProvider initializes",
+    label: "The runtime initializes",
     detail:
       "The runtime starts from the same configuration, so it confirms what the script painted instead of correcting it.",
     internal: false,
@@ -342,7 +235,7 @@ const configTroubleshooting = [
   },
   {
     symptom: "I edited theme.config.ts and nothing changed",
-    fix: "The discovered config is resolved once and memoized for the life of the Vite process, so `vite dev` keeps serving the bootstrap it derived on startup. Restart the dev server. (A production build re-derives it every time.)",
+    fix: "The plugin watches theme.config.ts and drops its cached configuration when the file changes, then reloads the page, so an edit is picked up on the next request. If a stale page is still served, the watcher did not see the write — a network drive, a container mount, or an editor that replaces the file through a path Vite does not watch. Restart the dev server in that case. A production build always re-derives it.",
   },
   {
     symptom: "I use more than one Vite config",
@@ -353,78 +246,10 @@ const configTroubleshooting = [
 const discoveryWarnings = `[themvora] could not find Vite to load /app/theme.config.ts. Pass \`config\` explicitly, or declare \`vite\` as a dependency.
 [themvora] could not load /app/theme.config.ts: config must export or return an object`;
 
-const bootstrapSnippet = {
-  lang: "html",
-  title: "index.html — the script the plugin injects",
-  code: `<!doctype html>
-<html lang="en">
-  <head>
-    <!-- injected by themvoraVitePlugin() -->
-    <script id="themvora-bootstrap">
-(function () {
-  // ... resolves mode from localStorage + prefers-color-scheme,
-  //     writes CSS variables and data-theme attributes to <html>
-})();
-    </script>
-    <title>My App</title>
-  </head>
-  <body>…</body>
-</html>`,
-};
-
-const ssrNextSnippet = {
-  lang: "tsx",
-  title: "app/layout.tsx — Next.js",
-  code: `import type { ReactNode } from "react";
-import { ThemeProvider } from "@themvora/next";
-
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <ThemeProvider defaultTheme="light">
-      {children}
-    </ThemeProvider>
-  );
-}`,
-};
-
-const ssrNuxtSnippet = {
-  lang: "ts",
-  title: "nuxt.config.ts — Nuxt",
-  code: `export default defineNuxtConfig({
-  modules: ["@themvora/nuxt"],
-  themvora: {
-    defaultTheme: "light",
-    initialMode: "system",
-  },
-});`,
-};
-
-const ssrRemixSnippet = {
-  lang: "tsx",
-  title: "app/root.tsx — Remix",
-  code: `import type { ReactNode } from "react";
-import { ThemeHead, ThemeProvider } from "@themvora/remix";
-
-export function Layout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <ThemeHead mode="system" />
-      </head>
-      <body>
-        <ThemeProvider defaultTheme="light" initialMode="system">
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  );
-}`,
-};
-
 export default function VitePluginPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Vite Plugin"
           title="Optional: zero-flash before the bundle loads"
@@ -445,12 +270,12 @@ export default function VitePluginPage() {
           items={[
             {
               label: "Vite project",
-              value: "A Vite-based application (React, Vue, Svelte, or vanilla)",
+              value: "A Web Components or framework-free Vite app",
               href: "https://vitejs.dev/guide/",
             },
             {
-              label: "Themvora provider installed",
-              value: "@themvora/react, vue, svelte, or core/vanilla",
+              label: "Themvora package installed",
+              value: "@themvora/web or @themvora/core",
               href: "/get-started",
             },
           ]}
@@ -468,30 +293,13 @@ export default function VitePluginPage() {
             <code className="mono text-[0.9em]">theme.config.ts</code> and
             injects the bootstrap — see the 7-step pipeline in Section 5.
           </p>
-          <CodeExample
-            code={providerSnippet.code}
-            lang="tsx"
-            filename={providerSnippet.title}
-            className="m-0"
-          />
-          <p className="text-sm opacity-80 leading-relaxed mt-3 mb-3">
-            Declaring the same values twice is the bug this architecture removes:
+          <p className="text-sm opacity-80 leading-relaxed mb-4">
+            The plugin and the runtime read the same configuration. The plugin
+            injects the pre-paint CSS and blocking script; the provider or
+            runtime starts from the same values. There is no second place to
+            declare themes, <code className="mono text-[0.9em]">defaultTheme</code>{" "}
+            or <code className="mono text-[0.9em]">initialMode</code>.
           </p>
-          <CodeExample
-            code={antiPatternSnippet.code}
-            lang="tsx"
-            filename={antiPatternSnippet.title}
-            className="m-0"
-          />
-          <p className="text-sm opacity-80 leading-relaxed mt-3 mb-3">
-            Read the configuration from one place instead:
-          </p>
-          <CodeExample
-            code={declaredOnceSnippet.code}
-            lang="tsx"
-            filename={declaredOnceSnippet.title}
-            className="m-0"
-          />
           <Callout variant="neutral" className="mt-3">
             <p className="text-sm leading-relaxed">
               See{" "}
@@ -600,19 +408,21 @@ export default function VitePluginPage() {
             Register the Plugin
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-4">
-            Your framework&apos;s own plugin is untouched — Themvora&apos;s is
-            appended. Astro and Nuxt register their own integration instead;
-            both discover the same{" "}
-            <code className="mono text-[0.9em]">theme.config.ts</code>.
+            Only Web Components and framework-free Vite apps need this
+            registration. SSR frameworks use their own package instead, because
+            they already emit the bootstrap from the server and never serve{" "}
+            <code className="mono text-[0.9em]">index.html</code>.
           </p>
           <FrameworkTabs examples={registrationExamplesWithHtml} />
           <Callout className="mt-3">
             <strong>Import path</strong>{" "}
             <span className="mx-1 opacity-40">|</span>
             The plugin is exported from{" "}
-            <code className="mono text-[0.9em]">@themvora/core/vite</code>,
-            not the main entry point. This keeps the core bundle clean when you
-            only need the runtime.
+            <code className="mono text-[0.9em]">@themvora/web/vite</code> for
+            Web Components and{" "}
+            <code className="mono text-[0.9em]">@themvora/core/vite</code> for a
+            framework-free app. Neither is the package&apos;s main entry point,
+            which keeps the runtime bundle clean.
           </Callout>
           <Link
             href="/examples#starter-apps"
@@ -620,13 +430,13 @@ export default function VitePluginPage() {
           >
             <div>
               <div className="font-semibold">
-                See the complete Vite + React example
+                See the complete Web Components example
               </div>
               <div className="text-xs opacity-60">
-                <code className="mono">examples/apps/react</code> —
-                theme.config.ts,
-                vite.config.ts, the provider with no props, and the dev
-                prerender. A real source tree, read from the repository.
+                <code className="mono">examples/apps/web</code> —
+                theme.config.ts, vite.config.ts, the plugin, and the provider
+                with no theme attributes. A real source tree, read from the
+                repository.
               </div>
             </div>
             <span style={{ color: "var(--theme-color-primary)" }}>→</span>
@@ -641,28 +451,30 @@ export default function VitePluginPage() {
           >
             Why a Vite Plugin?
           </SectionHeading>
-          <Callout variant="neutral" title="Do you still need this?">
+          <Callout variant="neutral">
             <p className="text-sm leading-relaxed">
-              Since <code className="mono text-[0.9em]">@themvora/react</code>{" "}
-              (and Vue, Svelte, Solid) <strong>1.2.0</strong>, the providers are
-              flash-proof out of the box — they inject the blocking bootstrap
-              themselves before first paint. The vite plugin is only needed if
-              you want the theme applied on the absolute first frame{" "}
-              <em>before the bundle loads</em> (relevant for slow bundles or
-              network-sensitive previews).
+              Web Components and framework-free Vite apps serve{" "}
+              <code className="mono text-[0.9em]">index.html</code>, so the
+              plugin can inject the pre-paint CSS and blocking script before the
+              bundle loads.{" "}
+              <code className="mono text-[0.9em]">&lt;themvora-provider&gt;</code>{" "}
+              upgrades with the module, so without the plugin a saved selection
+              is applied after the first visible frame. The generated stylesheet
+              is also what themes the page when JavaScript is disabled or slow.
+            </p>
+            <p className="mt-2 text-sm leading-relaxed">
+              SSR frameworks are different: Next.js, Nuxt, Astro, Remix and React
+              Router never serve{" "}
+              <code className="mono text-[0.9em]">index.html</code> and already
+              emit their own bootstrap from the server. Use their package
+              instead.
             </p>
           </Callout>
-          <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5">
+          <ul className="mt-4 text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5">
             <li>
               <strong>No runtime overhead</strong> — the script is injected at
               build time and does not ship as a separate chunk. It runs once
               and is never re-evaluated.
-            </li>
-            <li>
-              <strong>SSR-compatible</strong> — the SSR framework packages
-              (Next.js, Nuxt, Remix) emit this same bootstrap into the
-              server-rendered HTML, so the client script and the server markup
-              agree instead of fighting over the first frame.
             </li>
             <li>
               <strong>Tree-shakeable</strong> — only the theme definitions you
@@ -687,9 +499,9 @@ export default function VitePluginPage() {
                 With the plugin
               </div>
               <ol className="text-xs opacity-70 leading-relaxed list-decimal pl-4 space-y-1">
-                <li>The script is injected at the top of the head at build time.</li>
-                <li>It runs synchronously, before anything is painted.</li>
-                <li>It writes the theme and its variables onto the root element.</li>
+                <li>Generated CSS is injected first and is render-blocking.</li>
+                <li>The configuration global follows it.</li>
+                <li>A classic script restores the saved selection synchronously.</li>
                 <li>The first paint is already the right theme.</li>
               </ol>
             </div>
@@ -704,10 +516,15 @@ export default function VitePluginPage() {
             What It Does
           </SectionHeading>
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            The plugin flattens your themes into CSS-variable tables, generates
-            a self-contained IIFE that resolves the theme before any other
-            script runs, and injects it head-prepend with{" "}
+            The plugin flattens your themes into CSS-variable tables twice: once
+            as a render-blocking <code className="mono text-[0.9em]">&lt;style&gt;</code>{" "}
+            carrying the fallback and every declared theme, and once inside a
+            self-contained classic script that restores the persisted selection.
+            Both are injected head-prepend, in that order, with{" "}
             <code className="mono text-[0.9em]">enforce: &quot;pre&quot;</code>.
+            It also validates the provider&apos;s catalog, default theme and
+            initial mode against the plugin config and fails the build when they
+            disagree.
             End to end:
           </p>
           <ul className="text-sm opacity-80 leading-relaxed list-disc pl-5 space-y-1.5 mb-3">
@@ -758,38 +575,6 @@ export default function VitePluginPage() {
               </li>
             ))}
           </ol>
-          <Callout variant="neutral" className="mt-3">
-            <p className="text-sm leading-relaxed">
-              The two steps marked internal are shared implementation detail, not
-              API — they are absent from the public export surface. The public
-              entry point for the same pipeline is{" "}
-              <code className="mono text-[0.9em]">
-                createThemeBootstrapScript
-              </code>
-              , for an app that manages its own{" "}
-              <code className="mono text-[0.9em]">&lt;head&gt;</code>.
-            </p>
-          </Callout>
-          <Callout variant="neutral" title="Why doesn't the plugin read my provider's props?">
-            <p className="text-sm leading-relaxed">
-              Vite runs in the build/dev pipeline; provider props are runtime
-              application state. The plugin does not inspect React/Vue/Solid
-              components to discover configuration — both the plugin and the
-              provider read the same project-level{" "}
-              <code className="mono text-[0.9em]">theme.config.ts</code> instead.
-              Nothing is parsed, so nothing can be missed by a dynamic prop
-              expression.
-            </p>
-          </Callout>
-          <p className="text-sm opacity-80 leading-relaxed mt-4 mb-3">
-            What ends up in the served HTML:
-          </p>
-          <CodeExample
-            code={bootstrapSnippet.code}
-            lang="html"
-            filename={bootstrapSnippet.title}
-            className="m-0 mt-3"
-          />
         </section>
 
         <section id="options" className="scroll-mt-24 mb-10">
@@ -812,6 +597,8 @@ export default function VitePluginPage() {
             <div className="divide-y divide-border text-sm">
               {[
                 ["config", "ThemvoraConfig | string", "Optional. Normally omitted: the plugin discovers theme.config.ts at the project root. Pass a path when the file lives elsewhere, or the config object itself. The object wins outright, and the deprecated inline theme options are ignored when it is present."],
+                ["css", "boolean", "Emits the render-blocking theme stylesheet (fallback + system pair + one rule per declared theme). Defaults to true. Disabling it leaves only the script's inline variables, so a no-JavaScript visitor sees an unthemed document."],
+                ["boot", "boolean", "Emits the classic blocking boot script that restores the persisted selection. Defaults to true. Disabling it keeps the CSS fallback but cannot restore a saved non-default theme before first paint."],
                 ["scrollbar", "boolean | PrePaintScrollbarOptions", "Injects the pre-paint scrollbar script so the native bar is hidden from the first frame. Defaults to false."],
                 ["syncFirstRender", "boolean", "Commits React's first render synchronously, so the first painted frame is the app rather than an empty root. Defaults to true; ignored when React is absent."],
                 ["ssrEntry", "string | null", "Module exporting `render(): string`. Prerenders #root in the dev server, where unbundled modules would otherwise leave it empty for seconds. Defaults to \"/src/entry-server.tsx\"; pass null to opt out. Builds prerender separately."],
@@ -841,77 +628,9 @@ export default function VitePluginPage() {
           </p>
         </section>
 
-        <section id="ssr" className="scroll-mt-24 mb-10">
-          <SectionHeading
-            num={8}
-            desc="SSR frameworks don't serve index.html — use their own package, which emits the same bootstrap from the server."
-          >
-            SSR Integration
-          </SectionHeading>
-          <p className="text-sm opacity-80 leading-relaxed mb-3">
-            The Vite plugin only transforms{" "}
-            <code className="mono text-[0.9em]">index.html</code>, which SSR
-            frameworks never serve. Use their own package, which emits the same
-            bootstrap into the server response.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
-                Next.js
-              </div>
-              <CodeExample
-                code={ssrNextSnippet.code}
-                lang="ts"
-                filename={ssrNextSnippet.title}
-                className="m-0"
-              />
-            </div>
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
-                Nuxt
-              </div>
-              <CodeExample
-                code={ssrNuxtSnippet.code}
-                lang="ts"
-                filename={ssrNuxtSnippet.title}
-                className="m-0"
-              />
-            </div>
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-2">
-                Remix
-              </div>
-              <CodeExample
-                code={ssrRemixSnippet.code}
-                lang="tsx"
-                filename={ssrRemixSnippet.title}
-                className="m-0"
-              />
-            </div>
-          </div>
-          <Callout className="mt-3">
-            <strong>Hydration safety</strong>{" "}
-            <span className="mx-1 opacity-40">|</span>
-            The framework package renders every attribute the pre-paint script
-            writes —{" "}
-            <code className="mono text-[0.9em]">data-theme</code>,{" "}
-            <code className="mono text-[0.9em]">data-theme-mode</code>,{" "}
-            <code className="mono text-[0.9em]">data-theme-family</code>,{" "}
-            <code className="mono text-[0.9em]">data-theme-selection-mode</code>,{" "}
-            <code className="mono text-[0.9em]">data-theme-selection-family</code>{" "}
-            and{" "}
-            <code className="mono text-[0.9em]">data-theme-ready</code> — so
-            React finds nothing the script added that the server did not already
-            declare. Its hooks also return the server&apos;s values for the
-            hydration render, then switch to the live ones. If you hand-roll the
-            script instead of using the framework package, declaring those
-            attributes is yours to do.
-          </Callout>
-        </section>
-
         <section id="troubleshooting" className="scroll-mt-24 mb-10">
           <SectionHeading
-            num={9}
+            num={8}
             desc="The failures this architecture actually produces — and what each one means."
           >
             Troubleshooting

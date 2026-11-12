@@ -33,7 +33,7 @@ export default function ChangelogPage() {
   const latest = releases[0];
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Reference"
           icon="📜"

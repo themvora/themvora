@@ -72,6 +72,38 @@ export const defaultIo: ApplyIo = {
   },
 };
 
+/** A long-running step `apply` reports progress for. */
+export type ApplyStepKind = "scaffold" | "install" | "verify";
+
+/**
+ * One progress event.
+ *
+ * `begin` and `end` are paired, including on failure: the caller drives a
+ * spinner from them, and an unpaired `begin` is exactly the state that leaves an
+ * animation running after the command has already died.
+ */
+export type ApplyEvent =
+  | {
+      /** The step is starting. */
+      type: "begin";
+      /** Which kind of step it is. */
+      kind: ApplyStepKind;
+      /** A short, human-readable description. */
+      message: string;
+      /** The command being run, for a log line or a failure message. */
+      detail: string;
+    }
+  | {
+      /** The step finished. */
+      type: "end";
+      /** Which kind of step it was. */
+      kind: ApplyStepKind;
+      /** Whether it succeeded. */
+      ok: boolean;
+      /** A short, human-readable description. */
+      message: string;
+    };
+
 /** What `apply` should do. */
 export interface ApplyOptions {
   /** The plan to apply. */
@@ -83,7 +115,7 @@ export interface ApplyOptions {
   /** Skip every external command. */
   skipCommands: boolean;
   /** Report progress. */
-  onProgress?: (message: string) => void;
+  onProgress?: (event: ApplyEvent) => void;
 }
 
 /**
@@ -174,7 +206,7 @@ export function resolveInsideProject(
  */
 export function applyInitPlan(options: ApplyOptions): InitReport {
   const { plan, build, io, skipCommands } = options;
-  const report = options.onProgress ?? (() => {});
+  const emit = options.onProgress ?? (() => {});
 
   const created: string[] = [];
   const updated: string[] = [];
@@ -185,22 +217,41 @@ export function applyInitPlan(options: ApplyOptions): InitReport {
   // 1. Scaffold, when the target is a new project.
   let scaffolded = false;
   if (plan.scaffold) {
+    const detail = commandLine(plan.scaffold);
+
     if (skipCommands) {
-      report(
-        `would scaffold: ${plan.scaffold.command} ${plan.scaffold.args.join(" ")}`,
-      );
+      emit({
+        type: "begin",
+        kind: "scaffold",
+        message: "Scaffold the project",
+        detail,
+      });
+      emit({ type: "end", kind: "scaffold", ok: true, message: "Scaffold skipped" });
     } else {
-      report(
-        `scaffolding: ${plan.scaffold.command} ${plan.scaffold.args.join(" ")}`,
-      );
+      emit({
+        type: "begin",
+        kind: "scaffold",
+        message: `Scaffolding ${plan.framework.displayName} with its official generator`,
+        detail,
+      });
       const result = io.run(plan.scaffold, {
         cwd: plan.scaffold.cwd ?? dirname(plan.projectPath),
       });
       if (!result.ok) {
-        throw new Error(
-          `the scaffold command failed: ${result.detail ?? `${plan.scaffold.command} ${plan.scaffold.args.join(" ")}`}`,
-        );
+        emit({
+          type: "end",
+          kind: "scaffold",
+          ok: false,
+          message: `Scaffolding ${plan.framework.displayName} failed`,
+        });
+        throw new Error(`the scaffold command failed: ${result.detail ?? detail}`);
       }
+      emit({
+        type: "end",
+        kind: "scaffold",
+        ok: true,
+        message: `Scaffolded ${plan.framework.displayName}`,
+      });
       scaffolded = true;
     }
   }
@@ -242,27 +293,44 @@ export function applyInitPlan(options: ApplyOptions): InitReport {
     });
   }
 
-  // 4. Install. Two steps at most: the framework's runtime packages, then the
-  //    dev-only ones a styling engine needs (Tailwind's build-time packages).
-  //    They cannot share a command because the dev flag is per-manager.
+  // 4. Install. **One** command, and the only install a new project performs.
+  //
+  //    Every generator is invoked with its own "do not install" flag (see
+  //    `scaffold.ts`), and build-time dependencies are already recorded in the
+  //    manifest by the file operations above — so the framework's packages,
+  //    Themvora's and the styling engine's are resolved in one pass against the
+  //    final `package.json`. A second `add -D` would resolve that tree twice.
   let installed = false;
-  const installSteps = [plan.installStep, plan.devInstallStep].filter(
-    (step): step is CommandStep => step !== null,
-  );
+  const installStep = plan.installStep;
 
-  for (const step of installSteps) {
+  if (installStep) {
+    const detail = commandLine(installStep);
+
     if (skipCommands) {
-      report(`would install: ${step.command} ${step.args.join(" ")}`);
-      continue;
+      emit({ type: "begin", kind: "install", message: "Install dependencies", detail });
+      emit({ type: "end", kind: "install", ok: true, message: "Install skipped" });
+    } else {
+      emit({
+        type: "begin",
+        kind: "install",
+        message: `Installing dependencies with ${plan.packageManager}`,
+        detail,
+      });
+      const result = io.run(installStep, { cwd: plan.projectPath });
+      if (!result.ok) {
+        emit({
+          type: "end",
+          kind: "install",
+          ok: false,
+          message: "Dependency installation failed",
+        });
+        throw new Error(
+          `installing dependencies failed: ${result.detail ?? installStep.command}`,
+        );
+      }
+      emit({ type: "end", kind: "install", ok: true, message: "Installed dependencies" });
+      installed = true;
     }
-    report(`installing: ${step.command} ${step.args.join(" ")}`);
-    const result = io.run(step, { cwd: plan.projectPath });
-    if (!result.ok) {
-      throw new Error(
-        `installing dependencies failed: ${result.detail ?? step.command}`,
-      );
-    }
-    installed = true;
   }
 
   // 5. Verify. The steps are recomputed too: a scaffolded project's scripts are
@@ -272,13 +340,15 @@ export function applyInitPlan(options: ApplyOptions): InitReport {
     inspection.manifest,
     io,
     skipCommands,
-    report,
+    emit,
   );
 
   return {
     version: 1,
     projectPath: plan.projectPath,
     framework: plan.framework.displayName,
+    packageManager: plan.packageManager,
+    styling: plan.styling,
     created,
     updated,
     unchanged,
@@ -357,7 +427,7 @@ function runVerification(
   manifest: ProjectManifest | null,
   io: ApplyIo,
   skipCommands: boolean,
-  report: (message: string) => void,
+  emit: (event: ApplyEvent) => void,
 ): VerificationResult[] {
   const adapter = findAdapter(plan.framework.id);
   const steps: readonly VerificationStep[] = adapter
@@ -408,8 +478,19 @@ function runVerification(
       continue;
     }
 
-    report(`verifying: ${step.command.command} ${step.command.args.join(" ")}`);
+    emit({
+      type: "begin",
+      kind: "verify",
+      message: `Verifying ${step.id}`,
+      detail: commandLine(step.command),
+    });
     const result = io.run(step.command, { cwd: plan.projectPath });
+    emit({
+      type: "end",
+      kind: "verify",
+      ok: result.ok,
+      message: result.ok ? `${step.title} passed` : `${step.title} failed`,
+    });
     results.push({
       id: step.id,
       title: step.title,
@@ -419,6 +500,11 @@ function runVerification(
   }
 
   return results;
+}
+
+/** Render a command as a single copy-pasteable line. */
+function commandLine(command: CommandStep): string {
+  return [command.command, ...command.args].join(" ");
 }
 
 /** What the user should do after a successful run. */
@@ -435,15 +521,21 @@ function nextSteps(
     );
   }
 
+  // A new project is created in a directory the user is not standing in, so the
+  // first step is getting there. An existing project is already the working
+  // directory.
   if (plan.projectKind !== "existing" && plan.scaffold) {
     steps.push(`cd ${plan.projectPath}`);
   }
 
+  // `npm run dev` and `pnpm run dev` are the explicit form; `yarn dev` and
+  // `bun dev` are what those managers document. Both spellings work, so the
+  // shortest one that is unambiguous per manager is used.
   const devCommand =
     plan.packageManager === "npm" || plan.packageManager === "pnpm"
       ? "run dev"
       : "dev";
-  steps.push(`Start the dev server: ${plan.packageManager} ${devCommand}`);
+  steps.push(`${plan.packageManager} ${devCommand}`);
 
   return steps;
 }

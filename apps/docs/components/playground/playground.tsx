@@ -19,6 +19,8 @@ import { OverrideBanner } from "./override-banner";
 import { WorkspaceBar } from "./workspace-bar";
 import { usePlaygroundURL } from "./use-playground-url";
 import { ShowCode } from "./show-code";
+import { enableExamples } from "../../app/animation/snippets";
+import { controllerExamples } from "../../app/sunrise-sunset/snippets";
 
 const NAV = [
   { href: "#presets", label: "Presets" },
@@ -154,169 +156,14 @@ function PlaygroundSection({
 export function Playground() {
   usePlaygroundURL();
 
-  const solarSnippets = {
-    react: {
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeSchedule } from "@themvora/react";
-
-function App() {
-  return (
-    <ThemeProvider scheduled={{ autoDetectLocation: true }}>
-      <MyPage />
-    </ThemeProvider>
+  // One main example per framework, taken from the Sunrise & Sunset guide so
+  // the playground and the guide cannot drift apart.
+  const solarSnippets = Object.fromEntries(
+    Object.entries(controllerExamples).map(([slug, entry]) => [
+      slug,
+      { lang: entry.lang, code: entry.code },
+    ]),
   );
-}
-
-function MyPage() {
-  const schedule = useThemeSchedule();
-  return (
-    <button onClick={() => schedule?.enable()}>
-      Enable schedule
-    </button>
-  );
-}`,
-    },
-    next: {
-      lang: "tsx",
-      code: `// app/layout.tsx
-"use client";
-import { ThemeProvider } from "@themvora/next";
-import { useThemeSchedule } from "@themvora/next/client";
-
-export default function RootLayout({ children }) {
-  return (
-    <ThemeProvider scheduled={{ autoDetectLocation: true }}>
-      {children}
-    </ThemeProvider>
-  );
-}
-
-// components/schedule-toggle.tsx
-export function ScheduleToggle() {
-  const schedule = useThemeSchedule();
-  return (
-    <button onClick={() => schedule?.enable()}>
-      Enable schedule
-    </button>
-  );
-}`,
-    },
-    vue: {
-      lang: "vue",
-      code: `<script setup lang="ts">
-import { ThemeProvider, useThemeSchedule } from "@themvora/vue";
-
-const schedule = useThemeSchedule();
-</script>
-
-<template>
-  <ThemeProvider :scheduled="{ autoDetectLocation: true }">
-    <button @click="schedule?.enable()">Enable schedule</button>
-  </ThemeProvider>
-</template>`,
-    },
-    nuxt: {
-      lang: "ts",
-      code: `// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ["@themvora/nuxt"],
-  themvora: {
-    scheduled: { autoDetectLocation: true },
-  },
-});
-
-// app.vue
-<script setup lang="ts">
-const schedule = useThemeSchedule();
-</script>
-
-<template>
-  <button @click="schedule?.enable()">Enable schedule</button>
-</template>`,
-    },
-    svelte: {
-      lang: "svelte",
-      code: `<script lang="ts">
-  import { ThemeProvider, useThemeSchedule, getThemeSchedule } from "@themvora/svelte";
-
-  const scheduleState = useThemeSchedule();
-  const controller = getThemeSchedule();
-</script>
-
-<ThemeProvider scheduled={{ autoDetectLocation: true }}>
-  <button on:click={() => controller?.enable()}>
-    Enable schedule
-  </button>
-</ThemeProvider>`,
-    },
-    solid: {
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeSchedule } from "@themvora/solid";
-
-function App() {
-  const schedule = useThemeSchedule();
-
-  return (
-    <ThemeProvider scheduled={{ autoDetectLocation: true }}>
-      <button onClick={() => schedule?.enable()}>
-        Enable schedule
-      </button>
-    </ThemeProvider>
-  );
-}`,
-    },
-    angular: {
-      lang: "ts",
-      code: `import { Component } from "@angular/core";
-import { provideTheme, injectThemeSchedule } from "@themvora/angular";
-
-// app.config.ts
-export const appConfig = {
-  providers: [
-    provideTheme({
-      scheduled: { autoDetectLocation: true },
-    }),
-  ],
-};
-
-// schedule-toggle.component.ts
-@Component({
-  selector: "app-schedule-toggle",
-  template: \`
-    <button (click)="toggle()">Enable schedule</button>
-  \`,
-})
-export class ScheduleToggleComponent {
-  private schedule = injectThemeSchedule();
-
-  toggle() {
-    this.schedule?.enable();
-  }
-}`,
-    },
-    web: {
-      lang: "html",
-      code: `<script type="module">
-  import "@themvora/web";
-</script>
-
-<themvora-provider
-  scheduled='{"autoDetectLocation": true}'
->
-  <button id="enable-schedule">Enable schedule</button>
-</themvora-provider>
-
-<script>
-  import { getThemeSchedule } from "@themvora/web";
-
-  document.getElementById("enable-schedule").addEventListener("click", () => {
-    const schedule = getThemeSchedule();
-    schedule?.enable();
-  });
-</script>`,
-    },
-  };
-
   const scrollbarSnippets = {
     react: {
       lang: "tsx",
@@ -446,38 +293,15 @@ export class AppComponent {}`,
     },
   };
 
-  const animationSnippets = {
-    react: {
-      lang: "tsx",
-      code: `import { useThemeRuntime } from "@themvora/react";
-
-function TransitionDemo() {
-  const runtime = useThemeRuntime();
-
-  const switchTheme = () => {
-    // The runtime automatically creates a diff, plans the transition,
-    // and runs the animation using View Transitions when available.
-    runtime.setFamily("plum");
-  };
-
-  return <button onClick={switchTheme}>Switch theme</button>;
-}`,
-    },
-    next: {
-      lang: "tsx",
-      code: `"use client";
-import { useThemeRuntime } from "@themvora/next/client";
-
-export function TransitionDemo() {
-  const runtime = useThemeRuntime();
-  return (
-    <button onClick={() => runtime.setFamily("plum")}>
-      Switch theme
-    </button>
+  // The Animation guide already carries one accurate snippet per framework
+  // (the provider transition prop). Reuse it verbatim rather than describing
+  // the pipeline by hand here.
+  const animationSnippets = Object.fromEntries(
+    Object.entries(enableExamples).map(([slug, entry]) => [
+      slug,
+      { lang: entry.lang, code: entry.code },
+    ]),
   );
-}`,
-    },
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -580,7 +404,7 @@ export function TransitionDemo() {
             </>
           }
           codeSnippets={animationSnippets}
-          codeLabel="runtime.setFamily()"
+          codeLabel="transition prop"
         >
           <AnimationLab />
         </PlaygroundSection>

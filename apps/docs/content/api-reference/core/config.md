@@ -9,6 +9,26 @@ pull in — the main entry is runtime code, this is build-time code.
 
 ## Functions
 
+### `findThemvoraConfigPath(root, configPath?): Promise<string | null>`
+Resolves the path of the application's `theme.config.*` without loading it.
+
+**See also:** `loadThemvoraConfig`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `root` | `string` | The project root to search. |
+| `configPath` | `string` (optional) | An explicit path, relative to `root` or absolute. When omitted the conventional filenames are tried in order. |
+
+**Returns** `Promise<string | null>` — The absolute path, or `null` when no config file exists.
+
+Separate from loadThemvoraConfig because a *watch* registration needs
+the path and nothing else: Astro's `addWatchFile` and the Vite plugin's
+watcher both restart or reload on a change to this file, and neither can pay
+for a full esbuild config load just to learn where it lives.
+
+---
+
+
 ### `loadThemvoraConfig<T extends ThemeDefinition<string>>(root, configPath?): Promise<ThemvoraConfig<T> | null>`
 Finds and loads the application's ThemvoraConfig.
 

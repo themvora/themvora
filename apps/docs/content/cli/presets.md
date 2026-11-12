@@ -1,7 +1,7 @@
 # Presets
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - @themvora/cli installed (globally, locally, or via npx)
 
 A **preset** is a curated recipe: a seed colour, a generation style, and a

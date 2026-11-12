@@ -1,7 +1,7 @@
 # `themvora migrate`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Theme file(s) with legacy versions to migrate
 - Project with @themvora/cli installed or npx access
 

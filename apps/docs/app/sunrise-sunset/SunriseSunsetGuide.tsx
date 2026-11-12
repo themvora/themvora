@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { highlightCode } from "../../lib/highlight";
 import { CodeBlock } from "../../components/code-block";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { Callout } from "../../components/ui/callout";
@@ -10,7 +9,13 @@ import { FrameworkPicker, getExample } from "../../components/framework-picker";
 import { pairWithJavaScript } from "../../lib/code-language";
 import { controllerExamples, mountExamples } from "./snippets";
 
-type Snippet = { lang: string; title: string; code: string };
+type Snippet = {
+  lang: string;
+  title: string;
+  code: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: { lang: string; title: string; code: string };
+};
 
 /**
  * One block, with its JavaScript counterpart when the page derived one.
@@ -29,19 +34,40 @@ function snippetBlock(
   const variants = js
     ? pairWithJavaScript(snippet, js)?.map((variant) => ({
         ...variant,
-        html: highlightCode(variant.code, variant.lang),
       }))
     : undefined;
   const label = labels?.[snippet.code];
-  return (
+  const main = (
     <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
       code={snippet.code}
       language={snippet.lang}
+      filename={snippet.title}
       {...(label ? { displayLanguage: label } : {})}
       {...(variants ? { variants } : {})}
       className="rounded-lg m-0"
     />
+  );
+  if (!snippet.vite) return main;
+
+  const vite = snippet.vite;
+  const viteJs = jsSources?.[vite.code];
+  const viteVariants = viteJs
+    ? pairWithJavaScript(vite, viteJs)?.map((variant) => ({ ...variant }))
+    : undefined;
+  const viteLabel = labels?.[vite.code];
+
+  return (
+    <>
+      {main}
+      <CodeBlock
+        code={vite.code}
+        language={vite.lang}
+        filename={vite.title}
+        {...(viteLabel ? { displayLanguage: viteLabel } : {})}
+        {...(viteVariants ? { variants: viteVariants } : {})}
+        className="rounded-lg m-0 mt-3"
+      />
+    </>
   );
 }
 

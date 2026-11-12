@@ -54,6 +54,7 @@ kit.on("themeChange", (theme) => console.log(theme.name));
 | `mode` | `void` | — |
 | `providedThemes` | `void` | — |
 | `registry` | `void` | — |
+| `resolvedMode` | `void` | — |
 | `runtime` | `void` | — |
 | `schedule` | `void` | — |
 | `theme` | `void` | — |
@@ -235,9 +236,11 @@ Options for creating a Themvora instance.
 | Member | Type | Description |
 | ------ | ---- | ----------- |
 | `defaultTheme` (optional) | `string` | Default theme name when no persisted selection exists. |
-| `initialFamily` (optional) | `string` | Initial family. Ignored if a theme was previously persisted in localStorage. |
-| `initialMode` (optional) | `ThemeMode` | Initial mode: `"light"`, `"dark"`, or `"system"`. Ignored if a theme was previously persisted in localStorage. |
+| `initialFamily` (optional) | `string` | Initial family. Ignored under the same conditions as `initialMode`. |
+| `initialMode` (optional) | `ThemeMode` | Initial mode: `"light"`, `"dark"`, or `"system"`. Ignored when a selection is persisted in storage, or when the pre-paint bootstrap already applied one — that state is newer than this option by definition. |
+| `prefix` (optional) | `string` | CSS custom property prefix. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<ThemeDefinition<string>>` | Sunrise/sunset solar scheduling config. Automatically applies light/dark themes at sunrise/sunset. |
+| `storageKey` (optional) | `string` | The `localStorage` key the selection is persisted under. |
 | `target` (optional) | `HTMLElement \| Document` | Target element for CSS custom properties and `data-theme` attributes. Defaults to `document.documentElement`. |
 | `themeOverride` (optional) | `ThemeOverride<string>` | Explicit theme override applied over any persisted selection. |
 | `themes` (optional) | `readonly ThemeDefinition<string>[]` | Custom set of themes. Defaults to all built-in themes. |

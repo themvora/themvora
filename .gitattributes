@@ -19,3 +19,9 @@
 #
 # If a byte-wise check is ever added for another generated path, pin it here.
 apps/docs/lib/generated/** text eol=lf
+
+# The library-adapter READMEs are generated from the documentation recipes and
+# verified byte-for-byte by `pnpm docs:check-library-readmes`. Same reasoning as
+# above: with `core.autocrlf=true` a checkout would turn them into CRLF and the
+# check would fail on every Windows clone for a reason that is not drift.
+packages/adapters/*/README.md text eol=lf

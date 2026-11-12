@@ -184,12 +184,13 @@ the original spelling.
 ---
 
 
-### `cmdInit(args): Promise<void>`
+### `cmdInit(args, deps): Promise<void>`
 Run `themvora init`.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
 | `args` | `ParsedArgs` | The parsed arguments. |
+| `deps` | `InitDependencies` | Test seams. Production passes none. |
 
 **Returns** `Promise<void>`
 
@@ -385,7 +386,7 @@ These are guaranteed by the command implementations and documented in the
 CLI README and docs. Consumers (CI pipelines, editor integrations) can rely
 on them without parsing stdout.
 
-`Readonly<{ Error: 1; OK: 0; Usage: 2; ValidationFailed: 3 }>`
+`Readonly<{ Cancelled: 130; Error: 1; OK: 0; Usage: 2; ValidationFailed: 3 }>`
 
 ---
 
@@ -396,7 +397,7 @@ The @themvora/cli package version, surfaced by `themvora --version`.
 Must stay in sync with the `"version"` field in `packages/cli/package.json`;
 `scripts/release/audit-packages.mjs` fails the release gate if they drift.
 
-`"1.3.1"`
+`"2.0.0"`
 
 ---
 

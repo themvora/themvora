@@ -32,14 +32,14 @@ import { docsUrl } from "../../lib/site";
  * and `Object.values` would have discarded the only copy of it.
  */
 const snippets = [
-  ...Object.entries(enableExamples).map(([framework, snippet]) => ({
-    ...snippet,
-    framework,
-  })),
-  ...Object.entries(frameworkSnippets).map(([framework, snippet]) => ({
-    ...snippet,
-    framework,
-  })),
+  ...Object.entries(enableExamples).flatMap(([framework, snippet]) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]),
+  ...Object.entries(frameworkSnippets).flatMap(([framework, snippet]) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]),
   viewTransitionSnippet,
   bestPracticesSnippet,
   transitionPropSnippet,
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
 export default function AnimationPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

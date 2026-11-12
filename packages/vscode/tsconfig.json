@@ -11,9 +11,9 @@
     "noEmit": true
   },
   "include": ["src", "test"],
-  // The one test that renders a React component imports a `.tsx` module, so it
-  // needs JSX and the DOM lib — neither of which the host may have. It is
+  // The tests that render React components import a `.tsx` module, so they need
+  // JSX and the DOM lib — neither of which the host may have. They are
   // typechecked by `tsconfig.webview.json` instead, which is where the webview
-  // it exercises already lives.
-  "exclude": ["test/studioLibraryRender.test.ts"]
+  // they exercise already lives.
+  "exclude": ["test/studioLibraryRender.test.ts", "test/studioSaveDialogRender.test.ts"]
 }

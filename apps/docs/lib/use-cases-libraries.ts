@@ -4,7 +4,7 @@ export const libraryUseCases: Record<string, UseCase[]> = {
   shadcn: [
     {
       title: "Mount the adapter on the runtime",
-      desc: "Register the adapter so every theme change repaints `--shadcn-*` variables.",
+      desc: "Register the adapter so every theme change repaints shadcn's own variables — `--background`, `--primary`, `--border`.",
       lang: "ts",
       code: `import { createThemeRuntime } from "@themvora/core";
 import { createShadcnAdapter } from "@themvora/shadcn";
@@ -20,7 +20,7 @@ runtime.adapters.use(createShadcnAdapter());
       desc: "The adapter keeps variables in sync as the active family changes.",
       lang: "ts",
       code: `// The adapter is already registered on the runtime.
-// Switch the family and the adapter repaints --shadcn-* variables:
+// Switch the family and the adapter repaints --background, --primary, --border:
 
 runtime.selection.setFamily("mint");
 runtime.selection.setMode("dark");`,
@@ -83,12 +83,14 @@ runtime.adapters.use(createOpenPropsAdapter());`,
     },
     {
       title: "Reference Open Props variables in CSS",
-      desc: "Use `--op-*` tokens that update as the theme changes.",
+      desc: "Open Props variables are plain custom properties, so any stylesheet can read them.",
       lang: "css",
       code: `.banner {
-  background: var(--op-primary);
-  color: var(--op-on-primary);
-  border-radius: var(--op-radius-md);
+  /* Semantic colour layer written by the adapter. */
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  /* Open Props scale, derived from the theme by the adapter. */
+  border-radius: var(--radius-3);
 }`,
     },
   ],

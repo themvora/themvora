@@ -1,12 +1,31 @@
 # CI & Automation
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project-local `@themvora/cli` install (or `npx @themvora/cli`)
 - CI runner with access to git and node
 
-The CLI is deterministic and never prompts: it reads a theme or a project,
+The CLI is deterministic and non-blocking: it reads a theme or a project,
 prints, exits, and waits for nothing. That makes it a natural build step.
+
+`init` is the one command with an interactive mode, and it never reaches for it
+here. With `CI` set, with a redirected stdin, or under `--json`, `--quiet`,
+`--plan` or `--dry-run`, it behaves exactly like every other command: a missing
+value is a usage error naming the flag that supplies it.
+
+```bash
+# Non-interactive by construction: every value a prompt would ask for is given.
+themvora init my-app --tool pnpm --framework react
+```
+
+`--styling` defaults to plain CSS, which is also what the wizard preselects — so
+a pipeline that names no styling produces the same project a person would get by
+pressing Enter. Say which one you want and the question never comes up:
+
+```bash
+themvora init my-app --tool pnpm --framework react --styling tailwind
+themvora init my-app --tool pnpm --framework react --styling css
+```
 
 ## Run everywhere
 

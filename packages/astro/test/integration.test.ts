@@ -19,6 +19,13 @@ const themes = [
 
 interface SetupOptions {
   injectScript(stage: string, content: string): void;
+  /**
+   * Astro always passes this to `astro:config:setup`. The integration uses it to
+   * register the pre-paint CSS Vite plugin, so a harness without it fails with
+   * `updateConfig is not a function` before any assertion runs. These cases are
+   * about the injected scripts, so the call is recorded and not acted on.
+   */
+  updateConfig(patch: { vite?: { plugins?: unknown[] } }): void;
   config?: { root: URL | string };
 }
 
@@ -45,6 +52,9 @@ async function inject(options: Parameters<typeof themvora>[0]) {
     config: { root: pathToFileURL(import.meta.dirname) },
     injectScript(stage, content) {
       injected.push({ stage, content });
+    },
+    updateConfig() {
+      /* the pre-paint CSS plugin is not under test here */
     },
   });
 

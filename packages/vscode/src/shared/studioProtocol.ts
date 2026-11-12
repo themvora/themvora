@@ -496,7 +496,19 @@ export interface StudioState {
 export type StudioHostMessage =
   | { readonly type: "state"; readonly state: StudioState }
   | { readonly type: "fileText"; readonly text: string }
-  | { readonly type: "saveLocation"; readonly path: string }
+  /**
+   * The native picker's answer.
+   *
+   * The folder and the file name travel separately: the folder is where the
+   * write goes, and the name is what the form now shows, so editing the name
+   * afterwards still writes into the folder the user just chose.
+   */
+  | {
+      readonly type: "saveLocation";
+      readonly path: string;
+      readonly directory: string;
+      readonly fileName: string;
+    }
   | {
       /** A save attempt finished: the dialog closes on either outcome. */
       readonly type: "saveResult";

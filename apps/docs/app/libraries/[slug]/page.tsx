@@ -6,9 +6,7 @@ import { DocsLayout } from "../../../components/docs-layout";
 import { CodeBlock } from "../../../components/code-block";
 import { CodeExample } from "../../../components/code-example";
 import { ApiExplorer } from "../../../components/api-explorer";
-import type { PackageManager } from "../../../components/install-command";
 import { PageHeader } from "../../../components/ui/page-header";
-import { LibraryInstall } from "../../../components/ui/library-install";
 import { ADAPTER_FAMILY } from "../../../lib/framework-support";
 import {
   LibraryRecipe,
@@ -19,6 +17,8 @@ import { NextSteps } from "../../../components/ui/next-step-card";
 import { RelatedLinks } from "../../../components/ui/related-links";
 import { InlineCode } from "../../../components/ui/inline-code";
 import { libraries } from "../../../lib/libraries";
+import { libraryCompatibilityData } from "../../../lib/compatibility-data";
+import { contractForSlug, coreRelationFor } from "../../../lib/package-contracts";
 import { libraryUseCases } from "../../../lib/use-cases-libraries";
 import { highlightCode } from "../../../lib/highlight";
 import {
@@ -26,22 +26,18 @@ import {
   compatibilityBadge,
   type CodeVariant,
 } from "../../../lib/code-variants";
-import { LibraryFrameworkGuide } from "../../../components/library-framework-guide";
-import { PKG_VERSION } from "../../../lib/version";
+import { PKG_VERSION, getPackageVersion } from "../../../lib/version";
 import { docsUrl } from "../../../lib/site";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
-
 /**
  * The provider component each generated-theme adapter exports.
  *
  * Only the adapters that build a native theme object have one; the CSS-variable
- * adapters install through a hook instead, so they map to nothing and the
- * before/after example shows the provider alone.
+ * adapters install through a hook instead, so they map to nothing.
  */
 const PROVIDER_BY_SLUG: Record<string, string> = {
   mui: "MuiThemeProvider",
@@ -49,41 +45,6 @@ const PROVIDER_BY_SLUG: Record<string, string> = {
   antd: "AntdThemeProvider",
   mantine: "MantineThemeProvider",
 };
-
-function installCommand(pkg: string, manager: PackageManager): string {
-  return manager === "npm" ? `npm install ${pkg}` : `${manager} add ${pkg}`;
-}
-
-/**
- * Rewrite a `pnpm` command for another package manager.
- *
- * The library data authors each command once, in pnpm form, and this derives
- * the rest. Authoring four variants by hand per library is how the npm command
- * ends up stale on one page and nobody notices.
- */
-function forManager(cmd: string, manager: PackageManager): string {
-  if (manager === "pnpm") return cmd;
-  const add = manager === "npm" ? "npm install" : `${manager} add`;
-  const dlx = manager === "npm" ? "npx" : manager === "yarn" ? "yarn dlx" : "bunx";
-  return cmd
-    .replace(/^pnpm dlx /, `${dlx} `)
-    .replace(/^pnpm add -D /, `${add} -D `)
-    .replace(/^pnpm add /, `${add} `);
-}
-
-/** Build the four package-manager variants of a command list. */
-function managerBlocks(commands: string[]): Record<
-  PackageManager,
-  { code: string; html: string }
-> {
-  return Object.fromEntries(
-    MANAGERS.map((manager) => {
-      const code = commands.map((cmd) => forManager(cmd, manager)).join("\n");
-      return [manager, { code, html: highlightCode(code, "bash") }];
-    }),
-  ) as Record<PackageManager, { code: string; html: string }>;
-}
-
 
 /** One file inside a recipe snippet. */
 export type RecipeFile = {
@@ -104,7 +65,8 @@ export type RecipeBlock = { lang: string; files: RecipeFile[] };
  * The banner that separates files inside a single authored snippet:
  * `// ---- app/layout.tsx` (also `<!-- ---- x.astro -->`).
  */
-const FILE_BANNER = /^(?:\/\/|<!--)\s*-{3,}\s*([\w./@-]+\.[a-z]{2,6})\s*(?:-->)?$/;
+const FILE_BANNER =
+  /^(?:\/\/|<!--)\s*-{3,}\s*([\w./@-]+\.[a-z]{2,6})\s*(?:-->)?$/;
 
 function splitRecipeFiles(
   code: string,
@@ -145,7 +107,8 @@ function splitRecipeFiles(
       if (first.startsWith("<!--") && !first.endsWith("-->")) {
         // Multi-line HTML comment — drop through its closing marker.
         let i = 0;
-        while (i < only.body.length && !(only.body[i] ?? "").includes("-->")) i += 1;
+        while (i < only.body.length && !(only.body[i] ?? "").includes("-->"))
+          i += 1;
         only.body.splice(0, i + 1);
       } else {
         only.body.splice(0, 1);
@@ -203,7 +166,6 @@ export async function generateMetadata({
   };
 }
 
-
 /**
  * The sentence above the framework picker.
  *
@@ -223,57 +185,100 @@ function frameworkPickerIntro(slug: string, name: string): string {
   return `The mapping is compiled into the preset at build time. Pick the framework you are building in — every snippet below follows that choice.`;
 }
 
-export default function LibraryGuidePage({ params }: PageProps) {  const { slug } = use(params);
+export default function LibraryGuidePage({ params }: PageProps) {
+  const { slug } = use(params);
   const lib = libraries.find((l) => l.slug === slug);
   if (!lib) notFound();
 
-  const commands = Object.fromEntries(
-    MANAGERS.map((manager) => [
-      manager,
-      {
-        code: installCommand(lib.pkg, manager),
-        html: highlightCode(installCommand(lib.pkg, manager), "bash"),
-      },
-    ]),
-  ) as Record<PackageManager, { code: string; html: string }>;
-
-  // Both install steps, in every package manager — one picker drives both.
-  const libraryBlocks = managerBlocks(lib.install.library);
-  const themvoraBlocks = managerBlocks(lib.install.themvora);
-
-  // Per-framework quick-start snippets, precomputed server-side. The picker at
-  // the top shows only the selected framework's native API — no React snippet
-  // unless the user actually picks React.
   // Every snippet below the framework picker follows that choice, so each one is
   // highlighted here (shiki is server-side) and the client only picks a block.
-  // Snippets open with their own path comment (`// app/root.tsx`), so the file
-  // name is already in the data — lift it into the block toolbar rather than
-  // repeating it in every entry.
+  //
+  // A snippet may open with its own path comment (`// app/root.tsx`) — that is
+  // the file name, and it is lifted into the block toolbar rather than repeated
+  // in the body.
   const filenameOf = (code: string) => {
     const first = code.split("\n")[0]?.trim() ?? "";
     const match = first.match(/^(?:\/\/|#|<!--)\s*(\S+\.[a-z]+)\s*(?:-->)?$/i);
     return match?.[1];
   };
 
+  /**
+   * The highlighter for one file, from its own extension.
+   *
+   * A recipe section is often several files with different grammars — a
+   * `vite.config.ts`, a `tsconfig.json` and a `globals.css` in one "configure"
+   * step. Highlighting them all with the snippet's declared language renders
+   * CSS as TypeScript and labels it wrong in the toolbar, so each file is
+   * re-highlighted with the grammar its filename implies.
+   */
+  const langForFile = (filename: string | undefined, fallback: string) => {
+    const ext = filename?.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "css":
+        return "css";
+      case "json":
+        return "json";
+      case "html":
+        return "html";
+      case "vue":
+        return "vue";
+      case "svelte":
+        return "svelte";
+      case "astro":
+        return "astro";
+      case "tsx":
+        return "tsx";
+      case "ts":
+        return "ts";
+      case "js":
+      case "mjs":
+      case "cjs":
+        return "js";
+      default:
+        return fallback;
+    }
+  };
+
   // `framework` is the recipe's own framework, and it is what makes Angular's
-  // snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`). The library-level
-  // fallbacks below have no framework of their own — they are React snippets the
-  // recipe rewrites per selection — so they pass none, and the snippet's own
-  // source decides.
+  // snippets TypeScript-only (see `TYPESCRIPT_ONLY_FRAMEWORKS`).
   const hl = (
     snippet: { lang: string; code: string } | undefined,
     framework?: string,
-  ): RecipeBlock | undefined =>
-    snippet
-      ? { lang: snippet.lang, files: splitRecipeFiles(snippet.code, snippet.lang, framework) }
-      : undefined;
+  ): RecipeBlock | undefined => {
+    if (!snippet) return undefined;
+    const files = splitRecipeFiles(
+      snippet.code,
+      snippet.lang,
+      framework,
+    ).map((file) => {
+      const lang = langForFile(file.filename, file.lang);
+      if (lang === file.lang) return file;
+      const variants = highlightedVariants(
+        {
+          code: file.code,
+          lang,
+          ...(framework ? { framework } : {}),
+          ...(file.filename ? { filename: file.filename } : {}),
+        },
+        highlightCode,
+      );
+      return {
+        ...file,
+        lang,
+        html: variants?.[0]?.html ?? highlightCode(file.code, lang),
+        ...(variants ? { variants } : {}),
+        ...compatibilityBadge(file.code, lang, framework),
+      };
+    });
+    return { lang: snippet.lang, files };
+  };
 
-  const frameworkExamples: RecipeFrameworkExample[] = (lib.frameworks ?? []).map((f) => ({
-    ...f,
-    filename: filenameOf(f.code),
+  const frameworkExamples: RecipeFrameworkExample[] = (
+    lib.frameworks ?? []
+  ).map((f) => ({
+    label: f.label,
+    lang: f.lang,
     codeHtml: highlightCode(f.code, f.lang),
-    // `f.label` is the framework identity — "Angular" reaches the policy the same
-    // way the slug does everywhere else.
     ...compatibilityBadge(f.code, f.lang, f.label),
     codeVariants: highlightedVariants(
       {
@@ -284,44 +289,50 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
       },
       highlightCode,
     ),
-    mountProvider: hl(f.mountProvider, f.label),
-    completeExample: hl(f.completeExample, f.label),
-    componentExample: hl(f.componentExample, f.label),
-    themeSwitchExample: hl(f.themeSwitchExample, f.label),
-    beforeExample: hl(f.beforeExample, f.label),
+    ...(filenameOf(f.code) ? { filename: filenameOf(f.code)! } : {}),
+    install: f.install ?? [],
+    themvora: f.themvora ?? [],
+    ...(f.setup ? { setup: hl(f.setup, f.label) } : {}),
+    ...(f.mountProvider ? { mountProvider: hl(f.mountProvider, f.label) } : {}),
+    code: hl({ lang: f.lang, code: f.code }, f.label)!,
+    ...(f.componentExample
+      ? { componentExample: hl(f.componentExample, f.label) }
+      : {}),
+    ...(f.themeSwitchExample
+      ? { themeSwitchExample: hl(f.themeSwitchExample, f.label) }
+      : {}),
+    ...(f.completeExample
+      ? { completeExample: hl(f.completeExample, f.label) }
+      : {}),
+    ...(f.prereqs ? { prereqs: f.prereqs } : {}),
   }));
-
-
-  // CSS adapters ship a stylesheet that maps their component variables to the
-  // themvora semantic tokens — importing it once makes the library respond to
-  // theme changes. Runtime-only adapters (Ant, Chakra, MUI, Mantine, UnoCSS)
-  // don't need one.
-  const cssImportCode = lib.css ? `import "${lib.css}";` : "";
-  const cssImportHtml = lib.css ? highlightCode(cssImportCode, "ts") : "";
 
   const useCases = libraryUseCases[lib.slug] ?? [];
   const content = (
-    <article className="min-w-0 max-w-3xl">
-          <PageHeader
-            icon={lib.icon}
-            title={`Themvora + ${lib.name}`}
-            subtitle={lib.pkg}
-            description={lib.tagline}
-            badges={[
-              {
-                label:
-                  lib.architecture === "generated-theme"
-                    ? "Generated theme"
-                    : lib.architecture === "build-time"
-                      ? "Build-time"
-                      : "CSS variables",
-              },
-              ...lib.tags.map((tag) => ({ label: tag })),
-            ]}
-            verified={{ version: PKG_VERSION, date: "2026-09-17" }}
-          />
+    <article className="min-w-0">
+      <PageHeader
+        icon={lib.icon}
+        title={`Themvora + ${lib.name}`}
+        subtitle={lib.pkg}
+        description={lib.tagline}
+        badges={[
+          {
+            label:
+              lib.architecture === "generated-theme"
+                ? "Generated theme"
+                : lib.architecture === "build-time"
+                  ? "Build-time"
+                  : "CSS variables",
+          },
+          ...lib.tags.map((tag) => ({ label: tag })),
+        ]}
+        verified={{
+          version: getPackageVersion(lib.slug) ?? PKG_VERSION,
+          date: "",
+        }}
+      />
 
-          {/*
+      {/*
             Install the library first, then the adapter.
 
             The page used to assume the UI library was already there, which is a
@@ -329,258 +340,195 @@ export default function LibraryGuidePage({ params }: PageProps) {  const { slug 
             rather than from our own getting-started flow.
           */}
 
+      {frameworkExamples.length > 0 && (
+        <LibraryRecipe
+          slug={lib.slug}
+          libraryName={lib.name}
+          description={frameworkPickerIntro(lib.slug, lib.name)}
+          examples={frameworkExamples}
+          officialUrl={lib.officialUrl}
+          architecture={lib.architecture}
+          className="mt-10 scroll-mt-24"
+        />
+      )}
 
-          {frameworkExamples.length > 0 && (
-            <LibraryRecipe
-              slug={lib.slug}
-              libraryName={lib.name}
-              description={frameworkPickerIntro(lib.slug, lib.name)}
-              examples={frameworkExamples}
-              mountProvider={hl(lib.quickStartRoot)}
-              componentExample={hl(lib.componentExample)}
-              themeSwitchExample={hl(lib.themeSwitchExample)}
-              completeExample={hl(lib.quickStart)}
-              installLibrary={managerBlocks(lib.install.library)}
-              installThemvora={managerBlocks(lib.install.themvora)}
-              officialUrl={lib.officialUrl}
-              architecture={lib.architecture}
 
-              className="mt-10 scroll-mt-24"
-            />
-          )}
+      <Prerequisites
+        className="mt-10"
+        items={[
+          {
+            label: "Core Package",
+            value:
+              contractForSlug(lib.slug) &&
+              coreRelationFor(contractForSlug(lib.slug)!) === "dependency"
+                ? "@themvora/core (normal dependency — installed with the adapter)"
+                : "@themvora/core (required)",
+          },
+          {
+            label: "Library Version",
+            value:
+              libraryCompatibilityData.find(
+                (entry) => entry.package === lib.pkg,
+              )?.libraryVersion ?? "See the library's own installation guide",
+          },
+          {
+            label: "Adapter Type",
+            value: lib.kind,
+          },
+        ]}
+      />
 
-          {lib.mapping && (
-            <section id="mapping" className="mt-10 scroll-mt-24">
-              <h2 className="text-lg font-semibold tracking-tight">
-                What gets mapped
-              </h2>
-              <p className="mt-1 text-sm opacity-70">
-                Themvora owns the meaning; the adapter owns the vocabulary.
-              </p>
-              <div
-                className="mt-4 overflow-hidden rounded-lg border"
-                style={{ borderColor: "var(--theme-color-border)" }}
+      <section id="whats-available" className="mt-10 scroll-mt-24">
+        <h2 className="text-lg font-semibold tracking-tight">
+          What's Available
+        </h2>
+        <p className="text-sm opacity-70 mt-1 mb-4">
+          <code className="mono text-[0.9em]">{lib.pkg}</code> ships{" "}
+          {lib.featureCount} exports in {lib.groups.length} categories. Click
+          any export to reveal what it does and how to use it — or see{" "}
+          <a href={`/libraries/${slug}/examples`} className="underline">
+            worked examples for every export
+          </a>
+          .
+        </p>
+        <ApiExplorer groups={lib.groups} slug={lib.slug} />
+      </section>
+
+      {useCases.length > 0 && (
+        <section id="use-cases" className="mt-10 scroll-mt-24">
+          <h2 className="text-lg font-semibold tracking-tight">Use Cases</h2>
+          <p className="text-sm opacity-70 mt-1 mb-4">
+            The important features in practice — copy any of these straight into
+            your app.
+          </p>
+          <div className="flex flex-col gap-8">
+            {useCases.map((useCase) => (
+              <div key={useCase.title}>
+                <h3 className="text-sm font-semibold mb-0.5">
+                  {useCase.title}
+                </h3>
+                <p className="text-xs opacity-60 mb-2">
+                  <InlineCode>{useCase.desc}</InlineCode>
+                </p>
+                <CodeExample
+                  code={useCase.code}
+                  lang={useCase.lang}
+                  filename={useCase.title}
+                  className="rounded-lg m-0"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section id="more-examples" className="mt-10 scroll-mt-24">
+        <h2 className="text-lg font-semibold tracking-tight">More Examples</h2>
+        <p className="text-sm opacity-70 mt-1 mb-3">
+          {lib.kind === "CSS Variables"
+            ? "Static variable maps for build-time CSS, and manual adapter lifecycle control."
+            : lib.kind === "Generated Theme"
+              ? "Static themes generated from concrete tokens, and runtime subscriptions."
+              : "Static UnoCSS theme objects for build-time generation."}
+        </p>
+        <CodeExample
+          code={lib.snippet2.code}
+          lang={lib.snippet2.lang}
+          filename={lib.snippet2.title}
+          className="rounded-lg m-0"
+        />
+      </section>
+
+      <section id="api" className="mt-10 scroll-mt-24">
+        <h2 className="text-lg font-semibold tracking-tight">API Reference</h2>
+        <div className="flex flex-col gap-8 mt-4">
+          {lib.groups.map((group, groupIndex) => {
+            const base = anchor(group.label);
+            const count = lib.groups
+              .slice(0, groupIndex)
+              .filter((g) => anchor(g.label) === base).length;
+            const sectionId = `api-${base}${count > 0 ? `-${count + 1}` : ""}`;
+            return (
+              <section
+                key={`${group.label}-${groupIndex}`}
+                id={sectionId}
+                className="scroll-mt-24"
               >
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr style={{ background: "var(--theme-color-muted)" }}>
-                      <th className="px-3 py-2 font-medium">Themvora</th>
-                      <th className="px-3 py-2 font-medium">{lib.name}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lib.mapping.map((row) => (
-                      <tr
-                        key={row.role}
-                        className="border-t"
-                        style={{ borderColor: "var(--theme-color-border)" }}
-                      >
-                        <td className="mono px-3 py-1.5">{row.role}</td>
-                        <td className="mono px-3 py-1.5 opacity-70">
-                          {row.target}
-                        </td>
+                <h3 className="text-sm font-semibold uppercase tracking-widest opacity-50 mb-2">
+                  {group.label}
+                </h3>
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
+                          Export
+                        </th>
+                        <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
+                          Description
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-
-          <Prerequisites
-            items={[
-              {
-                label: "Core Package",
-                value: "@themvora/core (peer dependency)",
-              },
-              {
-                label: "Library Version",
-                value: `Compatible with ${lib.name} v3+`,
-              },
-              {
-                label: "Adapter Type",
-                value: lib.kind,
-              },
-            ]}
-          />
-
-          {cssImportCode && (
-            <section id="css" className="mt-10 scroll-mt-24">
-              <h2 className="text-lg font-semibold tracking-tight">
-                Include the CSS
-              </h2>
-              <p className="text-sm opacity-70 mt-1 mb-3">
-                The adapter ships a stylesheet that maps its component variables
-                (e.g. <code className="mono text-[0.9em]">--primary</code> for
-                shadcn/ui, <code className="mono text-[0.9em]">--bs-primary</code>{" "}
-                for Bootstrap) to the themvora <code className="mono text-[0.9em]">--theme-color-*</code>{" "}
-                tokens. Import it once — anywhere — and the library&apos;s
-                components will respond to every theme change automatically.
-              </p>
-              <CodeBlock
-                html={cssImportHtml}
-                code={cssImportCode}
-                language="ts"
-                filename="main.ts"
-                {...compatibilityBadge(cssImportCode, "ts")}
-                className="rounded-lg m-0"
-              />
-            </section>
-          )}
-
-          <section id="whats-available" className="mt-10 scroll-mt-24">
-            <h2 className="text-lg font-semibold tracking-tight">
-              What's Available
-            </h2>
-            <p className="text-sm opacity-70 mt-1 mb-4">
-              <code className="mono text-[0.9em]">{lib.pkg}</code> ships{" "}
-              {lib.featureCount} exports in {lib.groups.length} categories.
-              Click any export to reveal what it does and how to use it.
-            </p>
-            <ApiExplorer groups={lib.groups} slug={lib.slug} />
-          </section>
-
-          {useCases.length > 0 && (
-            <section id="use-cases" className="mt-10 scroll-mt-24">
-              <h2 className="text-lg font-semibold tracking-tight">
-                Use Cases
-              </h2>
-              <p className="text-sm opacity-70 mt-1 mb-4">
-                The important features in practice — copy any of these straight
-                into your app.
-              </p>
-              <div className="flex flex-col gap-8">
-                {useCases.map((useCase) => (
-                  <div key={useCase.title}>
-                    <h3 className="text-sm font-semibold mb-0.5">
-                      {useCase.title}
-                    </h3>
-                    <p className="text-xs opacity-60 mb-2">
-                      <InlineCode>{useCase.desc}</InlineCode>
-                    </p>
-                    <CodeExample
-                      code={useCase.code}
-                      lang={useCase.lang}
-                      filename={useCase.title}
-                      className="rounded-lg m-0"
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section id="more-examples" className="mt-10 scroll-mt-24">
-            <h2 className="text-lg font-semibold tracking-tight">
-              More Examples
-            </h2>
-            <p className="text-sm opacity-70 mt-1 mb-3">
-              {lib.kind === "CSS Variables"
-                ? "Static variable maps for build-time CSS, and manual adapter lifecycle control."
-                : lib.kind === "Generated Theme"
-                  ? "Static themes generated from concrete tokens, and runtime subscriptions."
-                  : "Static UnoCSS theme objects for build-time generation."}
-            </p>
-            <CodeExample
-              code={lib.snippet2.code}
-              lang={lib.snippet2.lang}
-              filename={lib.snippet2.title}
-              className="rounded-lg m-0"
-            />
-          </section>
-
-          <section id="api" className="mt-10 scroll-mt-24">
-            <h2 className="text-lg font-semibold tracking-tight">
-              API Reference
-            </h2>
-            <div className="flex flex-col gap-8 mt-4">
-              {lib.groups.map((group, groupIndex) => {
-                const base = anchor(group.label);
-                const count = lib.groups
-                  .slice(0, groupIndex)
-                  .filter((g) => anchor(g.label) === base).length;
-                const sectionId = `api-${base}${count > 0 ? `-${count + 1}` : ""}`;
-                return (
-                  <section
-                    key={`${group.label}-${groupIndex}`}
-                    id={sectionId}
-                    className="scroll-mt-24"
-                  >
-                    <h3 className="text-sm font-semibold uppercase tracking-widest opacity-50 mb-2">
-                      {group.label}
-                    </h3>
-                    <div className="overflow-hidden rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
-                              Export
-                            </th>
-                            <th className="px-4 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">
-                              Description
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.features.map((feature) => (
-                            <tr
-                              key={feature.name}
-                              className="border-b border-border last:border-0 align-top"
+                    </thead>
+                    <tbody>
+                      {group.features.map((feature) => (
+                        <tr
+                          key={feature.name}
+                          className="border-b border-border last:border-0 align-top"
+                        >
+                          <td className="px-4 py-3">
+                            <code
+                              className="mono text-[0.85em] font-semibold"
+                              style={{
+                                color: "var(--theme-color-primary)",
+                              }}
                             >
-                              <td className="px-4 py-3">
-                                <code
-                                  className="mono text-[0.85em] font-semibold"
-                                  style={{
-                                    color: "var(--theme-color-primary)",
-                                  }}
-                                >
-                                  {feature.name}
-                                </code>
-                              </td>
-                              <td className="px-4 py-3 opacity-70 leading-relaxed">
-                                <InlineCode>{feature.desc}</InlineCode>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          </section>
+                              {feature.name}
+                            </code>
+                          </td>
+                          <td className="px-4 py-3 opacity-70 leading-relaxed">
+                            <InlineCode>{feature.desc}</InlineCode>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </section>
 
-          <NextSteps
-            steps={[
-              {
-                title: "Compatibility Check",
-                description: "Verify framework and library version compatibility",
-                href: "/reference/compatibility",
-              },
-              {
-                title: "Browse Components",
-                description: `See all ${lib.name} components with theming`,
-                href: "/showcase",
-              },
-              {
-                title: "Migration Guide",
-                description: "Upgrade from previous adapter versions",
-                href: "/migration",
-              },
-            ]}
-          />
+      <NextSteps
+        className="mt-12"
+        steps={[
+          {
+            title: "Compatibility Check",
+            description: "Verify framework and library version compatibility",
+            href: "/reference/compatibility",
+          },
+          {
+            title: "Browse Components",
+            description: `See all ${lib.name} components with theming`,
+            href: "/showcase",
+          },
+          {
+            title: "Migration Guide",
+            description: "Upgrade from previous adapter versions",
+            href: "/migration",
+          },
+        ]}
+      />
 
-          <RelatedLinks
-            links={[
-              { title: "Core Package", href: "/packages/core" },
-              { title: "Framework Guides", href: "/framework-guides" },
-              { title: "Troubleshooting", href: "/troubleshooting" },
-              { title: "API Reference", href: `/api-reference/${lib.slug}` },
-            ]}
-          />
-        </article>
+      <RelatedLinks
+        links={[
+          { title: "Core Package", href: "/packages/core" },
+          { title: "Framework Guides", href: "/framework-guides" },
+          { title: "Troubleshooting", href: "/troubleshooting" },
+          { title: "API Reference", href: `/api-reference/${lib.slug}` },
+        ]}
+      />
+    </article>
   );
 
   return <DocsLayout>{content}</DocsLayout>;

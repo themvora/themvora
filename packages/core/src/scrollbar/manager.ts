@@ -328,11 +328,22 @@ export function createOverlayScrollbar(
 
   const reduced = () => prefersReducedMotion();
 
-  /** Rail insets for a host. The document scroller keeps the defaults and the
-   *  physical-right rail, so a per-side `offset` never moves the page scrollbar
-   *  (that edge is the browser's to own). */
-  function insetsFor(host: Host): ScrollbarInsets {
-    return host.isRoot ? DEFAULT_INSETS : opts.insets;
+  /** Rail insets — one resolved set for every host, the document included.
+   *
+   *  `offset` is the public knob for the clearance between a rail and its
+   *  container edges, and it has to mean the same thing everywhere. It used to
+   *  be ignored for the page scrollbar (that host was hard-wired to the
+   *  defaults), so `offset: 0` — the documented way to ask for a rail flush
+   *  against the edge — silently stayed 4px in on the one scrollbar a reader
+   *  sees on every page. With no `offset` the resolved insets *are* the
+   *  defaults, so the previous behaviour is unchanged for callers that never
+   *  set it.
+   *
+   *  Only the physical-right rail side stays fixed for the document (see
+   *  {@link railSideFor}): the inset is a distance from whichever edge the rail
+   *  occupies, so it does not need to move with the writing direction. */
+  function insetsFor(): ScrollbarInsets {
+    return opts.insets;
   }
 
   /** Which edge a vertical rail sits on — the inline-end edge, so it follows
@@ -345,7 +356,7 @@ export function createOverlayScrollbar(
 
   /** Rail insets at the two ends of an axis (the "0" end is the start). */
   function axisInsets(host: Host, vertical: boolean): { start: number; end: number } {
-    const ins = insetsFor(host);
+    const ins = insetsFor();
     return vertical ? { start: ins.top, end: ins.bottom } : { start: ins.left, end: ins.right };
   }
 
@@ -389,6 +400,14 @@ export function createOverlayScrollbar(
   }
 
   const hosts = new Map<HTMLElement, Host>();
+  /**
+   * Containers this instance marked as out of scope.
+   *
+   * Kept so teardown unmarks exactly what it marked. A blanket
+   * `querySelectorAll("[data-themvora-scrollbar=excluded]")` would also strip
+   * the marker off a *second* overlay's containers on the same page.
+   */
+  const excludedMarked = new Set<HTMLElement>();
   let scrollableCache = new WeakMap<HTMLElement, { v: boolean; h: boolean }>();
   let needsRescan = true;
   let destroyed = false;
@@ -753,7 +772,7 @@ export function createOverlayScrollbar(
     // host can tune spacing through the same custom-property convention the
     // colors already use. (`--tv-arrow` / `--tv-arrow-size` are set by
     // `applyGlyphSizing` once the axis state exists.)
-    const insets = insetsFor(host);
+    const insets = insetsFor();
     const railSide = railSideFor(host);
     root.setAttribute("data-rail", vertical ? railSide : "bottom");
     root.style.setProperty(
@@ -1251,11 +1270,90 @@ function concealStripImmediate(state: AxisState) {
     };
   }
 
+  /**
+   * Does this element fall outside the overlay's scope?
+   *
+   * Matching is by ancestor as well as by the element itself. `scope.exclude`
+   * names a *region* the caller wants left alone — a table of contents rail, a
+   * navigation panel, a code pane — and a region usually contains the scroll
+   * container rather than being it. Matching only the element meant
+   * `exclude: [".code-block"]` did nothing unless the code block itself was the
+   * scroller, while its inner `overflow: auto` pane still received a rail.
+   *
+   * `closest` is bounded by the document root, and the host DOM is skipped so an
+   * overlay strip can never exclude itself.
+   */
   function isExcluded(el: HTMLElement): boolean {
     if (opts.exclude.length === 0) return false;
+    if (el.closest("[data-themvora-host]")) return false;
     return opts.exclude.some((sel) => {
-      try { return el.matches(sel); } catch { return false; }
+      try { return el.matches(sel) || el.closest(sel) !== null; } catch { return false; }
     });
+  }
+
+  /**
+   * Mark out-of-scope containers so the stylesheet can collapse the scrollbar
+   * gutter they would otherwise reserve.
+   *
+   * The pre-paint CSS reserves a native scrollbar's width on *every* element
+   * (`html.tv-scrollbar *::-webkit-scrollbar`) — that reservation is what keeps
+   * an overlay from reflowing the page the moment it appears, because the
+   * content already clears the rail before the first frame.
+   *
+   * An excluded container is the one case where that reservation is wrong: no
+   * overlay is ever drawn in it, so the gutter is dead space — a 15px empty
+   * strip down its edge with nothing in it, which is exactly the "reserved space
+   * for a scrollbar that isn't there" a reader notices on a TOC rail or a
+   * navigation panel.
+   *
+   * So excluded elements carry `data-themvora-scrollbar="excluded"` and the
+   * stylesheet zeroes their gutter. The marker is the mechanism rather than a
+   * rule written here because the CSS that reserves the gutter lives in a
+   * stylesheet (`scrollbar.css`) and in the pre-paint block — both are static,
+   * and neither can know which selectors a given call excluded.
+   *
+   * Re-run on every rescan: a marked element that no longer matches (the
+   * caller's DOM changed) is unmarked, so the attribute always reflects the
+   * current scope. Tracked hosts are skipped — `makeHost` owns their marker and
+   * `data-themvora-scrollbar="overlay"` must win.
+   */
+  function markExcludedContainers(): void {
+    const next = new Set<HTMLElement>();
+    for (const sel of opts.exclude) {
+      let found: NodeListOf<HTMLElement>;
+      try {
+        found = document.querySelectorAll<HTMLElement>(sel);
+      } catch {
+        continue; // invalid selector — the same one `isExcluded` ignores
+      }
+      for (const el of Array.from(found)) {
+        if (isRootCandidate(el)) continue;
+        if (hosts.has(el)) continue;
+        // A strip's own DOM must never be marked: it is inside the page and a
+        // descendant selector such as `[data-toc-rail] *` could reach it.
+        if (el.closest("[data-themvora-host]")) continue;
+        next.add(el);
+      }
+    }
+    for (const el of excludedMarked) {
+      if (!next.has(el)) {
+        el.removeAttribute("data-themvora-scrollbar");
+        excludedMarked.delete(el);
+      }
+    }
+    for (const el of next) {
+      el.setAttribute("data-themvora-scrollbar", "excluded");
+      excludedMarked.add(el);
+    }
+  }
+
+  /** Unmark everything this instance marked, leaving other overlays' markers
+   *  alone. Safe to call more than once. */
+  function clearExcludedContainers(): void {
+    for (const el of excludedMarked) {
+      el.removeAttribute("data-themvora-scrollbar");
+    }
+    excludedMarked.clear();
   }
 
   // Collect every scrollable element the overlay should cover.
@@ -1297,17 +1395,26 @@ function concealStripImmediate(state: AxisState) {
     // pre-paint CSS, so the content already clears the rail without any layout
     // change — no padding is written and nothing reflows on load.
     if (!isRoot) el.setAttribute("data-themvora-scrollbar", "overlay");
-    // Hovering the container itself reveals its scrollbar (e.g. a code block) —
-    // you don't have to find the strip first. Only for inner containers: the
-    // document scrollbar is revealed on scroll activity / on boot.
+    // Moving the pointer over the container reveals its scrollbar (e.g. a code
+    // block) — you don't have to find the strip first. Only for inner
+    // containers: the document scrollbar is revealed on scroll activity / on
+    // boot.
+    //
+    // `pointermove`, not `mouseenter`. `mouseenter` fires when an element
+    // *arrives under* a stationary pointer, which is exactly what a page scroll
+    // does: as the page moved, every scrollable pane slid beneath the cursor in
+    // turn and flashed its rail — a horizontal one at the pane's bottom edge,
+    // which is where a reader is not looking. `pointermove` only fires on real
+    // movement, so scrolling past a pane is silent and pointing at it still
+    // reveals the rail.
     if (!isRoot) {
-      const onHoverEnter = () => { showHost(host); scheduleAutoHide(host); };
-      const onHoverLeave = () => { if (opts.autoHide) setIdleAll(host); };
-      el.addEventListener("mouseenter", onHoverEnter);
-      el.addEventListener("mouseleave", onHoverLeave);
+      const onPointerMove = () => { showHost(host); scheduleAutoHide(host); };
+      const onPointerLeave = () => { if (opts.autoHide) setIdleAll(host); };
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerleave", onPointerLeave);
       host.targetCleanup = () => {
-        el.removeEventListener("mouseenter", onHoverEnter);
-        el.removeEventListener("mouseleave", onHoverLeave);
+        el.removeEventListener("pointermove", onPointerMove);
+        el.removeEventListener("pointerleave", onPointerLeave);
       };
     }
     return host;
@@ -1333,15 +1440,25 @@ function concealStripImmediate(state: AxisState) {
       const desired = new Set<HTMLElement>(collectScrollables());
       for (const [el, host] of [...hosts.entries()]) {
         if (isRootCandidate(el)) continue;
-        // Destroy hosts only when the element is actually gone from the DOM or
+        // Destroy hosts only when the element is actually gone from the DOM,
         // has stopped being scrollable BY STYLE (overflow flipped to
-        // visible/hidden). Content-size alone is deliberately NOT grounds for
-        // destruction: during a navigation a container's content can be
-        // momentarily short (fonts/images loading), and destroying its host
-        // then would leave the overlay missing until the next rescan even
-        // after the content grows back. `layoutAxis` already conceals the
-        // strip whenever content fits, and re-reveals it live.
-        if (!document.body.contains(el) || !(overflowStyleOf(el).v || overflowStyleOf(el).h)) {
+        // visible/hidden), or has fallen out of scope. Content-size alone is
+        // deliberately NOT grounds for destruction: during a navigation a
+        // container's content can be momentarily short (fonts/images loading),
+        // and destroying its host then would leave the overlay missing until
+        // the next rescan even after the content grows back. `layoutAxis`
+        // already conceals the strip whenever content fits, and re-reveals it
+        // live.
+        //
+        // The scope check is what makes `exclude` authoritative for an element
+        // that becomes excluded after it was tracked (a class toggled later):
+        // without it the host would keep drawing a strip in a container the
+        // caller asked us to leave alone.
+        if (
+          !document.body.contains(el) ||
+          isExcluded(el) ||
+          !(overflowStyleOf(el).v || overflowStyleOf(el).h)
+        ) {
           destroyHost(host, el);
         }
       }
@@ -1349,6 +1466,11 @@ function concealStripImmediate(state: AxisState) {
         if (isRootCandidate(el) || hosts.has(el) || !document.body.contains(el)) continue;
         hosts.set(el, makeHost(el, false));
       }
+      // Mark the containers we deliberately left alone *after* the host set is
+      // settled, so an element that just stopped being a host (the `isExcluded`
+      // branch above) is eligible for the marker in the same pass, and one that
+      // just became a host is not overwritten.
+      if (opts.exclude.length > 0) markExcludedContainers();
       needsRescan = false;
     }
   }
@@ -1496,7 +1618,7 @@ function concealStripImmediate(state: AxisState) {
     if (vertical) {
       const corner = axisEndInset(host, state);
       const cross = stripCrossSize(opts, thickness);
-      const ins = insetsFor(host);
+      const ins = insetsFor();
       const side = railSideFor(host);
       // The strip's footprint is the visible thickness PLUS the transparent
       // content-side gap, held `offset` from the rail's edge (inline-end: right
@@ -1525,7 +1647,7 @@ function concealStripImmediate(state: AxisState) {
     } else {
       const corner = axisEndInset(host, state);
       const cross = stripCrossSize(opts, thickness);
-      const ins = insetsFor(host);
+      const ins = insetsFor();
       const rootWidth =
         host.isRoot && typeof document !== "undefined"
           ? document.documentElement.clientWidth
@@ -1805,6 +1927,10 @@ if (host) {
       storeUnsubscribe();
       for (const [el, host] of [...hosts.entries()]) destroyHost(host, el);
       hosts.clear();
+      // Release the scope markers before handing the native scrollbars back:
+      // an excluded container must go back to a normal native gutter, not keep
+      // a collapsed one that belonged to this instance.
+      clearExcludedContainers();
       // Give the native scrollbar back — but only once no other overlay is
       // still drawing. `destroyed` is already true, so the deferred
       // `tv-scrollbar-ready` timer above cannot re-arm the hiding afterwards.

@@ -124,7 +124,7 @@ const result = validateTheme(dark, { themes: [light, dark] });
     icon: icons.react,
     pkg: "@themvora/react",
     tagline:
-      "Provider + hooks for React 18/19. The reference integration, and the base that Next.js and Remix re-export.",
+      "Provider + hooks for React 19. The reference integration, and the base that Next.js and Remix re-export.",
     tags: ["SPA", "Vite", "Context"],
     groups: [
       {
@@ -498,20 +498,15 @@ defineCustomElements();
     name: "Tailwind CSS",
     icon: icons.tailwind,
     pkg: "@themvora/tailwind",
-    tagline: "Tailwind CSS v4 mappings from theme tokens to utility variables.",
-    tags: ["Tailwind v4", "Tokens"],
+    tagline: "CSS utility layer that maps theme tokens to Tailwind v4 utility variables.",
+    tags: ["Tailwind v4", "CSS utility"],
     groups: [
       {
         label: "CSS",
         features: [
           { name: "@theme mapping", desc: "Maps tokens to --color-*, --radius-*, --spacing-*, --font-*, --shadow-*." },
-          { name: "Dark variant", desc: "@custom-variant dark (&:where(.dark, .dark *))." },
-          { name: "Layers", desc: "theme.css / dark.css / preflight.css." },
+          { name: "Layers", desc: "Separate token and reset CSS layers." },
         ],
-      },
-      {
-        label: "Helpers",
-        features: [{ name: "synchronizeDarkClass(theme)", desc: "Keeps the .dark class in sync." }],
       },
     ],
     snippet: {
@@ -633,15 +628,16 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
       {
         label: "Server",
         features: [
-          { name: "Loader theming", desc: "getInitialThemeState from `@themvora/remix/server` reads the theme cookies off the request." },
-          { name: "Blocking script", desc: "ThemeHead emits the pre-paint bootstrap in the document <head>." },
+          { name: "createThemeDocument()", desc: "One configuration for the loader, the pre-paint script, the <html> shell and the runtime." },
+          { name: "Loader theming", desc: "theming.resolveInitial(request) reads the theme cookies and resolves them against that configuration." },
+          { name: "Blocking script", desc: "Document emits the pre-paint bootstrap in <head>; ThemeHead is the lower-level half." },
           { name: "createRemixThemePersistence / computeFingerprint", desc: "Persistence, plus the fingerprint shared from `@themvora/core`." },
         ],
       },
       {
         label: "Client",
         features: [
-          { name: "ThemeProvider", desc: "Hydrates against the loader-resolved initial state; full hook set + ThemeScope." },
+          { name: "ThemeProvider", desc: "Mounted by Document against the loader-resolved state; full hook set + ThemeScope." },
           { name: "Intentional React dependency", desc: "Depends on @themvora/core + @themvora/react directly." },
         ],
       },
@@ -650,26 +646,64 @@ const { theme, mode, setMode, toggleTheme } = useTheme();
       title: "app/root.tsx",
       lang: "tsx",
       code: `// app/root.tsx
-import { useLoaderData } from "@remix-run/react";
-import { ThemeProvider } from "@themvora/remix";
-import { getInitialThemeState } from "@themvora/remix/server";
+import type { LinksFunction } from "@remix-run/node";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+} from "@remix-run/react";
 import { getBuiltInThemes } from "@themvora/core";
+import { createThemeDocument } from "@themvora/remix";
+import styles from "./styles.css?url";
 
-// getInitialThemeState takes the registry as a required option; the built-in
-// set is a valid registry, so no theme file is needed.
-const themes = getBuiltInThemes();
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: styles },
+];
 
-export async function loader({ request }) {
-  return { initial: await getInitialThemeState(request, { themes }) };
+// One static configuration: the loader, the blocking head script, the <html>
+// shell and the runtime all read it, so they cannot disagree.
+const theming = createThemeDocument({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  mode: "system",
+});
+
+export async function loader({ request }: { request: Request }) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const { theme } = useLoaderData<typeof loader>();
+
+  return (
+    <theming.Document
+      initial={theme}
+      htmlProps={{ lang: "en" }}
+      head={[<Meta key="meta" />, <Links key="links" />]}
+      afterContent={<><ScrollRestoration /><Scripts /></>}
+    >
+      {children}
+    </theming.Document>
+  );
 }
 
 export default function App() {
-  const { initial } = useLoaderData<typeof loader>();
-  return (
-    <ThemeProvider initial={initial}>
-      <Outlet />
-    </ThemeProvider>
-  );
+  return <Outlet />;
+}`,
+    },
+    snippet2: {
+      title: "app/styles.css",
+      lang: "css",
+      code: `/* The app's own global stylesheet. The root route imports it for its URL and
+   links it in \`links\`, so it applies to the server-rendered document. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--theme-color-background);
+  color: var(--theme-color-foreground);
 }`,
     },
   },

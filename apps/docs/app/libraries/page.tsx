@@ -35,10 +35,17 @@ export default function LibrariesPage() {
 
       <Callout className="mb-10">
         <span className="block">
-          Every snippet is real — it is executed against the actual{" "}
-          <code className="mono text-[0.9em]">@themvora/*</code> packages, and
-          reference copies ship alongside each package in{" "}
-          <code className="mono text-[0.9em]">packages/</code>.
+          Every guide installs the library itself, configures its build, connects
+          Themvora, and renders that library&apos;s own components — no stand-in
+          markup. The imports name published entry points, and{" "}
+          <code className="mono text-[0.9em]">audit-library-docs.mjs</code> fails
+          the build when a snippet imports a subpath a package does not export,
+          calls an adapter hook with the wrong arguments, or shows React code
+          under a non-React framework. Each advertised library/framework
+          combination is also materialised into an isolated app, typechecked,
+          built and loaded in a browser by the{" "}
+          <code className="mono text-[0.9em]">scripts/docs/verify-library-*.mjs</code>{" "}
+          harnesses; those runs are the regression suite for these snippets.
         </span>
         <span className="block mt-2">
           New to the adapter system? Start with the{" "}
@@ -49,8 +56,8 @@ export default function LibrariesPage() {
             Adapters guide
           </Link>{" "}
           — strategies, plugins, the registry and how to use them in every
-          framework. Each library page below has an "Every Framework" tab to
-          jump straight to your stack.
+          framework. Each page below opens with a framework picker, and every
+          command, file path and snippet under it follows that choice.
         </span>
       </Callout>
 
@@ -66,7 +73,7 @@ export default function LibrariesPage() {
                 <Link
                   key={lib.slug}
                   href={`/libraries/${lib.slug}`}
-                  className="glass-card card-lift p-4 flex items-start gap-3 no-underline flex-col group"
+                  className="glass-card card-lift p-4 flex items-start gap-3 no-underline flex-col group min-w-0"
                 >
                   <span className="flex items-center gap-3 w-full">
                     <span

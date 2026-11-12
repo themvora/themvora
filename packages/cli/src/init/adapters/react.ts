@@ -25,6 +25,7 @@ import { renderShowcaseCss, renderShowcaseTailwind } from "./showcase-css.js";
 import { renderThemesModule } from "./themes-module.js";
 import { reactThemeSwitcher, reactThemvoraDefault } from "./showcase/react.js";
 import { planViteConfig, type ExtraVitePlugin } from "./vite-config.js";
+import { TAILWIND_VITE_DEV_DEPENDENCIES } from "./tailwind-deps.js";
 import {
   viteVerification,
   type FrameworkAdapter,
@@ -170,7 +171,7 @@ function integrate(context: IntegrationContext): IntegrationResult {
   files.push(
     planFile({
       path: PAGE,
-      contents: reactThemvoraDefault(c, PORT),
+      contents: reactThemvoraDefault(c, PORT, context.styling),
       existing: context.read(PAGE),
       generated: true,
       reason: "the Themvora showcase",
@@ -272,7 +273,7 @@ import "./index.css";
     ...(tailwind
       ? {
           packages: ["@themvora/tailwind"],
-          devPackages: ["tailwindcss", "@tailwindcss/vite"],
+          devDependencies: TAILWIND_VITE_DEV_DEPENDENCIES,
         }
       : {}),
   };

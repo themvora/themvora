@@ -1,16 +1,19 @@
 # Install the CLI
 
 ## Prerequisites
-- Node.js 22+
+
+- Node.js 18+ (the CLI's published `engines.node` is `>=18`)
 - npm, pnpm, yarn, or bun installed
 
-There are three practical ways to run `themvora`. Teams usually prefer the
-**project-local** approach so every human and pipeline runs the identical
-version; individuals often install globally.
+The CLI is a development tool. It reads and writes theme files, so it does not
+belong in an application's runtime dependencies. The repository itself requires
+Node.js 22.23.4 to build the monorepo; that contributor requirement is separate
+from what a consumer needs to run the published CLI. See
+[the Node.js support policy](/reference/compatibility#node-js-support-policy)
+for the full breakdown.
 
-## Requirements
-
-- **Node.js 22+** (any modern release). npm, pnpm, yarn, and bun all work.
+Teams usually prefer the **project-local** approach so every human and pipeline
+runs the identical version; individuals often install globally.
 
 ## 1. Install globally (any directory)
 
@@ -27,7 +30,7 @@ yarn global add @themvora/cli
 
 > Installing globally: each package manager spells it differently. npm uses
 > `npm install -g <pkg>`, pnpm uses `pnpm add --global <pkg>`, and yarn uses
-> `yarn global add <pkg>`. In a team, prefer [project-local](#3-add-it-to-one-project-best-for-teams)
+> `yarn global add <pkg>`. In a team, prefer [project-local](#3-add-it-to-one-project-recommended)
 > so the version is reviewed and reproducible.
 
 After a global install, `themvora` is on your shell's PATH and runs from any
@@ -50,18 +53,33 @@ npx --yes @themvora/cli generate --seed "#6366f1"
 
 npm, pnpm, yarn, and bun all resolve the same package name.
 
-## 3. Add it to one project (best for teams)
+## 3. Add it to one project (recommended)
 
-Lock the command into `package.json` so every teammate and every pipeline
-runs the identical version:
+Install the published package as a development dependency. The CLI version in
+this example (`1.3.1`) is the current published release; using a caret range
+keeps patch and minor updates reviewable through your lockfile.
+
+```bash
+# pnpm
+pnpm add -D @themvora/cli
+
+# npm
+npm install -D @themvora/cli
+
+# yarn
+yarn add -D @themvora/cli
+
+# bun
+bun add -d @themvora/cli
+```
 
 ```json
 {
   "scripts": {
     "theme:generate": "themvora generate --seed \"#6366f1\" --family indigo --output theme.json"
   },
-  "dependencies": {
-    "@themvora/cli": "workspace:*"
+  "devDependencies": {
+    "@themvora/cli": "^1.3.1"
   }
 }
 ```
@@ -73,7 +91,25 @@ npm run theme:generate
 A project-local dependency is deterministic: version bumps are reviewed in the
 same PR that changes the script, so machines and humans agree.
 
-## 4. Set up shell completion
+## 4. Monorepo contributors — pnpm workspace
+
+This form only works **inside this repository**, where the package exists in the
+pnpm workspace. It is not a public installation instruction and will fail in an
+external project:
+
+```json
+{
+  "devDependencies": {
+    "@themvora/cli": "workspace:*"
+  }
+}
+```
+
+If you are contributing to the Themvora monorepo, run `pnpm install` from the
+repository root and use the workspace scripts (`pnpm --filter @themvora/cli …`)
+rather than adding a `file:` or `workspace:` dependency to a consumer project.
+
+## 5. Set up shell completion
 
 Once `themvora` is on your PATH, you can enable shell completion. See [`themvora completion`](./completion) for the full setup.
 
@@ -84,6 +120,9 @@ If you already have a clone or a built copy, you can alias the built entry point
 ```bash
 alias themvora="node /path/to/themvora/packages/cli/dist/cli.cjs"
 ```
+
+This is a contributor shortcut, not the supported installation path for
+consumers.
 
 ## Verify the executable, not the workspace
 
@@ -100,11 +139,13 @@ That confirms the published package resolves your executable rather than a
 workspace shortcut.
 
 ## Next Steps
+
 - [Run your first theme workflow](./quickstart)
 - [Generate a theme from a seed color](./generate)
 - [CLI reference](./reference)
 
 ## Related
+
 - [Themvora Quick Start](../quickstart)
 - [Core Concepts](../../core-concepts)
 - [API Reference](../../api-reference)

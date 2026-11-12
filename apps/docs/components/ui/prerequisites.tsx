@@ -15,10 +15,10 @@ export type PrerequisitesProps = {
 export function Prerequisites({ items, className }: PrerequisitesProps) {
   return (
     <div
-      className={`rounded-xl border border-border bg-muted/20 overflow-hidden mb-10 ${className ?? ""}`.trim()}
+      className={`rounded-xl border border-border bg-card text-card-foreground overflow-hidden mb-10 ${className ?? ""}`.trim()}
     >
-      <div className="px-4 py-2 border-b border-border bg-muted/40">
-        <div className="text-xs font-semibold uppercase tracking-wider opacity-50">
+      <div className="px-4 py-2 border-b border-border bg-muted/30">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Prerequisites
         </div>
       </div>
@@ -28,8 +28,10 @@ export function Prerequisites({ items, className }: PrerequisitesProps) {
             key={idx}
             className="px-4 py-3 grid gap-1 sm:grid-cols-[140px_1fr] sm:gap-3"
           >
-            <div className="text-xs font-semibold opacity-70">{item.label}</div>
-            <div className="text-sm">
+            <div className="text-xs font-semibold text-muted-foreground">
+              {item.label}
+            </div>
+            <div className="text-sm text-card-foreground">
               {item.href ? (
                 <Link href={item.href} className="underline hover:no-underline">
                   {item.value}

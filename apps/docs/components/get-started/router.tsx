@@ -113,11 +113,11 @@ export function GetStartedRouter() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-base group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-base group-hover:text-[var(--docs-accent)] transition-colors">
                       {path.title}
                     </h3>
                     {path.recommended && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-[var(--docs-accent)]">
                         Recommended
                       </span>
                     )}
@@ -162,7 +162,7 @@ export function GetStartedRouter() {
                 aria-label={useCase.title}
               />
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm group-hover:text-primary transition-colors mb-0.5">
+                <h3 className="font-medium text-sm group-hover:text-[var(--docs-accent)] transition-colors mb-0.5">
                   {useCase.title}
                 </h3>
                 <p className="text-xs opacity-60">{useCase.description}</p>

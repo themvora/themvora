@@ -212,6 +212,47 @@ export function ThemeSwitcher() {
           ],
         },
         {
+          id: "next-provided-themes",
+          name: "useProvidedThemes()",
+          covers: ["useProvidedThemes()"],
+          what: "The families the server provider was given, as a client component sees them. Each entry is a family, not a variant; the list follows the registry when a pack is installed.",
+          when: "A client-side family picker or settings page that must list what the app actually ships instead of hard-coding names.",
+          effect: "Pair it with `useThemeFamily()` for the current selection and `useSetThemeFamily()` to change it; the page repaints immediately and the cookie mirror carries the choice into the next request.",
+          related: ["next-client-entry", "next-persistence"],
+          code: [
+            {
+              title: "app/family-picker.tsx",
+              lang: "tsx",
+              code: `"use client";
+
+import {
+  useProvidedThemes,
+  useSetThemeFamily,
+  useThemeFamily,
+} from "@themvora/next/client";
+
+export function FamilyPicker() {
+  const families = useProvidedThemes();
+  const family = useThemeFamily();
+  const setFamily = useSetThemeFamily();
+
+  return (
+    <label>
+      Theme family
+      <select value={family} onChange={(event) => setFamily(event.target.value)}>
+        {families.map((entry) => (
+          <option key={entry.family} value={entry.family}>
+            {entry.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}`,
+            },
+          ],
+        },
+        {
           id: "next-client-provider",
           name: "ClientThemeProvider",
           covers: ["ClientThemeProvider"],
@@ -473,6 +514,55 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <ThemeProvider themes={themes} defaultTheme="mint-light">
       {children}
     </ThemeProvider>
+  );
+}`,
+        },
+      ],
+    },
+    {
+      id: "family-picker",
+      title: "Let the visitor pick a family",
+      problem:
+        "A settings page must list the theme families the app actually ships, mark the active one, and switch on selection — without hard-coding a list that goes stale when a pack is installed.",
+      apis: [
+        "useProvidedThemes()",
+        "useThemeFamily()",
+        "useSetThemeFamily()",
+        "@themvora/next/client",
+      ],
+      why: "`useProvidedThemes()` reads the registry the server provider mounted, so the list follows the app's real catalogue. `useThemeFamily()` and `useSetThemeFamily()` keep the read and the write separate.",
+      expect:
+        "A select whose options are the registered families, with the current one selected. Choosing another repaints immediately and the cookie mirror carries it into the next request.",
+      caveats:
+        "`useProvidedThemes()` returns families, not every variant. A family entry follows the page mode; pin a variant only when the surface must not follow the mode.",
+      code: [
+        {
+          title: "app/family-picker.tsx",
+          lang: "tsx",
+          code: `"use client";
+
+import {
+  useProvidedThemes,
+  useSetThemeFamily,
+  useThemeFamily,
+} from "@themvora/next/client";
+
+export function FamilyPicker() {
+  const families = useProvidedThemes();
+  const family = useThemeFamily();
+  const setFamily = useSetThemeFamily();
+
+  return (
+    <label>
+      Theme family
+      <select value={family} onChange={(event) => setFamily(event.target.value)}>
+        {families.map((entry) => (
+          <option key={entry.family} value={entry.family}>
+            {entry.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }`,
         },

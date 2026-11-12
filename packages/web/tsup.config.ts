@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: ["src/index.ts"],
+    entry: ["src/index.ts", "src/vite.ts"],
     format: ["esm", "cjs"],
     dts: false,
     clean: true,
@@ -25,6 +25,22 @@ export default defineConfig([
     // `clean` stays off: it would delete the ESM/CJS output built above.
     clean: false,
     sourcemap: false,
+    outDir: "dist",
+    outExtension: () => ({ js: ".js" }),
+  },
+  {
+    // Static classic boot asset for non-Vite pages. Core is inlined so the
+    // single file runs from a plain `<script src>` with no import map, and it
+    // is minified because it executes before the body on every cold load.
+    entry: { boot: "src/boot.ts" },
+    format: ["iife"],
+    platform: "browser",
+    target: "es2022",
+    noExternal: [/^@themvora\/core$/],
+    dts: false,
+    clean: false,
+    sourcemap: false,
+    minify: true,
     outDir: "dist",
     outExtension: () => ({ js: ".js" }),
   },

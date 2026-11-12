@@ -18,7 +18,7 @@ const distDir = join(pkgRoot, "dist");
 const manifest = JSON.parse(
   readFileSync(join(pkgRoot, "package.json"), "utf8"),
 ) as {
-  exports: Record<string, Record<string, string>>;
+  exports: Record<string, Record<string, string> | string>;
   files: string[];
 };
 
@@ -27,6 +27,11 @@ const hasBuild = existsSync(join(distDir, "index.js"));
 describe.skipIf(!hasBuild)("built package", () => {
   it("points every export at a file that exists", () => {
     for (const [subpath, conditions] of Object.entries(manifest.exports)) {
+      if (typeof conditions === "string") {
+        const file = join(pkgRoot, conditions);
+        expect(existsSync(file), `${subpath} (${conditions})`).toBe(true);
+        continue;
+      }
       for (const [condition, target] of Object.entries(conditions)) {
         const file = join(pkgRoot, target);
         expect(existsSync(file), `${subpath} → ${condition} (${target})`).toBe(true);
@@ -45,6 +50,16 @@ describe.skipIf(!hasBuild)("built package", () => {
     // It registers the elements and exposes the API.
     expect(cdn).toContain("customElements.define");
     expect(cdn).toContain("ThemvoraWeb");
+  });
+
+  it("ships the static boot asset with no bare imports", () => {
+    const boot = readFileSync(join(distDir, "boot.js"), "utf8");
+
+    expect(boot).not.toMatch(/require\(\s*["']@themvora\//);
+    expect(boot).not.toMatch(/from\s*["']@themvora\//);
+    expect(boot).not.toMatch(/import\(\s*["']@themvora\//);
+    expect(boot).toContain("__THEMVORA_BOOTSTRAP__");
+    expect(manifest.exports["./boot.js"]).toBe("./dist/boot.js");
   });
 
   it("declares `dist` in the published files", () => {

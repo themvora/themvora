@@ -67,8 +67,14 @@ export interface StudioUiState {
   readonly format: string;
   readonly fileName: string;
   readonly destination: SaveDestination;
-  /** The absolute path the native picker returned for this save, for display. */
-  readonly targetPath?: string | undefined;
+  /**
+   * The folder the native picker returned for this save.
+   *
+   * Held separately from the file name so renaming the file after picking a
+   * folder still writes into that folder — and so the form can show exactly
+   * where the write will land instead of a path it guessed.
+   */
+  readonly saveDirectory?: string | undefined;
   readonly fileText?: string | undefined;
   readonly patchPreview?: StudioPatchProposal | undefined;
   /** The preview scenario to render. */
@@ -105,7 +111,12 @@ export type StudioUiAction =
   | { readonly type: "set-format"; readonly format: string }
   | { readonly type: "set-file-name"; readonly fileName: string }
   | { readonly type: "set-destination"; readonly destination: SaveDestination }
-  | { readonly type: "set-target-path"; readonly path?: string | undefined }
+  | {
+      /** The picker answered: remember the folder and adopt the name it returned. */
+      readonly type: "set-save-location";
+      readonly directory: string;
+      readonly fileName: string;
+    }
   | { readonly type: "set-file-text"; readonly text?: string }
   | { readonly type: "revert-all-tokens" }
   | { readonly type: "open-patch-preview"; readonly patch: StudioPatchProposal }
@@ -194,25 +205,39 @@ export function studioUiReducer(state: StudioUiState, action: StudioUiAction): S
     case "set-with-code":
       return { ...state, withCode: action.withCode };
     case "open-save":
-      return { ...state, saving: true };
+      // A fresh dialog: a folder picked for a previous save must not silently
+      // become the destination of this one.
+      return { ...state, saving: true, fileText: undefined, saveDirectory: undefined };
     case "close-save":
-      return { ...state, saving: false, fileText: undefined, targetPath: undefined };
+      return { ...state, saving: false, fileText: undefined, saveDirectory: undefined };
     case "set-format":
       return {
         ...state,
         format: action.format,
         fileName: fileNameFor(action.format),
         fileText: undefined,
-        targetPath: undefined,
       };
     case "set-file-name":
-      return { ...state, fileName: action.fileName, fileText: undefined, targetPath: undefined };
+      // The folder survives a rename: the user is naming the file, not undoing
+      // the place they chose for it.
+      return { ...state, fileName: action.fileName, fileText: undefined };
     case "set-destination":
-      return { ...state, destination: action.destination, targetPath: undefined };
+      return {
+        ...state,
+        destination: action.destination,
+        fileText: undefined,
+        saveDirectory: undefined,
+      };
     case "set-file-text":
       return { ...state, fileText: action.text };
-    case "set-target-path":
-      return { ...state, targetPath: action.path };
+    case "set-save-location":
+      return {
+        ...state,
+        destination: "choose",
+        saveDirectory: action.directory,
+        fileName: action.fileName,
+        fileText: undefined,
+      };
     case "revert-all-tokens":
       return state;
     case "open-patch-preview":
@@ -231,7 +256,7 @@ export function studioUiReducer(state: StudioUiState, action: StudioUiAction): S
         previewRegion: undefined,
         comparisonMode: "none",
         saving: isDraft ? state.saving : false,
-        targetPath: undefined,
+        saveDirectory: undefined,
         patchPreview: undefined,
       };
     }

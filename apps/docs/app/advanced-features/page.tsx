@@ -16,7 +16,7 @@ export default function AdvancedFeaturesPage() {
   const content = getContent("advanced-features");
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

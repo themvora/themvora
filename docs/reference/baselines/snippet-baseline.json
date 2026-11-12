@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-10-31T22:32:44.545Z",
+  "capturedAt": "2026-11-12T15:21:02.605Z",
   "tool": "scripts/release/snippet-audit.mjs",
   "contract": "Audit A — docs → package (zero drift is the floor)",
-  "pages": 369,
-  "snippets": 1514,
-  "references": 829,
+  "pages": 389,
+  "snippets": 1585,
+  "references": 869,
   "failures": 0,
   "failing": [],
   "entries": [
@@ -130,6 +130,24 @@
     },
     {
       "page": "apps/docs/app/animation/snippets.ts",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/animation/snippets.ts",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/animation/snippets.ts",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/animation/snippets.ts",
       "import": "ThemeProvider from \"@themvora/react\"",
       "detail": "@themvora/react exports ThemeProvider",
       "ok": true
@@ -178,26 +196,14 @@
     },
     {
       "page": "apps/docs/app/animation/snippets.ts",
-      "import": "synchronizeDarkClass from \"@themvora/tailwind\"",
-      "detail": "@themvora/tailwind exports synchronizeDarkClass",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/animation/snippets.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
       "page": "apps/docs/app/animation/snippets.ts",
       "import": "createAnimationsPlugin from \"@themvora/core\"",
       "detail": "@themvora/core exports createAnimationsPlugin",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/animation/snippets.ts",
-      "import": "getBuiltInThemes from \"@themvora/core\"",
-      "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
     },
     {
@@ -228,6 +234,12 @@
       "page": "apps/docs/app/animation/snippets.ts",
       "import": "ThemeScope from \"@themvora/solid\"",
       "detail": "@themvora/solid exports ThemeScope",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/animation/snippets.ts",
+      "import": "ThemeScope from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeScope",
       "ok": true
     },
     {
@@ -418,6 +430,18 @@
     },
     {
       "page": "apps/docs/app/custom-themes/snippets.ts",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/custom-themes/snippets.ts",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/custom-themes/snippets.ts",
       "import": "ThemeProviderClient from \"@themvora/astro/client\"",
       "detail": "@themvora/astro./client exports ThemeProviderClient",
       "ok": true
@@ -444,12 +468,6 @@
       "page": "apps/docs/app/custom-themes/snippets.ts",
       "import": "useTheme from \"@themvora/nuxt\"",
       "detail": "@themvora/nuxt exports useTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/custom-themes/snippets.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
       "ok": true
     },
     {
@@ -555,30 +573,6 @@
       "ok": true
     },
     {
-      "page": "apps/docs/app/no-flash-ssr/page.tsx",
-      "import": "ThemeProvider from \"@themvora/react\"",
-      "detail": "@themvora/react exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/no-flash-ssr/page.tsx",
-      "import": "ThemeProvider from \"@themvora/vue\"",
-      "detail": "@themvora/vue exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/no-flash-ssr/page.tsx",
-      "import": "ThemeProvider from \"@themvora/svelte\"",
-      "detail": "@themvora/svelte exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/no-flash-ssr/page.tsx",
-      "import": "ThemeProvider from \"@themvora/solid\"",
-      "detail": "@themvora/solid exports ThemeProvider",
-      "ok": true
-    },
-    {
       "page": "apps/docs/app/persistence/page.tsx",
       "import": "createPersistencePlugin from \"@themvora/core\"",
       "detail": "@themvora/core exports createPersistencePlugin",
@@ -652,6 +646,24 @@
     },
     {
       "page": "apps/docs/app/scoped-theme/ScopedThemeGuide.tsx",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/scoped-theme/snippets.ts",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/scoped-theme/snippets.ts",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/scoped-theme/snippets.ts",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
@@ -754,12 +766,6 @@
     },
     {
       "page": "apps/docs/app/scoped-theme/snippets.ts",
-      "import": "getBuiltInThemes from \"@themvora/core\"",
-      "detail": "@themvora/core exports getBuiltInThemes",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/scoped-theme/snippets.ts",
       "import": "defineTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports defineTheme",
       "ok": true
@@ -774,6 +780,24 @@
       "page": "apps/docs/app/scoped-theme/snippets.ts",
       "import": "ThemeProviderClient from \"@themvora/astro/client\"",
       "detail": "@themvora/astro./client exports ThemeProviderClient",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/sunrise-sunset/snippets.ts",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/sunrise-sunset/snippets.ts",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/sunrise-sunset/snippets.ts",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
     },
     {
@@ -982,8 +1006,20 @@
     },
     {
       "page": "apps/docs/app/vanilla/page.tsx",
+      "import": "themvoraVitePlugin from \"@themvora/core/vite\"",
+      "detail": "@themvora/core./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/vanilla/page.tsx",
       "import": "defineTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports defineTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/vanilla/page.tsx",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
       "ok": true
     },
     {
@@ -994,50 +1030,20 @@
     },
     {
       "page": "apps/docs/app/vite-plugin/page.tsx",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/app/vite-plugin/page.tsx",
       "import": "themvoraVitePlugin from \"@themvora/core/vite\"",
       "detail": "@themvora/core./vite exports themvoraVitePlugin",
       "ok": true
     },
     {
       "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "themvora from \"@themvora/astro\"",
-      "detail": "@themvora/astro exports themvora",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
       "import": "defineTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports defineTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "ThemeProvider from \"@themvora/react\"",
-      "detail": "@themvora/react exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "useTheme from \"@themvora/react\"",
-      "detail": "@themvora/react exports useTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "ThemeProvider from \"@themvora/next\"",
-      "detail": "@themvora/next exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/app/vite-plugin/page.tsx",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
       "ok": true
     },
     {
@@ -1126,26 +1132,44 @@
     },
     {
       "page": "apps/docs/app/zero-flash/page.tsx",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
       "page": "apps/docs/app/zero-flash/page.tsx",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
       "ok": true
     },
     {
       "page": "apps/docs/app/zero-flash/page.tsx",
-      "import": "getThemeShellProps from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports getThemeShellProps",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
       "ok": true
     },
     {
       "page": "apps/docs/app/zero-flash/page.tsx",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
     },
     {
@@ -1234,12 +1258,6 @@
     },
     {
       "page": "apps/docs/components/custom-scrollbar/snippets.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
       "import": "ThemeScrollbar from \"@themvora/remix\"",
       "detail": "@themvora/remix exports ThemeScrollbar",
       "ok": true
@@ -1254,18 +1272,6 @@
       "page": "apps/docs/components/custom-scrollbar/snippets.ts",
       "import": "createThemeScrollbar from \"@themvora/core\"",
       "detail": "@themvora/core exports createThemeScrollbar",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/custom-scrollbar/snippets.ts",
-      "import": "getThemeShellProps from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports getThemeShellProps",
       "ok": true
     },
     {
@@ -1287,87 +1293,27 @@
       "ok": true
     },
     {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "ThemeProvider from \"@themvora/react\"",
-      "detail": "@themvora/react exports ThemeProvider",
+      "page": "apps/docs/components/home/architecture.tsx",
+      "import": "defineTheme from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineTheme",
       "ok": true
     },
     {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeSchedule from \"@themvora/react\"",
-      "detail": "@themvora/react exports useThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
+      "page": "apps/docs/components/home/architecture.tsx",
       "import": "ThemeProvider from \"@themvora/next\"",
       "detail": "@themvora/next exports ThemeProvider",
       "ok": true
     },
     {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeSchedule from \"@themvora/next/client\"",
-      "detail": "@themvora/next./client exports useThemeSchedule",
+      "page": "apps/docs/components/home/get-started.tsx",
+      "import": "createThemeRuntime from \"@themvora/core\"",
+      "detail": "@themvora/core exports createThemeRuntime",
       "ok": true
     },
     {
       "page": "apps/docs/components/playground/playground.tsx",
-      "import": "ThemeProvider from \"@themvora/vue\"",
-      "detail": "@themvora/vue exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeSchedule from \"@themvora/vue\"",
-      "detail": "@themvora/vue exports useThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "ThemeProvider from \"@themvora/svelte\"",
-      "detail": "@themvora/svelte exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeSchedule from \"@themvora/svelte\"",
-      "detail": "@themvora/svelte exports useThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "getThemeSchedule from \"@themvora/svelte\"",
-      "detail": "@themvora/svelte exports getThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "ThemeProvider from \"@themvora/solid\"",
-      "detail": "@themvora/solid exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeSchedule from \"@themvora/solid\"",
-      "detail": "@themvora/solid exports useThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "provideTheme from \"@themvora/angular\"",
-      "detail": "@themvora/angular exports provideTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "injectThemeSchedule from \"@themvora/angular\"",
-      "detail": "@themvora/angular exports injectThemeSchedule",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "getThemeSchedule from \"@themvora/web\"",
-      "detail": "@themvora/web exports getThemeSchedule",
+      "import": "ThemeProvider from \"@themvora/react\"",
+      "detail": "@themvora/react exports ThemeProvider",
       "ok": true
     },
     {
@@ -1378,8 +1324,20 @@
     },
     {
       "page": "apps/docs/components/playground/playground.tsx",
+      "import": "ThemeProvider from \"@themvora/next\"",
+      "detail": "@themvora/next exports ThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/playground/playground.tsx",
       "import": "ThemeScrollbar from \"@themvora/next\"",
       "detail": "@themvora/next exports ThemeScrollbar",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/playground/playground.tsx",
+      "import": "ThemeProvider from \"@themvora/vue\"",
+      "detail": "@themvora/vue exports ThemeProvider",
       "ok": true
     },
     {
@@ -1390,8 +1348,20 @@
     },
     {
       "page": "apps/docs/components/playground/playground.tsx",
+      "import": "ThemeProvider from \"@themvora/svelte\"",
+      "detail": "@themvora/svelte exports ThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/playground/playground.tsx",
       "import": "ThemeScrollbar from \"@themvora/svelte\"",
       "detail": "@themvora/svelte exports ThemeScrollbar",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/playground/playground.tsx",
+      "import": "ThemeProvider from \"@themvora/solid\"",
+      "detail": "@themvora/solid exports ThemeProvider",
       "ok": true
     },
     {
@@ -1402,20 +1372,14 @@
     },
     {
       "page": "apps/docs/components/playground/playground.tsx",
+      "import": "provideTheme from \"@themvora/angular\"",
+      "detail": "@themvora/angular exports provideTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/components/playground/playground.tsx",
       "import": "ThemeScrollbarDirective from \"@themvora/angular\"",
       "detail": "@themvora/angular exports ThemeScrollbarDirective",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeRuntime from \"@themvora/react\"",
-      "detail": "@themvora/react exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/playground/playground.tsx",
-      "import": "useThemeRuntime from \"@themvora/next/client\"",
-      "detail": "@themvora/next./client exports useThemeRuntime",
       "ok": true
     },
     {
@@ -1470,24 +1434,6 @@
       "page": "apps/docs/components/preset-snippets.ts",
       "import": "themvora from \"@themvora/astro\"",
       "detail": "@themvora/astro exports themvora",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/preset-snippets.ts",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/preset-snippets.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/components/preset-snippets.ts",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
       "ok": true
     },
     {
@@ -2050,6 +1996,12 @@
     },
     {
       "page": "apps/docs/content/api-reference/remix.md",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix.md",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
@@ -2068,6 +2020,42 @@
     },
     {
       "page": "apps/docs/content/api-reference/remix.md",
+      "import": "ThemeProvider from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
+      "import": "createRemixThemePersistence from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createRemixThemePersistence",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
+      "import": "ThemeHead from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeHead",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
+      "import": "getThemeShellProps from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports getThemeShellProps",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/api-reference/remix/react-router.md",
       "import": "ThemeProvider from \"@themvora/remix\"",
       "detail": "@themvora/remix exports ThemeProvider",
       "ok": true
@@ -2626,6 +2614,24 @@
     },
     {
       "page": "apps/docs/content/framework-guides.md",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
       "import": "useThemeRuntime from \"@themvora/web\"",
       "detail": "@themvora/web exports useThemeRuntime",
       "ok": true
@@ -2634,12 +2640,6 @@
       "page": "apps/docs/content/framework-guides.md",
       "import": "createThemeBootstrapScript from \"@themvora/core\"",
       "detail": "@themvora/core exports createThemeBootstrapScript",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/content/framework-guides.md",
-      "import": "getBuiltInThemes from \"@themvora/core\"",
-      "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
     },
     {
@@ -2658,12 +2658,6 @@
       "page": "apps/docs/content/framework-guides.md",
       "import": "defineTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports defineTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/content/framework-guides.md",
-      "import": "defineThemvoraConfig from \"@themvora/core\"",
-      "detail": "@themvora/core exports defineThemvoraConfig",
       "ok": true
     },
     {
@@ -2728,26 +2722,8 @@
     },
     {
       "page": "apps/docs/content/framework-guides.md",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/content/framework-guides.md",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/content/framework-guides.md",
-      "import": "getThemeShellProps from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports getThemeShellProps",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/content/framework-guides.md",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
@@ -2766,6 +2742,30 @@
       "page": "apps/docs/content/framework-guides.md",
       "import": "useThemeHistory from \"@themvora/remix\"",
       "detail": "@themvora/remix exports useThemeHistory",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "ThemeScrollbar from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeScrollbar",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "useProvidedThemes from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useProvidedThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/content/framework-guides.md",
+      "import": "useSetThemeFamily from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useSetThemeFamily",
       "ok": true
     },
     {
@@ -2991,6 +2991,12 @@
       "ok": true
     },
     {
+      "page": "apps/docs/lib/framework-examples/astro.ts",
+      "import": "defineTheme from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineTheme",
+      "ok": true
+    },
+    {
       "page": "apps/docs/lib/framework-examples/next.ts",
       "import": "ThemeProvider from \"@themvora/next\"",
       "detail": "@themvora/next exports ThemeProvider",
@@ -3012,6 +3018,24 @@
       "page": "apps/docs/lib/framework-examples/next.ts",
       "import": "useTheme from \"@themvora/next/client\"",
       "detail": "@themvora/next./client exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/next.ts",
+      "import": "useProvidedThemes from \"@themvora/next/client\"",
+      "detail": "@themvora/next./client exports useProvidedThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/next.ts",
+      "import": "useSetThemeFamily from \"@themvora/next/client\"",
+      "detail": "@themvora/next./client exports useSetThemeFamily",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/next.ts",
+      "import": "useThemeFamily from \"@themvora/next/client\"",
+      "detail": "@themvora/next./client exports useThemeFamily",
       "ok": true
     },
     {
@@ -3066,6 +3090,48 @@
       "page": "apps/docs/lib/framework-examples/nuxt.ts",
       "import": "useThemeRuntime from \"@themvora/vue\"",
       "detail": "@themvora/vue exports useThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "ThemeScrollbar from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeScrollbar",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "useTheme from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "createThemeRuntime from \"@themvora/core\"",
+      "detail": "@themvora/core exports createThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "createRemixThemePersistence from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createRemixThemePersistence",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/react-router.ts",
+      "import": "ThemeScope from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeScope",
       "ok": true
     },
     {
@@ -3286,14 +3352,14 @@
     },
     {
       "page": "apps/docs/lib/framework-examples/remix.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
       "page": "apps/docs/lib/framework-examples/remix.ts",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
       "ok": true
     },
     {
@@ -3304,14 +3370,20 @@
     },
     {
       "page": "apps/docs/lib/framework-examples/remix.ts",
+      "import": "ThemeHead from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeHead",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/remix.ts",
       "import": "getThemeShellProps from \"@themvora/remix\"",
       "detail": "@themvora/remix exports getThemeShellProps",
       "ok": true
     },
     {
       "page": "apps/docs/lib/framework-examples/remix.ts",
-      "import": "getBuiltInThemes from \"@themvora/core\"",
-      "detail": "@themvora/core exports getBuiltInThemes",
+      "import": "ThemeProvider from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeProvider",
       "ok": true
     },
     {
@@ -3652,14 +3724,20 @@
     },
     {
       "page": "apps/docs/lib/framework-examples/tailwind.ts",
-      "import": "synchronizeDarkClass from \"@themvora/tailwind\"",
-      "detail": "@themvora/tailwind exports synchronizeDarkClass",
+      "import": "createThemeRuntime from \"@themvora/core\"",
+      "detail": "@themvora/core exports createThemeRuntime",
       "ok": true
     },
     {
       "page": "apps/docs/lib/framework-examples/tailwind.ts",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/tailwind.ts",
+      "import": "synchronizeDarkClass from \"@themvora/tailwind\"",
+      "detail": "@themvora/tailwind exports synchronizeDarkClass",
       "ok": true
     },
     {
@@ -3808,20 +3886,8 @@
     },
     {
       "page": "apps/docs/lib/framework-examples/web.ts",
-      "import": "ThemvoraProvider from \"@themvora/web\"",
-      "detail": "@themvora/web exports ThemvoraProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/framework-examples/web.ts",
-      "import": "defineCustomElements from \"@themvora/web\"",
-      "detail": "@themvora/web exports defineCustomElements",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/framework-examples/web.ts",
-      "import": "themvoraVitePlugin from \"@themvora/core/vite\"",
-      "detail": "@themvora/core./vite exports themvoraVitePlugin",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
       "ok": true
     },
     {
@@ -3834,6 +3900,18 @@
       "page": "apps/docs/lib/framework-examples/web.ts",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/web.ts",
+      "import": "ThemvoraProvider from \"@themvora/web\"",
+      "detail": "@themvora/web exports ThemvoraProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/framework-examples/web.ts",
+      "import": "defineCustomElements from \"@themvora/web\"",
+      "detail": "@themvora/web exports defineCustomElements",
       "ok": true
     },
     {
@@ -4024,14 +4102,26 @@
     },
     {
       "page": "apps/docs/lib/frameworks.tsx",
-      "import": "createThemeBootstrapScript from \"@themvora/core\"",
-      "detail": "@themvora/core exports createThemeBootstrapScript",
+      "import": "themvoraVitePlugin from \"@themvora/web/vite\"",
+      "detail": "@themvora/web./vite exports themvoraVitePlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "defineThemvoraConfig from \"@themvora/core\"",
+      "detail": "@themvora/core exports defineThemvoraConfig",
       "ok": true
     },
     {
       "page": "apps/docs/lib/frameworks.tsx",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "createThemeBootstrapScript from \"@themvora/core\"",
+      "detail": "@themvora/core exports createThemeBootstrapScript",
       "ok": true
     },
     {
@@ -4050,12 +4140,6 @@
       "page": "apps/docs/lib/frameworks.tsx",
       "import": "defineTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports defineTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/frameworks.tsx",
-      "import": "defineThemvoraConfig from \"@themvora/core\"",
-      "detail": "@themvora/core exports defineThemvoraConfig",
       "ok": true
     },
     {
@@ -4126,26 +4210,8 @@
     },
     {
       "page": "apps/docs/lib/frameworks.tsx",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/frameworks.tsx",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/frameworks.tsx",
-      "import": "getThemeShellProps from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports getThemeShellProps",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/frameworks.tsx",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
@@ -4167,87 +4233,27 @@
       "ok": true
     },
     {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/react\"",
-      "detail": "@themvora/react exports useThemeRuntime",
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "ThemeScrollbar from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports ThemeScrollbar",
       "ok": true
     },
     {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/vue\"",
-      "detail": "@themvora/vue exports useThemeRuntime",
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "createThemeDocument from \"@themvora/remix/react-router\"",
+      "detail": "@themvora/remix./react-router exports createThemeDocument",
       "ok": true
     },
     {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "getThemeRuntime from \"@themvora/svelte\"",
-      "detail": "@themvora/svelte exports getThemeRuntime",
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "useProvidedThemes from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useProvidedThemes",
       "ok": true
     },
     {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/solid\"",
-      "detail": "@themvora/solid exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "injectThemeRuntime from \"@themvora/angular\"",
-      "detail": "@themvora/angular exports injectThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/next/client\"",
-      "detail": "@themvora/next./client exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/nuxt\"",
-      "detail": "@themvora/nuxt exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "ThemeProviderClient from \"@themvora/astro/client\"",
-      "detail": "@themvora/astro./client exports ThemeProviderClient",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useThemeRuntime from \"@themvora/astro/client\"",
-      "detail": "@themvora/astro./client exports useThemeRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "presetThemvora from \"@themvora/unocss\"",
-      "detail": "@themvora/unocss exports presetThemvora",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "ThemeProvider from \"@themvora/react\"",
-      "detail": "@themvora/react exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useShadcnTheme from \"@themvora/shadcn/react\"",
-      "detail": "@themvora/shadcn./react exports useShadcnTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useTheme from \"@themvora/react\"",
-      "detail": "@themvora/react exports useTheme",
+      "page": "apps/docs/lib/frameworks.tsx",
+      "import": "useSetThemeFamily from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useSetThemeFamily",
       "ok": true
     },
     {
@@ -4264,20 +4270,8 @@
     },
     {
       "page": "apps/docs/lib/libraries.tsx",
-      "import": "useBootstrapTheme from \"@themvora/bootstrap/react\"",
-      "detail": "@themvora/bootstrap./react exports useBootstrapTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
       "import": "createBootstrapVariables from \"@themvora/bootstrap\"",
       "detail": "@themvora/bootstrap exports createBootstrapVariables",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "useDaisyTheme from \"@themvora/daisyui/react\"",
-      "detail": "@themvora/daisyui./react exports useDaisyTheme",
       "ok": true
     },
     {
@@ -4288,20 +4282,8 @@
     },
     {
       "page": "apps/docs/lib/libraries.tsx",
-      "import": "useOpenPropsTheme from \"@themvora/open-props/react\"",
-      "detail": "@themvora/open-props./react exports useOpenPropsTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
       "import": "createOpenPropsVariables from \"@themvora/open-props\"",
       "detail": "@themvora/open-props exports createOpenPropsVariables",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "MuiThemeProvider from \"@themvora/mui\"",
-      "detail": "@themvora/mui exports MuiThemeProvider",
       "ok": true
     },
     {
@@ -4312,32 +4294,14 @@
     },
     {
       "page": "apps/docs/lib/libraries.tsx",
-      "import": "ChakraThemeProvider from \"@themvora/chakra\"",
-      "detail": "@themvora/chakra exports ChakraThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
       "import": "createChakraTheme from \"@themvora/chakra\"",
       "detail": "@themvora/chakra exports createChakraTheme",
       "ok": true
     },
     {
       "page": "apps/docs/lib/libraries.tsx",
-      "import": "AntdThemeProvider from \"@themvora/antd\"",
-      "detail": "@themvora/antd exports AntdThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
       "import": "createAntdTheme from \"@themvora/antd\"",
       "detail": "@themvora/antd exports createAntdTheme",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/libraries.tsx",
-      "import": "MantineThemeProvider from \"@themvora/mantine\"",
-      "detail": "@themvora/mantine exports MantineThemeProvider",
       "ok": true
     },
     {
@@ -4356,6 +4320,246 @@
       "page": "apps/docs/lib/libraries.tsx",
       "import": "resolveTheme from \"@themvora/core\"",
       "detail": "@themvora/core exports resolveTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createThemeRuntime from \"@themvora/core\"",
+      "detail": "@themvora/core exports createThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createShadcnAdapter from \"@themvora/shadcn\"",
+      "detail": "@themvora/shadcn exports createShadcnAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "getBuiltInThemes from \"@themvora/core\"",
+      "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createShadcnVariables from \"@themvora/shadcn\"",
+      "detail": "@themvora/shadcn exports createShadcnVariables",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useShadcnTheme from \"@themvora/shadcn/react\"",
+      "detail": "@themvora/shadcn./react exports useShadcnTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "injectShadcnCSS from \"@themvora/shadcn\"",
+      "detail": "@themvora/shadcn exports injectShadcnCSS",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createBootstrapAdapter from \"@themvora/bootstrap\"",
+      "detail": "@themvora/bootstrap exports createBootstrapAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createBootstrapVariables from \"@themvora/bootstrap\"",
+      "detail": "@themvora/bootstrap exports createBootstrapVariables",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useBootstrapTheme from \"@themvora/bootstrap/react\"",
+      "detail": "@themvora/bootstrap./react exports useBootstrapTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "injectBootstrapCSS from \"@themvora/bootstrap\"",
+      "detail": "@themvora/bootstrap exports injectBootstrapCSS",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createBootstrapPrePaintCss from \"@themvora/bootstrap/prepaint\"",
+      "detail": "@themvora/bootstrap./prepaint exports createBootstrapPrePaintCss",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createDaisyAdapter from \"@themvora/daisyui\"",
+      "detail": "@themvora/daisyui exports createDaisyAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createDaisyVariables from \"@themvora/daisyui\"",
+      "detail": "@themvora/daisyui exports createDaisyVariables",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useDaisyTheme from \"@themvora/daisyui/react\"",
+      "detail": "@themvora/daisyui./react exports useDaisyTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "injectDaisyCSS from \"@themvora/daisyui\"",
+      "detail": "@themvora/daisyui exports injectDaisyCSS",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createOpenPropsAdapter from \"@themvora/open-props\"",
+      "detail": "@themvora/open-props exports createOpenPropsAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createOpenPropsVariables from \"@themvora/open-props\"",
+      "detail": "@themvora/open-props exports createOpenPropsVariables",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useOpenPropsTheme from \"@themvora/open-props/react\"",
+      "detail": "@themvora/open-props./react exports useOpenPropsTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "injectOpenPropsCSS from \"@themvora/open-props\"",
+      "detail": "@themvora/open-props exports injectOpenPropsCSS",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "presetThemvora from \"@themvora/unocss\"",
+      "detail": "@themvora/unocss exports presetThemvora",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createUnoTheme from \"@themvora/unocss\"",
+      "detail": "@themvora/unocss exports createUnoTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "MuiThemeProvider from \"@themvora/mui\"",
+      "detail": "@themvora/mui exports MuiThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useThemeRuntime from \"@themvora/react\"",
+      "detail": "@themvora/react exports useThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useMuiTheme from \"@themvora/mui\"",
+      "detail": "@themvora/mui exports useMuiTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createMuiTheme from \"@themvora/mui\"",
+      "detail": "@themvora/mui exports createMuiTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createMuiAdapter from \"@themvora/mui\"",
+      "detail": "@themvora/mui exports createMuiAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "ChakraThemeProvider from \"@themvora/chakra\"",
+      "detail": "@themvora/chakra exports ChakraThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useChakraTheme from \"@themvora/chakra\"",
+      "detail": "@themvora/chakra exports useChakraTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createChakraTheme from \"@themvora/chakra\"",
+      "detail": "@themvora/chakra exports createChakraTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createChakraAdapter from \"@themvora/chakra\"",
+      "detail": "@themvora/chakra exports createChakraAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "AntdThemeProvider from \"@themvora/antd\"",
+      "detail": "@themvora/antd exports AntdThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useThemeRuntime from \"@themvora/next/client\"",
+      "detail": "@themvora/next./client exports useThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useAntdTheme from \"@themvora/antd\"",
+      "detail": "@themvora/antd exports useAntdTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createAntdTheme from \"@themvora/antd\"",
+      "detail": "@themvora/antd exports createAntdTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createAntdAdapter from \"@themvora/antd\"",
+      "detail": "@themvora/antd exports createAntdAdapter",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "MantineThemeProvider from \"@themvora/mantine\"",
+      "detail": "@themvora/mantine exports MantineThemeProvider",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "useMantineTheme from \"@themvora/mantine\"",
+      "detail": "@themvora/mantine exports useMantineTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createMantineTheme from \"@themvora/mantine\"",
+      "detail": "@themvora/mantine exports createMantineTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createMantineCssVariables from \"@themvora/mantine\"",
+      "detail": "@themvora/mantine exports createMantineCssVariables",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/library-api-examples.ts",
+      "import": "createMantinePrePaintCss from \"@themvora/mantine/prepaint\"",
+      "detail": "@themvora/mantine./prepaint exports createMantinePrePaintCss",
       "ok": true
     },
     {
@@ -4462,20 +4666,14 @@
     },
     {
       "page": "apps/docs/lib/packages.tsx",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/packages.tsx",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/packages.tsx",
       "import": "getBuiltInThemes from \"@themvora/core\"",
       "detail": "@themvora/core exports getBuiltInThemes",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/packages.tsx",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {
@@ -4488,6 +4686,72 @@
       "page": "apps/docs/lib/packages.tsx",
       "import": "createDevToolsPlugin from \"@themvora/devtools\"",
       "detail": "@themvora/devtools exports createDevToolsPlugin",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/react\"",
+      "detail": "@themvora/react exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/next/client\"",
+      "detail": "@themvora/next./client exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/vue\"",
+      "detail": "@themvora/vue exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/svelte\"",
+      "detail": "@themvora/svelte exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/solid\"",
+      "detail": "@themvora/solid exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "injectTheme from \"@themvora/angular\"",
+      "detail": "@themvora/angular exports injectTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useThemeRuntime from \"@themvora/web\"",
+      "detail": "@themvora/web exports useThemeRuntime",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "ThemeProviderClient from \"@themvora/astro/client\"",
+      "detail": "@themvora/astro./client exports ThemeProviderClient",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/astro/client\"",
+      "detail": "@themvora/astro./client exports useTheme",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "ThemeToggle from \"@themvora/astro/ThemeToggle.astro\"",
+      "detail": "@themvora/astro./ThemeToggle.astro declared entrypoint (no TypeScript surface)",
+      "ok": true
+    },
+    {
+      "page": "apps/docs/lib/quick-start-snippets.ts",
+      "import": "useTheme from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports useTheme",
       "ok": true
     },
     {
@@ -4882,18 +5146,6 @@
     },
     {
       "page": "apps/docs/lib/use-cases.ts",
-      "import": "synchronizeDarkClass from \"@themvora/tailwind\"",
-      "detail": "@themvora/tailwind exports synchronizeDarkClass",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/use-cases.ts",
-      "import": "getProviderRuntime from \"@themvora/web\"",
-      "detail": "@themvora/web exports getProviderRuntime",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/use-cases.ts",
       "import": "getInitialThemeState from \"@themvora/astro\"",
       "detail": "@themvora/astro exports getInitialThemeState",
       "ok": true
@@ -4948,20 +5200,8 @@
     },
     {
       "page": "apps/docs/lib/use-cases.ts",
-      "import": "ThemeProvider from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeProvider",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/use-cases.ts",
-      "import": "getInitialThemeState from \"@themvora/remix/server\"",
-      "detail": "@themvora/remix./server exports getInitialThemeState",
-      "ok": true
-    },
-    {
-      "page": "apps/docs/lib/use-cases.ts",
-      "import": "ThemeHead from \"@themvora/remix\"",
-      "detail": "@themvora/remix exports ThemeHead",
+      "import": "createThemeDocument from \"@themvora/remix\"",
+      "detail": "@themvora/remix exports createThemeDocument",
       "ok": true
     },
     {

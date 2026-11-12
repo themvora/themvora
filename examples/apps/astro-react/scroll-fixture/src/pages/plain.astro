@@ -1,0 +1,18 @@
+---
+// Control: plain Astro, no Themvora document. The router owns restoration.
+import { ClientRouter } from "astro:transitions";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>plain + router</title>
+    <ClientRouter />
+    <ScrollFixtureStyle />
+  </head>
+  <body>
+    <ScrollFixtureBody />
+  </body>
+</html>

@@ -75,11 +75,15 @@ export const PRE_PAINT_SCROLLBAR_CSS =
   "html.tv-scrollbar *::-webkit-scrollbar-thumb,html.tv-scrollbar *::-webkit-scrollbar-track,html.tv-scrollbar *::-webkit-scrollbar-corner{background:transparent}" +
   "[data-themvora-scrollbar=overlay]::-webkit-scrollbar{width:15px;height:15px;background:transparent}" +
   "[data-themvora-scrollbar=overlay]::-webkit-scrollbar-thumb,[data-themvora-scrollbar=overlay]::-webkit-scrollbar-track,[data-themvora-scrollbar=overlay]::-webkit-scrollbar-corner{background:transparent}" +
+  // Out of scope (`scope.exclude`): no overlay is drawn there, so the reserved
+  // gutter is dead space. The engine marks those containers; collapse it.
+  "html.tv-scrollbar [data-themvora-scrollbar=excluded]::-webkit-scrollbar{width:0;height:0}" +
   // Firefox and other non-WebKit engines: reserve the same way, invisibly.
   "@supports not selector(::-webkit-scrollbar){" +
   "html.tv-scrollbar *{scrollbar-width:thin;scrollbar-color:transparent transparent}" +
   "html.tv-scrollbar body{scrollbar-width:none}" +
   "[data-themvora-scrollbar=overlay]{scrollbar-width:thin;scrollbar-color:transparent transparent}" +
+  "html.tv-scrollbar [data-themvora-scrollbar=excluded]{scrollbar-width:none}" +
   "}";
 
 /** The hiding CSS, for SSR output (e.g. Next inlines it as a `<style>` in

@@ -31,7 +31,7 @@ const packageBadges: Record<string, { label: string; core?: boolean }> = {
 export default function ApiReferenceIndexPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="API Reference"
           title="Generated from source"
@@ -46,7 +46,7 @@ export default function ApiReferenceIndexPage() {
           }
         />
 
-      <div className="grid gap-4 sm:grid-cols-2 mb-12">
+      <div className="docs-card-grid-packages mb-12">
         {apiPackages.map((pkg) => {
           const badge = packageBadges[pkg.slug];
           return (

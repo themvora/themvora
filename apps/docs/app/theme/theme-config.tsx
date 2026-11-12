@@ -1,7 +1,6 @@
-import {
-  defineTheme,
-  getBuiltInThemes,
-} from "@themvora/core";
+import { defineTheme, getBuiltInThemes } from "@themvora/core";
+
+import { buildChromeAccentCss } from "../../lib/chrome-accent";
 
 interface scrollThumbProps {
   size?: number;
@@ -30,28 +29,28 @@ export const themvora = [
         popover: "#ffffff",
         popoverForeground: "#0d0f1f",
 
-        primary: "#5b54e8",
+        primary: "#5046e5",
         primaryForeground: "#ffffff",
 
         secondary: "#eef0fb",
         secondaryForeground: "#171a2e",
 
         muted: "#f2f3fb",
-        mutedForeground: "#5a6172",
+        mutedForeground: "#555c70",
 
         accent: "#e8e6ff",
-        accentForeground: "#4f46c9",
+        accentForeground: "#4338ca",
 
-        destructive: "#ef4444",
+        destructive: "#dc2626",
         destructiveForeground: "#ffffff",
 
-        success: "#16a34a",
+        success: "#15803d",
         successForeground: "#ffffff",
 
         border: "#e4e6f2",
-        input: "#e4e6f2",
+        input: "#8388ae",
 
-        ring: "#5b54e8",
+        ring: "#5046e5",
       },
       radius: {
         lg: "12px",
@@ -59,21 +58,21 @@ export const themvora = [
       code: {
         background: "#f6f7fc",
         foreground: "#0f172a",
-        comment: "#6b7280",
-        keyword: "#7c3aed",
-        string: "#07865c",
-        number: "#d97706",
-        function: "#2563eb",
+        comment: "#5f6778",
+        keyword: "#6d28d9",
+        string: "#047857",
+        number: "#b45309",
+        function: "#1d4ed8",
         variable: "#0f172a",
-        type: "#db2777",
-        property: "#0284c7",
-        operator: "#7c3aed",
+        type: "#be185d",
+        property: "#0369a1",
+        operator: "#6d28d9",
         punctuation: "#475569",
-        tag: "#be185d",
-        attribute: "#0284c7",
-        lineNumber: "#9ca3af",
-        selection: "rgba(91, 84, 232, 0.12)",
-        highlight: "rgba(91, 84, 232, 0.06)",
+        tag: "#be123c",
+        attribute: "#0369a1",
+        lineNumber: "#7a8194",
+        selection: "rgba(80, 70, 229, 0.16)",
+        highlight: "rgba(80, 70, 229, 0.07)",
         gutter: "#f6f7fc",
         border: "#e4e6f2",
       },
@@ -99,17 +98,17 @@ export const themvora = [
         popover: "#141627",
         popoverForeground: "#eceeff",
 
-        primary: "#7c6ff0",
+        primary: "#8b7ff5",
         primaryForeground: "#0b0d1a",
 
         secondary: "#1a1c2e",
         secondaryForeground: "#eceeff",
 
         muted: "#16182a",
-        mutedForeground: "#9094aa",
+        mutedForeground: "#9ea3ba",
 
         accent: "#22244a",
-        accentForeground: "#c9c5ff",
+        accentForeground: "#d4d0ff",
 
         destructive: "#f87171",
         destructiveForeground: "#0b0d1a",
@@ -118,9 +117,9 @@ export const themvora = [
         successForeground: "#0b0d1a",
 
         border: "#262938",
-        input: "#262938",
+        input: "#656b94",
 
-        ring: "#7c6ff0",
+        ring: "#8b7ff5",
       },
       radius: {
         lg: "12px",
@@ -128,21 +127,21 @@ export const themvora = [
       code: {
         background: "#111322",
         foreground: "#eceeff",
-        comment: "#7b8494",
-        keyword: "#a78bfa",
+        comment: "#8a93a6",
+        keyword: "#b4a0ff",
         string: "#34d399",
         number: "#fbbf24",
-        function: "#60a5fa",
+        function: "#6cb2ff",
         variable: "#eceeff",
-        type: "#f472b6",
+        type: "#f78fc0",
         property: "#7dd3fc",
-        operator: "#a78bfa",
-        punctuation: "#94a3b8",
-        tag: "#f472b6",
+        operator: "#b4a0ff",
+        punctuation: "#a0a9bd",
+        tag: "#f78fc0",
         attribute: "#7dd3fc",
-        lineNumber: "#596079",
-        selection: "rgba(124, 111, 240, 0.22)",
-        highlight: "rgba(124, 111, 240, 0.08)",
+        lineNumber: "#6b7390",
+        selection: "rgba(139, 127, 245, 0.28)",
+        highlight: "rgba(139, 127, 245, 0.10)",
         gutter: "#111322",
         border: "#262938",
       },
@@ -346,13 +345,22 @@ export const scrollThumbIcon = ({
   };
 };
 
+/**
+ * The scrollbar's brand tint.
+ *
+ * Mixed from `--docs-accent`, not `--theme-color-primary`. The overlay is a
+ * `position: fixed` node on `<body>`, so it inherits the page accent — and the
+ * accent is the role that has already been checked for visibility against the
+ * canvas. Mixing the raw `primary` here put a 1.42:1 aubergine thumb on the
+ * `slack-dark` canvas, which is the exact failure the engine's own
+ * `primary → accent → foreground` chain exists to avoid; supplying an explicit
+ * colour overrode that chain.
+ */
 export const themeScrollbarColor = {
-  thumbColor: "color-mix(in srgb, var(--theme-color-primary) 70%, transparent)",
-  trackColor: "color-mix(in srgb, var(--theme-color-primary) 30%, transparent)",
-  activeThumbColor:
-    "color-mix(in srgb, var(--theme-color-primary) 100%, transparent)",
-  thumbHoverColor:
-    "color-mix(in srgb, var(--theme-color-primary) 100%, transparent)",
+  thumbColor: "color-mix(in srgb, var(--docs-accent) 70%, transparent)",
+  trackColor: "color-mix(in srgb, var(--docs-accent) 30%, transparent)",
+  activeThumbColor: "var(--docs-accent)",
+  thumbHoverColor: "var(--docs-accent)",
 };
 
 /**
@@ -366,6 +374,19 @@ export const themes = [
   ...scopeThemes,
 ];
 
+/**
+ * The `--docs-accent` rules for every shipped theme whose `primary` is too dark
+ * (or too pale) to read as a mark against its own canvas.
+ *
+ * Rendered as a stylesheet in the root layout. `slack-dark` is the theme this
+ * exists for — its anchored aubergine is 1.42:1 on its canvas, which made the
+ * logo mark, the TOC rail, the active sidebar link, the code-block syntax roles
+ * and the scrollbar effectively invisible — but the rule is written against the
+ * measurement, not the theme, so any future preset that anchors a low-contrast
+ * fill is covered without a second edit. See `lib/chrome-accent.ts`.
+ */
+export const chromeAccentCss = buildChromeAccentCss(themes);
+
 const scrollThumbIcons = scrollThumbIcon({ size: 24 });
 
 /** ThemeScrollbar options **/
@@ -375,8 +396,16 @@ export const scrollbarConfig = {
    * Excluding the rail is the only place this can be done. The overlay is a
    * `position: fixed` node appended to `<body>` — not a pseudo-element of the
    * scrollport — so no amount of CSS on the rail itself can suppress it.
+   *
+   * Code panes are deliberately **not** excluded. Excluding them silenced the
+   * overlay and left nothing in its place — the pre-paint CSS keeps the native
+   * scrollbar invisible (it reserves a transparent 15px gutter so the overlay
+   * never reflows the page), so a code block that overflowed horizontally
+   * scrolled with no visible bar at all. The rails are wanted there; what was
+   * wrong was *when* they appeared, which is fixed in the engine (a nested rail
+   * now needs the pointer or its own scrolling, not merely being on screen).
    */
-  scope: { exclude: ["[data-toc-rail]"] },
+  scope: { exclude: ["[data-toc-rail]", "[data-doc-nav]"] },
   icons: {
     up: scrollThumbIcons.arrowUpIcon,
     down: scrollThumbIcons.arrowDownIcon,

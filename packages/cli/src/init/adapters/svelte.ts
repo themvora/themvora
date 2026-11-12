@@ -20,6 +20,7 @@ import { renderShowcaseCss, renderShowcaseTailwind } from "./showcase-css.js";
 import { renderThemesModule } from "./themes-module.js";
 import { svelteThemeSwitcher, svelteThemvoraDefault } from "./showcase/svelte.js";
 import { planViteConfig, type ExtraVitePlugin } from "./vite-config.js";
+import { TAILWIND_VITE_DEV_DEPENDENCIES } from "./tailwind-deps.js";
 import {
   viteVerification,
   type FrameworkAdapter,
@@ -105,7 +106,7 @@ function integrate(context: IntegrationContext): IntegrationResult {
   files.push(
     planFile({
       path: PAGE,
-      contents: svelteThemvoraDefault(c, PORT),
+      contents: svelteThemvoraDefault(c, PORT, context.styling),
       existing: context.read(PAGE),
       generated: true,
       reason: "the Themvora showcase",
@@ -197,7 +198,10 @@ function integrate(context: IntegrationContext): IntegrationResult {
     manualSteps,
     warnings: [],
     ...(tailwind
-      ? { packages: ["@themvora/tailwind"], devPackages: ["tailwindcss", "@tailwindcss/vite"] }
+      ? {
+          packages: ["@themvora/tailwind"],
+          devDependencies: TAILWIND_VITE_DEV_DEPENDENCIES,
+        }
       : {}),
   };
 }

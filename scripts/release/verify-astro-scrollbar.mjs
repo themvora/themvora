@@ -117,10 +117,24 @@ function findChrome() {
 }
 
 function findWs() {
+  // Resolve first, so the gate works under any install layout.
   try {
     return createRequire(import.meta.url).resolve("ws");
   } catch {
-    // fall through to the global WebSocket
+    // fall through to the pnpm store
+  }
+  // `ws` is not a direct dependency of the repo, so a plain `resolve` from this
+  // directory does not find it even though it is installed for something else.
+  // Without this scan the caller silently falls back to Node's global
+  // `WebSocket`, which is an EventTarget: `new WebSocket(url).on` is undefined,
+  // and the CDP client below — written against `ws` — dies with
+  // "ws.on is not a function" before the first assertion runs.
+  const pnpm = join(repoRoot, "node_modules", ".pnpm");
+  if (!existsSync(pnpm)) return null;
+  const dirs = readdirSync(pnpm).filter((d) => /^ws@\d+\.\d+\.\d+$/.test(d)).sort();
+  for (const d of dirs.reverse()) {
+    const p = join(pnpm, d, "node_modules", "ws", "package.json");
+    if (existsSync(p)) return join(pnpm, d, "node_modules", "ws");
   }
   return null;
 }
@@ -563,10 +577,15 @@ async function runApp(app, chromePath, WebSocket) {
 
   // --- 2. scrolling tracks -------------------------------------------------
   const thumbBefore = s.thumbTop;
-  const scrollA = await evaluate(scrollToFraction(0.3));
+  await evaluate(scrollToFraction(0.3));
   await settle(400);
   s = await evaluate(PROBE);
-  expectTrue("scroll: the document actually moved", scrollA > 0);
+  // Read the *settled* offset, not what the call returned. The example sets
+  // `scroll-behavior: smooth`, so `window.scrollTo()` starts an animation and
+  // `window.scrollY` is still 0 in the same script — the document has moved, it
+  // just has not arrived yet.
+  expectTrue("scroll: the document actually moved", s.scrollY > 0);
+  const settledA = s.scrollY;
   expectTrue("scroll: the thumb moved with it", s.thumbTop !== thumbBefore);
   const thumbAfterScroll = s.thumbTop;
 
@@ -587,10 +606,10 @@ async function runApp(app, chromePath, WebSocket) {
   expectTrue("theme change: the rail is still drawn", s.railHeight > 0);
   expectTrue("theme change: the rail re-coloured", s.thumbColor !== colorBefore);
   // Scrolling still works after the change.
-  const scrollB = await evaluate(scrollToFraction(0.9));
+  await evaluate(scrollToFraction(0.9));
   await settle(350);
   s = await evaluate(PROBE);
-  expectTrue("theme change: the page scrolled further", scrollB > scrollA);
+  expectTrue("theme change: the page scrolled further", s.scrollY > settledA);
   expectTrue("theme change: the thumb still tracks", s.thumbTop !== thumbAfterScroll);
 
   // --- 4. refresh restores ------------------------------------------------

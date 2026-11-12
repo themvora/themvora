@@ -2,7 +2,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { DOCS_ROUTES } from "./docs-routes";
-import { frameworks } from "./frameworks";
+import {
+  allFrameworks,
+  frameworkExamplesPath,
+  frameworkGuidePath,
+} from "./frameworks";
 import { libraries } from "./libraries";
 import { packages } from "./packages";
 import { PAGE_SECTIONS } from "./search-sections";
@@ -139,6 +143,42 @@ function normalize(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Framework names to their guide routes, longest first.
+ *
+ * `content/framework-guides.md` is a generated mirror of every framework guide,
+ * so its `## React` / `### Use Cases` headings describe the *React* guide, not
+ * the `/framework-guides` overview. Matching the heading text against the
+ * canonical framework names pins those sections to the page that actually
+ * renders them, instead of producing a dozen identical `/framework-guides`
+ * results. Longest-first keeps `React Router` from being read as `React`.
+ */
+const FRAMEWORK_HEADING_ROUTES = [...allFrameworks]
+  .map((framework) => ({
+    name: framework.name,
+    route: frameworkGuidePath(framework.slug),
+  }))
+  .sort((a, b) => b.name.length - a.name.length);
+
+function frameworkRouteForHeading(heading: string): string | undefined {
+  return FRAMEWORK_HEADING_ROUTES.find((framework) =>
+    heading.includes(framework.name),
+  )?.route;
+}
+
+/**
+ * Generated labels, not documentation sections.
+ *
+ * The framework mirror emits one heading per code slot (`### quickStart`,
+ * `### noTheme`, `### styles`, `#### snippet2`, …). Indexing them makes a code
+ * label look like a search result, so they are skipped by name.
+ */
+function isGeneratedSnippetHeading(heading: string): boolean {
+  return /^(?:snippet\d*|quickStart(?:Extra)?|buildConfig|themeConfig|noTheme|setupExtra|uiExample|styles|appFile|switchSnippet|reactSetup)$/i.test(
+    heading,
+  );
+}
+
 function walk(dir: string, base = ""): { file: string; rel: string }[] {
   const out: { file: string; rel: string }[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -179,8 +219,8 @@ export function buildSearchIndex(): SearchEntry[] {
   }
 
   // --- 2. Taglines for dynamic [slug] pages ----------------------------
-  for (const fw of frameworks) {
-    const route = `/framework-guides/${fw.slug}`;
+  for (const fw of allFrameworks) {
+    const route = frameworkGuidePath(fw.slug);
     if (index.has(route)) {
       add({ ...index.get(route)!, text: `${fw.tagline} Install ${fw.pkg}.` });
     }
@@ -188,7 +228,7 @@ export function buildSearchIndex(): SearchEntry[] {
     // bare "React Examples" label is a poor search result: someone typing
     // "useThemeBatch example" should find the page by its categories and by the
     // fact that it documents *every* export, so the text says so.
-    const examplesRoute = `/framework-guides/${fw.slug}/examples`;
+    const examplesRoute = frameworkExamplesPath(fw.slug);
     if (index.has(examplesRoute)) {
       add({
         ...index.get(examplesRoute)!,
@@ -245,9 +285,12 @@ export function buildSearchIndex(): SearchEntry[] {
   }
 
   // --- 5. Section-level entries from every markdown file ---------------
+  const seenSections = new Set<string>();
+
   for (const { file, rel } of walk(contentDir)) {
     const slug = rel.replace(/\.md$/, "").replace(/\\/g, "/");
     const route = ROUTES[slug] ?? `/${slug}`;
+    const isFrameworkMirror = slug === "framework-guides";
 
     const content = readFileSync(file, "utf8");
     const lines = content.split("\n");
@@ -257,31 +300,54 @@ export function buildSearchIndex(): SearchEntry[] {
       .pop()!
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
+    let sectionRoute = route;
+    let parentRoute: string | undefined;
     let buffer: string[] = [];
 
     const flush = () => {
       const text = normalize(buffer.join(" "));
+      const routeForSection = sectionRoute;
       // Keep every section as its own searchable entry. Skip only the
       // redundant file-intro fragment whose title duplicates the base
       // entry we already seeded from DOCS_ROUTES.
       const duplicateOfBase =
-        index.get(route)?.title.toLowerCase() === title.toLowerCase();
-      if (text && !duplicateOfBase) {
+        index.get(routeForSection)?.title.toLowerCase() === title.toLowerCase();
+      const generatedLabel = isGeneratedSnippetHeading(title);
+      const emptyFrameworkSection =
+        isFrameworkMirror && text.toLowerCase() === title.toLowerCase();
+      const key = `${routeForSection}\u0000${title}\u0000${text}`;
+
+      if (
+        text &&
+        !duplicateOfBase &&
+        !generatedLabel &&
+        !emptyFrameworkSection &&
+        !seenSections.has(key)
+      ) {
+        seenSections.add(key);
         sectionEntries.push({
           title,
-          route,
+          route: routeForSection,
           text,
-          type: classify(route),
+          type: classify(routeForSection),
         });
       }
       buffer = [];
     };
 
     for (const line of lines) {
-      const heading = /^#{2,4}\s+(.+)$/.exec(line);
+      const heading = /^(#{2,4})\s+(.+)$/.exec(line);
       if (heading) {
         flush();
-        title = normalize(heading[1]!.replace(/[`*_]/g, ""));
+        const level = heading[1]!.length;
+        const headingText = normalize(heading[2]!.replace(/[`*_]/g, ""));
+
+        if (isFrameworkMirror && level === 2) {
+          parentRoute = frameworkRouteForHeading(headingText);
+        }
+
+        sectionRoute = parentRoute ?? route;
+        title = headingText;
         buffer.push(title);
       } else {
         buffer.push(line);

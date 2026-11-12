@@ -180,7 +180,12 @@ export function ThemeHead<T extends ThemeDefinition>({
 
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: scriptContent }} />
+      {/* The runtime provider skips its SPA bootstrap when this id exists, so
+          the document keeps exactly one blocking script. */}
+      <script
+        id="themvora-bootstrap"
+        dangerouslySetInnerHTML={{ __html: scriptContent }}
+      />
       {scrollbar ? (
         <style
           data-themvora-pre-paint="scrollbar"

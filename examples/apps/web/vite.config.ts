@@ -1,60 +1,78 @@
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import { themvoraVitePlugin } from "@themvora/core/vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
 
 const require = createRequire(import.meta.url);
 
 /**
- * Copies `@themvora/web`'s standalone build into `public/`.
+ * Serve `@themvora/web`'s standalone bundle as a classic script.
  *
- * A `<script type="module">` is deferred by specification, so the module import
- * in `main.ts` cannot register the elements before the browser paints — the
- * page appeared with the controls missing and they popped in ~100 ms later.
- * The package ships an IIFE for exactly this case; loading it as a classic
- * `<script>` in `<head>` registers the elements and injects their stylesheet
- * while the parser is still working, so the controls are in the first frame.
+ * The package's module entry is deferred by specification, so the custom
+ * elements only upgrade after the body has been parsed. The toggle, selects and
+ * scoped region would then appear (and a scope could inherit the page palette)
+ * a module-load later. The classic bundle registers every element and injects
+ * their stylesheet while the parser is still in the head, so all of them are in
+ * the first painted frame.
  *
- * Copying at config time (dev and build) keeps the served file in step with the
- * workspace package instead of freezing a stale snapshot in `public/`.
+ * It is served from memory in dev and emitted as an asset in the build; no
+ * generated copy is committed. The tag is injected with `order: "post"` so it
+ * follows the plugin's CSS, configuration and blocking boot script.
  */
-function copyStandaloneComponents(): Plugin {
+function themvoraClassicElements(): Plugin {
+  const entry = require.resolve("@themvora/web");
+  const bundlePath = join(dirname(dirname(entry)), "dist", "cdn.js");
+  let base = "/";
+
   return {
-    name: "themvora-copy-standalone-components",
-    configResolved() {
-      const entry = require.resolve("@themvora/web");
-      const source = join(dirname(dirname(entry)), "dist", "cdn.js");
-      if (!existsSync(source)) {
-        throw new Error(
-          `@themvora/web has no dist/cdn.js (${source}). Build the package before starting the app.`,
-        );
-      }
-      const publicDir = join(process.cwd(), "public");
-      mkdirSync(publicDir, { recursive: true });
-      copyFileSync(source, join(publicDir, "themvora-web.js"));
+    name: "themvora-classic-elements",
+    configResolved(config) {
+      base = config.base;
+    },
+    configureServer(server) {
+      server.middlewares.use(
+        "/themvora-classic.js",
+        (_request: IncomingMessage, response: ServerResponse) => {
+          response.setHeader(
+            "content-type",
+            "text/javascript; charset=utf-8",
+          );
+          response.end(readFileSync(bundlePath));
+        },
+      );
+    },
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "themvora-classic.js",
+        source: readFileSync(bundlePath, "utf8"),
+      });
+    },
+    transformIndexHtml: {
+      order: "post",
+      handler() {
+        return [
+          {
+            tag: "script",
+            attrs: { src: `${base}themvora-classic.js` },
+            injectTo: "head",
+          },
+        ];
+      },
     },
   };
 }
 
 /**
- * The example is a plain Vite site: no framework plugin, no CSS framework.
+ * The whole build integration.
  *
- * `themvoraVitePlugin()` is the one integration point. It discovers
- * `theme.config.ts` and injects the blocking pre-paint script (plus the
- * pre-paint scrollbar CSS) into the served HTML, so the first painted frame
- * already carries the resolved theme — no flash, in light, dark or system mode,
- * with nothing to wire per page.
- *
- * `@themvora/web` ships its own element stylesheet, and the page styles itself
- * from the active theme's CSS variables, so there is nothing else to configure.
- *
- * `scrollbar: true` is not optional here. The page uses
- * `<themvora-scrollbar>`, and the overlay only hides the native bar once the
- * element upgrades — so without the pre-paint class the browser paints a native
- * scrollbar first and swaps it for the overlay a moment later. That is the same
- * flash as an unthemed first frame, one axis over.
+ * `themvoraVitePlugin()` discovers `theme.config.ts` and injects, in order: the
+ * render-blocking theme CSS, the configuration global, and the classic blocking
+ * boot script. `themvoraClassicElements()` adds the element registration that
+ * has to run before the body is parsed. Neither is a manual bootstrap script.
  */
 export default defineConfig({
-  plugins: [copyStandaloneComponents(), themvoraVitePlugin({ scrollbar: true })],
+  plugins: [themvoraVitePlugin(), themvoraClassicElements()],
 });

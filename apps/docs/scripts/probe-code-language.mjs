@@ -40,7 +40,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { chromium, CHROME, NODE, probePort, nextBin } from "./lib/probe-env.mjs";
+import { chromium, CHROME, NODE, probePort } from "./lib/probe-env.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = probePort(4412);
@@ -55,7 +55,9 @@ const PORT = probePort(4412);
  * layouts.
  */
 const nextBin = path.join(
-  path.dirname(createRequire(path.join(here, "package.json")).resolve("next/package.json")),
+  path.dirname(
+    createRequire(path.join(here, "..", "package.json")).resolve("next/package.json"),
+  ),
   "dist",
   "bin",
   "next",
@@ -117,9 +119,8 @@ const ROUTES = [
   { path: "/tokens/code", paired: 0, expectBadge: "TS / JS" },
   { path: "/packages/core", paired: 0 },
   { path: "/examples", paired: 0 },
-  { path: "/no-flash-ssr", paired: 0 },
   { path: "/zero-flash", paired: 0 },
-  { path: "/vite-plugin", paired: 1 },
+  { path: "/vite-plugin", paired: 0 },
   { path: "/theme-inspector", paired: 0 },
 ];
 

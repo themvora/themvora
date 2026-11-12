@@ -17,17 +17,20 @@ import { packages } from "../../../lib/packages";
 import { highlightCode } from "../../../lib/highlight";
 import { compatibilityBadge } from "../../../lib/code-variants";
 import { docsUrl, npmPackageUrl, sourceUrlForPackage } from "../../../lib/site";
-import { PKG_VERSION } from "../../../lib/version";
+import { PKG_VERSION, getPackageVersion } from "../../../lib/version";
+import {
+  contractForSlug,
+  coreRelationFor,
+  explicitInstallPackages,
+  formatInstallCommand,
+  isDevDependency,
+} from "../../../lib/package-contracts";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
 const MANAGERS: PackageManager[] = ["pnpm", "npm", "yarn", "bun"];
-
-function installCommand(pkg: string, manager: PackageManager): string {
-  return manager === "npm" ? `npm install ${pkg}` : `${manager} add ${pkg}`;
-}
 
 function anchor(label: string): string {
   return label
@@ -58,12 +61,19 @@ export default async function PackagePage({ params }: PageProps) {
   const pkg = packages.find((p) => p.slug === slug);
   if (!pkg) notFound();
 
+  const contract = contractForSlug(pkg.slug);
+  const installPackages = contract ? explicitInstallPackages(contract) : [pkg.pkg];
+  const dev = contract ? isDevDependency(contract) : false;
+
   const commands = Object.fromEntries(
     MANAGERS.map((manager) => [
       manager,
       {
-        code: installCommand(pkg.pkg, manager),
-        html: highlightCode(installCommand(pkg.pkg, manager), "bash"),
+        code: formatInstallCommand(installPackages, manager, { dev }),
+        html: highlightCode(
+          formatInstallCommand(installPackages, manager, { dev }),
+          "bash",
+        ),
       },
     ]),
   ) as Record<PackageManager, { code: string; html: string }>;
@@ -71,10 +81,16 @@ export default async function PackagePage({ params }: PageProps) {
   // Determine if this is a framework package
   const isFrameworkPackage = !["core", "cli", "devtools"].includes(pkg.slug);
   const isCorePackage = pkg.slug === "core";
+  const coreRelation = contract ? coreRelationFor(contract) : "none";
+  const coreIsDependency = coreRelation === "dependency";
+  const dependencies = contract?.dependencies ?? [];
+  const peers = contract?.peers ?? [];
+  const requiredPeers = peers.filter((peer) => !peer.optional);
+  const optionalPeers = peers.filter((peer) => peer.optional);
 
   return (
     <DocsLayout>
-      <article className="min-w-0 max-w-3xl">
+      <article className="min-w-0">
         <PageHeader
           icon={pkg.icon}
           title={pkg.name}
@@ -84,7 +100,7 @@ export default async function PackagePage({ params }: PageProps) {
             ...pkg.tags.map((tag) => ({ label: tag })),
             { label: `${pkg.featureCount} exports` },
           ]}
-          verified={{ version: PKG_VERSION, date: "2026-09-17" }}
+          verified={{ version: getPackageVersion(pkg.slug) ?? PKG_VERSION, date: "2026-11-04" }}
         />
 
         <Prerequisites
@@ -97,7 +113,9 @@ export default async function PackagePage({ params }: PageProps) {
               label: "Dependencies",
               value: isCorePackage
                 ? "None — this is the core package"
-                : "@themvora/core (peer dependency)",
+                : coreIsDependency
+                  ? "@themvora/core (declared as a normal dependency)"
+                  : "@themvora/core (installed with this package)",
             },
             {
               label: "Use Case",
@@ -135,17 +153,97 @@ export default async function PackagePage({ params }: PageProps) {
             </div>
           </div>
           <p className="text-sm opacity-70 mt-1 mb-3">
-            {pkg.pkg === "@themvora/core" ? (
+            {isCorePackage ? (
               "Install the framework-agnostic core directly."
+            ) : dev ? (
+              <>
+                Install the CLI as a development dependency. It reads and
+                writes the same theme files as every runtime package.
+              </>
+            ) : coreIsDependency ? (
+              <>
+                Install the integration and pin the core runtime explicitly.{" "}
+                <code className="mono text-[0.9em]">@themvora/core</code> is
+                also declared as a normal dependency of{" "}
+                <code className="mono text-[0.9em]">{pkg.pkg}</code>, so the two
+                always resolve to a compatible version.
+              </>
             ) : (
               <>
-                Install the integration —{" "}
-                <code className="mono text-[0.9em]">@themvora/core</code> is
-                pulled in automatically as a dependency.
+                Install the integration. Its required peers are listed in the
+                dependency table below.
               </>
             )}
           </p>
           <InstallCommand commands={commands} />
+
+          <div className="mt-5 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-xs">
+              <caption className="sr-only">
+                Dependency contract for {pkg.pkg}
+              </caption>
+              <thead className="bg-muted/40 border-b border-border">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Kind</th>
+                  <th className="px-3 py-2 text-left font-medium">Package</th>
+                  <th className="px-3 py-2 text-left font-medium">Version</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isCorePackage ? (
+                  <tr className="border-b border-border last:border-0">
+                    <td className="px-3 py-2">Runtime</td>
+                    <td className="px-3 py-2 mono">No dependencies or peers</td>
+                    <td className="px-3 py-2 mono text-muted-foreground">—</td>
+                  </tr>
+                ) : null}
+                {dependencies.map((dependency) => (
+                  <tr
+                    key={`dep-${dependency.name}`}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-3 py-2">Dependency</td>
+                    <td className="px-3 py-2 mono">{dependency.name}</td>
+                    <td className="px-3 py-2 mono text-muted-foreground">
+                      {dependency.range ?? "compatible workspace range"}
+                    </td>
+                  </tr>
+                ))}
+                {requiredPeers.map((peer) => (
+                  <tr
+                    key={`peer-${peer.name}`}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-3 py-2">Peer</td>
+                    <td className="px-3 py-2 mono">{peer.name}</td>
+                    <td className="px-3 py-2 mono text-muted-foreground">
+                      {peer.range}
+                    </td>
+                  </tr>
+                ))}
+                {optionalPeers.map((peer) => (
+                  <tr
+                    key={`optional-${peer.name}`}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-3 py-2">Optional peer</td>
+                    <td className="px-3 py-2 mono">{peer.name}</td>
+                    <td className="px-3 py-2 mono text-muted-foreground">
+                      {peer.range}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {contract?.engines?.node ? (
+            <p className="text-xs opacity-60 mt-2">
+              Declared Node.js engine:{" "}
+              <code className="mono">{contract.engines.node}</code>. Browser
+              runtime packages have no Node.js requirement of their own; this is
+              the engine declared by the published package.
+            </p>
+          ) : null}
         </section>
 
         <section id="quick-start" className="mt-10 scroll-mt-24">
@@ -214,7 +312,7 @@ export default async function PackagePage({ params }: PageProps) {
                   <h3 className="text-sm font-semibold uppercase tracking-widest opacity-50 mb-2">
                     {group.label}
                   </h3>
-                  <div className="overflow-hidden rounded-xl border border-border">
+                  <div className="overflow-x-auto rounded-xl border border-border">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/50">
@@ -268,13 +366,23 @@ export default async function PackagePage({ params }: PageProps) {
             {
               title: isCorePackage
                 ? "Framework Integration"
-                : "Quick Start Guide",
+                : isFrameworkPackage
+                  ? "Quick Start Guide"
+                  : pkg.slug === "cli"
+                    ? "CLI Guide"
+                    : "DevTools Guide",
               description: isCorePackage
                 ? "Choose your framework and get started"
-                : `Complete ${pkg.name} setup guide`,
+                : isFrameworkPackage
+                  ? `Complete ${pkg.name} setup guide`
+                  : `How ${pkg.name} fits into development and CI`,
               href: isCorePackage
                 ? "/get-started"
-                : `/framework-guides/${pkg.slug}`,
+                : isFrameworkPackage
+                  ? `/framework-guides/${pkg.slug}`
+                  : pkg.slug === "cli"
+                    ? "/cli"
+                    : "/devtools",
             },
             {
               title: "Explore Examples",

@@ -1,7 +1,7 @@
 # `themvora export`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Theme JSON file(s) to export
 - Project with @themvora/cli installed or npx access
 

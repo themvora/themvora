@@ -562,7 +562,7 @@
       "aliases": [],
       "title": "Create or Integrate a Project",
       "summary": "Integrate Themvora into a project, or create one",
-      "description": "Scaffolds a new project with the framework's official generator, or integrates into an existing one, then wires the provider, the project configuration and the zero-flash bootstrap. The generated app is verified by running the project's own build and typecheck.",
+      "description": "Scaffolds a new project with the framework's official generator, or integrates into an existing one, then wires the provider, the project configuration and the zero-flash bootstrap. The generated app is verified by running the project's own build and typecheck. Run `themvora init` with no directory in a terminal for a guided wizard: it asks for the project name, package manager, framework and styling, and asks only for what the command line did not already supply.",
       "usage": "themvora init [dir] [options]",
       "positionals": [
         {
@@ -598,13 +598,16 @@
         {
           "flag": "--styling",
           "value": "<engine>",
-          "description": "Styling engine for the generated app: `css` (plain semantic stylesheet) or `tailwind` (Tailwind v4 via @themvora/tailwind).",
+          "description": "Styling engine for the generated app: `css` (plain semantic stylesheet, no extra dependency) or `tailwind` (Tailwind v4 via @themvora/tailwind). Plain CSS is the default in both modes: the wizard asks this as \"Would you like to use Tailwind CSS with Themvora?\" and preselects `css`, and a run without a terminal resolves to the same value. Supplying the flag skips the question. In an existing project it only rewrites the stylesheets `init` generated — one you wrote yourself needs --force.",
           "default": "css"
         },
         {
-          "flag": "--package-manager",
+          "flag": "--tool",
           "value": "<name>",
-          "description": "Package manager to use. Defaults to detection from the lockfile.",
+          "aliases": [
+            "--package-manager"
+          ],
+          "description": "Package manager to drive the framework generator and install dependencies: `npm`, `pnpm`, `yarn` or `bun`. When omitted, detection decides: the corepack `packageManager` field, then the lockfile, then npm. The interactive wizard preselects the manager you invoked the CLI with. `--package-manager` is accepted as a compatibility alias.",
           "values": [
             "npm",
             "pnpm",
@@ -657,16 +660,25 @@
         {
           "code": 2,
           "meaning": "usage/argument error"
+        },
+        {
+          "code": 130,
+          "meaning": "the interactive wizard was cancelled (Ctrl+C); nothing was written"
         }
       ],
       "examples": [
-        "themvora init my-app --framework react",
+        "themvora init",
+        "themvora init my-app --tool pnpm --framework react",
+        "themvora init my-app --tool pnpm --framework react --styling tailwind",
+        "themvora init my-app --tool npm --framework next --styling css",
+        "themvora init my-app --tool npm --framework next",
+        "themvora init my-app --package-manager pnpm --framework react",
         "themvora init my-app --framework next --preset mint",
         "themvora init my-app --framework react --plan",
         "themvora init my-app --framework react --no-install"
       ],
       "json": true,
-      "interactive": false
+      "interactive": true
     },
     {
       "name": "add",

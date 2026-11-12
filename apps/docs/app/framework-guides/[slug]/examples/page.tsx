@@ -9,13 +9,17 @@ import { DocHeader } from "../../../../components/ui/doc-header";
 import { InlineCode } from "../../../../components/ui/inline-code";
 import { RelatedLinks } from "../../../../components/ui/related-links";
 import { SectionHeading } from "../../../../components/ui/section-heading";
-import { frameworks } from "../../../../lib/frameworks";
+import {
+  allFrameworks,
+  frameworkExamplesPath,
+  frameworkGuidePath,
+} from "../../../../lib/frameworks";
 import {
   examplesFor,
   type ExampleSnippet,
 } from "../../../../lib/framework-examples";
 import { buildPageHeadings } from "../../../../lib/toc";
-import { PKG_VERSION } from "../../../../lib/version";
+import { PKG_VERSION, getPackageVersion } from "../../../../lib/version";
 import { docsUrl } from "../../../../lib/site";
 
 type PageProps = {
@@ -40,8 +44,8 @@ type PageProps = {
  * not exist.
  */
 export function generateStaticParams() {
-  return frameworks
-    .filter((framework) => examplesFor(framework.slug) !== undefined)
+  return allFrameworks
+    .filter((framework) => !framework.nested && examplesFor(framework.slug) !== undefined)
     .map((framework) => ({ slug: framework.slug }));
 }
 
@@ -49,13 +53,13 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const framework = frameworks.find((f) => f.slug === slug);
+  const framework = allFrameworks.find((f) => f.slug === slug);
   if (!framework || !examplesFor(slug)) return { title: "Examples" };
   return {
     title: `${framework.name} examples`,
     description: `Runnable ${framework.name} examples for every export in ${framework.pkg} — what each API does, when to use it, and what changes on screen.`,
     alternates: {
-      canonical: docsUrl(`/framework-guides/${slug}/examples`),
+      canonical: docsUrl(frameworkExamplesPath(slug)),
     },
   };
 }
@@ -89,7 +93,7 @@ function CodeSamples({
 
 export default async function FrameworkExamplesPage({ params }: PageProps) {
   const { slug } = await params;
-  const framework = frameworks.find((f) => f.slug === slug);
+  const framework = allFrameworks.find((f) => f.slug === slug);
   const examples = examplesFor(slug);
   if (!framework || !examples) notFound();
 
@@ -149,7 +153,7 @@ export default async function FrameworkExamplesPage({ params }: PageProps) {
 
   return (
     <DocsLayout headings={headings}>
-      <article className="min-w-0 max-w-3xl">
+      <article className="min-w-0">
         <DocHeader
           eyebrow="Examples & use cases"
           title={`${framework.name} examples`}
@@ -157,14 +161,14 @@ export default async function FrameworkExamplesPage({ params }: PageProps) {
           metadata={{
             package: framework.pkg,
             framework: framework.name,
-            version: PKG_VERSION,
+            version: getPackageVersion(framework.slug) ?? PKG_VERSION,
             status: "stable",
           }}
         />
 
         <p className="text-sm leading-relaxed opacity-80">
           <Link
-            href={`/framework-guides/${framework.slug}`}
+            href={frameworkGuidePath(framework.slug)}
             className="text-foreground no-underline hover:underline"
           >
             ← Back to the {framework.name} guide
@@ -428,7 +432,7 @@ export default async function FrameworkExamplesPage({ params }: PageProps) {
             {
               title: `${framework.name} guide`,
               description: "Install, provider setup, and the first toggle",
-              href: `/framework-guides/${framework.slug}`,
+              href: frameworkGuidePath(framework.slug),
             },
             {
               title: "API Reference",

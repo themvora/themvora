@@ -101,10 +101,12 @@ export interface ThemeProviderClientProps<T extends ThemeDefinition> {
   initialFamily?: ThemeIdentifier<T>;
 
   /**
-   * Animate theme changes. `true` uses the defaults; pass
-   * `{ enabled, duration, easing }` to tune, or `false` to disable. The
-   * transition itself is applied by the DOM/CSS bindings, so it also needs
-   * `dom`/`cssVariables` to be left at their defaults (they are).
+   * Animate theme changes. Omit it to use the `transition` declared in
+   * `theme.config.ts` (the transported configuration); `true` uses the
+   * defaults, `{ enabled, duration, easing }` tunes it, and `false` disables
+   * it for this island. The transition itself is applied by the DOM/CSS
+   * bindings, so it also needs `dom`/`cssVariables` to be left at their
+   * defaults (they are).
    */
   transition?: boolean | ThemeTransitionOptions;
 
@@ -232,6 +234,13 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
   const resolvedInitialMode = initialMode ?? transported?.initialMode;
   const resolvedInitialFamily = initialFamily ?? transported?.initialFamily;
 
+  // The transition is part of the same transported projection. Reading only the
+  // explicit prop meant an island created its runtime with no configured
+  // transition even when `theme.config.ts` declared one — so an Astro + React
+  // page animated with the defaults (or not at all, if the config disabled it)
+  // while the native controls on the same page used the declared options.
+  const resolvedTransition = transition ?? transported?.transition;
+
   const persistence = useMemo(
     () =>
       createAstroThemePersistence(
@@ -268,7 +277,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
       // same values the runtime would pick on its own, so omitting them keeps
       // the previous behaviour — but without them there was no way to reach
       // scheduling, plugins, transitions or adapters from an Astro app at all.
-      ...(transition !== undefined ? { transition } : {}),
+      ...(resolvedTransition !== undefined ? { transition: resolvedTransition } : {}),
       ...(scheduled !== undefined ? { scheduled } : {}),
       ...(plugins !== undefined ? { plugins } : {}),
       ...(adapters !== undefined ? { adapters } : {}),
@@ -293,7 +302,8 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
 
   // Live configuration. The `entry` memo runs once (the runtime is created or
   // adopted exactly once); this forwards subsequent prop changes to it so a
-  // mounted island reacts without a reload. Only supplied props are forwarded.
+  // mounted island reacts without a reload. Only supplied props (and the
+  // transported transition) are forwarded.
   useEffect(() => {
     const update: Record<string, unknown> = {};
     if (resolvedThemes !== undefined) update.themes = resolvedThemes;
@@ -304,7 +314,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
     if (initial !== undefined) update.initial = initial;
     // The island owns the runtime (it passes `dom`/`cssVariables` through), so
     // the runtime reconciles its own bindings and schedule on these updates.
-    if (transition !== undefined) update.transition = transition;
+    if (resolvedTransition !== undefined) update.transition = resolvedTransition;
     if (scheduled !== undefined) update.scheduled = scheduled;
     runtime.configure(update);
   }, [
@@ -315,7 +325,7 @@ export function ThemeProviderClient<T extends ThemeDefinition>({
     resolvedInitialMode,
     resolvedInitialFamily,
     initial,
-    transition,
+    resolvedTransition,
     scheduled,
   ]);
 

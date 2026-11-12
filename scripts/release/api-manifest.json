@@ -1,6 +1,6 @@
 {
   "@themvora/angular": {
-    "version": "2.1.0",
+    "version": "2.1.1",
     "dts": "packages\\angular\\dist\\types\\themvora-angular.d.ts",
     "exports": {
       "values": [
@@ -48,7 +48,7 @@
     }
   },
   "@themvora/astro": {
-    "version": "2.1.0",
+    "version": "2.2.0",
     "dts": "packages\\astro\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -217,7 +217,7 @@
     }
   },
   "@themvora/cli": {
-    "version": "1.3.1",
+    "version": "2.0.0",
     "dts": "packages\\cli\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -256,7 +256,7 @@
     }
   },
   "@themvora/core": {
-    "version": "1.5.0",
+    "version": "1.6.0",
     "dts": "packages\\core\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -289,6 +289,7 @@
         "TRANSITION_PRESETS",
         "ThemeError",
         "ThemeRegistry",
+        "applyThemeBootstrap",
         "auditActionProminence",
         "auditSemanticContexts",
         "auto",
@@ -297,6 +298,7 @@
         "cancelThemeAnimation",
         "chooseForeground",
         "clearMigrations",
+        "colorName",
         "composeTheme",
         "computeFingerprint",
         "contextFailures",
@@ -336,6 +338,7 @@
         "createThemeLifecycle",
         "createThemeModeController",
         "createThemePersistence",
+        "createThemePrePaintCss",
         "createThemeReadoutScript",
         "createThemeRegistry",
         "createThemeRuntime",
@@ -451,6 +454,7 @@
         "AdapterStrategy",
         "AnimatedGroupKey",
         "AnimationsPluginOptions",
+        "ApplyThemeBootstrapOptions",
         "BrandColorClass",
         "BrandProvenance",
         "BrandReferenceColor",
@@ -561,6 +565,7 @@
         "SystemThemeBindingOptions",
         "ThemeAdapter",
         "ThemeAnimationInput",
+        "ThemeBootstrapApplied",
         "ThemeBootstrapConfig",
         "ThemeBootstrapScriptOptions",
         "ThemeBootstrapState",
@@ -614,6 +619,7 @@
         "ThemePersistenceOptions",
         "ThemePlugin",
         "ThemePluginHooks",
+        "ThemePrePaintCssOptions",
         "ThemeRegistry",
         "ThemeRegistryOptions",
         "ThemeRuntime",
@@ -654,6 +660,7 @@
       ],
       "internal": {
         "values": [
+          "DEFAULT_PREPAINT_STORAGE_KEY",
           "beginDescendantTransitionSuppression",
           "buildBootstrapPlan",
           "checkContrastPair",
@@ -695,6 +702,7 @@
       },
       "subpaths": [
         "./config",
+        "./prepaint.js",
         "./scrollbar.css",
         "./vanilla",
         "./vite"
@@ -757,8 +765,18 @@
           "ts": true,
           "values": [
             "THEMVORA_CONFIG_FILES",
+            "findThemvoraConfigPath",
             "loadThemvoraConfig"
           ],
+          "types": [],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        },
+        "./prepaint.js": {
+          "ts": false,
+          "values": [],
           "types": [],
           "internal": {
             "values": [],
@@ -793,7 +811,7 @@
     }
   },
   "@themvora/next": {
-    "version": "2.1.0",
+    "version": "2.2.0",
     "dts": "packages\\next\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -860,7 +878,7 @@
     }
   },
   "@themvora/nuxt": {
-    "version": "2.1.0",
+    "version": "2.1.1",
     "dts": "packages\\nuxt\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -898,6 +916,7 @@
         "ThemeScope",
         "ThemeScrollbar",
         "ThemeSymbol",
+        "applyThemeBootstrap",
         "auditActionProminence",
         "auditSemanticContexts",
         "auto",
@@ -906,6 +925,7 @@
         "cancelThemeAnimation",
         "chooseForeground",
         "clearMigrations",
+        "colorName",
         "composeTheme",
         "computeFingerprint",
         "contextFailures",
@@ -946,6 +966,7 @@
         "createThemeLifecycle",
         "createThemeModeController",
         "createThemePersistence",
+        "createThemePrePaintCss",
         "createThemeReadoutScript",
         "createThemeRegistry",
         "createThemeRuntime",
@@ -1081,6 +1102,7 @@
         "AdapterStrategy",
         "AnimatedGroupKey",
         "AnimationsPluginOptions",
+        "ApplyThemeBootstrapOptions",
         "BrandColorClass",
         "BrandProvenance",
         "BrandReferenceColor",
@@ -1194,6 +1216,7 @@
         "SystemThemeBindingOptions",
         "ThemeAdapter",
         "ThemeAnimationInput",
+        "ThemeBootstrapApplied",
         "ThemeBootstrapConfig",
         "ThemeBootstrapScriptOptions",
         "ThemeBootstrapState",
@@ -1248,6 +1271,7 @@
         "ThemePersistenceOptions",
         "ThemePlugin",
         "ThemePluginHooks",
+        "ThemePrePaintCssOptions",
         "ThemeProviderProps",
         "ThemeRegistry",
         "ThemeRegistryOptions",
@@ -1292,6 +1316,7 @@
       ],
       "internal": {
         "values": [
+          "DEFAULT_PREPAINT_STORAGE_KEY",
           "beginDescendantTransitionSuppression",
           "buildBootstrapPlan",
           "checkContrastPair",
@@ -1336,7 +1361,7 @@
     }
   },
   "@themvora/react": {
-    "version": "1.4.0",
+    "version": "1.4.1",
     "dts": "packages\\react\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1391,7 +1416,7 @@
     }
   },
   "@themvora/remix": {
-    "version": "2.1.0",
+    "version": "3.0.0",
     "dts": "packages\\remix\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1401,6 +1426,7 @@
         "ThemeScope",
         "ThemeScrollbar",
         "createRemixThemePersistence",
+        "createThemeDocument",
         "getThemeShellProps",
         "useGeneratedTheme",
         "useProvidedThemes",
@@ -1424,6 +1450,15 @@
       ],
       "types": [
         "RemixThemePersistenceOptions",
+        "ThemeDocumentBodyProps",
+        "ThemeDocumentConfig",
+        "ThemeDocumentHandle",
+        "ThemeDocumentHeadContent",
+        "ThemeDocumentHeadElement",
+        "ThemeDocumentHeadTag",
+        "ThemeDocumentHtmlProps",
+        "ThemeDocumentProps",
+        "ThemeDocumentProviderProps",
         "ThemeHeadProps",
         "ThemeInspectorProps",
         "ThemeProviderProps",
@@ -1436,6 +1471,7 @@
         "types": []
       },
       "subpaths": [
+        "./react-router",
         "./server"
       ],
       "entrypoints": {
@@ -1449,12 +1485,66 @@
             "values": [],
             "types": []
           }
+        },
+        "./react-router": {
+          "ts": true,
+          "values": [
+            "ThemeHead",
+            "ThemeInspector",
+            "ThemeProvider",
+            "ThemeScope",
+            "ThemeScrollbar",
+            "createRemixThemePersistence",
+            "createThemeDocument",
+            "getThemeShellProps",
+            "useGeneratedTheme",
+            "useProvidedThemes",
+            "useSetThemeFamily",
+            "useSetThemeMode",
+            "useTheme",
+            "useThemeBatch",
+            "useThemeFamily",
+            "useThemeHistory",
+            "useThemeLifecycle",
+            "useThemeMode",
+            "useThemePacks",
+            "useThemeRestore",
+            "useThemeRuntime",
+            "useThemeSchedule",
+            "useThemeSnapshot",
+            "useThemeTimeTravel",
+            "useThemeTokens",
+            "useThemeValue",
+            "useToggleTheme"
+          ],
+          "types": [
+            "RemixThemePersistenceOptions",
+            "ThemeDocumentBodyProps",
+            "ThemeDocumentConfig",
+            "ThemeDocumentHandle",
+            "ThemeDocumentHeadContent",
+            "ThemeDocumentHeadElement",
+            "ThemeDocumentHeadTag",
+            "ThemeDocumentHtmlProps",
+            "ThemeDocumentProps",
+            "ThemeDocumentProviderProps",
+            "ThemeHeadProps",
+            "ThemeInspectorProps",
+            "ThemeProviderProps",
+            "ThemeScrollbarProps",
+            "ThemeShellOptions",
+            "ThemeShellProps"
+          ],
+          "internal": {
+            "values": [],
+            "types": []
+          }
         }
       }
     }
   },
   "@themvora/solid": {
-    "version": "2.1.0",
+    "version": "2.1.1",
     "dts": "packages\\solid\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1495,7 +1585,7 @@
     }
   },
   "@themvora/svelte": {
-    "version": "2.1.0",
+    "version": "3.0.0",
     "dts": "packages\\svelte\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1541,7 +1631,7 @@
     }
   },
   "@themvora/tailwind": {
-    "version": "1.3.1",
+    "version": "1.4.0",
     "dts": "packages\\tailwind\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1593,7 +1683,7 @@
     }
   },
   "@themvora/vue": {
-    "version": "2.1.0",
+    "version": "2.1.1",
     "dts": "packages\\vue\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1637,7 +1727,7 @@
     }
   },
   "@themvora/web": {
-    "version": "1.5.0",
+    "version": "1.6.0",
     "dts": "packages\\web\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1684,12 +1774,41 @@
         "values": [],
         "types": []
       },
-      "subpaths": [],
-      "entrypoints": {}
+      "subpaths": [
+        "./boot.js",
+        "./vite"
+      ],
+      "entrypoints": {
+        "./vite": {
+          "ts": true,
+          "values": [
+            "themvoraVitePlugin"
+          ],
+          "types": [
+            "ThemvoraThemeConfig",
+            "ThemvoraViteInjectedTag",
+            "ThemvoraVitePlugin",
+            "ThemvoraVitePluginOptions"
+          ],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        },
+        "./boot.js": {
+          "ts": false,
+          "values": [],
+          "types": [],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        }
+      }
     }
   },
   "@themvora/antd": {
-    "version": "1.3.1",
+    "version": "1.4.0",
     "dts": "packages\\adapters\\antd\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1711,12 +1830,27 @@
         "values": [],
         "types": []
       },
-      "subpaths": [],
-      "entrypoints": {}
+      "subpaths": [
+        "./next"
+      ],
+      "entrypoints": {
+        "./next": {
+          "ts": true,
+          "values": [
+            "ANTD_SSR_STYLE_ID",
+            "AntdStyleRegistry"
+          ],
+          "types": [],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        }
+      }
     }
   },
   "@themvora/bootstrap": {
-    "version": "2.0.1",
+    "version": "2.1.0",
     "dts": "packages\\adapters\\bootstrap\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1736,6 +1870,7 @@
         "./angular",
         "./bootstrap.css",
         "./factory",
+        "./prepaint",
         "./react",
         "./solid",
         "./svelte",
@@ -1827,12 +1962,25 @@
             "values": [],
             "types": []
           }
+        },
+        "./prepaint": {
+          "ts": true,
+          "values": [
+            "createBootstrapPrePaintCss"
+          ],
+          "types": [
+            "BootstrapPrePaintOptions"
+          ],
+          "internal": {
+            "values": [],
+            "types": []
+          }
         }
       }
     }
   },
   "@themvora/chakra": {
-    "version": "1.3.1",
+    "version": "1.3.2",
     "dts": "packages\\adapters\\chakra\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1859,7 +2007,7 @@
     }
   },
   "@themvora/daisyui": {
-    "version": "2.0.1",
+    "version": "2.0.2",
     "dts": "packages\\adapters\\daisyui\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -1975,12 +2123,14 @@
     }
   },
   "@themvora/mantine": {
-    "version": "1.3.1",
+    "version": "1.4.0",
     "dts": "packages\\adapters\\mantine\\dist\\index.d.ts",
     "exports": {
       "values": [
         "MantineThemeProvider",
+        "createMantineCssVariables",
         "createMantineTheme",
+        "useMantineCssVariables",
         "useMantineTheme"
       ],
       "types": [
@@ -1990,12 +2140,28 @@
         "values": [],
         "types": []
       },
-      "subpaths": [],
-      "entrypoints": {}
+      "subpaths": [
+        "./prepaint"
+      ],
+      "entrypoints": {
+        "./prepaint": {
+          "ts": true,
+          "values": [
+            "createMantinePrePaintCss"
+          ],
+          "types": [
+            "MantinePrePaintOptions"
+          ],
+          "internal": {
+            "values": [],
+            "types": []
+          }
+        }
+      }
     }
   },
   "@themvora/mui": {
-    "version": "1.4.0",
+    "version": "1.4.1",
     "dts": "packages\\adapters\\mui\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -2023,7 +2189,7 @@
     }
   },
   "@themvora/open-props": {
-    "version": "2.0.1",
+    "version": "2.0.2",
     "dts": "packages\\adapters\\open-props\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -2139,7 +2305,7 @@
     }
   },
   "@themvora/shadcn": {
-    "version": "2.0.1",
+    "version": "2.0.2",
     "dts": "packages\\adapters\\shadcn\\dist\\index.d.ts",
     "exports": {
       "values": [
@@ -2304,7 +2470,7 @@
     }
   },
   "@themvora/unocss": {
-    "version": "1.3.1",
+    "version": "1.4.0",
     "dts": "packages\\adapters\\unocss\\dist\\index.d.ts",
     "exports": {
       "values": [

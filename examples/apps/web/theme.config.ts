@@ -1,51 +1,101 @@
 /**
- * The app's theme catalog, declared once for both consumers.
+ * The application's theme catalog, declared once.
  *
- * `themvoraVitePlugin()` discovers this file at build time and embeds it in the
- * blocking pre-paint script, so the first frame is already themed. The runtime
- * then adopts exactly what that script painted (`data-theme-ready`), which is
- * why the page never flashes — including on a cold load, in any mode.
+ * `themvoraVitePlugin()` reads this file and derives all three pre-paint
+ * resources from it:
  *
- * Keep this list in step with the `themes` attribute on `<themvora-provider>`
- * in `index.html`: the script and the runtime must resolve the same catalog, or
- * the runtime corrects what the script painted and the visitor sees a flash.
+ * - the render-blocking CSS (default light/dark, system fallback, one rule per
+ *   declared theme);
+ * - the classic boot script that restores the persisted selection;
+ * - `window.__THEMVORA_CONFIG__`, which the provider reads instead of taking
+ *   the same values again as attributes.
+ *
+ * The `<themvora-provider>` in `index.html` is deliberately attribute-free.
+ * Adding `default-theme` or `initial-mode` there would be a second declaration,
+ * and the plugin fails the build if the two resolve differently.
  */
 import {
+  defineTheme,
   defineThemvoraConfig,
-  getFallbackThemes,
+  generateTheme,
+  getBuiltInThemes,
   getPresetThemes,
   type ThemeDefinition,
 } from "@themvora/core";
 
-/** The names listed on the provider element. */
-const CATALOG = [
-  "light",
-  "dark",
-  "oat-light",
-  "oat-dark",
-  "citrus-light",
-  "citrus-dark",
-  "cocoa-light",
-  "cocoa-dark",
-  "plum-light",
-  "plum-dark",
-] as const;
+const builtIns = getBuiltInThemes();
 
-const available = [
-  ...getFallbackThemes<ThemeDefinition>(),
-  ...getPresetThemes(),
-];
+function builtIn(name: string): ThemeDefinition {
+  const theme = builtIns.find((candidate) => String(candidate.name) === name);
+  if (!theme) throw new Error(`The built-in theme "${name}" is missing.`);
+  return theme;
+}
 
-export const themes: readonly ThemeDefinition[] = CATALOG.flatMap((name) => {
-  const theme = available.find((candidate) => String(candidate.name) === name);
-  return theme ? [theme] : [];
+const mintLight = builtIn("mint-light");
+const mintDark = builtIn("mint-dark");
+
+/**
+ * A custom family declared in the plugin config, so it is part of the generated
+ * CSS and can be restored before first paint like any built-in theme.
+ *
+ * The tokens are copied from the shipped mint pair to keep this example short;
+ * a real custom theme would declare its own palette.
+ */
+const harborLight = defineTheme({
+  name: "harbor-light",
+  meta: { family: "harbor", mode: "light", label: "Harbor" },
+  tokens: {
+    ...mintLight.tokens,
+    colors: {
+      ...mintLight.tokens?.colors,
+      primary: "#0f766e",
+      primaryForeground: "#ffffff",
+      accent: "#ccfbf1",
+      accentForeground: "#134e4a",
+    },
+  },
 });
 
-export const defaultTheme = "oat-light";
-export const initialMode = "system";
+const harborDark = defineTheme({
+  name: "harbor-dark",
+  meta: { family: "harbor", mode: "dark", label: "Harbor Dark" },
+  tokens: {
+    ...mintDark.tokens,
+    colors: {
+      ...mintDark.tokens?.colors,
+      primary: "#2dd4bf",
+      primaryForeground: "#042f2e",
+      accent: "#134e4a",
+      accentForeground: "#ccfbf1",
+    },
+  },
+});
+
+export const { light: indigoLight, dark: indigoDark } = generateTheme({
+  seed: "#ef4444",
+  family: "maroon",
+  style: "editorial",
+});
+
+// Hand the pair straight to the provider:
+export const maroonThemes = [indigoLight, indigoDark];
+
+export const themes: readonly ThemeDefinition[] = [
+  builtIn("light"),
+  builtIn("dark"),
+  builtIn("mint-light"),
+  builtIn("mint-dark"),
+  builtIn("plum-light"),
+  builtIn("plum-dark"),
+  harborLight,
+  harborDark,
+  ...getPresetThemes(),
+  ...maroonThemes,
+];
 
 export default defineThemvoraConfig({
   themes,
-  defaultTheme,
-  initialMode,
+  defaultTheme: "harbor-light",
+  initialMode: "system",
+  transition: { enabled: true, duration: 200, easing: "ease-out" },
 });

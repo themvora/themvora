@@ -43,7 +43,7 @@ export function BrandPresetsView({
 
   return (
     <DocsLayout wide>
-      <div className="max-w-5xl">
+      <div>
         <PresetsHeader kind="brand" />
 
         <details className="group rounded-xl border border-border bg-card/40 mb-10">

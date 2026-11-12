@@ -1,7 +1,7 @@
 {
   "name": "@themvora/bootstrap",
   "license": "MIT",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -36,7 +36,11 @@
       "types": "./dist/angular.d.ts",
       "import": "./dist/angular.js"
     },
-    "./bootstrap.css": "./dist/bootstrap.css"
+    "./bootstrap.css": "./dist/bootstrap.css",
+    "./prepaint": {
+      "types": "./dist/prepaint.d.ts",
+      "import": "./dist/prepaint.js"
+    }
   },
   "files": [
     "dist",
@@ -81,13 +85,13 @@
     "@themvora/core": "workspace:^"
   },
   "devDependencies": {
-    "@angular/core": "^22.0.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "solid-js": "^1.8.0",
-    "svelte": "^5.0.0",
+    "@angular/core": "^22.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "solid-js": "^1.9.18",
+    "svelte": "^5.57.3",
     "vitest": "^4.0.0",
     "vue": "^3.4.0"
   },

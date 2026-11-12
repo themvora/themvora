@@ -22,6 +22,42 @@ function pairForeground(name: string): string {
 }
 
 /**
+ * Base rules the preset contributes.
+ *
+ * UnoCSS ships utilities, not a reset: without these, a bare `<input>` keeps the
+ * user agent's `2px inset` border and its `outline: auto` focus ring, which
+ * renders black on both themes and cannot be themed by any utility the preset
+ * generates. The rules below are element selectors, so every `border-*`,
+ * `bg-*`, `outline-*` or `ring-*` utility on the same element still wins — they
+ * only decide what a form control looks like when the author says nothing.
+ *
+ * The focus ring is recoloured, never removed: width and offset stay at the
+ * accessible defaults.
+ */
+const PREFLIGHTS = [
+  {
+    getCSS: () =>
+      [
+        ":root{",
+        "--un-ring-color:var(--theme-color-ring,var(--theme-color-primary));",
+        "}",
+        'input:not([type="checkbox"]):not([type="radio"]),select,textarea{',
+        "border:1px solid var(--theme-color-border);",
+        "background-color:var(--theme-color-card);",
+        "color:var(--theme-color-foreground);",
+        "border-radius:var(--theme-radius-md,0.5rem);",
+        "}",
+        'input::placeholder,textarea::placeholder{color:var(--theme-color-muted-foreground,var(--theme-color-mutedForeground));}',
+        'input:not([type="checkbox"]):not([type="radio"]):focus-visible,select:focus-visible,textarea:focus-visible,',
+        "a:focus-visible,button:focus-visible,[tabindex]:focus-visible{",
+        "outline:2px solid var(--theme-color-ring,var(--theme-color-primary));",
+        "outline-offset:2px;",
+        "}",
+      ].join(""),
+  },
+];
+
+/**
  * UnoCSS preset that exposes Themvora semantic tokens as utilities such as
  * `bg-primary`, `text-foreground`, `border-border`, `rounded-lg`, etc.
  * Values reference the live `--theme-*` variables, so they update at runtime.
@@ -31,6 +67,7 @@ function pairForeground(name: string): string {
 export function presetThemvora(): Preset {
   return definePreset({
     name: "@themvora/unocss",
+    preflights: PREFLIGHTS,
     theme: {
       colors: {
         background: pair("background"),

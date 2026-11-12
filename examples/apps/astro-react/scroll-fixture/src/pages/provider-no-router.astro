@@ -1,0 +1,13 @@
+---
+// Provider only, no client router. Native restoration stays in charge.
+import Provider from "@themvora/astro/provider.astro";
+import themeConfig from "../../../theme.config";
+import ScrollFixtureBody from "../components/ScrollFixtureBody.astro";
+import ScrollFixtureStyle from "../components/ScrollFixtureStyle.astro";
+---
+
+<Provider config={themeConfig} lang="en" bootstrap={false}>
+  <title slot="head">provider</title>
+  <ScrollFixtureStyle />
+  <ScrollFixtureBody />
+</Provider>

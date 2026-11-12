@@ -1,7 +1,7 @@
 # `themvora list`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 List the canonical registries the CLI works from: brand recipes, preset

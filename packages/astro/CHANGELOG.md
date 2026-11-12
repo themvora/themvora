@@ -1,5 +1,45 @@
 # @themvora/astro
 
+## 2.2.0
+
+### Minor Changes
+
+- Fix the first-frame scroll flash on Astro hard loads, and make the
+  serializable `transition` / `scrollbar` configuration usable.
+
+  `<ClientRouter />` sets `history.scrollRestoration = "manual"` and restores the
+  position it saved in `history.state` from its **deferred module**. On a slow
+  load — and in dev, where the module graph is larger — that module runs after the
+  document has painted, so a reload paints the top of the page and jumps to the
+  saved position afterwards. `provider.astro` now restores the same Astro-managed
+  position from an inline script at the end of `<body>`, before the router module
+  and before the first paint. It reads `history.state` (no `sessionStorage` key),
+  leaves native restoration and the router's ownership of client-side navigation
+  and back/forward untouched, and is a no-op without Astro-managed state, so
+  ordinary navigation is never handed another entry's position.
+
+  `ThemvoraConfig.transition` and `.scrollbar` were typed `unknown`, so
+  `theme.config.ts` offered no completions and no checking for them. They are now
+  `boolean | ThemeTransitionOptions` and `boolean | PrePaintScrollbarOptions`, and
+  the same fields exist on `ThemvoraThemeConfig`.
+
+  A configured `transition.duration` / `easing` now also applies to the native
+  View Transition crossfade; previously that path silently used the UA's fixed
+  default, so every configured duration looked identical.
+
+  `ThemeProviderClient` now adopts the transported `transition` too. It previously
+  read only its own prop, so an Astro + React page whose `theme.config.ts`
+  declared a transition created its island runtime without one (or with the
+  defaults) while native controls on the same page used the declaration. An
+  explicit prop still wins, so a per-island override keeps working.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+  - @themvora/web@1.6.0
+
 ## 2.1.0
 
 ### Minor Changes

@@ -11,7 +11,7 @@ import {
 } from "@themvora/core";
 import { Icon } from "@iconify/react";
 import { CopyButton } from "../ui/copy-button";
-import { highlightCode } from "../../lib/highlight";
+import { ClientPre } from "../ui/client-pre";
 import { DEFAULT_THEME, themes } from "../../app/theme/theme-config";
 
 // The site's own registry and defaults — the same ones app/layout.tsx hands
@@ -55,11 +55,6 @@ export function SsrDemo() {
   const [state, setState] = useState<
     ThemeBootstrapState<(typeof THEMES)[number]> | null
   >(null);
-  // Highlighting runs only in the browser: the server and client bundles
-  // tokenize this script differently, which read as a hydration mismatch on
-  // the dangerouslySetInnerHTML content. Plain text ships instead, and the
-  // highlighted markup replaces it on mount.
-  const [scriptHtml, setScriptHtml] = useState<string | null>(null);
 
   useEffect(() => {
     setState(readBootstrapState(THEMES));
@@ -84,10 +79,6 @@ export function SsrDemo() {
           key: "theme-selection",
         });
   }, [source]);
-
-  useEffect(() => {
-    setScriptHtml(highlightCode(script, "javascript"));
-  }, [script]);
 
   const themeLabel = state
     ? (state.theme.meta?.label ?? String(state.theme.name))
@@ -177,18 +168,11 @@ export function SsrDemo() {
               <CopyButton text={script} label="Copy script" className="code-block-copy" />
             </div>
           </div>
-          {scriptHtml === null ? (
-            <div className="max-h-72 overflow-auto sm:max-h-96">
-              <pre className="mono text-xs leading-relaxed whitespace-pre p-4">
-                {script}
-              </pre>
-            </div>
-          ) : (
-            <div
-              className="max-h-72 overflow-auto sm:max-h-96"
-              dangerouslySetInnerHTML={{ __html: scriptHtml }}
-            />
-          )}
+          <ClientPre
+            code={script}
+            lang="javascript"
+            className="max-h-72 overflow-auto sm:max-h-96"
+          />
         </div>
         <p className="mt-2 text-xs opacity-50 leading-relaxed">
           Switch the source to see the two persistence contracts: the cookie
@@ -228,10 +212,6 @@ export function SsrDemo() {
         Deep dive:{" "}
         <Link href="/zero-flash" className="text-foreground underline hover:decoration-foreground">
           Zero-flash guide
-        </Link>{" "}
-        ·{" "}
-        <Link href="/no-flash-ssr" className="text-foreground underline hover:decoration-foreground">
-          SSR &amp; hydration
         </Link>{" "}
         ·{" "}
         <Link href="/persistence" className="text-foreground underline hover:decoration-foreground">

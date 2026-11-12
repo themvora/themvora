@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["src/index.ts", "src/next.tsx"],
   format: ["esm"],
   sourcemap: true,
   clean: true,
@@ -13,5 +13,7 @@ export default defineConfig({
     "@themvora/core",
     "@themvora/adapters",
     "antd",
+    "next/navigation",
+    "@ant-design/cssinjs",
   ],
 });

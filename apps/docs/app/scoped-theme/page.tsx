@@ -40,10 +40,10 @@ const snippets = [
   transitionExamples,
   nestedScopeExamples,
 ].flatMap((examples) =>
-  Object.entries(examples).map(([framework, snippet]) => ({
-    ...snippet,
-    framework,
-  })),
+  Object.entries(examples).flatMap(([framework, snippet]) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]),
 );
 
 /**
@@ -66,7 +66,7 @@ const labels = compatibilityLabels(snippets);
 export default function ScopedThemePage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

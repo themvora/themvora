@@ -37,6 +37,29 @@ export type ScrollbarExample = {
   lang: string;
   code: string;
   filename?: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: ScrollbarExample;
+};
+
+const webViteScrollbarSnippet: ScrollbarExample = {
+  lang: "ts",
+  filename: "Using Vite — theme.config.ts",
+  code: `// vite.config.ts
+import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+export default defineConfig({
+  plugins: [themvoraVitePlugin({ scrollbar: true })],
+});
+
+// theme.config.ts
+import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+});`,
 };
 
 export const MOUNT_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
@@ -170,10 +193,9 @@ import "../styles.css"; // @import "@themvora/core/scrollbar.css";
     code: `<themvora-scrollbar auto-hide thickness="8" radius="999"></themvora-scrollbar>
 
 <script type="module">
-  // Registers every <themvora-*> element, including <themvora-scrollbar>, and
-  // injects their stylesheet.
   import "@themvora/web";
 </script>`,
+    vite: webViteScrollbarSnippet,
   },
   nuxt: {
     lang: "vue",
@@ -195,14 +217,15 @@ export default defineNuxtConfig({
   },
   remix: {
     lang: "tsx",
-    code: `import { ThemeProvider, ThemeScrollbar } from "@themvora/remix";
+    code: `// app/root.tsx — mount the overlay next to the route tree.
+import { ThemeScrollbar } from "@themvora/remix";
 
 export default function App() {
   return (
-    <ThemeProvider themes={themes} defaultTheme="light">
+    <>
       <ThemeScrollbar behavior={{ autoHide: true }} />
       <Outlet />
-    </ThemeProvider>
+    </>
   );
 }`,
   },
@@ -344,6 +367,7 @@ export const OPTIONS_SNIPPETS: Record<ScrollbarFramework, ScrollbarExample> = {
   hover-thickness="12"
   arrow-up-icon="data:image/svg+xml,..."
 ></themvora-scrollbar>`,
+    vite: webViteScrollbarSnippet,
   },
   nuxt: {
     lang: "vue",
@@ -429,28 +453,14 @@ export default defineNuxtConfig({
   },
   remix: {
     lang: "tsx",
-    code: `// Flash-free on Remix: \`scrollbar\` on <ThemeHead> emits the native-bar
-// hiding CSS in <head>, and getThemeShellProps(initial, { scrollbar: true })
-// renders the \`tv-scrollbar\` class and the theme attributes on <html>.
-// Remix owns the document, so the class has to come from your layout: the
-// pre-paint script cannot add it without causing a hydration mismatch.
-import type { ReactNode } from "react";
-import { ThemeHead, getThemeShellProps } from "@themvora/remix";
-
-export function Layout({ children }: { children: ReactNode }) {
-  const { initial } = useLoaderData<typeof loader>();
-
-  return (
-    <html lang="en" {...getThemeShellProps(initial, { scrollbar: true })}>
-      <head>
-        <Meta />
-        <Links />
-        <ThemeHead themes={themes} defaultTheme="light" scrollbar />
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}`,
+    code: `// Flash-free on Remix: \`scrollbar: true\` in the shared configuration makes
+// Document emit the native-bar hiding CSS in <head> and render the
+// \`tv-scrollbar\` class on <html>, from the same resolution as the provider.
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  scrollbar: true,
+});`,
   },
   vanilla: {
     lang: "ts",
@@ -570,6 +580,7 @@ import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
   arrow-up-icon="data:image/svg+xml,..."
   arrow-down-icon="data:image/svg+xml,..."
 ></themvora-scrollbar>`,
+    vite: webViteScrollbarSnippet,
   },
   nuxt: {
     lang: "vue",
@@ -704,6 +715,7 @@ export class AppComponent {}`,
 <div class="panel" style="overflow: auto; height: 400px">
   <long-content></long-content>
 </div>`,
+    vite: webViteScrollbarSnippet,
   },
   nuxt: {
     lang: "vue",

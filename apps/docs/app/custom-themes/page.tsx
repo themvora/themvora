@@ -39,6 +39,7 @@ const snippets = [
   ...Object.entries(customThemeSnippets).flatMap(([framework, snippet]) => [
     { ...snippet, framework },
     ...(snippet.extra ? [{ ...snippet.extra, framework }] : []),
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
   ]),
 ];
 
@@ -69,7 +70,7 @@ export const metadata: Metadata = {
 export default function CustomThemesPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

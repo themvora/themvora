@@ -8,6 +8,7 @@
  * @packageDocumentation
  */
 export {
+  findThemvoraConfigPath,
   loadThemvoraConfig,
   THEMVORA_CONFIG_FILES,
 } from "./config-loader";

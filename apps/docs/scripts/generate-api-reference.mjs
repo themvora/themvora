@@ -60,7 +60,13 @@ const PACKAGES = [
   { slug: "svelte", name: "@themvora/svelte", entries: [{ page: null, entry: "src/index.ts" }] },
   { slug: "solid", name: "@themvora/solid", entries: [{ page: null, entry: "src/index.tsx" }] },
   { slug: "angular", name: "@themvora/angular", entries: [{ page: null, entry: "src/public-api.ts" }] },
-  { slug: "web", name: "@themvora/web", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "web", name: "@themvora/web", entries: [
+    { page: null, entry: "src/index.ts" },
+    // The Vite integration is a separate entrypoint: `themvoraVitePlugin()`
+    // discovers `theme.config.ts` and emits the pre-paint resources, so it is
+    // the build-time half of the zero-flash contract rather than a runtime API.
+    { page: "vite", entry: "src/vite.ts" },
+  ] },
   { slug: "tailwind", name: "@themvora/tailwind", entries: [{ page: null, entry: "src/index.ts" }] },
   { slug: "astro", name: "@themvora/astro", entries: [
     { page: null, entry: "src/index.ts" },
@@ -73,6 +79,7 @@ const PACKAGES = [
   { slug: "remix", name: "@themvora/remix", entries: [
     { page: null, entry: "src/index.ts" },
     { page: "server", entry: "src/server/index.ts" },
+    { page: "react-router", entry: "src/react-router.ts" },
   ] },
   { slug: "cli", name: "@themvora/cli", entries: [{ page: null, entry: "src/index.ts" }] },
   { slug: "devtools", name: "@themvora/devtools", entries: [{ page: null, entry: "src/index.ts" }] },
@@ -82,8 +89,18 @@ const PACKAGES = [
   // directly under packages/.
   { slug: "mui", name: "@themvora/mui", dir: "adapters/mui", entries: [{ page: null, entry: "src/index.ts" }] },
   { slug: "chakra", name: "@themvora/chakra", dir: "adapters/chakra", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "antd", name: "@themvora/antd", dir: "adapters/antd", entries: [{ page: null, entry: "src/index.ts" }] },
-  { slug: "mantine", name: "@themvora/mantine", dir: "adapters/mantine", entries: [{ page: null, entry: "src/index.ts" }] },
+  { slug: "antd", name: "@themvora/antd", dir: "adapters/antd", entries: [
+    { page: null, entry: "src/index.ts" },
+    // The server-rendered cssinjs registry: Ant Design ships no stylesheet, so
+    // a Next.js App Router document needs this subpath to paint its first frame.
+    { page: "next", entry: "src/next.tsx" },
+  ] },
+  { slug: "mantine", name: "@themvora/mantine", dir: "adapters/mantine", entries: [
+    { page: null, entry: "src/index.ts" },
+    // The pre-paint stylesheet for `--mantine-color-*`, usable from a server
+    // component (no React, no `"use client"`).
+    { page: "prepaint", entry: "src/prepaint.ts" },
+  ] },
   { slug: "unocss", name: "@themvora/unocss", dir: "adapters/unocss", entries: [{ page: null, entry: "src/index.ts" }] },
   {
     slug: "adapters",
@@ -95,7 +112,12 @@ const PACKAGES = [
     ],
   },
   { slug: "shadcn", name: "@themvora/shadcn", dir: "adapters/shadcn", entries: frameworkAdapterEntries() },
-  { slug: "bootstrap", name: "@themvora/bootstrap", dir: "adapters/bootstrap", entries: frameworkAdapterEntries() },
+  { slug: "bootstrap", name: "@themvora/bootstrap", dir: "adapters/bootstrap", entries: [
+    ...frameworkAdapterEntries(),
+    // The pre-paint stylesheet for `--bs-*`: Bootstrap's own `:root` defaults
+    // are what the browser paints until the runtime writes them.
+    { page: "prepaint", entry: "src/prepaint.ts" },
+  ] },
   { slug: "daisyui", name: "@themvora/daisyui", dir: "adapters/daisyui", entries: frameworkAdapterEntries() },
   { slug: "open-props", name: "@themvora/open-props", dir: "adapters/open-props", entries: frameworkAdapterEntries() },
 ];

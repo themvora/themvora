@@ -241,7 +241,7 @@ export default function PackageMapPage() {
 
   return (
     <DocsLayout>
-      <div className="max-w-4xl">
+      <div>
         <PageHeader
           eyebrow="Reference"
           title="Package map"

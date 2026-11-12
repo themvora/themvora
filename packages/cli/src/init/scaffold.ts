@@ -11,6 +11,16 @@
  * the integration always re-reads the real files after scaffolding rather than
  * assuming what the generator wrote.
  *
+ * ## Installation is Themvora's job, not the generator's
+ *
+ * Every generator here can install dependencies itself, and every one of them
+ * asks the user first. For a Themvora starter that question is noise at best
+ * and a contradiction at worst: the CLI installs the framework packages anyway,
+ * so answering "No" still ends in an install, and answering "Yes" installs the
+ * tree twice. Each command below therefore suppresses the generator's own
+ * install step with that generator's documented flag, and `init` runs a single
+ * install after the integration has finished editing `package.json`.
+ *
  * @packageDocumentation
  */
 import type { CommandStep, PackageManager } from "./types.js";
@@ -44,23 +54,33 @@ function createInvocation(
  * Build the scaffold command for a framework.
  *
  * @param frameworkId - The `--framework` id.
- * @param projectName - The directory name to create.
+ * @param projectName - The directory name to create, or `.` to scaffold in place.
  * @param manager - The package manager to drive the generator with.
- * @param options - Generation options. `install: false` forwards the generator's
- *   own "do not install" flag, so `themvora init --no-install` installs nothing.
  * @returns The command, or `null` when the framework has no scaffold strategy.
  *
  * @remarks
  * Arguments are returned as an array and are never concatenated into a shell
- * string, so a project name can never be interpreted as shell syntax. Every
- * generator flag that would otherwise prompt is supplied explicitly, because
- * `init` must never block waiting for input in a non-interactive shell.
+ * string, so a project name can never be interpreted as shell syntax.
+ *
+ * Every flag that would otherwise prompt is supplied explicitly, and the
+ * generator's interactive mode is switched off outright, because `init` must
+ * never block waiting for input it is about to answer itself:
+ *
+ * - **create-vite** — `--no-interactive` is the documented switch (Vite's
+ *   guide). With it, the generator skips its framework/variant prompts *and*
+ *   its "Install with npm and start now?" question, and `--immediate` is what
+ *   would otherwise install and launch a dev server. It is never passed.
+ * - **create-next-app** — `--yes` answers its remaining preference prompts,
+ *   `--skip-install` suppresses its own install, and `--use-<manager>` pins the
+ *   manager it would otherwise infer from the invoking shell.
+ *
+ * The two generators do not accept identical flags, and the argument lists
+ * below reflect what each one actually documents.
  */
 export function scaffoldCommand(
   frameworkId: string,
   projectName: string,
   manager: PackageManager,
-  options: { install?: boolean } = {},
 ): CommandStep | null {
   const viteTemplate = VITE_TEMPLATE[frameworkId];
 
@@ -70,11 +90,7 @@ export function scaffoldCommand(
     const separator = manager === "npm" ? ["--"] : [];
     const command = manager === "bun" ? "bun" : manager;
     const createArgs =
-      manager === "npm"
-        ? ["create", "vite@latest"]
-        : manager === "bun"
-          ? ["create", "vite"]
-          : ["create", "vite@latest"];
+      manager === "bun" ? ["create", "vite"] : ["create", "vite@latest"];
 
     return {
       command,
@@ -84,6 +100,7 @@ export function scaffoldCommand(
         ...separator,
         "--template",
         viteTemplate,
+        "--no-interactive",
       ],
       description: `Scaffold a ${frameworkId} project with Vite's official generator`,
     };
@@ -102,13 +119,14 @@ export function scaffoldCommand(
         "--no-src-dir",
         "--no-tailwind",
         "--no-eslint",
-        "--no-turbopack",
         "--import-alias",
         "@/*",
-        "--use-npm",
-        // `--no-install` must install nothing at all — `create-next-app`
-        // installs its own dependencies by default, so it needs its own flag.
-        ...(options.install === false ? ["--skip-install"] : []),
+        // Pins the manager the generator would otherwise infer from the
+        // invoking shell — `bun create` is not how this command is launched.
+        `--use-${manager}`,
+        // `create-next-app` installs its own dependencies by default. Themvora
+        // installs once, after the integration has edited `package.json`.
+        "--skip-install",
         "--yes",
       ],
       description: "Scaffold a Next.js App Router project with create-next-app",

@@ -112,6 +112,8 @@ export interface ShowcaseClasses {
   tokenName: string;
   tokenValue: string;
   snippetGrid: string;
+  /** The same grid with a single card, so it fills the row. */
+  snippetGridSingle: string;
   snippet: string;
   snippetHead: string;
   snippetLabel: string;
@@ -186,6 +188,7 @@ const CSS: ShowcaseClasses = {
   tokenName: "token-name",
   tokenValue: "token-value",
   snippetGrid: "snippet-grid",
+  snippetGridSingle: "snippet-grid",
   snippet: "snippet",
   snippetHead: "snippet-head",
   snippetLabel: "snippet-label",
@@ -265,6 +268,7 @@ const TAILWIND: ShowcaseClasses = {
   tokenName: "block truncate text-sm font-medium",
   tokenValue: "block truncate font-mono text-xs text-muted-foreground",
   snippetGrid: "grid gap-3 md:grid-cols-2",
+  snippetGridSingle: "grid gap-3",
   snippet: "min-w-0 overflow-hidden rounded-lg border border-border bg-muted/40",
   snippetHead:
     "flex items-center justify-between gap-2 border-b border-border px-3 py-2",

@@ -14,6 +14,14 @@ export const ExitCodes = Object.freeze({
   Usage: 2,
   /** A theme failed validation (the `validate` command). */
   ValidationFailed: 3,
+  /**
+   * The user cancelled an interactive prompt (Ctrl+C).
+   *
+   * `128 + SIGINT`, the conventional shell value, so a wrapper script can tell
+   * "the user changed their mind" from "the command failed". Nothing is written
+   * before the prompt is answered, so a cancellation leaves no partial project.
+   */
+  Cancelled: 130,
 });
 
 /**

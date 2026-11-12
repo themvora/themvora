@@ -31,30 +31,44 @@ defineThemvoraConfig returns. Discovery goes through Vite's own
 `loadConfigFromFile`, so a TypeScript config resolves its imports exactly as
 `vite.config.ts` does.
 
-**What it injects.** Two things, both derived from that one configuration:
-the blocking bootstrap script (`head-prepend`, `enforce: "pre"`) and, when
-`scrollbar` is enabled, the pre-paint scrollbar CSS. The bootstrap payload is
-the ThemeBootstrapConfig projection of the config — the registry, the
-fallback theme, the initial mode/family, the storage key and the prefix. It is
-also published to the browser as `window.__THEMVORA_CONFIG__`, which is what
-lets the provider take no theme props.
+**What it injects.** Three things, all derived from that one configuration
+and emitted in this order (`head-prepend`, `enforce: "pre"`):
+
+1. a render-blocking `<style>` from createThemePrePaintCss — the
+   fallback theme, the `prefers-color-scheme` dark fallback when the mode is
+   `"system"`, and one rule per declared theme;
+2. `window.__THEMVORA_CONFIG__`, the serializable
+   ThemeBootstrapConfig projection the provider reads;
+3. the classic blocking bootstrap script that restores the persisted
+   selection.
+
+When `scrollbar` is enabled, the pre-paint scrollbar script follows. The
+stylesheet is what themes a page with JavaScript disabled; the script is what
+restores a saved non-default theme before the body is parsed.
+
+**Validation.** The provider in the transformed HTML is parsed and checked
+against the config: unknown theme names, a default theme outside the
+generated collection, an invalid `initial-mode`, and a provider that resolves
+a different initial theme all fail the build with an actionable message.
+Provider JSON theme definitions are added to the generated collection, so a
+runtime-only catalog the plugin can see is still painted.
 
 **Development.** `transformIndexHtml` runs on every dev page load, so the
-injected script is always current for the running process. The *discovered
+injected resources are always current for the running process. The *discovered
 config* is resolved once and memoized, so editing `theme.config.ts` needs a
 dev-server restart; editing `vite.config.ts` restarts Vite anyway, so the
 plugin's own options do not.
 
-**Production.** The script is injected into the generated HTML at build time
-and runs before the application bundle. It is not emitted as a separate chunk.
+**Production.** The resources are injected into the generated HTML at build
+time and run before the application bundle. They are not emitted as separate
+chunks.
 
-**Limitations.** The plugin does not inspect provider props — Vite runs in the
-build pipeline and props are runtime state, so the two sides share the
-project-level config instead. It does not serve SSR HTML: frameworks that
-render on the server (Next.js, Nuxt, Remix, Astro) have their own packages,
-which emit the same bootstrap from the server. If the config cannot be
-discovered, the plugin warns and falls back to the built-in themes rather than
-failing the build.
+**Limitations.** The plugin only validates a provider that is present in the
+document it transforms; a provider inserted later from framework state is
+runtime-only. It does not serve SSR HTML: frameworks that render on the
+server (Next.js, Nuxt, Remix, Astro) have their own packages, which emit the
+same bootstrap from the server. Themes registered imperatively with
+`runtime.use()` after load are not in the generated CSS.
 
 ```ts
 // Nothing to configure beyond registering the plugin.
@@ -82,8 +96,10 @@ passed straight to themvoraVitePlugin.
 | `initialFamily` (optional) | `string` | Family used when no persisted selection exists. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when no persisted selection exists. Defaults to the fallback theme's own mode — whatever `defaultTheme` resolves to, so a `defaultTheme="light"` app paints light from frame one. |
 | `prefix` (optional) | `string` | CSS custom property prefix. Defaults to `"theme-"`. |
+| `scrollbar` (optional) | `boolean \| PrePaintScrollbarOptions` | Pre-paint hiding of the native scrollbar for the overlay scrollbar. |
 | `storageKey` (optional) | `string` | localStorage key holding the persisted theme selection. Defaults to `"theme-selection"`. |
 | `themes` | `readonly T[]` | The theme definitions registered with the runtime. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Theme-change transition. `true` uses the defaults, `false` swaps synchronously, and an object configures the animation. |
 
 ---
 
@@ -125,7 +141,9 @@ lives, plus the concerns that only exist at build time.
 
 | Member | Type | Description |
 | ------ | ---- | ----------- |
+| `boot` (optional) | `boolean` | Emit the blocking pre-paint boot script. Defaults to `true`. |
 | `config` (optional) | `string \| ThemvoraThemeConfig<T>` | The application's theme configuration, when discovery is not enough. |
+| `css` (optional) | `boolean` | Emit the render-blocking theme stylesheet generated from the declared theme collection. Defaults to `true`. |
 | `defaultTheme` (optional) | `T["name"]` | Theme name to fall back to when no persisted selection exists. |
 | `initialFamily` (optional) | `string` | Family the pre-paint script uses when no persisted selection exists. |
 | `initialMode` (optional) | `ThemeMode` | Mode the pre-paint script uses when no persisted selection exists. |

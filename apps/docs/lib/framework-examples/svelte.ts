@@ -544,7 +544,7 @@ export function applyForPrint() {
   import { ThemeScope } from "@themvora/svelte";
 </script>
 
-<ThemeScope theme="cocoa-dark" class="rounded-lg p-6">
+<ThemeScope theme="cocoa-dark">
   <h3>Always cocoa</h3>
   <p>This panel keeps its own theme while the page changes.</p>
 </ThemeScope>`,
@@ -639,12 +639,12 @@ export function applyForPrint() {
   const { setFamily } = useTheme();
 </script>
 
-<div class="grid grid-cols-2 gap-4">
+<div>
   {#each $families as entry}
     <button onclick={() => setFamily(entry.name)}>
-      <ThemeScope family={entry.name} class="p-4 rounded-lg">
+      <ThemeScope family={entry.name}>
         <strong>{entry.name}</strong>
-        <p class="muted">The quick brown fox</p>
+        <p>The quick brown fox</p>
       </ThemeScope>
     </button>
   {/each}

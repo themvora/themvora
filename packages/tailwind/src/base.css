@@ -1,0 +1,32 @@
+/*
+ * Base layer.
+ *
+ * Tailwind v4 changed the default border colour from `gray-200` to
+ * `currentColor`. shadcn/ui's generated components rely on the older contract:
+ * a Card is written as `class="… border …"` with no `border-*` colour utility,
+ * so on v4 every one of those borders paints in the text colour — a near-black
+ * outline on a light theme.
+ *
+ * The upstream setup restores it with `@layer base { * { @apply border-border } }`
+ * in the application's stylesheet. Doing it here means an application that
+ * imports `@themvora/tailwind` gets the same behaviour without repeating the
+ * snippet, and `border-border` itself still wins wherever it is applied
+ * explicitly, because utilities layer above base.
+ *
+ * **`@layer base` is load-bearing.** An unlayered rule outranks every layered
+ * one regardless of specificity. Written outside the layer, this declaration
+ * beat `@layer utilities` and made every `border-<color>` utility a no-op:
+ * `border-primary`, `border-accent`, `border-destructive` and even stock
+ * `border-red-500` all painted the neutral border.
+ *
+ * The colour is a `var(--color-*)` reference, not a literal, so it follows the
+ * active theme instead of pinning one.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--color-border);
+  }
+}

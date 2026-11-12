@@ -195,7 +195,7 @@ const instantVariables = createCSSVariablesBinding(runtime.store, {
 export default function DOMAdaptersPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="DOM Adapters"
           title="Bridging runtime and browser"

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { highlightCode } from "../../lib/highlight";
 import { pairWithJavaScript } from "../../lib/code-language";
 import { CodeBlock } from "../../components/code-block";
 import { SectionHeading } from "../../components/ui/section-heading";
@@ -20,7 +19,13 @@ import {
   transitionExamples,
 } from "./snippets";
 
-type Snippet = { lang: string; title: string; code: string };
+type Snippet = {
+  lang: string;
+  title: string;
+  code: string;
+  /** Web only — the same setup through the Vite plugin. */
+  vite?: { lang: string; title: string; code: string };
+};
 
 function snippetBlock(
   snippet: Snippet,
@@ -31,23 +36,47 @@ function snippetBlock(
   // on the server — and is highlighted here with the Shiki instance this guide
   // already runs. `pairWithJavaScript` leaves `html` empty; filling it is the
   // only thing the client has to do.
+  // The JavaScript source arrives from the page — the TypeScript compiler lives
+  // on the server. `pairWithJavaScript` leaves `html` empty so `CodeBlock`
+  // highlights the selected variant on demand instead of shipping Shiki in the
+  // route's initial bundle.
   const js = jsSources?.[snippet.code];
   const variants = js
     ? pairWithJavaScript(snippet, js)?.map((variant) => ({
         ...variant,
-        html: highlightCode(variant.code, variant.lang),
       }))
     : undefined;
 
-  return (
+  const main = (
     <CodeBlock
-      html={highlightCode(snippet.code, snippet.lang)}
       code={snippet.code}
       language={snippet.lang}
+      filename={snippet.title}
       {...(labels?.[snippet.code] ? { displayLanguage: labels[snippet.code] } : {})}
       {...(variants ? { variants } : {})}
       className="rounded-lg m-0"
     />
+  );
+  if (!snippet.vite) return main;
+
+  const vite = snippet.vite;
+  const viteJs = jsSources?.[vite.code];
+  const viteVariants = viteJs
+    ? pairWithJavaScript(vite, viteJs)?.map((variant) => ({ ...variant }))
+    : undefined;
+
+  return (
+    <>
+      {main}
+      <CodeBlock
+        code={vite.code}
+        language={vite.lang}
+        filename={vite.title}
+        {...(labels?.[vite.code] ? { displayLanguage: labels[vite.code] } : {})}
+        {...(viteVariants ? { variants: viteVariants } : {})}
+        className="rounded-lg m-0 mt-3"
+      />
+    </>
   );
 }
 
@@ -220,13 +249,6 @@ binding.destroy();`,
             <code className="mono text-[0.9em]">--radius-*</code> aliases, so
             utilities like <code className="mono text-[0.9em]">bg-card</code>{" "}
             pick up the scoped palette.
-          </li>
-          <li>
-            Dark scoped themes add a{" "}
-            <code className="mono text-[0.9em]">dark</code> class to the scope
-            element, keeping Themvora&apos;s "
-            <code className="mono text-[0.9em]">@custom-variant dark</code>"
-            Tailwind trick working inside the island.
           </li>
           <li>
             Scopes nest arbitrarily — an inner{" "}

@@ -83,14 +83,20 @@ export function resolveThemeFromCookies<T extends ThemeDefinition>(
     family = cookies[themvoraCookieNames.family];
   }
 
+  // Pass `"system"` through unchanged. Dropping it made the server resolve the
+  // fallback theme's own mode (usually light) while the bootstrap script read
+  // the cookie and selected `"system"`, so the server rendered
+  // `data-theme-selection-mode="light"` and the client hydrated as system — a
+  // visible light/system flip on every reload. `resolveInitialTheme` resolves
+  // the theme against `prefersDark` (false on a server) but keeps `"system"` in
+  // the returned selection, which is what lets the module emit both schemes.
+  const resolvedMode = mode ?? initialMode;
+
   return resolveInitialTheme({
     themes,
     ...(defaultTheme !== undefined ? { defaultTheme } : {}),
     ...(family !== undefined ? { family } : {}),
-    ...(mode !== undefined && mode !== "system" ? { mode } : {}),
-    ...(initialMode !== undefined && mode === undefined
-      ? { mode: initialMode }
-      : {}),
+    ...(resolvedMode !== undefined ? { mode: resolvedMode } : {}),
     ...(initialFamily !== undefined && family === undefined
       ? { family: initialFamily }
       : {}),

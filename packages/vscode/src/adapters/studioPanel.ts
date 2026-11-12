@@ -50,6 +50,7 @@ import {
   determineDefaultSelection,
   type ThemeIdentifier,
 } from "../domain/defaultSelection.js";
+import { describeError } from "../domain/errors.js";
 import { buildPreviewModel, type PreviewMode } from "../domain/previewModel.js";
 import { frameworkLabel, type ProjectProfile } from "../domain/projectProfile.js";
 import { generatePatchProposal, type SupportedFramework } from "../domain/patchProposal.js";
@@ -105,7 +106,13 @@ import {
 import type { ThemvoraClient } from "../services/coreClient.js";
 import type { PatchOutcome } from "../services/applyPatch.js";
 import type { PayloadOptions, SaveOutcome, ThemeFileFormat } from "../services/saveTheme.js";
-import { themeFilePayload } from "../services/saveTheme.js";
+import {
+  DEFAULT_FILE_NAMES,
+  baseNameOf,
+  directoryOf,
+  extensionForFormat,
+  themeFilePayload,
+} from "../services/saveTheme.js";
 import type { DraftRegistry, DraftScope } from "../services/draftRegistry.js";
 
 /** What the panel needs from the extension. */
@@ -495,6 +502,41 @@ function asFormat(value: unknown): ThemeFileFormat {
     : "json";
 }
 
+/** The extensions a theme file plausibly carries, whichever format wrote it. */
+const THEME_EXTENSIONS: ReadonlySet<string> = new Set([
+  ".json",
+  ".jsonc",
+  ".ts",
+  ".mts",
+  ".cts",
+  ".tsx",
+  ".css",
+]);
+
+/**
+ * The file name to write, falling back to the format's default.
+ *
+ * @param fileName - What the form holds.
+ * @param format - The chosen format.
+ * @returns A non-empty file name carrying the format's extension.
+ */
+function themeFileName(fileName: string, format: ThemeFileFormat): string {
+  const trimmed = fileName.trim();
+  if (trimmed.length === 0) return DEFAULT_FILE_NAMES[format];
+
+  const expected = `.${extensionForFormat(format)}`;
+  const current = /\.[^./\\]+$/u.exec(trimmed)?.[0].toLowerCase();
+  if (current === expected) return trimmed;
+  if (current === undefined) return `${trimmed}${expected}`;
+
+  // A name the form kept from another format would write JSON into a `.ts` file,
+  // or TypeScript into a `.json` one. Any other extension is the user's choice
+  // and is left alone.
+  return THEME_EXTENSIONS.has(current)
+    ? `${trimmed.slice(0, trimmed.length - current.length)}${expected}`
+    : trimmed;
+}
+
 /**
  * Create the Studio panel controller.
  *
@@ -517,8 +559,15 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
   /** Which catalog the selected preset came from, and its family. */
   let presetSource: { kind: "preset" | "brand" | "builtin"; family: string } | undefined;
   let notice: { kind: "info" | "error"; text: string } | undefined;
-  /** The path the native picker returned, held until the save uses it. */
-  let chosenTarget: Uri | undefined;
+  /**
+   * The folder the native picker returned, held until the save uses it.
+   *
+   * A folder rather than a file: the form's name field stays authoritative for
+   * the file name, so renaming after picking a folder still writes into it.
+   */
+  let chosenDirectory: Uri | undefined;
+  /** True while a write is in flight, so a double click cannot write twice. */
+  let writing = false;
   /** Framework, package manager and declared packages for the active root. */
   let profile: ProjectProfile | undefined;
   /** The last selected theme identifier, persisted across Studio sessions. */
@@ -1398,6 +1447,26 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
   }
 
   /**
+   * Say where the file went, and offer to open it.
+   *
+   * The panel's own notice is easy to miss: the save closes a dialog and moves
+   * the selection in the same frame, so the strip that reports it is behind the
+   * change. A write is also a workspace event, and the editor's notification
+   * surface is where a VS Code user looks to confirm one happened.
+   *
+   * @param path - The file that was written.
+   */
+  function announceSaved(path: string): void {
+    const uri = Uri.file(path);
+    void window
+      .showInformationMessage(`Themvora: theme saved to ${path}`, "Open file", "Copy path")
+      .then((choice) => {
+        if (choice === "Open file") void window.showTextDocument(uri);
+        if (choice === "Copy path") void env.clipboard.writeText(path);
+      });
+  }
+
+  /**
    * Bring an already-open Theme Preview in step with the Studio selection.
    *
    * The controller's `sync` posts without revealing or creating the panel, so a
@@ -1863,24 +1932,26 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
 
     if (type === "chooseSaveLocation") {
       if (selected.length === 0) return;
-      const format = asFormat(message.format) ?? "json";
-      const name =
-        message.fileName.trim().length > 0
-          ? message.fileName.trim()
-          : `themvora-theme.${format}`;
+      const format = asFormat(message.format);
+      const name = themeFileName(message.fileName, format);
       const root = options.roots()[0];
       const picked = await window.showSaveDialog({
         saveLabel: "Save Theme",
-        filters: { "Theme file": [format] },
+        // The filter is the extension the file actually gets, not the format
+        // key: a `ts-generate` filter makes Windows write `theme.ts.ts-generate`.
+        filters: { "Theme file": [extensionForFormat(format)] },
         ...(root === undefined
           ? {}
           : { defaultUri: Uri.joinPath(Uri.file(root.inspection.root), name) }),
       });
       if (picked === undefined) return;
-      chosenTarget = picked;
+
+      chosenDirectory = Uri.file(directoryOf(picked.fsPath));
       void panel?.webview.postMessage({
         type: "saveLocation",
         path: picked.fsPath,
+        directory: chosenDirectory.fsPath,
+        fileName: baseNameOf(picked.fsPath),
       } satisfies StudioHostMessage);
       return;
     }
@@ -1902,10 +1973,7 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
         notice = { kind: "info", text: validationWarning };
       }
 
-      const name =
-        message.fileName.trim().length > 0
-          ? message.fileName.trim()
-          : `themvora-theme.${chosen}`;
+      const name = themeFileName(message.fileName, chosen);
 
       let css: string | undefined;
       if (chosen === "css") {
@@ -1918,8 +1986,8 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
       }
 
       // Two destinations, both explicit: beside the theme source the selection
-      // came from, or wherever the user picks. A generated draft has no source,
-      // so it falls back to the dialog.
+      // came from, or wherever the user picked. A generated draft has no source,
+      // so it can only go where the picker said.
       const { destination } = message;
       let target: Uri | undefined;
       let chosenPath: string | undefined;
@@ -1933,22 +2001,24 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
         }
       }
 
-      // The webview's "Choose location…" already ran the native picker. Reuse
-      // that answer instead of making the user pick the same file twice.
-      if (destination === "choose" && chosenTarget !== undefined) {
-        target = chosenTarget;
+      // The webview's "Choose a location…" already ran the native picker. Reuse
+      // that folder instead of making the user pick the same place twice — which
+      // is what happened whenever the form said "source" for a draft that has no
+      // source to sit beside.
+      if (target === undefined && chosenDirectory !== undefined) {
+        target = Uri.joinPath(chosenDirectory, name);
       }
 
       if (target === undefined) {
         const picked = await window.showSaveDialog({
           saveLabel: "Save Theme",
-          filters: { "Theme file": [chosen] },
+          filters: { "Theme file": [extensionForFormat(chosen)] },
           ...(options.roots()[0] === undefined
             ? {}
             : { defaultUri: Uri.joinPath(Uri.file(options.roots()[0]!.inspection.root), name) }),
         });
         if (picked === undefined) {
-          chosenTarget = undefined;
+          chosenDirectory = undefined;
           notice = { kind: "info", text: "Save cancelled; nothing was written." };
           void panel?.webview.postMessage({
             type: "saveResult",
@@ -1987,18 +2057,21 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
       });
 
       if (!outcome.ok) {
-        chosenTarget = undefined;
+        chosenDirectory = undefined;
         notice =
           outcome.reason === "failed"
             ? { kind: "error", text: `Could not write the theme: ${outcome.message}` }
             : { kind: "info", text: "Save cancelled; nothing was written." };
+        if (outcome.reason === "failed") {
+          void window.showErrorMessage(`Themvora could not write the theme: ${outcome.message}`);
+        }
         void panel?.webview.postMessage({
           type: "saveResult",
           ok: false,
         } satisfies StudioHostMessage);
       } else {
         if (selection !== undefined) selection = { ...selection, saved: true };
-        chosenTarget = undefined;
+        chosenDirectory = undefined;
 
         // The write succeeded, so this exact revision is now on disk. Marking
         // it saved is what stops a command from treating the draft as unsaved
@@ -2024,6 +2097,7 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
               ok: true,
               path: outcome.path,
             } satisfies StudioHostMessage);
+            announceSaved(outcome.path);
             post();
             return;
           }
@@ -2031,16 +2105,17 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
 
         // The draft became a file: select that file's theme so the library and
         // the preview stop showing a draft that no longer exists.
-        await adoptSavedTheme(target, name);
+        await adoptSavedTheme(target, primaryTheme.name);
         notice = {
           kind: "info",
-          text: `Written to ${outcome.path}${chosenPath === undefined ? "" : ` (beside ${chosenPath})`}. The project was re-scanned; the file is not registered until a provider supplies it.`,
+          text: `Saved to ${outcome.path}${chosenPath === undefined ? "" : ` (beside ${chosenPath})`}. The project was re-scanned; the file is not registered until a provider supplies it.`,
         };
         void panel?.webview.postMessage({
           type: "saveResult",
           ok: true,
           path: outcome.path,
         } satisfies StudioHostMessage);
+        announceSaved(outcome.path);
       }
       post();
       return;
@@ -2272,7 +2347,37 @@ export function createStudioPanel(options: StudioPanelOptions): StudioPanel {
 
       panel.webview.onDidReceiveMessage((message: unknown) => {
         const intent = parseStudioIntent(message);
-        if (intent !== null) void handle(intent);
+        if (intent === null) return;
+
+        // One write at a time: a second click on Save while the first is still
+        // resolving must not run the dialog and the write again.
+        if (intent.type === "save") {
+          if (writing) return;
+          writing = true;
+        }
+
+        void handle(intent)
+          .catch((error: unknown) => {
+            // Every intent ends in a posted model. A handler that throws would
+            // otherwise leave the webview on a stale frame with no explanation,
+            // which is what a failed save looked like: the file was written, the
+            // dialog never closed and nothing said so.
+            notice = {
+              kind: "error",
+              text: `The Studio could not finish that action: ${describeError(error)}`,
+            };
+            if (intent.type === "save") {
+              chosenDirectory = undefined;
+              void panel?.webview.postMessage({
+                type: "saveResult",
+                ok: false,
+              } satisfies StudioHostMessage);
+            }
+            post();
+          })
+          .finally(() => {
+            if (intent.type === "save") writing = false;
+          });
       });
 
       panel.onDidDispose(() => {

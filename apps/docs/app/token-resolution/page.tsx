@@ -177,7 +177,7 @@ evaluateExpression("#3b82f6");        // "#3b82f6" (not an expression)`;
 
 export default function TokenResolutionPage() {
   const content = (
-    <div className="max-w-3xl">
+    <div>
       <PageHeader
         eyebrow="Resolution"
           title="Token resolution"

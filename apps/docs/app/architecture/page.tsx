@@ -328,7 +328,7 @@ const layers = [
 
 export default function ArchitecturePage() {
   const content = (
-    <div className="max-w-3xl">
+    <div>
       <PageHeader
         icon={
             <svg

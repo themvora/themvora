@@ -95,7 +95,11 @@ export const FRAMEWORK_INTEGRATIONS: readonly FrameworkIntegration[] = [
     ssr: true,
     vite: false,
     supports: { freshProject: true, existingProject: true },
-    packages: ["@themvora/next"],
+    // The generated theme module imports `@themvora/core` directly, so it has
+    // to be a declared dependency rather than a transitive one: pnpm's strict
+    // layout does not hoist `@themvora/next`'s own dependencies into the app,
+    // and the build fails to resolve it.
+    packages: ["@themvora/core", "@themvora/next"],
     initSupported: true,
   },
   {

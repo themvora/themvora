@@ -10,7 +10,7 @@
       "@themvora/devtools",
       "@themvora/tailwind",
       "@themvora/adapters",
-      "themvora-vscode"
+      "themvora-for-vscode"
     ],
     "framework": [
       "@themvora/react",
@@ -100,7 +100,7 @@
       "allowedDependencies": ["@themvora/core"],
       "allowedPeers": []
     },
-    "themvora-vscode": {
+    "themvora-for-vscode": {
       "tier": "foundation",
       "allowedDependencies": ["@themvora/core"],
       "allowedPeers": []
@@ -163,7 +163,13 @@
     "@themvora/antd": {
       "tier": "adapter",
       "allowedDependencies": ["@themvora/core", "@themvora/adapters"],
-      "allowedPeers": ["antd", "react", "react-dom"]
+      "allowedPeers": [
+        "antd",
+        "react",
+        "react-dom",
+        "@ant-design/cssinjs",
+        "next"
+      ]
     },
     "@themvora/mantine": {
       "tier": "adapter",

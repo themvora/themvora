@@ -12,16 +12,16 @@ import { useFocusTrap } from "./ui/use-focus-trap";
 import { GITHUB_URL, NPM_ORG_URL, SITE_NAME } from "../lib/site";
 
 const links = [
-  { href: "/get-started", label: "Get Started" },
   { href: "/quick-start", label: "Docs" },
   { href: "/packages", label: "Packages" },
   { href: "/framework-guides", label: "Guides" },
+  { href: "/theme-studio", label: "Studio" },
   { href: "/playground", label: "Playground" },
 ];
 
 const mobileLinks = [
   ...links,
-  { href: "/advanced-features", label: "Features" },
+  { href: "/advanced-features", label: "Advanced Features" },
   { href: "/blog", label: "Blog" },
   { href: "/roadmap", label: "Roadmap" },
 ];
@@ -160,8 +160,12 @@ export function SiteHeader() {
   return (
     <>
       <header className="site-header relative z-50">
-        <div className="max-w-6xl mx-auto px-6 h-(--site-header-height) flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+        {/* Narrow gutters below `sm`: the logo plus three 36px controls need
+            ~280px of row, and `px-6` + `gap-4` spent 64px of the viewport on
+            spacing alone — enough to push the menu button past the right edge
+            on the narrowest screens. Nothing changes at `sm` and above. */}
+        <div className="site-shell px-4 sm:px-6 h-(--site-header-height) flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-6 min-w-0">
             <Link href="/">
               <ThemvoraLogo size={30} />
             </Link>
@@ -183,9 +187,13 @@ export function SiteHeader() {
                     // not. The brand still marks the current page — as a rule
                     // under it rather than as the colour of the words. The inset
                     // shadow draws that rule without changing the item's height.
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors no-underline ${
+                    // The rule is `--docs-accent` because a rule is a mark: in
+                    // `slack-dark` the raw aubergine would have drawn it at
+                    // 1.42:1 and the current page would have looked like every
+                    // other one.
+                    className={`px-2 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors no-underline xl:px-3 ${
                       active
-                        ? "text-foreground shadow-[inset_0_-2px_0_0_var(--theme-color-primary)]"
+                        ? "text-foreground shadow-[inset_0_-2px_0_0_var(--docs-accent)]"
                         : "opacity-70 hover:opacity-100 hover:bg-muted hover:text-foreground"
                     }`}
                   >
@@ -274,7 +282,7 @@ export function SiteHeader() {
       <div
         id="mobile-menu"
         inert={!open}
-        className={`fixed inset-0 top-(--site-header-height) z-40 lg:hidden ${
+        className={`fixed inset-0 top-(--site-header-height) z-40 overflow-x-clip lg:hidden ${
           open ? "" : "pointer-events-none"
         }`}
         aria-hidden={!open}

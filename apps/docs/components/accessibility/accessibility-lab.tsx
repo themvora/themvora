@@ -13,7 +13,6 @@ import {
 } from "@themvora/core";
 import { useTheme, useThemeRuntime, useThemeHistory } from "@themvora/next/client";
 import { CodeBlock } from "../code-block";
-import { highlightCode } from "../../lib/highlight";
 
 const CVD_TYPES: CVDType[] = [
   "protanopia",
@@ -1105,11 +1104,7 @@ export function AccessibilityLab({ compact = false }: { compact?: boolean }) {
           <div className="text-lg font-medium">CVD CSS Tokens</div>
           <hr className="mt-2 text-(--theme-color-accent)" />
           <div className="mt-3 inline-block overflow-x-auto w-full">
-            <CodeBlock
-              html={highlightCode(simulationCss, "css")}
-              code={simulationCss}
-              language="css"
-            />
+            <CodeBlock code={simulationCss} language="css" />
           </div>
         </section>
       )}

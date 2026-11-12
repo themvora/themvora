@@ -4,20 +4,21 @@
  * toggle and the themed UI actually rendered and no dev-server step in the
  * onboarding flow.
  *
- * The completion card ("You're ready") belongs to `/quick-start` only. A
- * framework guide is reference material — a reader arrives there from a specific
- * integration question, and a green "you are done" panel at the end of a page
- * they may have landed on mid-scroll is noise. The guides are asserted to *not*
- * carry it, so it cannot creep back in eleven files at once.
+ * Historically the completion card ("You're ready") belonged to `/quick-start`
+ * only and the guides were asserted not to carry it. That card was removed from
+ * `/quick-start`, so this probe no longer checks for it and focuses on the
+ * first-success path above.
  *
  * The styling step is asserted twice over, because it is the one step whose
  * content is identical in every framework and therefore the one that can go
- * stale in eleven places at once: the stylesheet has to be *rendered* on the
- * page the reader copies from, and every `var(--theme-*)` in it has to be a
- * custom property the shipped runtime actually emits. The second half re-derives
- * the emitted set by running `themeToCSSVariables()` from the built
+ * stale in eleven places at once: the component stylesheet has to be *rendered*
+ * on the page the reader copies from, and every `var(--theme-*)` in it has to be
+ * a custom property the shipped runtime actually emits. The second half
+ * re-derives the emitted set by running `themeToCSSVariables()` from the built
  * `@themvora/core`, so a renamed token fails here instead of silently falling
- * back to an inherited value in every reader's app.
+ * back to an inherited value in every reader's app. Quick Start renders the
+ * document rule in a separate global stylesheet step, so the probe keys on the
+ * first component selector rather than the old opening comment.
  *
  * Astro is asserted differently, because its guide is shape-driven rather than
  * one linear sequence: the setup selector must resolve to `#astro-only` /
@@ -79,8 +80,14 @@ const emittedProperties = await (async () => {
   }
 })();
 
-/** The first line of the canonical stylesheet — how the probe finds its block. */
-const STYLESHEET_MARKER = "Themvora emits its design tokens as CSS custom properties";
+/**
+ * The first component selector — how the probe finds the styling block.
+ *
+ * It used to look for the document rule's comment, but Quick Start now renders
+ * that rule in its own global stylesheet step. The component rules are the ones
+ * every surface shares, so they are the block this check is about.
+ */
+const STYLESHEET_MARKER = ".themvora-example-card {";
 
 /**
  * The `var(--theme-*)` references inside the stylesheet block of `text`.
@@ -111,7 +118,9 @@ function stylesheetProblems(text, where) {
   }
   // A stylesheet that lost its token references would still render and still
   // pass the "not empty" check; a floor catches a truncated or rewritten block.
-  if (used.length < 12) {
+  // Ten is the component half: Quick Start renders the document rule, which
+  // contributes the other two references, in the global stylesheet step.
+  if (used.length < 10) {
     problems.push(`${where}: the stylesheet exposes only ${used.length} token reference(s)`);
   }
   return problems;
@@ -120,7 +129,7 @@ function stylesheetProblems(text, where) {
 /**
  * Tailwind is a deliberately CSS-only flow, so it does not render the shared
  * component stylesheet. Assert the smaller contract instead: the two imports,
- * both document-setup alternatives, and no React runtime snippet in the
+ * the document rule, the token→utility map, and no React runtime snippet in the
  * onboarding flow.
  */
 function tailwindCssProblems(text) {
@@ -128,9 +137,10 @@ function tailwindCssProblems(text) {
   for (const needle of [
     '@import "tailwindcss"',
     '@import "@themvora/tailwind"',
-    "@apply bg-background text-foreground",
     "var(--theme-color-background)",
     "var(--theme-color-foreground)",
+    ".bg-background",
+    ".text-foreground",
   ]) {
     if (!text.includes(needle)) {
       problems.push(`tailwind: the CSS-only setup does not show ${needle}`);
@@ -224,7 +234,6 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
         const region = text.slice(from, to);
         return (region.match(/\b(pnpm|npm|yarn|bun) (run )?dev\b/) || [])[0];
       })(),
-      hasReady: /You're ready|You’re ready/.test(text),
       missingPkgs: pkgs.filter((pkg) => !text.includes(pkg)),
       zeroFlashBadge: (text.match(/Zero-flash: (Yes|Partial|No)/) || [])[1],
       hasThemedUi:
@@ -382,12 +391,6 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
     problems.push(...stylesheetProblems(astro.onlyText, "Astro-only"));
     problems.push(...stylesheetProblems(astro.reactText, "Astro + React"));
 
-    // The completion card is `/quick-start`'s job. A guide that renders it again
-    // duplicates the onboarding ending in eleven places.
-    if (info.hasReady)
-      problems.push(
-        'the guide still renders the "You\'re ready" completion card',
-      );
   } else {
     // The first-success path, in order. Quick Start carries the same four steps,
     // so the two pages are asserted against one list.
@@ -406,12 +409,6 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
       problems.push(`onboarding steps out of order: ${info.headings.slice(0, 6).join(" → ")}`);
     if (info.headings.includes("Run it"))
       problems.push("a \"Run it\" section is still present");
-    // As in the Astro branch: the completion card belongs to `/quick-start`.
-    if (info.hasReady)
-      problems.push(
-        "the guide still renders the \"You're ready\" completion card",
-      );
-
     problems.push(
       ...(slug === "tailwind"
         ? tailwindCssProblems(info.text)
@@ -524,7 +521,7 @@ for (const [slug, pkgs, zeroFlash] of SLUGS) {
     // The styling step is part of the shortest path now, so Quick Start has to
     // show it and the completion state — a reader who stops here must have seen
     // how the UI is driven by tokens, not just how it is mounted.
-    for (const label of ["Style it with Themvora tokens", "You're ready"]) {
+    for (const label of ["Style it with Themvora tokens"]) {
       if (!only.text.includes(label))
         problems.push(`Quick Start does not show "${label}"`);
     }

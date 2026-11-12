@@ -4,6 +4,7 @@ export default defineConfig([
   {
     entry: {
       index: "src/index.ts",
+      "react-router": "src/react-router.ts",
     },
     format: ["esm", "cjs"],
     dts: false,

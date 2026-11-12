@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import { DocsLayout } from "../../components/docs-layout";
 import { ThemeStudio } from "../../components/theme-studio/theme-studio";
+import { PageHeader } from "../../components/ui/page-header";
 import { RelatedLinks } from "../../components/ui/related-links";
 import { docsUrl } from "../../lib/site";
 
@@ -12,9 +12,37 @@ export const metadata: Metadata = {
     "Generate a complete light and dark theme pair from a single seed color using generateTheme(), then apply it to this very site.",
 };
 
+/**
+ * The studio is a tool, not a document.
+ *
+ * It renders outside `DocsLayout` for the same reason the playground does: a
+ * navigation rail and a table of contents belong beside prose, and here they
+ * would only take width away from the two columns the tool actually uses. The
+ * page owns its own shell, header and spacing instead.
+ */
 export default function ThemeStudioPage() {
   return (
-    <DocsLayout wide>
+    /* `site-shell` rather than `max-w-6xl`: on a page without the docs layout
+       this is the same column the header and footer use, so all three edges line
+       up. A fixed `max-w-6xl` would sit 40px inside them. */
+    <div className="site-shell px-4 py-10 sm:px-6">
+      {/* <PageHeader
+        eyebrow="Theme studio"
+        title="Generate a theme from a seed"
+        description={
+          <>
+            Pick a seed colour and Themvora derives a complete light and dark
+            pair: secondary, muted, accent, card, popover, input, border and
+            ring are all computed in OKLCH by{" "}
+            <code className="font-mono text-[0.9em]">generateTheme()</code>.
+            Preview both modes, then apply one to this site to see the runtime
+            re-theme everything live.
+          </>
+        }
+      />
+
+      <hr className="w-full mb-6" /> */}
+
       <ThemeStudio />
 
       {/*
@@ -33,7 +61,8 @@ export default function ThemeStudioPage() {
           {
             title: "Custom Themes",
             href: "/custom-themes",
-            description: "Hand-author or extend a theme instead of generating it",
+            description:
+              "Hand-author or extend a theme instead of generating it",
           },
           {
             title: "Core Concepts",
@@ -42,6 +71,6 @@ export default function ThemeStudioPage() {
           },
         ]}
       />
-    </DocsLayout>
+    </div>
   );
 }

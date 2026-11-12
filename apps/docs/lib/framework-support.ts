@@ -86,9 +86,10 @@ export const ADAPTER_FAMILY: Record<string, AdapterFamily> = {
 const REACT_BRIDGES: FrameworkName[] = ["React", "Next.js", "Remix", "Astro"];
 
 /**
- * CSS-variable libraries are not React-bound, so their support set is the
- * framework entries the adapter itself publishes plus the bridges that can host
- * them.
+ * CSS-variable libraries are not React-bound: the adapter writes the library's
+ * own custom properties and nothing in the path is framework-specific. Every
+ * framework Themvora ships a binding for is therefore a real integration, and
+ * each one has a recipe.
  */
 const CSS_FRAMEWORKS: FrameworkName[] = [
   "React",
@@ -105,8 +106,19 @@ const CSS_FRAMEWORKS: FrameworkName[] = [
 /**
  * PUBLIC — the frameworks the selector offers.
  *
- * Everything listed here has a recipe. Everything absent is simply not offered;
- * there is no third state the reader can see.
+ * Everything listed here has a recipe, and the recipe set is generated
+ * (`scripts/docs/generate-library-recipes.mjs`), so this table is checked
+ * against it by `scripts/audit-library-docs.mjs`. A framework absent from here
+ * is simply not offered; there is no third state the reader can see.
+ *
+ * ## Why shadcn/ui is narrower than its adapter
+ *
+ * `@themvora/shadcn` ships `/react`, `/vue`, `/svelte`, `/solid` and `/angular`
+ * entries, but *shadcn/ui* is a React project. The Vue and Svelte recipes use
+ * the maintained ports (shadcn-vue, shadcn-svelte), which have their own CLIs
+ * and their own component imports. Solid and Angular are not offered: the ports
+ * that exist are separate projects with different setup, and documenting them
+ * here would mean inventing a path this repository cannot check.
  */
 export const PUBLIC_FRAMEWORKS: Record<string, FrameworkName[]> = {
   // React component libraries. Support is bounded by the library's own
@@ -117,13 +129,17 @@ export const PUBLIC_FRAMEWORKS: Record<string, FrameworkName[]> = {
   mantine: REACT_BRIDGES,
 
   // CSS-variable adapters. Not React-bound, so the wider set applies.
-  shadcn: CSS_FRAMEWORKS,
   bootstrap: CSS_FRAMEWORKS,
   daisyui: CSS_FRAMEWORKS,
   "open-props": CSS_FRAMEWORKS,
 
-  // Build-time: no runtime entry, so no framework selection applies.
-  unocss: [],
+  // shadcn/ui plus its maintained Vue and Svelte ports.
+  shadcn: ["React", "Next.js", "Remix", "Astro", "Vue 3", "Svelte"],
+
+  // Build-time: the preset is framework-neutral, but the runtime that drives
+  // the theme is not, so the integrations are the ones with a Vite/Astro
+  // integration and a Themvora binding.
+  unocss: ["React", "Next.js", "Vue 3", "Svelte", "Astro"],
 };
 
 /** The frameworks the public selector should render for a library. */
@@ -180,57 +196,48 @@ export function bridgeFor(family: AdapterFamily, framework: FrameworkName): Brid
 /**
  * INTERNAL — engineering evidence. **Never rendered.**
  *
- * This is the "have we proven it?" record. It exists so the team can see which
- * combinations have a fixture, a build and a browser run, and which are still
- * only architecturally sound. It deliberately has no accessor used by the page
- * renderer: if you are reading this from a component, you are building the
- * defect this file was split to fix.
+ * The public selector offers only combinations with a real recipe; this file
+ * is the separate "have we proven it?" record. Its values are **generated** by
+ * `scripts/docs/update-library-evidence.mjs` from the verification harness
+ * output (`verify-library-recipes.mjs` and `verify-library-browser.mjs`), so an
+ * evidence state cannot drift away from what was actually run.
+ *
+ * The stages are intentionally distinct. A production build passing is not a
+ * browser render, and a browser render is not proof that switching themes
+ * repaints the library. `fullyVerified` is derived from all six — it is never
+ * asserted by hand.
  */
 export type Evidence = {
-  /** Runnable app, if one exists. */
-  fixture?: string;
-  /** Unit or integration test that exercises it, if one exists. */
-  test?: string;
-  /** Whether a build has been run against the fixture. */
-  build?: "pass" | "not-run";
-  /** Whether a browser run has been done. */
-  browser?: "pass" | "not-run";
+  /** Adapter source, published exports, peers and hook signatures inspected. */
+  source: "pass" | "not-run";
+  /** The documented dependency set resolved and installed in a fixture. */
+  install: "pass" | "not-run";
+  /** The framework's typecheck (or `astro check` / `vue-tsc` / `svelte-check`). */
+  typecheck: "pass" | "not-run";
+  /** The framework's production build. */
+  build: "pass" | "not-run";
+  /** Production preview loaded in a real browser without console errors. */
+  browser: "pass" | "not-run";
+  /** Light/dark and theme-family switches repainted the real library UI. */
+  themeSwitch: "pass" | "not-run";
+  /** SSR server/client agreement; `n/a` for client-only builds. */
+  hydration: "pass" | "fail" | "not-run" | "n/a";
+  /** Derived: every stage above passed. */
+  fullyVerified: boolean;
+  /** The isolated application that produced this evidence. */
+  fixture: string;
+  /** The adapter's own unit tests. */
+  test: string;
+  /** Node and framework versions the recipe actually ran against. */
+  runtime?: {
+    node: string;
+    packages: Record<string, string>;
+  };
 };
 
-export const INTERNAL_EVIDENCE: Record<string, Partial<Record<FrameworkName, Evidence>>> = {
-  mui: {
-    React: { fixture: "examples/apps/adapters-example", build: "pass", browser: "pass" },
-    // Verified 2026-10-03: examples/apps/next builds with Next 15.5.22 (Turbopack)
-    // and probe-next-mui.mjs passes 6/6 in Chromium — no page errors, MUI card
-    // renders, theme switching resolves light -> dark, content stays legible.
-    "Next.js": {
-      fixture: "examples/apps/next",
-      test: "examples/apps/_tools/probe-next-mui.mjs",
-      build: "pass",
-      browser: "pass",
-    },
-    Remix: { build: "not-run" },
-    Astro: { build: "not-run" },
-  },
-  chakra: { React: { fixture: "examples/apps/adapters-example", build: "pass" } },
-  antd: { React: { fixture: "examples/apps/adapters-example", build: "pass" } },
-  mantine: { React: { fixture: "examples/apps/adapters-example", build: "pass" } },
-  shadcn: {
-    React: { fixture: "examples/apps/react", build: "pass" },
-    "Vue 3": { fixture: "examples/apps/vue", test: "packages/adapters/shadcn/test/vue.test.ts", build: "pass" },
-    Svelte: { fixture: "examples/apps/svelte", build: "pass" },
-    Solid: { fixture: "examples/apps/solid", build: "pass" },
-  },
-  bootstrap: {
-    React: { fixture: "examples/apps/adapters-example", build: "pass" },
-    "Vue 3": { test: "packages/adapters/bootstrap/test/vue.test.ts" },
-  },
-  daisyui: {
-    React: { fixture: "examples/apps/adapters-example", build: "pass" },
-    "Vue 3": { test: "packages/adapters/daisyui/test/vue.test.ts" },
-  },
-  "open-props": {
-    React: { fixture: "examples/apps/adapters-example", build: "pass" },
-    "Vue 3": { test: "packages/adapters/open-props/test/vue.test.ts" },
-  },
-};
+import { LIBRARY_EVIDENCE } from "./generated/library-evidence";
+
+export const INTERNAL_EVIDENCE: Record<
+  string,
+  Partial<Record<FrameworkName, Evidence>>
+> = LIBRARY_EVIDENCE;

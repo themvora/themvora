@@ -1,15 +1,23 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { CodeBlock } from "./code-block";
+import { SectionHeading } from "./ui/section-heading";
+import { StepperSection } from "./ui/stepper-section";
 import { InstallCommand, type PackageManager } from "./install-command";
 import type { CodeVariant } from "../lib/code-variants";
-import { FRAMEWORK_PACKAGE } from "../lib/libraries";
-import { supportedFrameworks } from "../lib/framework-support";
+import { forManager } from "../lib/install-commands";
+import {
+  FAMILY_SNIPPET_LANG,
+  familySnippet,
+} from "../lib/family-snippet";
 
 /** The four package-manager variants of one command list. */
-export type ManagerBlocks = Record<PackageManager, { code: string; html: string }>;
+export type ManagerBlocks = Record<
+  PackageManager,
+  { code: string; html?: string }
+>;
 
 /** One file inside a recipe section. */
 export type RecipeFile = {
@@ -42,12 +50,11 @@ export type RecipeSnippet = { lang: string; files: RecipeFile[] };
  * One framework's recipe, with every snippet already highlighted.
  *
  * The server does the highlighting (shiki) and builds these from the library
- * data, falling back to the library-level snippet where a framework has not been
- * written yet. This component only chooses which block to show.
+ * data. This component only chooses which block to show — and, because the
+ * picker changes *everything* below it, every field here is per framework.
  */
 export type RecipeFrameworkExample = {
   label: string;
-  code: string;
   lang: string;
   /** Highlighted HTML for `code` (the adapter wiring). */
   codeHtml: string;
@@ -56,25 +63,29 @@ export type RecipeFrameworkExample = {
   /** The compatibility badge for `code` — `TS / JS`, `TSX / JSX`, `TS`, … */
   displayLanguage?: string | undefined;
   filename?: string | undefined;
+
+  /** The library and its build toolchain, for this framework. */
+  install: string[];
+  /** The Themvora packages, for this framework. */
+  themvora: string[];
+  /** Build configuration and the global stylesheet. */
+  setup?: RecipeSnippet | undefined;
+  /** The entry file: provider, runtime, stylesheet import. */
   mountProvider?: RecipeSnippet | undefined;
-  completeExample?: RecipeSnippet | undefined;
+  /** The adapter hookup. */
+  code: RecipeSnippet;
+  /** Real library components. */
   componentExample?: RecipeSnippet | undefined;
+  /** Theme controls built from the library's own components. */
   themeSwitchExample?: RecipeSnippet | undefined;
+  /** The assembly: the file that ties the others together. */
+  completeExample?: RecipeSnippet | undefined;
+
+  /** Verified Node / framework / library versions, shown before the install. */
+  prereqs?: { label: string; value: string }[] | undefined;
 };
 
-/**
- * The framework picker **and every snippet that follows it**.
- *
- * These live in one component on purpose. The picker previously changed only the
- * Quick Start snippet while Mount the provider, Components, Theme switching,
- * Before/after and the complete example stayed React — so picking Next.js left
- * the reader looking at React code, which is worse than not offering the picker.
- * A picker is a promise that everything below it follows; that promise is only
- * keepable if the state and the snippets are in the same component.
- *
- * `Astro` is why this is not a find-and-replace job: its snippets are vanilla
- * (`createThemeController`), not React. Its entries simply carry different code.
- */
+
 /**
  * Renders a section's files, one block each.
  *
@@ -109,16 +120,42 @@ function RecipeBlocks({
   );
 }
 
+/** A numbered step heading. The number is the point: order is the instruction. */
+function Step({
+  n,
+  title,
+  lead,
+}: {
+  n: number;
+  title: string;
+  lead?: string;
+}) {
+  // Shared with the framework guides: one numbered badge, one style, both pages.
+  return (
+    <SectionHeading num={n} stepper desc={lead}>
+      {title}
+    </SectionHeading>
+  );
+}
+
+/** A label above a block, e.g. "Install the library" or "Global styles". */
+function SubStep({ label }: { label: string }) {
+  return <div className="mb-2 text-sm font-medium">{label}</div>;
+}
+
+function managerBlocks(commands: string[]): ManagerBlocks {
+  return Object.fromEntries(
+    (["pnpm", "npm", "yarn", "bun"] as PackageManager[]).map((manager) => [
+      manager,
+      { code: commands.map((cmd) => forManager(cmd, manager)).join("\n") },
+    ]),
+  ) as ManagerBlocks;
+}
+
 export function LibraryRecipe({
   libraryName,
   description,
   examples,
-  mountProvider,
-  componentExample,
-  themeSwitchExample,
-  completeExample,
-  installLibrary,
-  installThemvora,
   officialUrl,
   architecture,
   slug,
@@ -128,14 +165,6 @@ export function LibraryRecipe({
   libraryName: string;
   description: string;
   examples: RecipeFrameworkExample[];
-  mountProvider?: RecipeSnippet | undefined;
-  componentExample?: RecipeSnippet | undefined;
-  themeSwitchExample?: RecipeSnippet | undefined;
-  completeExample?: RecipeSnippet | undefined;
-  /** Step 1 of the install block — the library's own packages. */
-  installLibrary: ManagerBlocks;
-  /** Step 2 — Themvora, with the picked framework's runtime package. */
-  installThemvora: ManagerBlocks;
   /** Where to read more about installing the library itself. */
   officialUrl: string;
   /**
@@ -151,236 +180,220 @@ export function LibraryRecipe({
   architecture: "generated-theme" | "css-variable" | "build-time";
   className?: string;
 }) {
-  // Only frameworks this adapter actually supports are offered. Everything the
-  // selector shows has a recipe — there is no third state for the reader.
-  const supported = new Set(supportedFrameworks(slug));
-  const shown = examples.filter((e) => supported.has(e.label as never));
   const [index, setIndex] = useState(0);
-  const current = shown[index] ?? shown[0];
+  const current = examples[index] ?? examples[0];
   if (!current) return null;
 
-  const mount = current.mountProvider ?? mountProvider;
-  const components = current.componentExample ?? componentExample;
-  const switching = current.themeSwitchExample ?? themeSwitchExample;
-  const complete = current.completeExample ?? completeExample;
+  const installBlocks = managerBlocks(current.install);
+  const themvoraBlocks = managerBlocks(current.themvora);
 
-  // The install commands are authored with `@themvora/react`. Swapping the
-  // package name in both the text and the pre-rendered HTML is safe because the
-  // token shape is identical — only the identifier changes.
-  const frameworkPkg = FRAMEWORK_PACKAGE[current.label];
-  const swap = (blocks: ManagerBlocks): ManagerBlocks => {
-    if (!frameworkPkg || frameworkPkg === "@themvora/react") return blocks;
-    return Object.fromEntries(
-      Object.entries(blocks).map(([manager, block]) => [
-        manager,
-        {
-          code: block.code.replace(/@themvora\/react\b/g, frameworkPkg),
-          html: block.html.replace(/@themvora\/react\b/g, frameworkPkg),
-        },
-      ]),
-    ) as ManagerBlocks;
-  };
-  const themvoraInstall = swap(installThemvora);
-
-
+  const libraryNoun =
+    architecture === "build-time"
+      ? "utility engine"
+      : slug === "open-props"
+        ? "token system"
+        : ["shadcn", "bootstrap", "daisyui"].includes(slug)
+          ? "CSS framework"
+          : "component library";
 
   return (
     <>
-      <section id="pick-framework" className={sectionClass}>
-        <h2 className="text-lg font-semibold tracking-tight">
-          Pick your framework
-        </h2>
-        <p className="text-sm opacity-70 mt-1 mb-3">{description}</p>
-        <div className="flex flex-wrap gap-1.5" role="tablist">
-          {shown.map((example) => {
-            const i = examples.indexOf(example);
-            return (
-              <button
-                key={example.label}
-                type="button"
-                role="tab"
-                aria-selected={i === index}
-                onClick={() => setIndex(i)}
-                className={`chip ${i === index ? "chip-active" : ""}`}
-              >
-                {example.label}
-              </button>
-            );
-          })}
+      {/* ---------------------------------------------------------------- 1 */}
+      <StepperSection id="pick-framework" className={sectionClass} first>
+        <Step n={1} title="Pick your framework" lead={description} />
+        <div className="mt-4 flex flex-wrap gap-1.5" role="tablist">
+          {examples.map((example, i) => (
+            <button
+              key={example.label}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              data-testid="framework-tab"
+              onClick={() => setIndex(i)}
+              className={`chip ${i === index ? "chip-active" : ""}`}
+            >
+              {example.label}
+            </button>
+          ))}
         </div>
-      </section>
-
-      <section id="installation" className={sectionClass}>
-        <h2 className="text-lg font-semibold tracking-tight">Installation</h2>
-        <p className="mt-1 mb-3 text-sm opacity-70">
-          Two installs. The first is {libraryName}&apos;s own — see its{" "}
-          <a href={officialUrl} target="_blank" rel="noreferrer">
-            installation guide
-          </a>{" "}
-          if you need more than this. The second is Themvora, and it names the
-          runtime package for {current.label}.
+        <p className="mt-3 text-sm opacity-70">
+          Every step below follows this choice — the install commands, the build
+          configuration, the file paths, the code and the run command.
         </p>
-        <div className="flex flex-col gap-4">
-          <div>
-            <div className="mb-2 text-sm font-medium">
-              1. Install {libraryName}
+      </StepperSection>
+
+      {/* ---------------------------------------------------------------- 2 */}
+      <StepperSection id="installation" className={sectionClass}>
+        <Step
+          n={2}
+          title="Install"
+          lead={`${libraryName} first, then Themvora. ${libraryName} is a ${libraryNoun}; Themvora's adapter is what connects it to the active theme.`}
+        />
+
+        {current.prereqs && current.prereqs.length > 0 && (
+          <div
+            className="mt-4 overflow-hidden rounded-xl border border-border"
+            data-testid="recipe-prerequisites"
+          >
+            <div className="border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium uppercase tracking-wider opacity-60">
+              Prerequisites for {current.label}
             </div>
-            <InstallCommand commands={installLibrary} />
+            <dl className="divide-y divide-border">
+              {current.prereqs.map((item) => (
+                <div
+                  key={item.label}
+                  className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[10rem_1fr]"
+                >
+                  <dt className="font-medium opacity-70">{item.label}</dt>
+                  <dd className="opacity-80">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
+        )}
+
+        <div className="mt-4 flex flex-col gap-6">
           <div>
-            <div className="mb-2 text-sm font-medium">2. Install Themvora</div>
-            <InstallCommand commands={themvoraInstall} />
-          </div>
-        </div>
-      </section>
-
-      <section id="how-it-works" className={sectionClass}>
-        <h2 className="text-lg font-semibold tracking-tight">How it works</h2>
-        {architecture === "generated-theme" && (
-          <p className="mt-1 text-sm leading-relaxed opacity-70">
-            Themvora builds {libraryName}&apos;s own theme object from its tokens
-            and hands it to {libraryName}&apos;s provider. The library keeps doing
-            exactly what it always did — it just gets its theme from Themvora
-            instead of from you. That is why this adapter is a provider component:
-            there is a real theme object to hand over.
-          </p>
-        )}
-        {architecture === "css-variable" && (
-          <p className="mt-1 text-sm leading-relaxed opacity-70">
-            Themvora writes {libraryName}&apos;s own CSS custom properties from
-            its tokens, and {libraryName}&apos;s stylesheet consumes them. Nothing
-            is rebuilt on a theme change — the variables change and the styles
-            follow. That is why this adapter is a hook that registers a writer
-            rather than a provider component, and why it also needs its stylesheet
-            imported.
-          </p>
-        )}
-        {architecture === "build-time" && (
-          <p className="mt-1 text-sm leading-relaxed opacity-70">
-            The mapping is compiled rather than resolved at runtime.{" "}
-            {libraryName}&apos;s utilities are generated from Themvora tokens at
-            build time, so there is no runtime mount and nothing to subscribe to —
-            a theme change is a rebuild.
-          </p>
-        )}
-      </section>
-
-    <section id="quick-start" className={sectionClass}>
-      <h2 className="text-lg font-semibold tracking-tight">Quick Start</h2>
-      <p className="text-sm opacity-70 mt-1 mb-3">
-        {libraryName} wired up for {current.label}. Switch the picker above and
-        everything below changes with it.
-      </p>
-      <RecipeBlocks
-        block={{
-          lang: current.lang,
-          files: [
-            {
-              filename: current.filename,
-              code: current.code,
-              html: current.codeHtml,
-              lang: current.lang,
-              ...(current.displayLanguage
-                ? { displayLanguage: current.displayLanguage }
-                : {}),
-              ...(current.codeVariants ? { variants: current.codeVariants } : {}),
-            },
-          ],
-        }}
-        className="rounded-lg m-0"
-      />
-      </section>
-
-      {mount && (
-        <section id="mount-the-provider" className={sectionClass}>
-          <h2 className="text-lg font-semibold tracking-tight">
-            Mount the provider
-          </h2>
-          <p className="mt-1 text-sm opacity-70">
-            Themvora&apos;s provider owns the active theme. Drop this at your app
-            root — everything below it can read and change the theme, and the
-            bridge above picks up each change automatically.
-          </p>
-          <RecipeBlocks block={mount} className="rounded-lg m-0" />
-        </section>
-      )}
-
-      {components && (
-        <section id="components" className={sectionClass}>
-          <h2 className="text-lg font-semibold tracking-tight">
-            Use {libraryName} components
-          </h2>
-          <RecipeBlocks block={components} className="rounded-lg m-0" />
-          <p className="mt-3 text-sm opacity-70">
-            These are ordinary {libraryName} components. No Themvora-specific
-            props are required — the theme reaches them through {libraryName}
-            &apos;s own mechanism.
-          </p>
-        </section>
-      )}
-
-      {switching && (
-        <section id="theme-switching" className={sectionClass}>
-          <h2 className="text-lg font-semibold tracking-tight">
-            Theme switching
-          </h2>
-          <p className="mt-1 text-sm opacity-70">
-            The point of an adapter is that this is the only code that changes —
-            the components stay exactly as they are.
-          </p>
-          <RecipeBlocks block={switching} className="rounded-lg m-0" />
-        </section>
-      )}
-
-      <section id="before-after" className={sectionClass}>
-        <h2 className="text-lg font-semibold tracking-tight">
-          Before and after
-        </h2>
-
-        <div className="mt-4 flex flex-col gap-4 text-sm leading-relaxed opacity-80">
-          <div>
-            <div className="mb-1 font-medium opacity-100">
-              Without Themvora
-            </div>
-            <p>
-              You own the theme object. You choose the colours, keep them in
-              step with your design tokens by hand, write the dark variant
-              yourself, and rebuild the object whenever anything changes. Every
-              new token has to be added twice — once to your design system and
-              once to {libraryName}.
+            <SubStep label={`${libraryName} for ${current.label}`} />
+            <InstallCommand commands={installBlocks} />
+            <p className="mt-2 text-sm opacity-70">
+              Build tooling is installed as a dev dependency where it only runs
+              at build time. See {libraryName}&apos;s{" "}
+              <a href={officialUrl} target="_blank" rel="noreferrer">
+                installation guide
+              </a>{" "}
+              for anything beyond this.
             </p>
           </div>
 
           <div>
-            <div className="mb-1 font-medium opacity-100">With Themvora</div>
-            <p>
-              Themvora owns the theme. The adapter derives the {libraryName}
-              theme from Themvora&apos;s tokens and rebuilds it whenever the
-              active theme changes — switching family or mode, or a persisted
-              preference resolving on load. There is no second place to update,
-              because there is no second theme.
+            <SubStep label={`Themvora for ${current.label}`} />
+            <InstallCommand commands={themvoraBlocks} />
+            <p className="mt-2 text-sm opacity-70">
+              <code className="mono text-[0.9em]">@themvora/core</code> is a
+              normal dependency of both packages, so it is installed for you —
+              naming it here pins the runtime version in your own manifest.
             </p>
           </div>
-
-          <p className="opacity-100">
-            Your components stay {libraryName} components. Themvora becomes the
-            source of the active theme.
-          </p>
         </div>
-      </section>
+      </StepperSection>
 
-      {complete && (
-        <section id="full-example" className={sectionClass}>
-          <h2 className="text-lg font-semibold tracking-tight">
-            A complete example
-          </h2>
-          <p className="mt-1 text-sm opacity-70">
-            Everything together for {current.label}. Paste it in and it runs.
-          </p>
-          <RecipeBlocks block={complete} className="rounded-lg m-0" />
-        </section>
+      {/* ---------------------------------------------------------------- 3 */}
+      <StepperSection id="configure" className={sectionClass}>
+        <Step
+          n={3}
+          title="Connect Themvora"
+          lead={`Three files: the build and stylesheet configuration, the entry that mounts the runtime, and the component that attaches the adapter to it.`}
+        />
+
+        <div className="mt-4 flex flex-col gap-6">
+          {current.setup && (
+            <div>
+              <SubStep label="Build configuration and global styles" />
+              <RecipeBlocks block={current.setup} className="rounded-lg m-0" />
+              <p className="mt-2 text-sm opacity-70">
+                The library&apos;s own stylesheet is imported first, the
+                adapter&apos;s variable map second — that order is what lets the
+                adapter&apos;s values win over the library&apos;s defaults.
+              </p>
+            </div>
+          )}
+
+          {current.mountProvider && (
+            <div>
+              <SubStep label="Mount the runtime" />
+              <RecipeBlocks
+                block={current.mountProvider}
+                className="rounded-lg m-0"
+              />
+            </div>
+          )}
+
+          <div>
+            <SubStep label="Attach the adapter" />
+            <RecipeBlocks block={current.code} className="rounded-lg m-0" />
+            <p className="mt-2 text-sm opacity-70">
+              The adapter runs inside the runtime, so it re-applies on every
+              theme change without re-rendering your components.
+            </p>
+          </div>
+        </div>
+      </StepperSection>
+
+      {/* ---------------------------------------------------------------- 4 */}
+      {current.componentExample && (
+        <StepperSection id="components" className={sectionClass}>
+          <Step
+            n={4}
+            title={`Use ${libraryName}`}
+            lead={
+              architecture === "generated-theme"
+                ? `Real ${libraryName} components. None of them take a Themvora prop — the theme reaches them through ${libraryName}'s own provider.`
+                : architecture === "build-time"
+                  ? `${libraryName}'s own utility classes. Each one resolves to a live theme variable, so a theme change is a variable change, not a rebuild.`
+                  : `${libraryName}'s own classes and components. Nothing here is Themvora-specific markup — the variables are already written.`
+            }
+          />
+          <div className="mt-4">
+            <RecipeBlocks
+              block={current.componentExample}
+              className="rounded-lg m-0"
+            />
+          </div>
+        </StepperSection>
       )}
+
+      {/* ---------------------------------------------------------------- 5 */}
+      {current.themeSwitchExample && (
+        <StepperSection id="theme-switching" className={sectionClass}>
+          <Step
+            n={5}
+            title="Theme switching"
+            lead={`Mode changes go through Themvora's runtime. The controls below are ${libraryName}'s own components, and they are the only code that changes when the theme does.`}
+          />
+          <div className="mt-4">
+            <RecipeBlocks
+              block={current.themeSwitchExample}
+              className="rounded-lg m-0"
+            />
+          </div>
+          <div
+            className="mt-4 rounded-lg border border-border bg-muted/30 px-3 py-3 text-sm leading-relaxed opacity-80"
+            data-testid="recipe-family-switch"
+          >
+            <p>
+              The same hook returns the theme family and a setter for it. Adding
+              a family picker is one more control beside the ones above — the
+              library re-themes itself the moment the family changes, because the
+              adapter is subscribed to the runtime rather than to a snapshot:
+            </p>
+            <CodeBlock
+              code={familySnippet(current.label)}
+              language={FAMILY_SNIPPET_LANG[current.label] ?? "tsx"}
+              bordered={false}
+              className="m-0 mt-3"
+            />
+          </div>
+        </StepperSection>
+      )}
+
+      {/* ---------------------------------------------------------------- 6 */}
+      {current.completeExample && (
+        <StepperSection id="full-example" className={sectionClass} last>
+          <Step
+            n={6}
+            title="Put it together"
+            lead={`The last file: it composes the runtime, the adapter zone, the components and the controls. Everything it imports was created in steps 3 to 5.`}
+          />
+          <div className="mt-4">
+            <RecipeBlocks
+              block={current.completeExample}
+              className="rounded-lg m-0"
+            />
+          </div>
+        </StepperSection>
+      )}
+
     </>
   );
 }
-

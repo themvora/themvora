@@ -1,7 +1,7 @@
 # `themvora init`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 Create a project, or integrate Themvora into one you already have.
@@ -50,8 +50,8 @@ Usage:
 | `--preset <id>` | Generate the theme from a canonical preset. Run `themvora list presets` for the available values. | — |
 | `--brand <id>` | Generate the theme from a brand-inspired recipe. Run `themvora list brands` for the available values. | — |
 | `--seed <color>` | Generate the theme from a seed colour. | — |
-| `--styling <engine>` | Styling engine for the generated app: `css` (plain semantic stylesheet) or `tailwind` (Tailwind v4 via @themvora/tailwind). | `css` |
-| `--package-manager <name>` | Package manager to use. Defaults to detection from the lockfile. One of: `npm`, `pnpm`, `yarn`, `bun`. | — |
+| `--styling <engine>` | Styling engine for the generated app: `css` (plain semantic stylesheet, no extra dependency) or `tailwind` (Tailwind v4 via @themvora/tailwind). Plain CSS is the default in both modes: the wizard asks this as "Would you like to use Tailwind CSS with Themvora?" and preselects `css`, and a run without a terminal resolves to the same value. Supplying the flag skips the question. In an existing project it only rewrites the stylesheets `init` generated — one you wrote yourself needs --force. | `css` |
+| `--tool <name>` | Package manager to drive the framework generator and install dependencies: `npm`, `pnpm`, `yarn` or `bun`. When omitted, detection decides: the corepack `packageManager` field, then the lockfile, then npm. The interactive wizard preselects the manager you invoked the CLI with. `--package-manager` is accepted as a compatibility alias. One of: `npm`, `pnpm`, `yarn`, `bun`. | — |
 | `--example` | Accepted and ignored. The showcase is always generated; kept so older scripts do not break. | — |
 | `--plan` | Print what would happen and exit. Never writes or installs. | — |
 | `--dry-run` | Print the file operations and exit. Never writes, installs or scaffolds. | — |
@@ -68,11 +68,17 @@ Usage:
 | `3` | the project was written but a verification step failed |
 | `1` | command/runtime error, or existing files block the run |
 | `2` | usage/argument error |
+| `130` | the interactive wizard was cancelled (Ctrl+C); nothing was written |
 
 ### Examples
 
 ```bash
-themvora init my-app --framework react
+themvora init
+themvora init my-app --tool pnpm --framework react
+themvora init my-app --tool pnpm --framework react --styling tailwind
+themvora init my-app --tool npm --framework next --styling css
+themvora init my-app --tool npm --framework next
+themvora init my-app --package-manager pnpm --framework react
 themvora init my-app --framework next --preset mint
 themvora init my-app --framework react --plan
 themvora init my-app --framework react --no-install
@@ -80,6 +86,128 @@ themvora init my-app --framework react --no-install
 
 > Generated from `packages/cli/src/command-schema.json` — the same contract `themvora --help` renders.
 <!-- cli-command:generated:end -->
+
+## Interactive project creation
+
+Run `themvora init` with no directory, in a terminal, and the CLI opens a guided
+wizard:
+
+```text
+? What would you like to name your project? my-app
+? Which package manager would you like to use? pnpm
+? Which framework would you like to use? React
+? Would you like to use Tailwind CSS with Themvora? No — Plain CSS
+```
+
+Four questions, in that order:
+
+| Question | Asked when |
+| -------- | ---------- |
+| Project name | No directory was given, and the current directory is not already a project |
+| Package manager | `--tool` was not supplied, and nothing in the target identifies one |
+| Framework | `--framework` was not supplied, and the target is a new project |
+| Tailwind or plain CSS | `--styling` was not supplied, and the target is a new project |
+
+The last question has **No — Plain CSS** preselected — the same value a run
+without a terminal uses. *Yes — Tailwind CSS* installs the Tailwind integration
+instead.
+
+Explicit flags win, and nothing already supplied is asked for again:
+
+| Command | What it asks |
+| ------- | ------------ |
+| `themvora init` | name, package manager, framework, styling |
+| `themvora init my-app` | package manager, framework, styling |
+| `themvora init my-app --tool pnpm` | framework, styling |
+| `themvora init my-app --framework react` | package manager, styling |
+| `themvora init my-app --tool pnpm --framework react` | styling |
+| `themvora init my-app --tool pnpm --framework react --styling css` | nothing |
+
+Once the answers are in, the wizard hands over to the normal pipeline: it
+validates the configuration, scaffolds the framework with its official
+generator, integrates Themvora, installs the dependencies once, runs the
+project's own build and typecheck, and prints the command that starts the app.
+
+```bash
+# Interactive project creation
+themvora init
+
+# Explicit project configuration
+themvora init my-app --tool pnpm --framework react
+
+# Next.js with npm
+themvora init my-app --tool npm --framework next
+
+# Vue with bun
+themvora init my-app --tool bun --framework vue
+
+# Backward-compatible package-manager option
+themvora init my-app --package-manager pnpm --framework react
+```
+
+`themvora init .` is never a name question: a directory was named, so it is
+scaffolded in place.
+
+### Cancelling
+
+Ctrl+C at any question exits `130` and writes nothing. The questions run before
+a plan exists, so there is no half-scaffolded directory to clean up — and that
+includes the styling question, which is asked before a single file is written.
+
+### When the wizard does not run
+
+There is no wizard without a terminal. `--json`, `--quiet`, `--plan`,
+`--dry-run`, `CI`, `TERM=dumb`, and a redirected stdin all keep `init`
+non-interactive — and a missing value then becomes a usage error that names the
+flag supplying it:
+
+```text
+$ themvora init my-app --json
+Usage: themvora init [dir] [options]
+a new project needs --framework <id> (supported: react, next, vue, svelte, solid)
+```
+
+## Package managers
+
+`--tool` selects the package manager that drives the framework's generator and
+performs the dependency install:
+
+```bash
+themvora init my-app --tool pnpm --framework react
+themvora init my-app --tool bun --framework vue
+```
+
+| Value | Scaffolder invocation | Install |
+| ----- | --------------------- | ------- |
+| `npm` | `npm create vite@latest …` · `npx --yes create-next-app@latest …` | `npm install` |
+| `pnpm` | `pnpm create vite@latest …` · `pnpm dlx create-next-app@latest …` | `pnpm add` |
+| `yarn` | `yarn create vite@latest …` · `yarn dlx create-next-app@latest …` | `yarn add` |
+| `bun` | `bun create vite …` · `bunx create-next-app@latest …` | `bun add` |
+
+`--package-manager <name>` is the same option under its earlier spelling. Both
+resolve to one internal value; supplying both with **different** values is an
+argument conflict rather than a silent choice:
+
+```text
+$ themvora init my-app --tool pnpm --package-manager yarn --framework react
+Usage: themvora init [dir] [options]
+--tool and --package-manager disagree (--tool pnpm and --package-manager yarn) — pass a single package manager
+```
+
+When neither flag is given, detection decides, in this order:
+
+1. the corepack `packageManager` field, because it is an explicit declaration;
+2. the first lockfile found;
+3. `npm`, when there is neither.
+
+Several lockfiles are reported as a warning rather than silently resolved. A
+manager you named explicitly is checked before anything runs: if `pnpm` is not
+on `PATH`, `init` stops with an actionable error instead of quietly installing
+with npm.
+
+The wizard's menu preselects the manager that invoked the CLI, so `pnpm init`
+lands on pnpm. That is a default in a prompt, not a fourth detection rule: a
+non-interactive run has nobody to suggest it to, and falls back to npm.
 
 ## Supported frameworks
 
@@ -129,6 +257,57 @@ moment that framework changes its template.
 After scaffolding, the integration is computed from the generator's real output
 rather than from an assumption about it, and the project is verified by running
 its own `build` and `typecheck` scripts.
+
+### Installation happens once, and it is Themvora's
+
+The generators can install dependencies themselves, and every one of them asks
+first — `create-vite` with *"Install with npm and start now?"*. That question is
+suppressed, because for a Themvora starter either answer is wrong: the CLI
+installs the framework packages regardless, so answering *No* still ends in an
+install and answering *Yes* installs the tree twice.
+
+`init` therefore passes each generator its own documented non-interactive flag —
+`--no-interactive` for `create-vite`, `--skip-install` for `create-next-app` —
+and runs **one** install itself, after the integration has finished editing
+`package.json`:
+
+```text
+scaffold (no install)
+        ↓
+integrate — write the theme module, the showcase, the provider props
+        ↓
+record build-time dependencies in package.json (Tailwind only)
+        ↓
+install once, with the selected package manager
+        ↓
+verify — the project's own build and typecheck
+```
+
+Tailwind's compiler and its plugin are `devDependencies`, and package managers
+only take a dev flag for a whole command — so the obvious implementation is a
+second `add -D` right after the first. That is two full resolutions of one
+dependency tree for one new project, and it is not what happens here. The
+integration writes those two entries into `package.json` first, which means the
+single install already sees them and produces one lockfile entry set.
+
+`--no-install` is still supported and still means "install nothing": it drops
+Themvora's install step, and the generator's install is already suppressed. The
+manifest is still written in full, so a `pnpm install` you run yourself produces
+the same project. The dependency-backed verification steps are then reported as
+**skipped** rather than failed, because a build that cannot resolve its
+dependencies is not evidence that the generated code is broken.
+
+The development server is never started automatically. `init` prints the command
+that starts it, with the selected manager's own syntax:
+
+```text
+Project created successfully!
+
+Next steps:
+
+  cd /path/to/my-app
+  pnpm run dev
+```
 
 ## An existing project
 
@@ -261,24 +440,35 @@ that scripts written against an earlier release keep working.
 ## Styling
 
 ```bash
-themvora init my-app --framework react --styling css
-themvora init my-app --framework react --styling tailwind
+themvora init my-app --framework react                     # plain CSS — the default
+themvora init my-app --framework react --styling css       # plain CSS, explicitly
+themvora init my-app --framework react --styling tailwind  # Tailwind CSS
 ```
 
-`--styling` chooses the styling engine for the generated application. Plain CSS
-is the default, and the default in a non-interactive run.
+`--styling` chooses how the generated application is styled, and it defaults to
+plain CSS — in the wizard and outside it. In a terminal the wizard asks the same
+question — *Would you like to use Tailwind CSS with Themvora?* — with **No —
+Plain CSS** preselected. Pressing Enter and running `themvora init` with no
+terminal both produce the same project. Passing the flag skips the question
+entirely.
 
-**`css`** writes one global stylesheet that reads Themvora's semantic custom
-properties (`var(--theme-color-background)`, `var(--theme-color-card)`,
-`var(--theme-color-primary)`, …). It needs no extra dependency.
+Plain CSS is the default because it is the only choice that adds no build-time
+dependency: a project that a script generates, or that someone accepts without
+thinking about it, should not acquire a CSS framework it never asked for.
+Tailwind is one answer away, at the prompt or with `--styling tailwind`.
 
 **`tailwind`** writes a Tailwind CSS v4 entry point that imports `tailwindcss`
-and then `@themvora/tailwind`, whose `@theme` mapping turns the same tokens into
-utilities — `bg-background`, `text-foreground`, `bg-card`, `border-border`,
-`bg-primary`. It installs `@themvora/tailwind` and, as dev dependencies,
-`tailwindcss` and the framework's Tailwind plugin (`@tailwindcss/vite`, or
-`@tailwindcss/postcss` for Next.js), and registers the plugin in the build
-configuration.
+and then `@themvora/tailwind`, whose `@theme` mapping turns Themvora's tokens
+into utilities — `bg-background`, `text-foreground`, `bg-card`, `border-border`,
+`bg-primary`. It adds `@themvora/tailwind` to the dependencies, and
+`tailwindcss` plus the framework's own plugin (`@tailwindcss/vite`, or
+`@tailwindcss/postcss` for Next.js) to `devDependencies`, and registers the
+plugin in the build configuration.
+
+**`css`** writes one global stylesheet that reads the same tokens through
+`var(--theme-color-background)`, `var(--theme-color-card)`,
+`var(--theme-color-primary)` and friends. It adds no dependency at all, and no
+build configuration — there is nothing to compile.
 
 Either way the showcase contains **one** styling system: no `:root` palette, no
 `prefers-color-scheme` block, no literal colour in a component. Switching themes
@@ -292,9 +482,31 @@ renders Tailwind utilities (`class="grid gap-4 rounded-xl border border-border
 bg-card p-6"`) and defines **no** component classes at all — its stylesheet is
 the Tailwind entry point plus a body rule.
 
+What they do share is everything that makes the app an app: the same page, the
+same cards and controls, the same theme switcher, the same responsive
+breakpoints, the same tokens. Choosing plain CSS is a choice about how the
+stylesheet is written, not a downgrade to an unstyled page.
+
 `--styling` is deliberately not called `--style`: `--style` already means a theme
 *generation* style (`themvora generate --style minimal`), which is a different
-concern.
+concern. And there is no `--tailwind`/`--no-tailwind` pair — two flags for one
+setting is how a CLI ends up with two ways to say the same thing and no way to
+say which won.
+
+### Styling an existing project
+
+`--styling` is a choice about a project `init` is about to create. In an
+existing project it can only reach the files `init` generated: a stylesheet you
+wrote yourself is a conflict, not a target, so the run tells you which of the two
+it found instead of quietly restyling your app.
+
+```text
+! --styling tailwind only rewrites the stylesheets `init` generated — a
+  stylesheet you wrote yourself is left alone unless you pass --force
+```
+
+If you do want the matching rules in a project you already have, pass `--force`
+to replace its root stylesheet, or copy them across yourself.
 
 ## A fresh project versus an existing one
 
@@ -332,8 +544,9 @@ resolved afterwards. The plan says so.
 
 | Flag | Effect |
 | ---- | ------ |
-| `--no-install` | Skip installing the Themvora packages |
-| `--package-manager <name>` | Force `npm`, `pnpm`, `yarn` or `bun` |
+| `--no-install` | Skip dependency installation entirely; verification is then reported as skipped |
+| `--tool <name>` | Drive the generator and the install with `npm`, `pnpm`, `yarn` or `bun` |
+| `--package-manager <name>` | Compatibility alias for `--tool`; the two must agree |
 | `--force` | Replace files that exist and were not generated by `init` |
 | `--json` | Emit the plan or the report as JSON |
 | `--quiet` | Suppress progress output |
@@ -341,7 +554,8 @@ resolved afterwards. The plan says so.
 The package manager is detected from the lockfile, and the corepack
 `packageManager` field wins over a lockfile because it is an explicit
 declaration. Several lockfiles is reported as a warning rather than silently
-resolved.
+resolved. See [Package managers](#package-managers) for the full precedence and
+the commands each choice produces.
 
 ## What is wired
 
@@ -396,10 +610,13 @@ for the client runtime and the streamed, server-rendered subtree.
 | `3` | The project was written, but a verification step failed |
 | `1` | Command or runtime error, or existing files block the run |
 | `2` | Usage or argument error |
+| `130` | The interactive wizard was cancelled (Ctrl+C); nothing was written |
 
 A verification failure exits `3` rather than `0` deliberately: `init` claims to
 produce a *working* application, so a project that does not build is not a
-success.
+success. A cancellation exits `130` — `128 + SIGINT`, the conventional shell
+value — so a wrapper script can tell "the user changed their mind" from "the
+command failed".
 
 ## Safety
 

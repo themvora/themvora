@@ -26,6 +26,15 @@ import { themvora } from "../src/integration";
 
 interface SetupOptions {
   injectScript(stage: string, content: string): void;
+  /**
+   * Astro always passes this to `astro:config:setup`; the integration uses it to
+   * register the pre-paint CSS Vite plugin. A harness without it throws before
+   * the discovered config can be observed.
+   */
+  updateConfig(patch: { vite?: { plugins?: unknown[] } }): void;
+  /** Astro's watch registration: a change restarts the dev container. */
+  addWatchFile?(path: string): void;
+  command?: "dev" | "build" | "preview" | "sync";
   config?: { root: URL | string };
 }
 
@@ -34,7 +43,7 @@ const FIXTURE_ROOT = pathToFileURL(
 );
 
 /** Runs the hook against a given root and collects the injections. */
-async function injectAtRoot(root: URL) {
+async function injectAtRoot(root: URL, extra: Partial<SetupOptions> = {}) {
   const injected: { stage: string; content: string }[] = [];
   const hook = themvora().hooks["astro:config:setup"] as unknown as (
     setup: SetupOptions,
@@ -45,9 +54,44 @@ async function injectAtRoot(root: URL) {
     injectScript(stage, content) {
       injected.push({ stage, content });
     },
+    updateConfig() {
+      /* the pre-paint CSS plugin is not under test here */
+    },
+    ...extra,
   });
 
   return injected;
+}
+
+/**
+ * Runs the hook in dev and reports which files the integration asked Astro to
+ * watch.
+ *
+ * The injected `<head>` content is generated at setup, so the only way an edit
+ * to `theme.config.ts` can reach the browser is a container restart — which is
+ * what a watched file triggers.
+ */
+async function watchedFilesAtRoot(root: URL, options: Record<string, unknown> = {}) {
+  const watched: string[] = [];
+  const hook = themvora(options as never).hooks["astro:config:setup"] as unknown as (
+    setup: SetupOptions,
+  ) => void | Promise<void>;
+
+  await hook({
+    command: "dev",
+    config: { root },
+    injectScript() {
+      /* not under test here */
+    },
+    updateConfig() {
+      /* not under test here */
+    },
+    addWatchFile(file) {
+      watched.push(file);
+    },
+  });
+
+  return watched;
 }
 
 describe("themvora integration — config discovery", () => {
@@ -112,5 +156,67 @@ describe("themvora integration — config discovery", () => {
       injected.some((entry) => entry.content.includes("__THEMVORA_CONFIG__")),
     ).toBe(false);
     expect(injected.some((entry) => entry.content.includes("fp!=="))).toBe(true);
+  });
+});
+
+describe("themvora integration — config changes during dev", () => {
+  it("asks Astro to watch the discovered config file", async () => {
+    const watched = await watchedFilesAtRoot(FIXTURE_ROOT);
+
+    // The injected `<head>` content — bootstrap, transported config, stylesheet —
+    // is produced once at setup. Without this registration an edit to
+    // `theme.config.ts` was invisible until the process was restarted by hand,
+    // which is what made `transition: { enabled: false }` look broken.
+    expect(watched).toHaveLength(1);
+    expect(watched[0].replace(/\\/g, "/")).toMatch(/fixtures\/discovery\/theme\.config\.ts$/);
+  });
+
+  it("watches a config passed by path", async () => {
+    const watched = await watchedFilesAtRoot(pathToFileURL(import.meta.dirname), {
+      config: "fixtures/discovery/theme.config.ts",
+    });
+
+    expect(watched).toHaveLength(1);
+    expect(watched[0].replace(/\\/g, "/")).toMatch(/fixtures\/discovery\/theme\.config\.ts$/);
+  });
+
+  it("does not watch when the app passes the config object", async () => {
+    const watched = await watchedFilesAtRoot(FIXTURE_ROOT, {
+      config: {
+        themes: [
+          {
+            name: "inline-light",
+            meta: { family: "inline", mode: "light" },
+            tokens: { colors: { background: "#ffffff" } },
+          },
+        ],
+        defaultTheme: "inline-light",
+      },
+    });
+
+    // Nothing on disk to watch: the object is the source, and the application
+    // owns its identity.
+    expect(watched).toEqual([]);
+  });
+
+  it("does not watch during a build", async () => {
+    const watched: string[] = [];
+    const hook = themvora().hooks["astro:config:setup"] as unknown as (
+      setup: SetupOptions,
+    ) => void | Promise<void>;
+
+    await hook({
+      command: "build",
+      config: { root: FIXTURE_ROOT },
+      injectScript() {},
+      updateConfig() {},
+      addWatchFile(file) {
+        watched.push(file);
+      },
+    });
+
+    // A build resolves the configuration once; a watch registration there would
+    // be a hook nobody reads.
+    expect(watched).toEqual([]);
   });
 });

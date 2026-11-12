@@ -70,7 +70,10 @@ export function AstroSetupGuide({
           Overview
         </h2>
         {guide.overview.map((paragraph) => (
-          <p key={paragraph} className="mt-2 text-sm leading-relaxed opacity-80">
+          <p
+            key={paragraph}
+            className="mt-2 text-sm leading-relaxed opacity-80"
+          >
             <InlineCode>{paragraph}</InlineCode>
           </p>
         ))}
@@ -105,7 +108,7 @@ export function AstroSetupGuide({
         </ul>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-136 border-collapse text-left text-sm">
             <thead>
               <tr>
                 <th className="border-b border-border pb-2 pr-4 text-xs font-semibold uppercase tracking-wide opacity-60">
@@ -201,7 +204,7 @@ export function AstroSetupGuide({
               <div className="text-sm font-semibold">{app.label}</div>
               <a
                 href="/examples"
-                className="mt-0.5 inline-block font-mono text-xs text-primary no-underline hover:underline"
+                className="mt-0.5 inline-block font-mono text-xs text-(--docs-accent) no-underline hover:underline"
               >
                 {app.path}
               </a>
@@ -317,8 +320,7 @@ function Step({
           className="w-5 h-5 shrink-0 rounded-full grid place-items-center text-[0.65rem] font-bold"
           style={{
             background: "var(--theme-color-primary)",
-            color:
-              "var(--theme-color-primaryForeground)",
+            color: "var(--theme-color-primaryForeground)",
           }}
         >
           {num}

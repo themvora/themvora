@@ -30,7 +30,7 @@ const TD = "px-4 py-2.5 align-top";
 export default function MigratingTo2Page() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Upgrading"
           title="Migrating from 1.x to 2.0"

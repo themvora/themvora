@@ -16,6 +16,12 @@ beforeEach(() => {
   // a prior test left on the shared <html>.
   document.documentElement.style.cssText = "";
   document.querySelectorAll('style[data-themvora-transition]').forEach((n) => n.remove());
+  document
+    .querySelectorAll("style[data-themvora-animating-style]")
+    .forEach((n) => n.remove());
+  document
+    .querySelectorAll("style[data-themvora-view-transition-timing]")
+    .forEach((n) => n.remove());
   document.documentElement.removeAttribute("data-themvora-animating");
   document.documentElement.classList.remove("dark");
   document.documentElement.removeAttribute("data-theme");
@@ -46,7 +52,7 @@ describe("theme transitions", () => {
     }),
   ];
 
-  it("transitions the theme custom properties on :root when colors change", async () => {
+  it("swaps the theme custom properties in one step when the API is unavailable", async () => {
     const runtime = createThemeRuntime({
       themes,
       initialMode: "light",
@@ -58,12 +64,25 @@ describe("theme transitions", () => {
 
     runtime.selection.setMode("dark");
 
-    // The coordinator attaches the transition synchronously (before the
-    // frame-batched variable swap), listing the registered color variables.
-    const style = document.documentElement.style.transition;
-    expect(style).toContain("--theme-color-background");
-    expect(style).toContain("300ms");
-    expect(style).toContain("ease-in-out");
+    // No View Transition in jsdom, so the fallback runs — and it must NOT
+    // interpolate the variables. Adapter-driven libraries re-render with the
+    // new tokens synchronously, so an interpolated `--theme-*` fade would leave
+    // those components finished while every token surface was still mid-fade:
+    // the page sits half-switched for the whole duration. The swap is one step,
+    // and no `:root` transition rule is installed.
+    expect(document.documentElement.style.transition).toBe("");
+    expect(
+      document.documentElement.style.getPropertyValue("--theme-color-background"),
+    ).toBe("#000000");
+
+    // What the duration buys is a window in which descendant transitions are
+    // muted, so nothing eases into the new palette behind the swap.
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(true);
+    expect(
+      document.head.querySelector("style[data-themvora-animating-style]"),
+    ).not.toBeNull();
 
     await flushFrames();
     expect(
@@ -113,7 +132,58 @@ describe("theme transitions", () => {
     }
   });
 
-  it("falls back to the CSS-variable transition when the API is unsupported", async () => {
+  it("applies the configured duration and easing to the native crossfade", async () => {
+    // The UA's default crossfade ignores `transition.duration`, so a supported
+    // browser used to render every configured duration identically.
+    let finish = () => {};
+    (document as any).startViewTransition = (cb: () => Promise<void>) => {
+      const result = cb();
+      return {
+        ready: Promise.resolve(),
+        finished: new Promise<void>((resolve) => {
+          finish = resolve;
+          void result;
+        }),
+      };
+    };
+    try {
+      const runtime = createThemeRuntime({
+        themes,
+        initialMode: "light",
+        transition: {
+          enabled: true,
+          duration: 600,
+          easing: "ease-in-out",
+          useViewTransition: true,
+        },
+      });
+
+      runtime.selection.setMode("dark");
+
+      const sheet = document.querySelector<HTMLStyleElement>(
+        "style[data-themvora-view-transition-timing]",
+      );
+      expect(sheet).not.toBeNull();
+      expect(sheet?.textContent).toContain("animation-duration:600ms");
+      expect(sheet?.textContent).toContain("animation-timing-function:ease-in-out");
+
+      finish();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Scoped to this crossfade: a later navigation transition keeps its own
+      // timing instead of inheriting the theme's.
+      expect(
+        document.querySelector("style[data-themvora-view-transition-timing]"),
+      ).toBeNull();
+
+      runtime.destroy();
+    } finally {
+      delete (document as any).startViewTransition;
+    }
+  });
+
+  it("swaps atomically when the API is requested but unsupported", async () => {
     const runtime = createThemeRuntime({
       themes,
       initialMode: "light",
@@ -126,11 +196,17 @@ describe("theme transitions", () => {
 
     runtime.selection.setMode("dark");
 
-    // No View Transition → the coordinator's CSS-variable transition runs and
-    // lists the registered color variables before the frame-batched swap.
-    expect(document.documentElement.style.transition).toContain(
-      "--theme-color-background",
-    );
+    // Requested-but-absent is not a reason to fall back to interpolation: the
+    // two paths differ in *how* the change is painted, not in whether it is
+    // atomic. There is no crossfade and no variable easing here — the swap is
+    // immediate and only descendant transitions are muted.
+    expect(document.documentElement.style.transition).toBe("");
+    expect(
+      document.documentElement.style.getPropertyValue("--theme-color-background"),
+    ).toBe("#000000");
+    expect(
+      document.documentElement.hasAttribute("data-themvora-animating"),
+    ).toBe(true);
 
     await flushFrames();
     expect(

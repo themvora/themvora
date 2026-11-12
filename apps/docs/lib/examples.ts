@@ -302,7 +302,7 @@ export const CONCEPT_EDITORIAL: Record<string, ConceptEditorial> = {
     ],
     liveHref: "/zero-flash",
     liveLabel: "Zero-flash docs",
-    docsHref: "/no-flash-ssr",
+    docsHref: "/vite-plugin",
   },
   runtime: {
     group: "runtime",

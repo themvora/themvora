@@ -1,7 +1,8 @@
 /**
- * Compatibility data sourced from actual package metadata and source audits.
- * Last verified: 2026-09-24
- * Package version: 2.0.0
+ * Compatibility data sourced from the actual package manifests (normal
+ * dependencies, peer dependencies and optional peers) plus source audits.
+ * Last verified: 2026-11-12
+ * Themvora release: 3.0.0 (core 1.6.0)
  */
 
 export type SSRSupport = "Full" | "Helpers" | "Client-only" | "N/A";
@@ -50,7 +51,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "None",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Zero runtime dependencies. Provides core engine for all integrations.",
   },
   {
@@ -58,19 +59,20 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     framework: "React",
     frameworkVersion: "^19.0.0",
     ssr: "Client-only",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "LocalStorage",
     sync: "Both",
     scrollbar: "Component",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
-    notes: "SSR-safe but cannot server-render theme. Use Next.js adapter for SSR.",
+    lastVerified: "2026-11-04",
+    notes:
+      "SSR-safe but cannot server-render theme. The provider injects the blocking bootstrap; use the Next.js adapter for server-resolved themes.",
   },
   {
     package: "@themvora/next",
     framework: "Next.js",
-    frameworkVersion: "^15.5.22",
+    frameworkVersion: "^15.5.22 || ^16",
     ssr: "Full",
     zeroFlash: "Auto",
     persistence: "Cookie",
@@ -78,7 +80,7 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "Provider prop",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Server components read cookies, emit blocking script, render <html>. Zero-flash by default.",
   },
   {
@@ -86,57 +88,60 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     framework: "Vue 3",
     frameworkVersion: "^3.4.0",
     ssr: "Client-only",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "LocalStorage",
     sync: "Both",
     scrollbar: "Component",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
-    notes: "Runtime created on onMounted. Use Nuxt adapter for SSR.",
+    lastVerified: "2026-11-04",
+    notes:
+      "Runtime created on onMounted. The provider injects the blocking bootstrap; use the Nuxt adapter for server-resolved themes.",
   },
   {
     package: "@themvora/svelte",
     framework: "Svelte 5",
-    frameworkVersion: "^5.0.0",
+    frameworkVersion: "^5.56.0",
     ssr: "Client-only",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "LocalStorage",
     sync: "Both",
     scrollbar: "Component",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-07",
     notes:
-      "SSR-safe; the bindings are skipped on the server. In SvelteKit, inline the bootstrap script in app.html for zero-flash.",
+      "Requires Svelte 5.56 or newer: the compiled components use the runtime's Set-based rest-props argument, which older 5.x releases reject. SSR-safe; the bindings are skipped on the server. The provider injects the blocking bootstrap. In SvelteKit, add a server bootstrap for request-time cookie resolution.",
   },
   {
     package: "@themvora/solid",
     framework: "Solid",
     frameworkVersion: "^1.8.0",
     ssr: "Client-only",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "LocalStorage",
     sync: "Both",
     scrollbar: "Component",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
-    notes: "SSR-safe; children not rendered on server.",
+    lastVerified: "2026-11-04",
+    notes:
+      "SSR-safe; children not rendered on server. The provider injects the blocking bootstrap; add a server bootstrap for request-time cookie resolution.",
   },
   {
     package: "@themvora/angular",
     framework: "Angular",
     frameworkVersion: ">=17.0.0",
     ssr: "Helpers",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "LocalStorage",
     sync: "Both",
     scrollbar: "Directive",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
-    notes: "Provides createBlockingScriptContent for SSR. Uses own bootstrap (not core's serializeThemeBootstrapScript).",
+    lastVerified: "2026-11-07",
+    notes:
+      "Verified against Angular 22.2.5 with TypeScript 6.0.3 on Node 24.15.0 across the Bootstrap, daisyUI and Open Props recipes. provideTheme() emits the critical CSS and blocking bootstrap during SSR automatically. createBlockingScriptContent() remains available for custom server placement.",
   },
   {
     package: "@themvora/web",
@@ -149,9 +154,9 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "Element",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-05",
     notes:
-      "Framework-free custom elements. Zero-flash needs the bootstrap script the Quick Start shows inlined in <head>.",
+      "Framework-free custom elements. The provider upgrades with the module, so zero-flash needs themvoraVitePlugin() from @themvora/web/vite (or createThemeBootstrapScript()/boot.js outside Vite). The plugin injects the generated CSS and blocking boot script. Runtime-only themes are not in the generated CSS.",
   },
   {
     package: "@themvora/tailwind",
@@ -164,13 +169,13 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "None",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Maps semantic tokens to Tailwind utilities. Not a runtime package.",
   },
   {
     package: "@themvora/astro",
     framework: "Astro",
-    frameworkVersion: "^5.0.0",
+    frameworkVersion: "^5.0.0 || ^6.0.0 || ^7.0.0",
     ssr: "Full",
     zeroFlash: "Auto",
     persistence: "Cookie",
@@ -178,12 +183,12 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "Provider prop",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Server-renders <html> shell. Supports partial hydration.",
   },
   {
     package: "@themvora/nuxt",
-    framework: "Nuxt 4",
+    framework: "Nuxt",
     frameworkVersion: ">=3.10.0",
     ssr: "Full",
     zeroFlash: "Auto",
@@ -192,22 +197,38 @@ export const frameworkCompatibilityData: FrameworkCompatibility[] = [
     scrollbar: "Provider prop",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Module config, auto-imports, SSR bootstrap.",
   },
   {
     package: "@themvora/remix",
-    framework: "Remix",
+    framework: "Remix v2",
     frameworkVersion: "^2.16.0",
     ssr: "Full",
-    zeroFlash: "Manual",
+    zeroFlash: "Auto",
     persistence: "Cookie",
     sync: "Both",
     scrollbar: "Component",
     transitions: true,
     status: "Stable",
-    lastVerified: "2026-09-24",
-    notes: "Server/client boundary. User must manually add tv-scrollbar class to <html>.",
+    lastVerified: "2026-11-04",
+    notes:
+      "Remix v2 root route. createThemeDocument() emits the blocking script, renders the matching <html> shell and mounts the runtime; the lower-level ThemeHead/getThemeShellProps pair remains available for a hand-written document.",
+  },
+  {
+    package: "@themvora/remix",
+    framework: "React Router",
+    frameworkVersion: "^8.5.1",
+    ssr: "Full",
+    zeroFlash: "Auto",
+    persistence: "Cookie",
+    sync: "Both",
+    scrollbar: "Component",
+    transitions: true,
+    status: "Stable",
+    lastVerified: "2026-11-04",
+    notes:
+      "React Router Framework Mode via @themvora/remix/react-router. Root loader + Layout; createThemeDocument() owns the pre-paint script and the document shell. Verified against react-router 8.5.1.",
   },
 ];
 
@@ -220,7 +241,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "--background, --primary, --card, etc. (no shared prefix)",
     libraryVersion: "N/A (targets CSS var contract)",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Framework-neutral factory. Exports /react /vue /svelte /solid /angular /factory.",
   },
   {
@@ -231,7 +252,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "--bs-*",
     libraryVersion: "Bootstrap 5 (no peer dep)",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Framework-neutral factory. Exports /react /vue /svelte /solid /angular /factory.",
   },
   {
@@ -242,7 +263,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "--color-*",
     libraryVersion: "daisyUI 5 (no peer dep)",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Framework-neutral factory. CSS var prefix is --color-*, NOT --dbg-* or --p-*.",
   },
   {
@@ -253,7 +274,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "--color-*, --brand, --size-*, --shadow-*, --radius-*, --font-*",
     libraryVersion: "Open Props (no peer dep)",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Framework-neutral factory. Exports /react /vue /svelte /solid /angular /factory.",
   },
   {
@@ -264,7 +285,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "Theme object",
     libraryVersion: "@mui/material ^9.0.0",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "React-only. Requires @emotion/react ^11, @emotion/styled ^11. No framework subpaths.",
   },
   {
@@ -275,7 +296,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "Theme object",
     libraryVersion: "@chakra-ui/react ^3.0.0",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "React-only. No framework subpaths.",
   },
   {
@@ -286,7 +307,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "Theme object",
     libraryVersion: "antd ^6.0.0",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "React-only. No framework subpaths.",
   },
   {
@@ -297,7 +318,7 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "Theme object",
     libraryVersion: "@mantine/core ^7.0.0 || ^9.0.0",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "React-only. Supports Mantine 7 and 9. Package lives at packages/adapters/mantine.",
   },
   {
@@ -308,10 +329,10 @@ export const libraryCompatibilityData: LibraryCompatibility[] = [
     cssVarPrefix: "References core --theme-* vars",
     libraryVersion: "unocss ^66.0.0",
     ssrSafe: true,
-    lastVerified: "2026-09-24",
+    lastVerified: "2026-11-04",
     notes: "Framework-agnostic preset. References core CSS vars (--theme-color-*, --theme-radius-*, etc.).",
   },
 ];
 
-export const VERIFIED_DATE = "September 24, 2026";
-export const VERIFIED_VERSION = "2.0.0";
+export const VERIFIED_DATE = "November 5, 2026";
+export const VERIFIED_VERSION = "3.0.0";

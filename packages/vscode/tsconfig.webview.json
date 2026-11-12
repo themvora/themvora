@@ -13,8 +13,12 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  // The webview's own render test lives here too: it imports a `.tsx` module and
-  // needs JSX and the DOM lib, so it is typechecked with the code it exercises
+  // The webview's own render tests live here too: they import a `.tsx` module and
+  // need JSX and the DOM lib, so they are typechecked with the code they exercise
   // rather than with the host.
-  "include": ["webview", "test/studioLibraryRender.test.ts"]
+  "include": [
+    "webview",
+    "test/studioLibraryRender.test.ts",
+    "test/studioSaveDialogRender.test.ts"
+  ]
 }

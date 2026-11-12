@@ -40,16 +40,18 @@ export function DocsPagination() {
       {prev ? (
         <Link
           href={prev.href}
-          className="group rounded-xl border border-border p-4 no-underline flex flex-col gap-1 card-lift"
+          className="group rounded-xl border border-border bg-card text-card-foreground p-4 no-underline flex flex-col gap-1 card-lift"
         >
-          <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             ← Previous
           </span>
-          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
+          <span className="font-semibold text-sm sm:text-base text-card-foreground group-hover:text-card-foreground">
             {prev.label}
           </span>
           {prev.hint ? (
-            <span className="text-xs opacity-60 line-clamp-1">{prev.hint}</span>
+            <span className="text-xs text-muted-foreground line-clamp-1">
+              {prev.hint}
+            </span>
           ) : null}
         </Link>
       ) : (
@@ -58,16 +60,18 @@ export function DocsPagination() {
       {next ? (
         <Link
           href={next.href}
-          className="group rounded-xl border border-border p-4 no-underline flex flex-col gap-1 sm:text-right card-lift"
+          className="group rounded-xl border border-border bg-card text-card-foreground p-4 no-underline flex flex-col gap-1 sm:text-right card-lift"
         >
-          <span className="text-[11px] font-semibold uppercase tracking-widest opacity-40">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Next →
           </span>
-          <span className="font-semibold text-sm sm:text-base text-foreground group-hover:text-foreground">
+          <span className="font-semibold text-sm sm:text-base text-card-foreground group-hover:text-card-foreground">
             {next.label}
           </span>
           {next.hint ? (
-            <span className="text-xs opacity-60 line-clamp-1">{next.hint}</span>
+            <span className="text-xs text-muted-foreground line-clamp-1">
+              {next.hint}
+            </span>
           ) : null}
         </Link>
       ) : null}

@@ -8,7 +8,11 @@ import { CodeBlock } from "../code-block";
 import { Callout } from "../ui/callout";
 import { PickCard } from "../ui/pick-card";
 import { InstallCommand, type PackageManager } from "../install-command";
-import { frameworks, type FrameworkItem } from "../../lib/frameworks";
+import {
+  frameworkGuidePath,
+  frameworks,
+  type FrameworkItem,
+} from "../../lib/frameworks";
 import { useScrollToOnChange } from "../ui/use-scroll-to-on-change";
 import { ResultDemo } from "./result-demo";
 
@@ -194,9 +198,10 @@ export function GetStartedGuide({
         </h2>
         <p className="opacity-70 text-sm mb-5 max-w-2xl">
           The concepts stay identical across every stack — only the wiring
-          changes. The core is one package; your framework adds an adapter.
+          changes. The core is a separate package; your framework adds an
+          adapter.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="docs-card-grid">
           {frameworks.map((f) => (
             <FrameworkCard
               key={f.slug}
@@ -286,7 +291,7 @@ export function GetStartedGuide({
             Provider is <span className="mono">{fw.pkg}</span> (installed in
             step 1). See the{" "}
             <Link
-              href={`/framework-guides/${fw.slug}`}
+              href={frameworkGuidePath(fw.slug)}
               className="text-foreground font-medium no-underline underline hover:decoration-foreground"
             >
               {fw.name} guide
@@ -372,7 +377,7 @@ export function GetStartedGuide({
               </Link>
             ))}
             <Link
-              href={`/framework-guides/${fw.slug}`}
+              href={frameworkGuidePath(fw.slug)}
               className="chip no-underline text-sm hover:border-ring transition-colors"
             >
               Full {fw.name} guide →

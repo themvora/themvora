@@ -41,8 +41,8 @@ export const webExamples: FrameworkExamples = {
         <h1>Hello, themed world</h1>
         <themvora-toggle></themvora-toggle>
       </header>
-      <main class="surface">
-        <p class="muted">This card reads Themvora tokens.</p>
+      <main>
+        <p>This card reads Themvora tokens.</p>
       </main>
     </themvora-provider>
   </body>
@@ -52,6 +52,26 @@ export const webExamples: FrameworkExamples = {
         title: "main.js",
         lang: "js",
         code: `import "@themvora/web";`,
+      },
+      {
+        title: "vite.config.ts",
+        lang: "ts",
+        code: `import { defineConfig } from "vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
+
+// Injects the pre-paint CSS, the transported config and the blocking script.
+export default defineConfig({ plugins: [themvoraVitePlugin()] });`,
+      },
+      {
+        title: "theme.config.ts",
+        lang: "ts",
+        code: `import { defineThemvoraConfig, getBuiltInThemes } from "@themvora/core";
+
+export default defineThemvoraConfig({
+  themes: getBuiltInThemes(),
+  defaultTheme: "light",
+  initialMode: "system",
+});`,
       },
     ],
   },
@@ -108,21 +128,21 @@ ThemvoraProvider.define("my-provider");`,
           id: "web-vite-plugin",
           name: "themvoraVitePlugin()",
           covers: ["themvoraVitePlugin()"],
-          what: "A Vite plugin that injects the blocking pre-paint script into the served HTML, so zero-flash needs no `<script>` tag of your own. It reads `theme.config.ts` at the project root, and the provider adopts what the script painted.",
-          when: "A Vite app (or any Vite-based meta-framework) that should paint the persisted theme on the first frame.",
-          effect: "The persisted theme is applied before first paint. Pass `scrollbar: true` as well when the page uses `<themvora-scrollbar>`, so the same pass hides the native bar.",
+          what: "The Vite integration. It discovers `theme.config.ts` and injects three things in order: a render-blocking `<style>` generated from the declared themes, the serialized configuration the provider reads, and a classic blocking boot script that restores the persisted selection. No `<script>` tag, no prebuild/predev step and no second configuration.",
+          when: "A Vite app (or any Vite-based meta-framework) that should paint the default theme and a saved selection on the first frame.",
+          effect: "The generated CSS themes ordinary HTML even with JavaScript disabled, and the boot script restores a saved non-default selection before the body is parsed. The provider adopts what was painted. Pass `scrollbar: true` as well when the page uses `<themvora-scrollbar>`, so the same pre-paint pass hides the native bar.",
           related: ["web-import", "web-scrollbar-el"],
           code: [
             {
               title: "vite.config.ts",
               lang: "ts",
               code: `import { defineConfig } from "vite";
-import { themvoraVitePlugin } from "@themvora/core/vite";
+import { themvoraVitePlugin } from "@themvora/web/vite";
 
 export default defineConfig({
   plugins: [
-    // Reads theme.config.ts and injects the blocking script into the HTML.
-    themvoraVitePlugin({ scrollbar: true }),
+    // Reads theme.config.ts and injects the CSS + boot script into the HTML.
+    themvoraVitePlugin(),
   ],
 });`,
             },
@@ -135,6 +155,7 @@ import { getBuiltInThemes } from "@themvora/core";
 export default defineThemvoraConfig({
   themes: getBuiltInThemes(),
   defaultTheme: "mint-light",
+  initialMode: "system",
 });`,
             },
           ],
@@ -189,7 +210,7 @@ export default defineThemvoraConfig({
   themes='[{"name":"brand","tokens":{"colors":{"primary":"#635bff"}}}]'
   default-theme="brand"
 >
-  <main class="surface">Brand tokens, no build step.</main>
+  <main>Brand tokens, no build step.</main>
 </themvora-provider>`,
             },
           ],
@@ -267,7 +288,7 @@ export default defineThemvoraConfig({
               code: `<themvora-provider
   transition='{"enabled":true,"duration":250,"easing":"ease-in-out"}'
 >
-  <main class="surface">Changes cross-fade.</main>
+  <main>Changes cross-fade.</main>
 </themvora-provider>`,
             },
           ],
@@ -288,7 +309,7 @@ export default defineThemvoraConfig({
   themes="mint-light mint-dark"
   scheduled='{"lightTheme":"mint-light","darkTheme":"mint-dark"}'
 >
-  <main class="surface">Follows daylight.</main>
+  <main>Follows daylight.</main>
 </themvora-provider>`,
             },
           ],
@@ -322,7 +343,7 @@ export default defineThemvoraConfig({
     <themvora-toggle></themvora-toggle>
     <themvora-select type="family" label="Theme family"></themvora-select>
   </header>
-  <main class="surface">Page content.</main>
+  <main>Page content.</main>
 </themvora-provider>`,
             },
           ],
@@ -349,7 +370,7 @@ export default defineThemvoraConfig({
               lang: "html",
               code: `<!-- \`theme="plum"\` is a family: it flips light/dark with the page. -->
 <themvora-scope theme="plum">
-  <div class="surface">Second brand surface.</div>
+  <div>Second brand surface.</div>
 </themvora-scope>`,
             },
           ],
@@ -417,7 +438,7 @@ themvora-toggle[aria-pressed="mixed"] {
               lang: "html",
               code: `<themvora-provider scrollbar>
   <themvora-scrollbar thickness="10" auto-hide></themvora-scrollbar>
-  <main class="surface">Long content…</main>
+  <main>Long content…</main>
 </themvora-provider>`,
             },
           ],
@@ -662,7 +683,7 @@ const unsubscribe = observeEffectiveThemeMode((selection) => {
     <themvora-toggle></themvora-toggle>
     <themvora-select type="family" label="Theme family"></themvora-select>
   </header>
-  <main class="surface">
+  <main>
     <h1>Static, themed, persisted</h1>
   </main>
 </themvora-provider>
@@ -689,7 +710,7 @@ const unsubscribe = observeEffectiveThemeMode((selection) => {
           title: "Embedded region",
           lang: "html",
           code: `<themvora-scope theme="cocoa-dark">
-  <div class="surface">
+  <div>
     <h2>Embedded widget</h2>
     <themvora-toggle></themvora-toggle>
   </div>
@@ -750,11 +771,11 @@ const unsubscribe = runtime.store.subscribe((theme) => {
     <themvora-select type="family" label="Theme family"></themvora-select>
   </header>
 
-  <main class="surface">
+  <main>
     <h1>Themed, switchable, persisted</h1>
 
     <themvora-scope theme="cocoa-dark">
-      <p class="muted">This panel keeps its own theme.</p>
+      <p>This panel keeps its own theme.</p>
     </themvora-scope>
   </main>
 

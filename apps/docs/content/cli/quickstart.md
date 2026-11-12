@@ -1,7 +1,7 @@
 # CLI Quick Start
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - npm, pnpm, yarn, or bun installed
 - No Themvora project setup required to start
 
@@ -16,8 +16,20 @@ your app. If you would rather the CLI set the project up for you — scaffold it
 wire the provider, and verify it builds — start with [`init`](/cli/init) instead:
 
 ```bash
-themvora init my-app --framework react --preset mint
+# Guided: asks for the project name, package manager, framework and styling
+themvora init
+
+# Or say what you want and skip the questions
+themvora init my-app --tool pnpm --framework react --preset mint
+
+# Same project, with Tailwind CSS instead of the default plain CSS
+themvora init my-app --tool pnpm --framework react --styling tailwind
 ```
+
+Either way it scaffolds with the framework's own generator, installs the
+dependencies once, and runs the project's build and typecheck before it reports
+success. Plain CSS is the default; the styling choice changes how the starter is
+written, not what it contains: same page, same components, same theme tokens.
 
 Both paths end in the same place: the same `ThemeDefinition` objects, consumed
 by the same provider.

@@ -883,6 +883,12 @@ const ThemeProviderBase = defineComponent({
           // competing `startViewTransition`. Otherwise the DOM binding owns its
           // updates.
           subscribe: !cssBindingDrivesDom,
+          // Mirror the visitor's selection onto `data-theme-selection-mode` /
+          // `-family`. The provider creates the runtime with `dom: false`, so
+          // without this the attributes stay at whatever the pre-paint script
+          // wrote and a `"system"` selection is indistinguishable from the
+          // resolved light/dark theme. Mirrors the runtime and React provider.
+          selection: resolvedRuntime.selection,
           ...(resolvedTransition !== undefined
             ? { transition: resolvedTransition }
             : {}),

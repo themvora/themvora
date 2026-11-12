@@ -33,10 +33,10 @@ export function PickCard({
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      className={`card-lift relative rounded-xl border p-4 flex flex-col items-start gap-2 text-left cursor-pointer ${
+      className={`card-lift relative rounded-xl border bg-card p-4 flex flex-col items-start gap-2 text-left cursor-pointer text-card-foreground ${
         active
-          ? "border-(--theme-color-primary) bg-[color-mix(in_srgb,var(--theme-color-primary)_8%,transparent)]"
-          : "border-border hover:border-(--theme-color-ring) hover:bg-muted/50"
+          ? "border-(--theme-color-primary) ring-1 ring-(--theme-color-primary)"
+          : "border-border hover:border-(--theme-color-ring)"
       } ${className ?? ""}`}
     >
       {active ? (
@@ -65,12 +65,14 @@ export function PickCard({
         </span>
       ) : null}
       {icon ? <span className="text-2xl">{icon}</span> : null}
-      <span className="font-semibold text-sm">{title}</span>
+      <span className="font-semibold text-sm text-card-foreground">{title}</span>
       {subtitle ? (
-        <span className="mono text-[10px] opacity-40">{subtitle}</span>
+        <span className="mono text-[10px] font-medium text-muted-foreground">
+          {subtitle}
+        </span>
       ) : null}
       {description ? (
-        <span className="text-[11px] leading-snug opacity-60">
+        <span className="text-[11px] leading-snug text-muted-foreground">
           {description}
         </span>
       ) : null}

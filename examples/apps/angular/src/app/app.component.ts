@@ -2,11 +2,12 @@ import { Component } from "@angular/core";
 import { ThemeScrollbarDirective } from "@themvora/angular";
 import { scrollbarIcons } from "@themvora/app-shared/icons";
 import { ThemvoraDefaultComponent } from "./components/themvora-default.component";
+import { ScopeComponent } from "./components/theme-scope.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [ThemeScrollbarDirective, ThemvoraDefaultComponent],
+  imports: [ThemeScrollbarDirective, ThemvoraDefaultComponent, ScopeComponent],
   template: `
     <main
       class="page flex flex-col"
@@ -23,6 +24,8 @@ import { ThemvoraDefaultComponent } from "./components/themvora-default.componen
           </p>
         }
       </div>
+
+      <app-scope />
     </main>
   `,
 })

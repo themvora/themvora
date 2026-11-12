@@ -38,6 +38,45 @@ export const DEFAULT_FILE_NAMES: Record<ThemeFileFormat, string> = {
   css: "themvora-theme.css",
 };
 
+/**
+ * The on-disk extension a format writes, without the dot.
+ *
+ * A format key is not a file extension: `ts-generate` and `ts-preset` both write
+ * a `.ts` file. Handing the key to the save dialog as a filter makes Windows
+ * append it literally, so a theme is written as `theme.ts.ts-generate` — a file
+ * no editor, resolver or registry will read back.
+ *
+ * @param format - The format.
+ * @returns The extension, without a leading dot.
+ */
+export function extensionForFormat(format: ThemeFileFormat): string {
+  if (format === "json") return "json";
+  if (format === "css") return "css";
+  return "ts";
+}
+
+/**
+ * The directory a path lives in.
+ *
+ * @param fsPath - A file path.
+ * @returns Its parent, or the path itself when it has no separator.
+ */
+export function directoryOf(fsPath: string): string {
+  const index = Math.max(fsPath.lastIndexOf("/"), fsPath.lastIndexOf("\\"));
+  return index <= 0 ? fsPath : fsPath.slice(0, index);
+}
+
+/**
+ * The final segment of a path.
+ *
+ * @param fsPath - A file path.
+ * @returns The file name.
+ */
+export function baseNameOf(fsPath: string): string {
+  const index = Math.max(fsPath.lastIndexOf("/"), fsPath.lastIndexOf("\\"));
+  return index < 0 ? fsPath : fsPath.slice(index + 1);
+}
+
 /** What the caller needs to write a pair. */
 export interface SaveThemeOptions {
   /** The themes to write: one, or a light/dark pair. */
@@ -206,20 +245,28 @@ export function themeFilePayload(
  * dialog has not lost anything, and an error toast would be noise.
  */
 export async function saveThemes(options: SaveThemeOptions): Promise<SaveOutcome> {
+  const format = options.format ?? "json";
   const folders = workspace.workspaceFolders;
   const first = folders && folders.length > 0 ? folders[0] : undefined;
-  const defaultUri = first ? Uri.joinPath(first.uri, DEFAULT_THEME_FILE_NAME) : undefined;
+  const defaultUri = first ? Uri.joinPath(first.uri, DEFAULT_FILE_NAMES[format]) : undefined;
 
-  const target =
+  const picked =
     options.target ??
     (options.fileName === undefined ? undefined : insideFirstFolder(options.fileName)) ??
     (await window.showSaveDialog({
       saveLabel: "Save Theme",
-      filters: { "Theme JSON": ["json"] },
+      filters: { "Theme file": [extensionForFormat(format)] },
       ...(defaultUri !== undefined ? { defaultUri } : {}),
     }));
 
-  if (target === undefined) return { ok: false, reason: "cancelled" };
+  if (picked === undefined) return { ok: false, reason: "cancelled" };
+
+  // A dialog that returns a folder means "write the file in here"; appending the
+  // default name is the only reading that does not drop the file name the caller
+  // asked for. Without this, the write would fail against a directory.
+  const target = /[\\/]$/u.test(picked.fsPath)
+    ? Uri.joinPath(picked, options.fileName ?? DEFAULT_FILE_NAMES[format])
+    : picked;
 
   try {
     await options.sessions.run(projectRootOf(target), async () => {
@@ -228,7 +275,7 @@ export async function saveThemes(options: SaveThemeOptions): Promise<SaveOutcome
       const body =
         options.format === "css"
           ? (options.css ?? "")
-          : themeFilePayload(options.themes, options.format ?? "json", options.payload ?? {});
+          : themeFilePayload(options.themes, format, options.payload ?? {});
       await workspace.fs.writeFile(target, Buffer.from(body, "utf8"));
     });
   } catch (error) {
@@ -249,9 +296,7 @@ export async function saveThemes(options: SaveThemeOptions): Promise<SaveOutcome
  * @returns Its parent path, so writes to the same project are serialised.
  */
 function projectRootOf(target: Uri): string {
-  const path = target.fsPath;
-  const index = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-  return index <= 0 ? path : path.slice(0, index);
+  return directoryOf(target.fsPath);
 }
 
 /**

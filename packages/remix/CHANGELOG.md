@@ -1,5 +1,64 @@
 # @themvora/remix
 
+## 3.0.0
+
+### Major Changes
+
+- Add a single-configuration document integration and an explicit React Router
+  Framework Mode entry point.
+
+  `createThemeDocument({ themes, defaultTheme, mode, scrollbar })` returns:
+
+  - `resolveInitial(request)` for the root loader;
+  - `Document`, which renders the blocking head script, the matching `<html>`
+    shell and the runtime provider from that one configuration;
+  - `Provider` for a tree that is not the document shell;
+  - the frozen `config` and the static `fallback`.
+
+  `Document.head` is a typed array of head elements:
+  `head={[<meta key="charset" charSet="utf-8" />, <Meta key="meta" />]}`. React 19
+  types every JSX expression as `ReactElement<any, any>`, so a JSX fragment cannot
+  be checked element by element; the array rejects a fragment at the prop
+  boundary, and an invalid intrinsic element such as `<div>` is rejected with a
+  descriptive error when the document renders. `htmlProps` and `bodyProps` use
+  documented types (`ThemeDocumentHtmlProps`, `ThemeDocumentBodyProps`) for
+  `lang`, `className`, `style` and `dir`.
+
+  The integration is framework-neutral: it uses React and the standard `Request`
+  object and never imports `@remix-run/*`. React Router projects can therefore use
+  `@themvora/remix/react-router`, while Remix v2 keeps the root entry. The
+  `@remix-run/react` peer is now optional, matching the runtime (a React Router
+  project does not install Remix v2 packages).
+
+  No existing export changed. `getInitialThemeState`, `ThemeHead`,
+  `getThemeShellProps`, `ThemeProvider` and `createRemixThemePersistence` keep
+  their current behaviour.
+
+- Let `createThemeDocument()` express every runtime option the Remix provider
+  previously accepted.
+
+  `ThemeDocumentConfig` now accepts:
+
+  - `transition` — `true`, `false`, or the full `ThemeTransitionOptions` object;
+  - `initialMode` / `initialFamily` — aliases for `mode` / `family`, matching the
+    provider prop names. The canonical `mode` / `family` win when both are given.
+
+  `ThemeProvider` now types and forwards `transition` and `scheduled` instead of
+  silently dropping them, which is what makes the document config able to pass
+  them through. `children` remains a `Document` prop, and `initial` remains the
+  per-request loader result.
+
+  The Animation guide's Remix snippets now use `createThemeDocument()` with a
+  `transition` option instead of the old provider-only example.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+  - @themvora/react@1.4.1
+
 ## 2.1.0
 
 ### Minor Changes

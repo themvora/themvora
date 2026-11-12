@@ -246,8 +246,10 @@ Themvora is a set of independently installable packages, not a single bundle:
 - Installing a framework integration (`@themvora/react`, `@themvora/vue`,
   `@themvora/svelte`, `@themvora/solid`, `@themvora/angular`,
   `@themvora/next`, `@themvora/nuxt`, `@themvora/astro`,
-  `@themvora/remix`) installs that framework and nothing else — no unrelated
-  framework packages and no component-library adapters.
+  `@themvora/remix`) installs that binding and the `@themvora/core` runtime it
+  declares as a normal dependency — no unrelated framework packages and no
+  component-library adapters. The guides still install core explicitly so the
+  runtime version is visible in your own manifest.
 - Adapters are separate packages, installed only when explicitly wanted. Their
   framework wrappers live behind subpaths (`/react`, `/vue`, `/svelte`,
   `/solid`, `/angular`) with optional peers.

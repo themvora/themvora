@@ -1,4 +1,4 @@
-# Themvora for VS Code
+# Themvora Theme Studio for VS Code
 
 **See what your themes actually look like — explore, preview, inspect, create and
 validate them without leaving the editor.**
@@ -7,12 +7,38 @@ validate them without leaving the editor.**
 
 **Explore** · **Preview** · **Inspect** · **Create** · **Validate**
 
-Themvora for VS Code brings the theme system into your editor. It reads the themes
-already in your project, shows you what they resolve to, and writes new ones back
-as a file you can commit.
+Themvora Theme Studio for VS Code brings the theme system into your editor. It
+reads the themes already in your project, shows you what they resolve to, and
+writes new ones back as a file you can commit.
 
 It works on the themes in **your application** — not your editor's colour theme,
 which it never changes.
+
+---
+
+## Install
+
+Published on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=themvora.themvora-for-vscode)
+by **Themvora**. The identifier is `themvora.themvora-for-vscode`.
+
+1. Open the Extensions view with `Ctrl+Shift+X` (`Cmd+Shift+X` on macOS).
+2. Search for **Themvora Theme Studio**, or paste
+   `@id:themvora.themvora-for-vscode` into the search box for one exact result.
+3. Open the result published by **Themvora** and choose **Install**.
+4. Run **Developer: Reload Window**. A Themvora icon appears in the Activity Bar.
+
+From a terminal:
+
+```bash
+code --install-extension themvora.themvora-for-vscode
+```
+
+The [documentation site](https://themvora-dev.vercel.app/vscode) has an
+**Open in VS Code** button that opens this listing directly inside the editor.
+
+![The published extension listing in VS Code: the title 'Themvora Theme Studio for VS Code', publisher Themvora, an Install button, and the identifier themvora.themvora-for-vscode in the Marketplace panel.](https://raw.githubusercontent.com/themvora/themvora/main/apps/docs/public/vscode/marketplace-listing.png)
+
+[View the full-size screenshot](https://raw.githubusercontent.com/themvora/themvora/main/apps/docs/public/vscode/marketplace-listing.png)
 
 ---
 

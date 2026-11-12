@@ -2,18 +2,22 @@ import { defineConfig } from "vite";
 import { themvoraVitePlugin } from "@themvora/core/vite";
 
 /**
- * A plain Vite site with no framework and no CSS framework.
+ * The Vite integration is one plugin call.
  *
- * `themvoraVitePlugin()` is the one integration point: it discovers
- * `theme.config.ts` and injects the blocking pre-paint script into the served
- * HTML, so the first painted frame already carries the resolved theme.
+ * `themvoraVitePlugin()` discovers `theme.config.ts` and injects three things
+ * into the served HTML at build time: the render-blocking theme stylesheet, the
+ * serializable configuration as `window.__THEMVORA_CONFIG__`, and the classic
+ * blocking script that restores the saved selection. Nothing is added to
+ * `index.html` and no asset is copied.
  *
- * `scrollbar: true` hides the native scrollbar in that same pre-paint pass. The
- * page draws the overlay with `createOverlayScrollbar()`, which only runs once
- * the module does — without this the browser would paint a native bar first and
- * swap it for the overlay a moment later.
+ * That is the whole difference from the framework-free setup: the same
+ * pre-paint mechanism, delivered by the build instead of by two tags.
  */
 export default defineConfig({
+  // `scrollbar: true` hides the native scrollbar in the same pre-paint pass, so
+  // the overlay `createOverlayScrollbar()` draws in `main.ts` is never preceded
+  // by a native bar. Without it the browser paints the platform bar first and
+  // swaps it a moment later.
   plugins: [themvoraVitePlugin({ scrollbar: true })],
   server: { port: 5196, strictPort: true },
   preview: { port: 5196, strictPort: true },

@@ -9,7 +9,10 @@
 import { generateTheme } from "@themvora/core";
 import { describe, expect, it } from "vitest";
 
-import { themeFilePayload } from "../src/services/saveTheme";
+import { createRootSessions } from "../src/services/rootSessions";
+import { extensionForFormat, saveThemes, themeFilePayload } from "../src/services/saveTheme";
+import { createTempProject } from "./helpers/tempProject";
+import { __reset, __state, Uri } from "./stubs/vscode";
 
 /** A real pair, so the payload contains real tokens. */
 const PAIR = generateTheme({ seed: "#4f46e5" });
@@ -112,5 +115,61 @@ describe("themeFilePayload — the TypeScript variants", () => {
   it("calls the curated catalog for a preset, and the builtin one for builtin", () => {
     expect(themeFilePayload(THEMES, "ts-preset", { presetSource: "preset" })).toContain("getPresetThemes();");
     expect(themeFilePayload(THEMES, "ts-preset", { presetSource: "builtin" })).toContain("getBuiltInThemes();");
+  });
+});
+
+describe("saveThemes — the destination", () => {
+  it("reports the extension a format writes, not the format's name", () => {
+    // `ts-generate` and `ts-preset` both write TypeScript. Offering the key as a
+    // filter makes Windows append it literally, producing `theme.ts.ts-generate`.
+    expect(extensionForFormat("json")).toBe("json");
+    expect(extensionForFormat("css")).toBe("css");
+    expect(extensionForFormat("ts")).toBe("ts");
+    expect(extensionForFormat("ts-generate")).toBe("ts");
+    expect(extensionForFormat("ts-preset")).toBe("ts");
+  });
+
+  it("offers the real extension to the save dialog", async () => {
+    __reset();
+    const project = createTempProject();
+    try {
+      __state.folders = [project.root];
+      __state.saveDialog = Uri.file(`${project.root}/theme.ts`);
+
+      const outcome = await saveThemes({
+        themes: THEMES,
+        sessions: createRootSessions(),
+        format: "ts-generate",
+      });
+
+      expect(outcome).toEqual({ ok: true, path: `${project.root}/theme.ts` });
+      expect(__state.saveDialogFilters[0]).toEqual({ "Theme file": ["ts"] });
+    } finally {
+      project.cleanup();
+    }
+  });
+
+  it("writes the file inside a folder target instead of failing on the folder", async () => {
+    __reset();
+    const project = createTempProject();
+    try {
+      // A dialog that returns a folder means "write it in here"; without the
+      // join the write targets a directory and fails with EISDIR.
+      const outcome = await saveThemes({
+        themes: THEMES,
+        sessions: createRootSessions(),
+        format: "json",
+        fileName: "themvora-theme.json",
+        target: Uri.file(`${project.root}/`),
+      });
+
+      expect(outcome).toEqual({ ok: true, path: `${project.root}/themvora-theme.json` });
+      expect(__state.written.map((file) => file.path)).toEqual([
+        `${project.root}/themvora-theme.json`,
+      ]);
+      expect(JSON.parse(__state.written[0]!.contents)).toHaveProperty("light");
+    } finally {
+      project.cleanup();
+    }
   });
 });

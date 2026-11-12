@@ -45,4 +45,43 @@
   --border: var(--theme-border-width, 1px);
   --depth: 1;
   --noise: 0;
+
+  /*
+   * Focus ring.
+   *
+   * daisyUI 5 paints focus outlines with `--color-base-content` — the *text*
+   * colour — so a focused input gets a near-black ring on a light theme and a
+   * near-white one on a dark theme. That is the "black outline" a focused
+   * search field shows. Themvora's `ring` token is the semantic focus colour,
+   * so it is exposed here and applied below.
+   */
+  --tv-focus-ring: var(--theme-color-ring, var(--theme-color-primary));
+}
+
+/*
+ * Recolour the focus indicator, never remove it: the width, style and offset
+ * daisyUI sets stay exactly as they are, so the indicator remains visible and
+ * keyboard-accessible — only its colour follows the theme.
+ *
+ * These rules are intentionally unlayered. daisyUI ships its component styles
+ * inside `@layer components`, and unlayered declarations win against layered
+ * ones, so the ring colour holds regardless of stylesheet order.
+ */
+.input:focus,
+.input:focus-within,
+.select:focus,
+.select:focus-within,
+.textarea:focus,
+.textarea:focus-within,
+.file-input:focus,
+.file-input:focus-within,
+.checkbox:focus-visible,
+.radio:focus-visible,
+.toggle:focus-visible,
+.range:focus-visible,
+.btn:focus-visible,
+.tab:focus-visible,
+.menu :where(li > *):focus-visible,
+.dropdown-content :where(li > *):focus-visible {
+  outline-color: var(--tv-focus-ring);
 }

@@ -1,5 +1,35 @@
 # @themvora/tailwind
 
+## 1.4.0
+
+### Minor Changes
+
+- Ship a `base` layer, and move the preflight rules into it.
+
+  Tailwind v4 changed the default border colour from `gray-200` to
+  `currentColor`. shadcn/ui's generated components rely on the older contract — a
+  Card is written as `class="… border …"` with no `border-*` colour utility — so
+  on v4 every one of those borders painted in the text colour: a near-black
+  outline on a light theme. `@themvora/tailwind` now restores the previous
+  behaviour, so an application that imports the package gets it without repeating
+  the `@layer base { * { @apply border-border } }` snippet.
+
+  `preflight.css` had the opposite defect. Its rules were unlayered, and an
+  unlayered rule outranks every layered one regardless of specificity, so
+  `html, body { background: …; color: … }` silently beat `bg-*` and `text-*`
+  applied to those elements: the utilities were emitted, matched, and lost. The
+  rules now live in `@layer base`, where utilities outrank them as intended.
+
+  Both changes alter what an existing stylesheet renders, in the direction the
+  utility classes were always meant to have. No export was removed or renamed;
+  `dist/base.css` is a new file and `index.css` imports it.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+
 ## 1.3.1
 
 ### Patch Changes

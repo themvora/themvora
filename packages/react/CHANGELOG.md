@@ -1,5 +1,25 @@
 # @themvora/react
 
+## 1.4.1
+
+### Patch Changes
+
+- Refresh the published documentation and development dependencies.
+
+  The READMEs are generated from the package manifests and the shared contract,
+  so they now describe the pre-paint behaviour that `@themvora/core` and
+  `@themvora/web` gained in this release. No source file changed: the exported
+  surface, the runtime behaviour and the declared peer ranges of these three
+  packages are identical to the previous release. Development dependencies move to
+  React 19.3, Solid 1.9 and Angular 22.2.
+
+  A patch is published because the README ships inside the tarball, so the
+  published artifact differs from the previous one.
+
+- Updated dependencies
+- Updated dependencies
+  - @themvora/core@1.6.0
+
 ## 1.4.0
 
 ### Minor Changes

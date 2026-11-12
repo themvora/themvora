@@ -35,7 +35,7 @@ function Limitation({
 export default function KnownLimitationsPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Reference"
           icon={
@@ -113,14 +113,18 @@ export default function KnownLimitationsPage() {
 
         <Limitation id="ssr" num={4} title="SSR">
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            SSR support differs slightly by framework. Next.js and Nuxt are the reference
-            integrations with the full story (cookie resolution, fingerprint, blocking bootstrap,
-            zero-flash). The others hydrate client-side:
+            SSR support differs by integration. Next.js, Nuxt, Astro and Remix provide the full
+            story (cookie resolution, fingerprint, blocking bootstrap, zero-flash). The others
+            hydrate client-side or provide helpers:
           </p>
           <ul className="text-sm opacity-80 list-disc pl-5 space-y-1 mb-3">
-            <li><strong>Vue / Svelte / Solid / Angular</strong> providers are client components; SSR
+            <li><strong>Vue / Svelte / Solid</strong> providers are client components; SSR
               renders the provider but theme resolution happens on hydration. Use the core
-              <code> createThemeBootstrapScript</code> for zero-flash in those frameworks.</li>
+              <code> createThemeBootstrapScript</code> (SvelteKit: inline it in <code>app.html</code>)
+              for zero-flash in those frameworks.</li>
+            <li><strong>Angular</strong> exports <code>createBlockingScriptContent</code> for a
+              manually wired pre-paint script; it is not a client-only component. Angular Universal
+              streaming is not verified.</li>
             <li>Angular ships an <code>esm</code> + <code>default</code> export map (ng-packagr
               layout) rather than the standard <code>import</code>/<code>require</code> conditions;
               Node <code>require()</code> of the Angular package is not supported.</li>
@@ -182,11 +186,12 @@ export default function KnownLimitationsPage() {
 
         <Limitation id="dependencies" num={8} title="Framework dependency advisories">
           <p className="text-sm opacity-80 leading-relaxed mb-3">
-            <code>@themvora/*</code> packages ship <strong>zero external runtime dependencies</strong>{" "}
-            — frameworks are peer dependencies. When you install a framework, its own dependency tree
-            is yours. Run <code>npm audit</code> / <code>pnpm audit</code> in your application and
-            upgrade framework versions to clear advisories in their transitive dependencies (for
-            example, Next.js→postcss, Astro→sharp, Nuxt→brace-expansion, Remix→turbo-stream,
+            <code>@themvora/core</code> ships <strong>zero external runtime dependencies</strong>,
+            and framework integrations list their framework as a peer dependency. Angular is the one
+            exception with a small runtime dependency (<code>tslib</code>). When you install a framework,
+            its own dependency tree is yours. Run <code>npm audit</code> / <code>pnpm audit</code> in your
+            application and upgrade framework versions to clear advisories in their transitive
+            dependencies (for example, Next.js→postcss, Astro→sharp, Nuxt→brace-expansion, Remix→turbo-stream,
             Angular→fast-uri).
           </p>
         </Limitation>

@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo } from "react";
 import type {
   InitialThemeResolution,
+  ScheduledThemeOptions,
   ThemeDefinition,
   ThemeIdentifier,
   ThemeMode,
+  ThemeTransitionOptions,
 } from "@themvora/core";
 import {
   ThemeProvider as ReactThemeProvider,
@@ -79,6 +81,21 @@ export interface ThemeProviderProps<T extends ThemeDefinition> {
         import("@themvora/core").ThemeIdentifier<T>
       >
     | undefined;
+  /**
+   * Transition configuration forwarded to the runtime: `true`, `false`, or
+   * `{ enabled, duration, easing, preset, … }`.
+   *
+   * Same contract as `@themvora/react`'s provider. `createThemeDocument()`
+   * forwards its `transition` option through this prop, so the new
+   * single-configuration API can express everything the provider accepts.
+   */
+  transition?: boolean | ThemeTransitionOptions;
+  /**
+   * Sunrise/sunset schedule forwarded to the runtime. Same contract as
+   * `@themvora/react`'s provider; `createThemeDocument()` forwards its
+   * `scheduled` option through this prop.
+   */
+  scheduled?: false | ScheduledThemeOptions<T>;
   /** The application content rendered inside the provider. */
   children: React.ReactNode;
 }
@@ -165,6 +182,8 @@ export function ThemeProvider<T extends ThemeDefinition>({
   themeOverride,
   initialMode,
   initialFamily,
+  transition,
+  scheduled,
   children,
 }: ThemeProviderProps<T>) {
   const persistence = useMemo(
@@ -192,6 +211,8 @@ export function ThemeProvider<T extends ThemeDefinition>({
       themeOverride={themeOverride}
       {...(initialMode !== undefined ? { initialMode } : {})}
       {...(initialFamily !== undefined ? { initialFamily } : {})}
+      {...(transition !== undefined ? { transition } : {})}
+      {...(scheduled !== undefined ? { scheduled } : {})}
       readPersistenceOnInit={!initial}
       persistence={persistence}
     >

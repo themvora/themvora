@@ -35,7 +35,7 @@ export function DefaultPresetsView({
 
   return (
     <DocsLayout wide>
-      <div className="max-w-5xl">
+      <div>
         <PresetsHeader kind="default" />
 
         <section className="mb-12">

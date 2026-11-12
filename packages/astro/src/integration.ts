@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import {
   buildThemeCssMap,
   createPrePaintScrollbarScript,
+  createThemePrePaintCss,
   getBuiltInThemes,
   resolveInitialTheme,
   type PrePaintScrollbarOptions,
@@ -14,7 +15,7 @@ import {
 } from "@themvora/core";
 // Build-time only: `@themvora/core/config` is a separate entry precisely so the
 // runtime entry never pulls in node builtins.
-import { loadThemvoraConfig } from "@themvora/core/config";
+import { findThemvoraConfigPath, loadThemvoraConfig } from "@themvora/core/config";
 import {
   buildThemeBootstrapPayload,
   createBlockingScript,
@@ -64,6 +65,34 @@ function serializeScriptJson(value: unknown): string {
  *
  * @see {@link themvora}
  */
+/**
+ * Id of the virtual module that carries the render-blocking pre-paint
+ * stylesheet.
+ *
+ * Import it once in the layout that owns `<head>`:
+ *
+ * ```astro
+ * ---
+ * import "virtual:themvora/prepaint.css";
+ * ---
+ * ```
+ *
+ * Vite resolves it to the CSS generated from the same theme registry the
+ * bootstrap script uses, so the document is themed before any script runs.
+ */
+export const THEMVORA_PREPAINT_CSS_ID = "virtual:themvora/prepaint.css";
+
+/**
+ * Options for {@link themvora}.
+ *
+ * @remarks
+ * The integration contributes three things and no runtime: the blocking
+ * pre-paint script in `<head>`, the `virtual:themvora/prepaint.css` module a
+ * layout can import, and the typed `transition` / `scrollbar` configuration a
+ * `theme.config.ts` may declare. Server resolution and the runtime belong to
+ * `provider.astro`, which is why `config` is the preferred way to describe the
+ * theme: one object, three consumers, no way for them to disagree.
+ */
 export interface ThemvoraIntegrationOptions {
   /**
    * The provider's theme configuration — the same object you pass to
@@ -110,6 +139,30 @@ export interface ThemvoraIntegrationOptions {
    * you emit it yourself with `createBlockingScript`). Defaults to `true`.
    */
   injectBootstrap?: boolean;
+  /**
+   * Emit the render-blocking pre-paint stylesheet, so the document is already
+   * themed **without JavaScript** — the same guarantee `themvoraVitePlugin`
+   * provides through its `css` option.
+   *
+   * @remarks
+   * The bootstrap script paints the theme before the body is parsed, but it is
+   * still a script: with scripting disabled, or before the inline script is
+   * evaluated, the page has no `--theme-*` values at all and falls back to the
+   * library's stock colours. Astro has no head-`<style>` hook for integrations,
+   * so the stylesheet is exposed as the virtual module
+   * {@link THEMVORA_PREPAINT_CSS_ID} instead: import it once in the layout that
+   * owns `<head>` and Vite emits it as a real, render-blocking stylesheet.
+   *
+   * ```astro
+   * ---
+   * import "virtual:themvora/prepaint.css";
+   * ---
+   * ```
+   *
+   * Defaults to `true`. Set to `false` when the stylesheet is emitted by hand
+   * with `createThemePrePaintCss`.
+   */
+  injectStylesheet?: boolean;
   /**
    * Hide the native scrollbar before first paint, so the Themvora overlay
    * scrollbar (`ThemeScrollbar`) is the only scrollbar from the first frame —
@@ -331,16 +384,6 @@ export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegra
     };
   }
 
-  const eagerEffective = projectThemeOptions(
-    options.config && typeof options.config === "object" ? options.config : null,
-  );
-  const themes = eagerEffective.themes?.length
-    ? eagerEffective.themes
-    : (getBuiltInThemes() as unknown as readonly ThemeDefinition[]);
-
-  const fingerprint = computeFingerprint(themes, eagerEffective.defaultTheme);
-  const bootstrap = buildBootstrap(fingerprint, themes, eagerEffective.defaultTheme, eagerEffective.mode);
-
   const scrollbarScript = options.scrollbar
     ? createPrePaintScrollbarScript(
         options.scrollbar === true ? {} : options.scrollbar,
@@ -353,7 +396,13 @@ export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegra
   return {
     name: "@themvora/astro",
     hooks: {
-      "astro:config:setup": async ({ injectScript, config }) => {
+      "astro:config:setup": async ({
+        injectScript,
+        updateConfig,
+        addWatchFile,
+        config,
+        command,
+      }) => {
         // Discover the application configuration the same way the Vite plugin
         // does, so `astro.config.mjs` only registers the integration.
         //
@@ -366,6 +415,25 @@ export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegra
             ? root
             : fileURLToPath(root)
           : process.cwd();
+
+        // Everything below is *injected into `<head>`* at setup time: the
+        // blocking script, the transported configuration and the stylesheet.
+        // None of it is re-derived per request, so an edit to `theme.config.ts`
+        // used to be invisible until the process was restarted by hand.
+        //
+        // `addWatchFile` is Astro's own answer: a change to a watched file
+        // restarts the dev container, which re-runs this hook and re-injects
+        // everything from the new file — the same path `astro.config.mjs`
+        // takes. Watching only matters in dev; a build resolves it once.
+        if (command === "dev" && !(options.config && typeof options.config === "object")) {
+          const configPath = await findThemvoraConfigPath(
+            projectRoot,
+            typeof options.config === "string" ? options.config : undefined,
+          );
+          // `addWatchFile` is always present in a real Astro run; the guard keeps
+          // the hook callable directly, which is how the tests exercise it.
+          if (configPath && typeof addWatchFile === "function") addWatchFile(configPath);
+        }
 
         const discovered =
           options.config && typeof options.config === "object"
@@ -400,6 +468,43 @@ export function themvora(options: ThemvoraIntegrationOptions = {}): AstroIntegra
               projected.mode,
             ),
           );
+        }
+
+        // The stylesheet half of the guarantee.
+        //
+        // The bootstrap above is a *script*: with scripting disabled, or before
+        // the inline script is evaluated, the document has no `--theme-*` values
+        // and paints the library's stock colours. Astro gives integrations no
+        // head-`<style>` hook, so the CSS is published as a virtual module that
+        // Vite turns into a real, render-blocking stylesheet when the layout
+        // imports it.
+        if (options.injectStylesheet !== false) {
+          const projected = projectThemeOptions(discovered);
+          const resolvedThemes = projected.themes?.length
+            ? projected.themes
+            : (getBuiltInThemes() as unknown as readonly ThemeDefinition[]);
+          const css = createThemePrePaintCss({
+            themes: resolvedThemes,
+            ...(projected.defaultTheme !== undefined ? { defaultTheme: projected.defaultTheme } : {}),
+            ...(projected.mode !== undefined ? { initialMode: projected.mode } : {}),
+          });
+
+          updateConfig({
+            vite: {
+              plugins: [
+                {
+                  name: "themvora:astro-pre-paint-css",
+                  enforce: "pre" as const,
+                  resolveId(id: string) {
+                    return id === THEMVORA_PREPAINT_CSS_ID ? `\0${THEMVORA_PREPAINT_CSS_ID}` : null;
+                  },
+                  load(id: string) {
+                    return id === `\0${THEMVORA_PREPAINT_CSS_ID}` ? css : null;
+                  },
+                },
+              ],
+            },
+          });
         }
         if (scrollbarScript) {
           injectScript("head-inline", scrollbarScript);

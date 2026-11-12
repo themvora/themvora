@@ -1,7 +1,7 @@
 # `themvora validate`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Theme file(s) to validate
 - Project with @themvora/cli installed or npx access
 

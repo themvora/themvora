@@ -16,7 +16,7 @@ export const metadata = {
 export default function PackagesPage() {
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           eyebrow="Packages"
           title="Every package, deep-dived"
@@ -35,7 +35,7 @@ export default function PackagesPage() {
           .
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-12">
+        <div className="docs-card-grid-packages mb-12">
           {packages.map((pkg) => (
             <Link
               key={pkg.slug}

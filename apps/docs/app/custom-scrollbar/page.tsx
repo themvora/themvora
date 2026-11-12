@@ -134,7 +134,10 @@ const snippets = [
     (entry): entry is { framework: string; snippet: ScrollbarExample } =>
       entry.snippet !== undefined,
   )
-  .map(({ framework, snippet }) => ({ ...snippet, framework }));
+  .flatMap(({ framework, snippet }) => [
+    { ...snippet, framework },
+    ...(snippet.vite ? [{ ...snippet.vite, framework }] : []),
+  ]);
 
 /**
  * The JavaScript counterpart of every framework snippet the guide can render.
@@ -158,7 +161,7 @@ export default function CustomScrollbarPage() {
   return (
     <DocsLayout>
       <ScrollbarFrameworkProvider jsSources={jsSources} labels={labels}>
-        <div className="max-w-3xl">
+        <div>
           <PageHeader
           icon={
             <svg
@@ -309,6 +312,14 @@ export default function CustomScrollbarPage() {
               thumb on hover for easier targeting. Default{" "}
               <code className="mono text-[0.9em]">false</code>.
             </p>
+            <p>
+              <strong className="opacity-100">offset</strong> — clearance
+              between a rail and its container edge, in px: one number for every
+              side, or a per-side object.{" "}
+              <code className="mono text-[0.9em]">0</code> is a value, not
+              &quot;unset&quot; — it means flush against the edge, and it is
+              honoured on every host, the page scrollbar included.
+            </p>
           </div>
 
           <h3 className="text-base font-semibold mt-6 mb-3">
@@ -343,7 +354,13 @@ export default function CustomScrollbarPage() {
               <code className="mono text-[0.9em]">
                 scope={"{{"} include: [&quot;.panel&quot;] {"}}"}
               </code>{" "}
-              rather than a top-level prop.
+              rather than a top-level prop. A selector matches the region as well
+              as the element, so{" "}
+              <code className="mono text-[0.9em]">exclude: [&quot;.code-block&quot;]</code>{" "}
+              also covers the scroll panes inside a code block, not only a
+              container that scrolls itself. An excluded container also gives up
+              the scrollbar gutter the overlay reserves, so it keeps no empty
+              strip where a bar would have been.
             </li>
             <li>
               Pass custom arrow icons via the{" "}

@@ -1,7 +1,7 @@
 # `themvora doctor`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - Project with @themvora/cli installed or npx access
 
 Check the health of a Themvora project: its framework, package manager,

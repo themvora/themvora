@@ -15,7 +15,7 @@ export default function BlogIndexPage() {
   const posts = getPosts();
   return (
     <DocsLayout>
-      <div className="max-w-3xl">
+      <div>
         <PageHeader
           icon={
             <svg

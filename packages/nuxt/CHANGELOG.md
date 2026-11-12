@@ -1,5 +1,23 @@
 # @themvora/nuxt
 
+## 2.1.1
+
+### Patch Changes
+
+- Keep `initialMode: "system"` through server resolution.
+
+  The server dropped `"system"` before resolving the theme: it passed `mode` only
+  when it was not `"system"`, so the fallback theme's own mode was used instead.
+  The bootstrap script meanwhile read the same cookie and selected `"system"`, so
+  the server rendered `data-theme-selection-mode="light"` while the client
+  hydrated as system — a visible light/system flip on every reload, and a first
+  frame that disagreed with the visitor's preference.
+
+  `resolveThemeFromCookies()` now passes the resolved mode through unchanged.
+  `resolveInitialTheme()` still resolves the theme against `prefersDark` (false on
+  a server) and keeps `"system"` in the returned selection, which is what lets the
+  module emit both schemes.
+
 ## 2.1.0
 
 ### Minor Changes

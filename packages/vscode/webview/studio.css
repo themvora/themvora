@@ -2508,10 +2508,22 @@ input.token-input:not([type="checkbox"]):not([type="color"]) {
   font-family: var(--font-ui);
 }
 
-.save-location {
+/* A select that shares its row with the button that changes what it names. */
+.field-inline {
   display: flex;
-  justify-content: flex-end;
-  margin-top: calc(var(--sp-2) * -1);
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.field-inline select {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-inline .secondary {
+  height: 34px;
+  padding: 0 12px;
 }
 
 .modal-foot-note {

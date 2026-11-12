@@ -10,7 +10,15 @@ const ThemvoraLogo = ({ size = 42 }: ThemvoraLogoProps) => {
       className="flex items-center gap-2.5 no-underline shrink-0"
       style={{ height: size }}
     >
-      {/* Icon SVG */}
+      {/* Icon SVG.
+          `--docs-accent`, not `--theme-color-primary`: the mark is the one place
+          the brand colour is allowed to be decoration, so it is the one place
+          that has to *survive* a brand anchor that cannot stand off the canvas.
+          In `slack-dark` the raw aubergine is 1.42:1, which left the mark
+          invisible beside a wordmark painted in `foreground`. The accent
+          resolves to `primary` for every theme where that value already reads,
+          so nothing moves except the themes that needed it — see
+          `lib/chrome-accent.ts`. */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width={size}
@@ -25,28 +33,28 @@ const ThemvoraLogo = ({ size = 42 }: ThemvoraLogoProps) => {
           height="38"
           rx="10"
           fill="none"
-          stroke="var(--theme-color-primary)"
+          stroke="var(--docs-accent)"
           strokeWidth="2"
         />
         <circle
           cx="14"
           cy="27"
           r="6"
-          fill="var(--theme-color-primary)"
+          fill="var(--docs-accent)"
           opacity="1"
         />
         <circle
           cx="22"
           cy="16"
           r="5"
-          fill="var(--theme-color-primary)"
+          fill="var(--docs-accent)"
           opacity="0.65"
         />
         <circle
           cx="29"
           cy="25"
           r="4"
-          fill="var(--theme-color-primary)"
+          fill="var(--docs-accent)"
           opacity="0.35"
         />
       </svg>

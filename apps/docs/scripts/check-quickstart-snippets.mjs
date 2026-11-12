@@ -52,25 +52,41 @@ function vanillaSnippet(name) {
 }
 
 const webFiles = {
+  "vite.config.ts (step 2)": snippets.buildConfig,
+  "theme.config.ts (step 2)": snippets.themeConfig,
   "index.html (step 2)": snippets.noTheme,
   "src/main.ts (step 2)": snippets.setupExtra,
   "index.html (step 3)": snippets.snippet,
   "index.html (configuration)": snippets.quickStart,
   "index.html (scoped)": snippets.snippet2,
   "scripts/write-pre-paint.mjs": snippets.snippet3,
-  "src/style.css": { title: "src/style.css", code: snippets.styles },
+  "src/styles.css": { title: "src/styles.css", code: snippets.styles },
 };
 
 const vanillaFiles = {
   "index.html (step 2)": vanillaSnippet("setupHtmlSnippet"),
-  "src/main.ts": vanillaSnippet("setupTsSnippet"),
+  // The vanilla page's entry is `src/app.js` — plain JavaScript, no build step —
+  // and its stylesheet is `src/styles.css`. Both names come from the snippets
+  // themselves, so the check reads the page rather than assuming the Vite
+  // TypeScript layout.
+  "src/app.js": vanillaSnippet("setupJsSnippet"),
   "index.html (step 3)": vanillaSnippet("uiHtmlSnippet"),
-  "src/style.css": vanillaSnippet("stylesSnippet"),
+  "src/styles.css": vanillaSnippet("stylesSnippet"),
 };
 
 const pages = [
   { name: "web guide", packages: ["@themvora/core", "@themvora/web"], files: webFiles },
-  { name: "vanilla page", packages: ["@themvora/core"], files: vanillaFiles },
+  {
+    name: "vanilla page",
+    packages: ["@themvora/core"],
+    files: vanillaFiles,
+    // The vanilla page documents the **no-build** path on purpose: step 2 loads
+    // the runtime from an import map over `node_modules`, and the production
+    // step copies those two files into `public/`. Forbidding them here would
+    // forbid the setup the page is about. The guard still applies to the web
+    // guide, which is Vite-only.
+    allows: ["an import map (pre-Vite revision)", "a raw /node_modules path"],
+  },
 ];
 
 // --- 1. nothing example-app-only, no Tailwind, no import maps ---------------
@@ -88,6 +104,7 @@ const forbidden = [
 for (const page of pages) {
   for (const [file, { code }] of Object.entries(page.files)) {
     for (const [label, pattern] of forbidden) {
+      if (page.allows?.includes(label)) continue;
       if (pattern.test(code)) fail(`${page.name} · ${file}`, `contains ${label}`);
     }
   }
@@ -95,10 +112,14 @@ for (const page of pages) {
 
 // --- 2. every snippet declares a creatable file ------------------------------
 
-const CREATABLE = /\.(?:html|ts|css|mjs)$/;
+// `.js` is included because the vanilla page ships plain JavaScript with no
+// build step. A title may carry a descriptive suffix (`index.html — body`), so
+// the filename is the part before the em dash.
+const CREATABLE = /\.(?:html|js|ts|css|mjs)$/;
+const fileNameOf = (title) => String(title).split(" — ")[0].trim();
 for (const page of pages) {
   for (const [file, { title }] of Object.entries(page.files)) {
-    if (!CREATABLE.test(title)) {
+    if (!CREATABLE.test(fileNameOf(title))) {
       fail(`${page.name} · ${file}`, `declares "${title}", which is not a file a reader can create`);
     }
   }
@@ -180,10 +201,10 @@ for (const [file, { code: html }] of webPages) {
   // module graph, so in dev the first paint has no stylesheet at all: the page
   // flashes raw HTML and only then becomes the themed page. A `<link>` in
   // <head> is fetched before first paint in dev and extracted by the build.
-  if (!html.includes('href="/src/style.css"')) {
+  if (!html.includes('href="/src/styles.css"')) {
     fail(
       `web guide · ${file}`,
-      'does not link /src/style.css from <head>, so dev paints the page unstyled first',
+      'does not link /src/styles.css from <head>, so dev paints the page unstyled first',
     );
   }
 }
@@ -209,22 +230,32 @@ for (const [file, { code, title }] of Object.entries(webFiles)) {
   }
 }
 
-const vanillaMain = vanillaFiles["src/main.ts"].code;
+const vanillaSetup = vanillaFiles["src/app.js"].code;
+// Step 4 is the same file once the controls exist; it is the snippet that owns
+// the subscription wiring, so the event assertions read it rather than the
+// minimal step-3 entry.
+const vanillaControls = vanillaSnippet("controlsJsSnippet").code;
 const vanillaHtml = [vanillaFiles["index.html (step 2)"].code, vanillaFiles["index.html (step 3)"].code];
 for (const [i, html] of vanillaHtml.entries()) {
-  if (!html.includes('id="theme-name"')) {
+  if (!html.includes('data-tv-readout="theme"')) {
     fail(
       `vanilla page · index.html (step ${i + 2 === 3 ? 2 : i + 2})`,
-      "omits #theme-name, which src/main.ts requires (it throws without it)",
+      'omits data-tv-readout="theme", which src/app.js writes the resolved theme into',
     );
   }
 }
-if (!vanillaHtml[1].includes("data-mode=") || !vanillaHtml[1].includes("data-family=")) {
-  fail("vanilla page · index.html (step 3)", "has no data-mode / data-family controls to wire");
+if (!vanillaHtml[1].includes("data-mode=") || !vanillaHtml[1].includes("data-tv-select=")) {
+  fail(
+    "vanilla page · index.html (step 3)",
+    "has no data-mode / data-tv-select controls for src/app.js to wire",
+  );
+}
+if (!vanillaSetup.includes("kit.on(")) {
+  fail("vanilla page · src/app.js", "subscribes to nothing, so the step-3 readout would go stale");
 }
 for (const event of ["themeChange", "modeChange", "familyChange"]) {
-  if (!vanillaMain.includes(`kit.on("${event}"`)) {
-    fail("vanilla page · src/main.ts", `does not re-render on "${event}"`);
+  if (!vanillaControls.includes(`kit.on("${event}"`)) {
+    fail("vanilla page · src/app.js — controls", `does not re-render on "${event}"`);
   }
 }
 

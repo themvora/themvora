@@ -71,10 +71,10 @@ const decisions: { when: string; pkg: string; href: string; note: string }[] = [
     note: "Islands-friendly with a shared global runtime and zero-flash bootstrap.",
   },
   {
-    when: "You're using Remix",
+    when: "You're using Remix v2 or React Router Framework Mode",
     pkg: "@themvora/remix",
-    href: "/packages/remix",
-    note: "Loader-based SSR theming with a blocking head script.",
+    href: "/framework-guides/remix",
+    note: "Loader-based SSR theming. React Router Framework Mode uses the /react-router entry inside the same guide.",
   },
   {
     when: "No framework, or Web Components",
@@ -131,7 +131,7 @@ export default function ChoosePackagePage() {
       <PageHeader
         eyebrow="Package decision guide"
         title="Which package should I install?"
-        description="Start from what you're building. Every framework package pulls the core runtime, so you install the integration, not everything at once."
+        description="Start from what you're building. @themvora/core is a normal dependency of every framework binding, so the binding brings the runtime with it. The guides still install both explicitly so the core version stays visible in your manifest."
       />
 
       <section className="mb-12">

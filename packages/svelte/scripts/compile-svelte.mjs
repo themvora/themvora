@@ -16,6 +16,10 @@
  *   node scripts/compile-svelte.mjs --check   # verify the output is current
  */
 
+// Svelte 5.56 changed `rest_props` from an array of excluded names to a `Set`
+// (and the runtime from `.includes` to `.has`). The compiler emits the `Set`
+// form, and the 5.56+ runtime no longer accepts an array, so the peer range
+// starts at 5.56. See `peerDependencies` in package.json.
 import { compile } from "svelte/compiler";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

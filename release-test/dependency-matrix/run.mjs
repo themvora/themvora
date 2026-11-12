@@ -80,7 +80,12 @@ const shortName = (name) => name.replace(/^@themvora\//, "");
 const MATRIX = [
   { id: "core", pkg: "@themvora/core", extra: [], expected: ["core"], allowed: [], neutral: true },
   { id: "web", pkg: "@themvora/web", extra: [], expected: ["core", "web"], allowed: [], neutral: true },
-  { id: "cli", pkg: "@themvora/cli", extra: [], expected: ["core", "cli"], allowed: [], neutral: true },
+  // Not `neutral` any more: the guided `init` wizard runs on boxen, chalk,
+  // figlet, inquirer and ora, so the published CLI has a deliberate third-party
+  // runtime (and its transitive closure). The guarantee that still matters — a
+  // CLI install must never drag a framework or design system into a consumer's
+  // tree — is the `allowed: []` row against FORBIDDEN, which is unchanged.
+  { id: "cli", pkg: "@themvora/cli", extra: [], expected: ["core", "cli"], allowed: [] },
   { id: "devtools", pkg: "@themvora/devtools", extra: [], expected: ["core", "devtools"], allowed: [], neutral: true },
   { id: "tailwind", pkg: "@themvora/tailwind", extra: ["tailwindcss@4"], expected: ["core", "tailwind"], allowed: ["tailwindcss"] },
   { id: "react", pkg: "@themvora/react", extra: ["react@19", "react-dom@19"], expected: ["core", "react"], allowed: ["react", "react-dom"] },

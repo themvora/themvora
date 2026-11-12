@@ -1,7 +1,7 @@
 # `themvora completion`
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - A shell: bash, zsh, fish or PowerShell
 
 Emit a shell completion script for the `themvora` CLI.

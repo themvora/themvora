@@ -17,7 +17,10 @@ export function PageHeader({
   title: ReactNode;
   subtitle?: ReactNode;
   description?: ReactNode;
-  badges?: { label: string; tone?: React.ComponentProps<typeof Badge>["tone"] }[];
+  badges?: {
+    label: string;
+    tone?: React.ComponentProps<typeof Badge>["tone"];
+  }[];
   actions?: ReactNode;
   /** Version evidence strip: "Verified with Themvora vX.Y.Z · Updated YYYY-MM-DD". */
   verified?: { version: string; date: string };
@@ -31,8 +34,7 @@ export function PageHeader({
             style={{
               background:
                 "linear-gradient(135deg, var(--theme-color-primary), color-mix(in srgb, var(--theme-color-primary) 40%, var(--theme-color-accent)))",
-              color:
-                "var(--theme-color-primaryForeground)",
+              color: "var(--theme-color-primaryForeground)",
             }}
           >
             {icon}
@@ -44,7 +46,7 @@ export function PageHeader({
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance wrap-break-word">
             {title}
           </h1>
           {subtitle ? (
@@ -66,7 +68,9 @@ export function PageHeader({
           {description}
         </p>
       ) : null}
-      {actions ? <div className="mt-6 flex flex-wrap gap-3">{actions}</div> : null}
+      {actions ? (
+        <div className="mt-6 flex flex-wrap gap-3">{actions}</div>
+      ) : null}
       {verified ? (
         <div className="mt-5">
           <VerifiedBadge version={verified.version} date={verified.date} />

@@ -1,7 +1,7 @@
 # Generation styles
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 - @themvora/cli installed (globally, locally, or via npx)
 
 A **generation style** is the visual language the generator works in. It decides

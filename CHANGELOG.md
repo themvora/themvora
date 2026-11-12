@@ -277,7 +277,7 @@ Available on [npm](https://www.npmjs.com/org/theme-kit) · [GitHub](https://gith
 - **Core runtime** (`@theme-kit/core`): theme store, selection controller, system-mode binding,
   CSS-variable binding, DOM binding, transition engine, history, snapshots, persistence, scheduling,
   broadcast (cross-tab sync), plugin system, and adapter registry.
-- **8 frameworks**: React, Next.js, Vue 3, Nuxt 3, Svelte 5, SolidJS, Angular, Astro, Remix, and
+- **10 frameworks**: React, Next.js, Vue 3, Nuxt 4, Svelte 5, SolidJS, Angular, Astro, Remix, and
   Web Components — each with a native `ThemeProvider`, `useTheme`, and framework-specific hooks.
 - **SSR-first zero-flash**: fingerprint-guarded cookie persistence, server-side theme resolution,
   blocking bootstrap script, and `@media (prefers-color-scheme: dark)` fallback — the theme is

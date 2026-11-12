@@ -583,7 +583,7 @@ import { ThemeScope } from "@themvora/vue";
 </script>
 
 <template>
-  <ThemeScope theme="cocoa-dark" class="rounded-lg p-6">
+  <ThemeScope theme="cocoa-dark">
     <h3>Always cocoa</h3>
     <p>This panel keeps its own theme while the page changes.</p>
   </ThemeScope>
@@ -714,15 +714,15 @@ const { setFamily } = useTheme();
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-4">
+  <div>
     <button
       v-for="entry in families"
       :key="entry.name"
       @click="setFamily(entry.name)"
     >
-      <ThemeScope :family="entry.name" class="p-4 rounded-lg">
+      <ThemeScope :family="entry.name">
         <strong>{{ entry.name }}</strong>
-        <p class="muted">The quick brown fox</p>
+        <p>The quick brown fox</p>
       </ThemeScope>
     </button>
   </div>

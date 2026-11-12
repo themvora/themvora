@@ -39,6 +39,15 @@ export type LibrarySnippet = {
  */
 export type FrameworkSnippet = { lang: string; code: string };
 
+/**
+ * One prerequisite row on a library guide: what the reader must already have,
+ * and the version the recipe was verified against.
+ *
+ * The type lives here rather than in the generated block because the generator
+ * rewrites everything between `FRAMEWORK_RECIPES` and `FRAMEWORK_LANG`.
+ */
+export type RecipePrerequisite = { label: string; value: string };
+
 export type LibraryFrameworkExample = {
   label: string;
   lang: string;
@@ -46,7 +55,13 @@ export type LibraryFrameworkExample = {
   code: string;
   /** File name shown above the snippet. */
   filename?: string | undefined;
-  /** Mounting ThemeProvider — the entry file differs per framework. */
+  /** What to install before Themvora — the library plus its build toolchain. */
+  install?: string[] | undefined;
+  /** The Themvora packages for this framework. */
+  themvora?: string[] | undefined;
+  /** Build configuration and the global stylesheet this framework needs. */
+  setup?: FrameworkSnippet | undefined;
+  /** Mounting the provider / creating the runtime — the entry file. */
   mountProvider?: FrameworkSnippet | undefined;
   /** The complete app. */
   completeExample?: FrameworkSnippet | undefined;
@@ -54,6 +69,8 @@ export type LibraryFrameworkExample = {
   componentExample?: FrameworkSnippet | undefined;
   /** Switching theme at runtime. */
   themeSwitchExample?: FrameworkSnippet | undefined;
+  /** Verified Node / framework / library versions, shown before the install. */
+  prereqs?: RecipePrerequisite[] | undefined;
   /** The same thing without Themvora. */
   beforeExample?: FrameworkSnippet | undefined;
 };
@@ -72,7 +89,8 @@ export type LibraryFrameworkExample = {
  *   Open Props.
  * - `build-time` — the mapping is compiled, not resolved at runtime.
  */
-export type LibraryArchitecture = "css-variable" | "generated-theme" | "build-time";
+export type LibraryArchitecture =
+  "css-variable" | "generated-theme" | "build-time";
 
 /** One row of the "what gets mapped" table. */
 export type LibraryMapping = {
@@ -114,8 +132,9 @@ export type LibraryItem = {
   officialUrl: string;
   /** How the adapter bridges the two — decides the diagram. */
   architecture: LibraryArchitecture;
-  /** Two separate commands: theirs, then ours. */
-  install: { library: string[]; themvora: string[] };
+  // Install commands are per framework, not per library: shadcn's CLI differs
+  // between React, Vue and Svelte, and daisyUI's build plugin differs between
+  // Vite and PostCSS. They live in `FRAMEWORK_RECIPES` (`install` / `themvora`).
   /** The app half: your components plus the provider that bridges them. */
   quickStart?: LibrarySnippet | undefined;
   /** The root half: mounting ThemeProvider. Separate because someone adding
@@ -133,223 +152,6 @@ export type LibraryItem = {
 };
 
 type RawLibrary = Omit<LibraryItem, "featureCount">;
-
-function cssAdapterFrameworks(opts: {
-  hook: string;
-  injectable: string;
-  pkg: string;
-}): LibraryFrameworkExample[] {
-  const { hook, injectable, pkg } = opts;
-  return [
-    {
-      label: "React",
-      lang: "tsx",
-      code: `import { useThemeRuntime } from "@themvora/react";
-import { ${hook} } from "${pkg}/react";
-
-export function InstallAdapter() {
-  ${hook}(useThemeRuntime());
-  return null;
-}`,
-    },
-    {
-      label: "Vue 3",
-      lang: "vue",
-      code: `<script setup lang="ts">
-import { useThemeRuntime } from "@themvora/vue";
-import { ${hook} } from "${pkg}/vue";
-
-${hook}(useThemeRuntime());
-</script>
-
-<template>
-</template>`,
-    },
-    {
-      label: "Svelte",
-      lang: "svelte",
-      code: `<script lang="ts">
-  import { getThemeRuntime } from "@themvora/svelte";
-  import { ${hook} } from "${pkg}/svelte";
-
-  ${hook}(getThemeRuntime());
-</script>`,
-    },
-    {
-      label: "Solid",
-      lang: "tsx",
-      code: `import { useThemeRuntime } from "@themvora/solid";
-import { ${hook} } from "${pkg}/solid";
-
-export function InstallAdapter() {
-  ${hook}(useThemeRuntime());
-  return null;
-}`,
-    },
-    {
-      label: "Angular",
-      lang: "ts",
-      code: `import { Component } from "@angular/core";
-import { injectThemeRuntime } from "@themvora/angular";
-import { ${injectable} } from "${pkg}/angular";
-
-@Component({
-  selector: "app-root",
-  standalone: true,
-  template: "<router-outlet />",
-})
-export class AppComponent {
-  constructor() {
-    // A constructor is an injection context — registers on provideTheme()'s runtime.
-    ${injectable}(injectThemeRuntime());
-  }
-}`,
-    },
-    {
-      label: "Next.js",
-      lang: "tsx",
-      code: `"use client";
-import { useThemeRuntime } from "@themvora/next/client";
-import { ${hook} } from "${pkg}/react";
-
-export function InstallAdapter() {
-  ${hook}(useThemeRuntime());
-  return null;
-}`,
-    },
-    {
-      label: "Nuxt",
-      lang: "vue",
-      code: `<script setup lang="ts">
-import { useThemeRuntime } from "@themvora/nuxt";
-import { ${hook} } from "${pkg}/vue";
-
-// The module already provides the runtime — just mount this in your app.
-${hook}(useThemeRuntime());
-</script>
-
-<template>
-</template>`,
-    },
-    {
-      label: "Remix",
-      lang: "tsx",
-      code: `import { useThemeRuntime } from "@themvora/remix";
-import { ${hook} } from "${pkg}/react";
-
-export function InstallAdapter() {
-  ${hook}(useThemeRuntime());
-  return null;
-}`,
-    },
-    {
-      label: "Astro",
-      lang: "tsx",
-      code: `import { ThemeProviderClient, useThemeRuntime } from "@themvora/astro/client";
-import { ${hook} } from "${pkg}/react";
-
-function InstallAdapter() {
-  ${hook}(useThemeRuntime());
-  return null;
-}
-
-// ThemeProviderClient installs the runtime; the adapter is a sibling that reads it.
-export default function ThemeIsland() {
-  return (
-    <>
-      <ThemeProviderClient initialMode="system" />
-      <InstallAdapter />
-    </>
-  );
-}`,
-    },
-  ];
-}
-
-function generatedThemeFrameworks(opts: {
-  provider: string;
-  pkg: string;
-}): LibraryFrameworkExample[] {
-  const { provider, pkg } = opts;
-  return [
-    {
-      label: "React",
-      lang: "tsx",
-      code: `import type { ReactNode } from "react";
-import { useThemeRuntime } from "@themvora/react";
-import { ${provider} } from "${pkg}";
-
-// Rebuilds the library's native theme on every change.
-export function ThemeZone({ children }: { children: ReactNode }) {
-  const runtime = useThemeRuntime();
-  return <${provider} runtime={runtime}>{children}</${provider}>;
-}`,
-    },
-    {
-      label: "Next.js",
-      lang: "tsx",
-      code: `"use client";
-import type { ReactNode } from "react";
-import { ${provider} } from "${pkg}";
-import { useThemeRuntime } from "@themvora/next/client";
-
-export function ThemeZone({ children }: { children: ReactNode }) {
-  const runtime = useThemeRuntime();
-  return <${provider} runtime={runtime}>{children}</${provider}>;
-}`,
-    },
-    {
-      label: "Remix",
-      lang: "tsx",
-      code: `import type { ReactNode } from "react";
-import { ${provider} } from "${pkg}";
-import { useThemeRuntime } from "@themvora/remix";
-
-export function ThemeZone({ children }: { children: ReactNode }) {
-  const runtime = useThemeRuntime();
-  return <${provider} runtime={runtime}>{children}</${provider}>;
-}`,
-    },
-    {
-      label: "Astro",
-      lang: "tsx",
-      code: `// src/components/ThemeZone.tsx (client island)
-import type { ReactNode } from "react";
-import { useThemeRuntime } from "@themvora/astro/client";
-import { ${provider} } from "${pkg}";
-
-export default function ThemeZone({ children }: { children: ReactNode }) {
-  const runtime = useThemeRuntime();
-  return <${provider} runtime={runtime}>{children}</${provider}>;
-}
-
-// In your page — ThemeProviderClient installs the shared runtime first:
-//   <ThemeProviderClient client:only="react" />
-//   <ThemeZone client:only="react">{/* … */}</ThemeZone>`,
-    },
-  ];
-}
-
-function unocssFrameworkExample(): LibraryFrameworkExample[] {
-  return [
-    {
-      label: "Any framework",
-      lang: "ts",
-      code: `// vite.config.ts — the preset exposes Themvora tokens as utilities such as
-// \`bg-primary\`, \`text-foreground\`, \`border-border\` and \`rounded-lg\`. Their
-// values reference the live \`--theme-*\` variables, so they follow whichever
-// theme is active at runtime — no rebuild needed when the theme changes.
-import { defineConfig } from "vite";
-import UnoCSS from "unocss/vite";
-import { presetWind3 } from "unocss";
-import { presetThemvora } from "@themvora/unocss";
-
-export default defineConfig({
-  plugins: [UnoCSS({ presets: [presetWind3(), presetThemvora()] })],
-});`,
-    },
-  ];
-}
 
 export const rawLibraries: RawLibrary[] = [
   {
@@ -378,79 +180,7 @@ export const rawLibraries: RawLibrary[] = [
 
     officialUrl: "https://ui.shadcn.com/docs/installation/vite",
     architecture: "css-variable",
-    install: {
-      library: ["pnpm dlx shadcn@latest init","pnpm dlx shadcn@latest add button card"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/shadcn"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { useShadcnTheme } from "@themvora/shadcn/react";
-import "@themvora/shadcn/shadcn.css";
-
-import { Example } from "./Example";
-
-// No provider to mount: the hook registers the adapter, which writes the
-// library's own CSS variables. The import above is what makes them apply.
-function ThemeZone() {
-  useShadcnTheme(useThemeRuntime());
-
-  return <Example />;
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary shadcn components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export function Example() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Themvora + shadcn/ui</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Button>Primary action</Button>
-      </CardContent>
-    </Card>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: cssAdapterFrameworks({
-      hook: "useShadcnTheme",
-      injectable: "injectShadcnTheme",
-      pkg: "@themvora/shadcn",
-    }),
     kind: "CSS Variables",
-    css: "@themvora/shadcn/shadcn.css",
     tags: ["Radix", "CSS vars", "Runtime"],
     groups: [
       {
@@ -522,76 +252,7 @@ const css = createShadcnVariables(theme.tokens!);
 
     officialUrl: "https://getbootstrap.com/docs/5.3/getting-started/download/",
     architecture: "css-variable",
-    install: {
-      library: ["pnpm add bootstrap"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/bootstrap"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { useBootstrapTheme } from "@themvora/bootstrap/react";
-import "@themvora/bootstrap/bootstrap.css";
-
-import { Example } from "./Example";
-
-// No provider to mount: the hook registers the adapter, which writes the
-// library's own CSS variables. The import above is what makes them apply.
-function ThemeZone() {
-  useBootstrapTheme(useThemeRuntime());
-
-  return <Example />;
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary bootstrap components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-export function Example() {
-  return (
-    <div className="card">
-      <div className="card-body">
-        <h5 className="card-title">Themvora + Bootstrap</h5>
-        <button type="button" className="btn btn-primary">
-          Primary action
-        </button>
-      </div>
-    </div>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: cssAdapterFrameworks({
-      hook: "useBootstrapTheme",
-      injectable: "injectBootstrapTheme",
-      pkg: "@themvora/bootstrap",
-    }),
     kind: "CSS Variables",
-    css: "@themvora/bootstrap/bootstrap.css",
     tags: ["v5", "Sass", "Runtime"],
     groups: [
       {
@@ -669,75 +330,7 @@ const css = createBootstrapVariables(theme.tokens!);
 
     officialUrl: "https://daisyui.com/docs/install/",
     architecture: "css-variable",
-    install: {
-      library: ["pnpm add daisyui tailwindcss @tailwindcss/vite"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/daisyui"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { useDaisyTheme } from "@themvora/daisyui/react";
-import "@themvora/daisyui/daisyui.css";
-
-import { Example } from "./Example";
-
-// No provider to mount: the hook registers the adapter, which writes the
-// library's own CSS variables. The import above is what makes them apply.
-function ThemeZone() {
-  useDaisyTheme(useThemeRuntime());
-
-  return <Example />;
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary daisyui components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-export function Example() {
-  return (
-    <div className="d-card">
-      <div className="d-card-body">
-        <h4 className="d-card-title">Themvora + daisyUI</h4>
-        <p className="text-base-content/70">This is an ordinary daisyUI card.</p>
-        <button className="d-btn d-btn-primary">Primary action</button>
-      </div>
-    </div>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: cssAdapterFrameworks({
-      hook: "useDaisyTheme",
-      injectable: "injectDaisyTheme",
-      pkg: "@themvora/daisyui",
-    }),
     kind: "CSS Variables",
-    css: "@themvora/daisyui/daisyui.css",
     tags: ["Tailwind", "Framework", "Runtime"],
     groups: [
       {
@@ -812,89 +405,7 @@ const css = createDaisyVariables(theme.tokens!);
 
     officialUrl: "https://open-props.style/",
     architecture: "css-variable",
-    install: {
-      library: ["pnpm add open-props"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/open-props"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { useOpenPropsTheme } from "@themvora/open-props/react";
-import "@themvora/open-props/open-props.css";
-
-import { Example } from "./Example";
-
-// No provider to mount: the hook registers the adapter, which writes the
-// library's own CSS variables. The import above is what makes them apply.
-function ThemeZone() {
-  useOpenPropsTheme(useThemeRuntime());
-
-  return <Example />;
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary open-props components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-export function Example() {
-  return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        color: "var(--color-text)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-2)",
-        padding: "var(--size-3)",
-      }}
-    >
-      <h2>Themvora + Open Props</h2>
-      <button
-        style={{
-          background: "var(--color-primary)",
-          color: "var(--color-primary-foreground)",
-          borderRadius: "var(--radius-2)",
-          padding: "var(--size-2) var(--size-3)",
-        }}
-      >
-        Primary action
-      </button>
-    </div>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: cssAdapterFrameworks({
-      hook: "useOpenPropsTheme",
-      injectable: "injectOpenPropsTheme",
-      pkg: "@themvora/open-props",
-    }),
     kind: "CSS Variables",
-    css: "@themvora/open-props/open-props.css",
     tags: ["CSS", "Design tokens", "Runtime"],
     groups: [
       {
@@ -902,7 +413,7 @@ export function ThemeControls() {
         features: [
           {
             name: "createOpenPropsAdapter(options)",
-            desc: "Installs a tagged `:root` style element with concrete `--op-*` variables updated as the theme changes.",
+            desc: "Installs a tagged `:root` style element holding the semantic colour layer (`--color-canvas`, `--color-text`, `--color-primary`, …) plus the Open Props scales it derives (`--radius-*`, `--shadow-*`, `--size-*`), updated as the theme changes.",
           },
           {
             name: "createOpenPropsVariables(tokens)",
@@ -954,107 +465,9 @@ const css = createOpenPropsVariables(theme.tokens!);
     mark: "MUI",
     // The complete recipe, in the order someone actually needs it:
     // install both halves, see a real component, then watch it react.
-    quickStart: {
-      title: "A complete MUI app, themed by Themvora",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { MuiThemeProvider } from "@themvora/mui";
-import { Button, Card, CardContent, Typography } from "@mui/material";
-
-function App() {
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5">Themvora + Material UI</Typography>
-        <Typography color="text.secondary">
-          This is an ordinary MUI component tree.
-        </Typography>
-        <Button variant="contained">Continue</Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Themvora's runtime lives here, and MuiThemeProvider bridges it to MUI.
-function ThemedApp() {
-  const runtime = useThemeRuntime();
-
-  return (
-    <MuiThemeProvider runtime={runtime}>
-      <App />
-    </MuiThemeProvider>
-  );
-}
-
-}`,
-    },
     // Deliberately a second snippet: the provider half is what you drop into
     // an existing tree, the root half is only for a fresh app. One combined
     // block makes both readers scroll past the part that is not theirs.
-    quickStartRoot: {
-      title: "Mount the provider",
-      lang: "tsx",
-      code: `import { ThemeProvider } from "@themvora/react";
-
-import { ThemedApp } from "./App";
-
-// ThemeProvider owns the active theme. Anything inside it can read and change it.
-export default function Root() {
-  return (
-    <ThemeProvider>
-      <ThemedApp />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary MUI components",
-      lang: "tsx",
-      code: `// src/App.tsx
-import { Button, Card, CardContent, Typography } from "@mui/material";
-
-export function Example() {
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6">Themvora + Material UI</Typography>
-        <Button variant="contained">Primary action</Button>
-      </CardContent>
-    </Card>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-import { Button, Stack } from "@mui/material";
-
-function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <Stack direction="row" spacing={1}>
-      <Button onClick={toggleTheme}>Toggle</Button>
-      <Button onClick={() => setMode("light")}>Light</Button>
-      <Button onClick={() => setMode("dark")}>Dark</Button>
-    </Stack>
-  );
-}`,
-    },
-    beforeExample: {
-      title: "Without Themvora",
-      lang: "tsx",
-      code: `import { ThemeProvider, createTheme } from "@mui/material/styles";
-
-const theme = createTheme({
-  palette: { primary: { main: "#6366f1" } },
-});
-
-<ThemeProvider theme={theme}>
-  <App />
-</ThemeProvider>`,
-    },
     mapping: [
       { role: "primary", target: "palette.primary.main" },
       { role: "primaryForeground", target: "palette.primary.contrastText" },
@@ -1072,14 +485,6 @@ const theme = createTheme({
 
     officialUrl: "https://mui.com/material-ui/getting-started/installation/",
     architecture: "generated-theme",
-    install: {
-      library: ["pnpm add @mui/material @emotion/react @emotion/styled"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/mui"],
-    },
-    frameworks: generatedThemeFrameworks({
-      provider: "MuiThemeProvider",
-      pkg: "@themvora/mui",
-    }),
     kind: "Generated Theme",
     tags: ["React", "Provider", "createTheme"],
     groups: [
@@ -1118,7 +523,7 @@ const theme = createTheme({
           },
           {
             name: "MUI_ADAPTER_ID",
-            desc: "The registry id (`\"mui\"`) used to identify and replace the adapter.",
+            desc: 'The registry id (`"mui"`) used to identify and replace the adapter.',
           },
           {
             name: "CreateMuiAdapterOptions",
@@ -1169,75 +574,6 @@ const muiTheme = createMuiTheme(theme);`,
 
     officialUrl: "https://chakra-ui.com/docs/get-started/installation",
     architecture: "generated-theme",
-    install: {
-      library: ["pnpm add @chakra-ui/react @emotion/react"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/chakra"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { ChakraThemeProvider } from "@themvora/chakra";
-
-import { Example } from "./Example";
-
-// The bridge rebuilds the library's theme whenever Themvora's active theme
-// changes. Without it the library keeps its own default theme.
-function ThemeZone() {
-  const runtime = useThemeRuntime();
-
-  return (
-    <ChakraThemeProvider runtime={runtime}>
-      <Example />
-    </ChakraThemeProvider>
-  );
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary chakra components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-import { Box, Button, Heading, Text } from "@chakra-ui/react";
-
-export function Example() {
-  return (
-    <Box p="6" borderWidth="1px" borderRadius="lg">
-      <Heading size="md">Themvora + Chakra UI</Heading>
-      <Text color="fg.muted">This is an ordinary Chakra component tree.</Text>
-      <Button colorPalette="primary">Primary action</Button>
-    </Box>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: generatedThemeFrameworks({
-      provider: "ChakraThemeProvider",
-      pkg: "@themvora/chakra",
-    }),
     kind: "Generated Theme",
     tags: ["React", "System", "Provider"],
     groups: [
@@ -1276,7 +612,7 @@ export function ThemeControls() {
           },
           {
             name: "CHAKRA_ADAPTER_ID",
-            desc: "The registry id (`\"chakra\"`) used to identify and replace the adapter.",
+            desc: 'The registry id (`"chakra"`) used to identify and replace the adapter.',
           },
           {
             name: "CreateChakraAdapterOptions",
@@ -1323,77 +659,6 @@ const system = createChakraTheme(theme);`,
 
     officialUrl: "https://ant.design/docs/react/getting-started",
     architecture: "generated-theme",
-    install: {
-      library: ["pnpm add antd"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/antd"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { AntdThemeProvider } from "@themvora/antd";
-
-import { Example } from "./Example";
-
-// The bridge rebuilds the library's theme whenever Themvora's active theme
-// changes. Without it the library keeps its own default theme.
-function ThemeZone() {
-  const runtime = useThemeRuntime();
-
-  return (
-    <AntdThemeProvider runtime={runtime}>
-      <Example />
-    </AntdThemeProvider>
-  );
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary antd components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-import { Button, Card, Typography } from "antd";
-
-export function Example() {
-  return (
-    <Card>
-      <Typography.Title level={5}>Themvora + Ant Design</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        This is an ordinary Ant Design component tree.
-      </Typography.Paragraph>
-      <Button type="primary">Primary action</Button>
-    </Card>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: generatedThemeFrameworks({
-      provider: "AntdThemeProvider",
-      pkg: "@themvora/antd",
-    }),
     kind: "Generated Theme",
     tags: ["React", "ConfigProvider", "Token"],
     groups: [
@@ -1432,7 +697,7 @@ export function ThemeControls() {
           },
           {
             name: "ANTD_ADAPTER_ID",
-            desc: "The registry id (`\"antd\"`) used to identify and replace the adapter.",
+            desc: 'The registry id (`"antd"`) used to identify and replace the adapter.',
           },
           {
             name: "CreateAntdAdapterOptions",
@@ -1466,83 +731,17 @@ const config = createAntdTheme(theme);`,
       "Map Theme semantic tokens onto a Mantine theme, with color-scheme forced to match the active Themvora mode.",
     mark: "MN",
     mapping: [
-      { role: "primary", target: "primaryColor: \"primary\"" },
+      { role: "primary", target: 'primaryColor: "primary"' },
       { role: "primary", target: "primaryShade.light / .dark" },
-      { role: "primaryForeground", target: "primary.contrast (via variantColorResolver)" },
+      {
+        role: "primaryForeground",
+        target: "primary.contrast (via variantColorResolver)",
+      },
       { role: "radius", target: "defaultRadius" },
     ],
 
     officialUrl: "https://mantine.dev/getting-started/",
     architecture: "generated-theme",
-    install: {
-      library: ["pnpm add @mantine/core @mantine/hooks"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/mantine"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { ThemeProvider, useThemeRuntime } from "@themvora/react";
-import { MantineThemeProvider } from "@themvora/mantine";
-
-import { Example } from "./Example";
-
-// The bridge rebuilds the library's theme whenever Themvora's active theme
-// changes. Without it the library keeps its own default theme.
-function ThemeZone() {
-  const runtime = useThemeRuntime();
-
-  return (
-    <MantineThemeProvider runtime={runtime}>
-      <Example />
-    </MantineThemeProvider>
-  );
-}
-
-export default function App() {
-  return (
-    <ThemeProvider defaultTheme="plum-light" initialMode="system">
-      <ThemeZone />
-    </ThemeProvider>
-  );
-}`,
-    },
-    componentExample: {
-      title: "Ordinary mantine components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-import { Button, Card, Text, Title } from "@mantine/core";
-
-export function Example() {
-  return (
-    <Card withBorder padding="lg">
-      <Title order={5}>Themvora + Mantine</Title>
-      <Text c="dimmed">This is an ordinary Mantine component tree.</Text>
-      <Button>Primary action</Button>
-    </Card>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: generatedThemeFrameworks({
-      provider: "MantineThemeProvider",
-      pkg: "@themvora/mantine",
-    }),
     kind: "Generated Theme",
     tags: ["React", "Provider", "ColorScheme"],
     groups: [
@@ -1591,53 +790,6 @@ const theme = createMantineTheme(builtIn);`,
     mark: "UN",
     officialUrl: "https://unocss.dev/integrations/vite",
     architecture: "build-time",
-    install: {
-      library: ["pnpm add -D unocss @unocss/vite"],
-      themvora: ["pnpm add @themvora/core @themvora/react @themvora/unocss"],
-    },
-    quickStart: {
-      title: "A complete example",
-      lang: "tsx",
-      code: `import { defineConfig } from "unocss";
-import { presetThemvora } from "@themvora/unocss";
-
-export default defineConfig({
-  presets: [presetThemvora()],
-});`,
-    },
-    componentExample: {
-      title: "Ordinary unocss components",
-      lang: "tsx",
-      code: `// src/Example.tsx
-export function Example() {
-  return (
-    <div className="bg-card text-card-foreground border border-border rounded-lg p-4">
-      <h2 className="text-lg font-semibold">Themvora + UnoCSS</h2>
-      <button className="bg-primary text-primary-foreground rounded px-4 py-2">
-        Primary action
-      </button>
-    </div>
-  );
-}`,
-    },
-    themeSwitchExample: {
-      title: "Switch theme at runtime",
-      lang: "tsx",
-      code: `import { useTheme } from "@themvora/react";
-
-export function ThemeControls() {
-  const { setMode, toggleTheme } = useTheme();
-
-  return (
-    <>
-      <button onClick={toggleTheme}>Toggle</button>
-      <button onClick={() => setMode("light")}>Light</button>
-      <button onClick={() => setMode("dark")}>Dark</button>
-    </>
-  );
-}`,
-    },
-    frameworks: unocssFrameworkExample(),
     kind: "Build Time",
     tags: ["UnoCSS", "Preset", "Runtime vars"],
     groups: [
@@ -1690,345 +842,670 @@ const theme = createUnoTheme(resolveTheme(themes, "berry-dark"));
  * Astro is the reason this cannot be a find-and-replace: its entries are
  * vanilla (`createThemeController`), not React.
  */
-export const FRAMEWORK_RECIPES: Record<string, Record<string, string>> = {
-  "unocss/UnoCSS": {
-    "mountProvider": "import { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\n\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});",
-    "componentExample": "<!-- index.html — the preset exposes Themvora tokens as utilities -->\n<section class=\"bg-card text-card-foreground border border-border rounded-lg p-4\">\n  <h2 class=\"text-lg font-semibold\">Your plan</h2>\n  <p class=\"text-muted-foreground text-sm\">\n    Every utility resolves to a Themvora token.\n  </p>\n  <button class=\"bg-primary text-primary-foreground rounded-lg px-4 py-2\">\n    Upgrade\n  </button>\n</section>",
-    "themeSwitchExample": "// UnoCSS is build-time, so switching needs a runtime from a framework package.\nimport { createThemeRuntime, getBuiltInThemes } from \"@themvora/core\";\n\nconst runtime = createThemeRuntime({\n  themes: getBuiltInThemes(),\n  defaultTheme: \"plum-light\",\n  initialMode: \"system\",\n});\n\ndocument.querySelector(\"button\")!.addEventListener(\"click\", () => {\n  runtime.selection.toggleTheme();\n});",
-    "completeExample": "import { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\n\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n\n// index.html\n<main class=\"min-h-screen bg-background text-foreground p-8\">\n  <h1 class=\"text-2xl font-semibold\">Themvora + UnoCSS</h1>\n  <section class=\"mt-6 rounded-xl border border-border bg-card p-4\">\n    <h2 class=\"font-semibold text-card-foreground\">Themed card</h2>\n    <button class=\"mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground\">\n      Toggle theme\n    </button>\n  </section>\n</main>",
-  },
-  "shadcn/Angular": {
-    "mountProvider": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});",
-    "themeSwitchExample": "import { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n\n@Component({\n  selector: \"theme-controls\",\n  standalone: true,\n  // injectTheme returns a signal, so it is read as state().\n  template: `\n    <button type=\"button\" (click)=\"state().toggleTheme()\">Toggle</button>\n    <button type=\"button\" (click)=\"state().setMode('light')\">Light</button>\n    <button type=\"button\" (click)=\"state().setMode('dark')\">Dark</button>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
-    "componentExample": "import { Component } from \"@angular/core\";\n\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n  <div class=\"card\">\n    <h2>Themvora + shadcn/ui</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n  `,\n  styles: `\n.card {\n    background: var(--card);\n    color: var(--card-foreground);\n    border: 1px solid var(--border);\n    border-radius: 0.5rem;\n    padding: 1rem;\n  }\n  .primary {\n    background: var(--primary);\n    color: var(--primary-foreground);\n    border-radius: 0.375rem;\n    padding: 0.5rem 1rem;\n  }\n  `,\n})\nexport class ExampleComponent {}",
-    "completeExample": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});\n\n// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { RouterOutlet } from \"@angular/router\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectShadcnTheme } from \"@themvora/shadcn/angular\";\n\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [RouterOutlet],\n  template: \"<router-outlet />\",\n})\nexport class AppComponent {\n  constructor() {\n    // A constructor is an injection context — registers on provideTheme()'s runtime.\n    injectShadcnTheme(injectThemeRuntime());\n  }\n}",
-  },
-  "shadcn/Nuxt": {
-    "mountProvider": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/shadcn/shadcn.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
-    "themeSwitchExample": "<!-- components/ThemeControls.vue -->\n<script setup lang=\"ts\">\n// Auto-imported by @themvora/nuxt — no import line needed.\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"card\">\n    <h2>Themvora + shadcn/ui</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n</template>\n\n<style scoped>\n.card {\n    background: var(--card);\n    color: var(--card-foreground);\n    border: 1px solid var(--border);\n    border-radius: 0.5rem;\n    padding: 1rem;\n  }\n  .primary {\n    background: var(--primary);\n    color: var(--primary-foreground);\n    border-radius: 0.375rem;\n    padding: 0.5rem 1rem;\n  }\n</style>\n",
-    "completeExample": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/shadcn/shadcn.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});\n\n// ------------------------------------------------- plugins/install-adapter.client.ts\nimport { useShadcnTheme } from \"@themvora/shadcn/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\n// Runs once on the client, after the module has provided the runtime.\nexport default defineNuxtPlugin(() => {\n  useShadcnTheme(useThemeRuntime());\n});",
-  },
-  "shadcn/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/shadcn/shadcn.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <h2>Themvora + shadcn/ui</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nfunction InstallAdapter() {\n  useShadcnTheme(useThemeRuntime());\n  return null;\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-  },
-  "shadcn/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/shadcn/shadcn.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-    "componentExample": "---\nimport \"@themvora/shadcn/shadcn.css\";\n---\n\n  <div class=\"card\">\n    <h2>Themvora + shadcn/ui</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n\n<style>\n.card {\n    background: var(--card);\n    color: var(--card-foreground);\n    border: 1px solid var(--border);\n    border-radius: 0.5rem;\n    padding: 1rem;\n  }\n  .primary {\n    background: var(--primary);\n    color: var(--primary-foreground);\n    border-radius: 0.375rem;\n    padding: 0.5rem 1rem;\n  }\n</style>\n",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/shadcn/shadcn.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n// ---- src/pages/index.astro\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { InstallAdapter } from \"../components/InstallAdapter\";\n---\n\n<BaseLayout>\n  <InstallAdapter client:only=\"react\" />\n</BaseLayout>\n\n// ---- src/components/InstallAdapter.tsx\n\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\n\nexport function InstallAdapter() {\n  useShadcnTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "bootstrap/Solid": {
-    "mountProvider": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/solid\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/bootstrap/bootstrap.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h5 className=\"card-title\">Themvora + Bootstrap</h5>\n        <button type=\"button\" className=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);\n\n// src/components/InstallAdapter.tsx\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/solid\";\n\nexport function InstallAdapter() {\n  useBootstrapTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "bootstrap/Angular": {
-    "mountProvider": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});",
-    "themeSwitchExample": "import { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n\n@Component({\n  selector: \"theme-controls\",\n  standalone: true,\n  // injectTheme returns a signal, so it is read as state().\n  template: `\n    <button type=\"button\" (click)=\"state().toggleTheme()\">Toggle</button>\n    <button type=\"button\" (click)=\"state().setMode('light')\">Light</button>\n    <button type=\"button\" (click)=\"state().setMode('dark')\">Dark</button>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
-    "componentExample": "import { Component } from \"@angular/core\";\n\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h5 class=\"card-title\">Themvora + Bootstrap</h5>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n  `,\n})\nexport class ExampleComponent {}",
-    "completeExample": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});\n\n// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { RouterOutlet } from \"@angular/router\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectBootstrapTheme } from \"@themvora/bootstrap/angular\";\n\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [RouterOutlet],\n  template: \"<router-outlet />\",\n})\nexport class AppComponent {\n  constructor() {\n    // A constructor is an injection context — registers on provideTheme()'s runtime.\n    injectBootstrapTheme(injectThemeRuntime());\n  }\n}",
-  },
-  "bootstrap/Nuxt": {
-    "mountProvider": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/bootstrap/bootstrap.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
-    "themeSwitchExample": "<!-- components/ThemeControls.vue -->\n<script setup lang=\"ts\">\n// Auto-imported by @themvora/nuxt — no import line needed.\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h5 class=\"card-title\">Themvora + Bootstrap</h5>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>\n",
-    "completeExample": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/bootstrap/bootstrap.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});\n\n// ------------------------------------------------- plugins/install-adapter.client.ts\nimport { useBootstrapTheme } from \"@themvora/bootstrap/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\n// Runs once on the client, after the module has provided the runtime.\nexport default defineNuxtPlugin(() => {\n  useBootstrapTheme(useThemeRuntime());\n});",
-  },
-  "bootstrap/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/bootstrap/bootstrap.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h5 className=\"card-title\">Themvora + Bootstrap</h5>\n        <button type=\"button\" className=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nfunction InstallAdapter() {\n  useBootstrapTheme(useThemeRuntime());\n  return null;\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-  },
-  "bootstrap/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-    "componentExample": "---\nimport \"@themvora/bootstrap/bootstrap.css\";\n---\n\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h5 class=\"card-title\">Themvora + Bootstrap</h5>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n// ---- src/pages/index.astro\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { InstallAdapter } from \"../components/InstallAdapter\";\n---\n\n<BaseLayout>\n  <InstallAdapter client:only=\"react\" />\n</BaseLayout>\n\n// ---- src/components/InstallAdapter.tsx\n\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\n\nexport function InstallAdapter() {\n  useBootstrapTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "daisyui/Solid": {
-    "mountProvider": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/solid\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/daisyui/daisyui.css\";\n\nexport function Example() {\n  return (\n    <div className=\"d-card\">\n      <div className=\"d-card-body\">\n        <h4 className=\"d-card-title\">Themvora + daisyUI</h4>\n        <button className=\"d-btn d-btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);\n\n// src/components/InstallAdapter.tsx\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useDaisyTheme } from \"@themvora/daisyui/solid\";\n\nexport function InstallAdapter() {\n  useDaisyTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "daisyui/Angular": {
-    "mountProvider": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});",
-    "themeSwitchExample": "import { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n\n@Component({\n  selector: \"theme-controls\",\n  standalone: true,\n  // injectTheme returns a signal, so it is read as state().\n  template: `\n    <button type=\"button\" (click)=\"state().toggleTheme()\">Toggle</button>\n    <button type=\"button\" (click)=\"state().setMode('light')\">Light</button>\n    <button type=\"button\" (click)=\"state().setMode('dark')\">Dark</button>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
-    "componentExample": "import { Component } from \"@angular/core\";\n\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n  <div class=\"d-card\">\n    <div class=\"d-card-body\">\n      <h4 class=\"d-card-title\">Themvora + daisyUI</h4>\n      <button class=\"d-btn d-btn-primary\">Primary action</button>\n    </div>\n  </div>\n  `,\n})\nexport class ExampleComponent {}",
-    "completeExample": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});\n\n// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { RouterOutlet } from \"@angular/router\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectDaisyTheme } from \"@themvora/daisyui/angular\";\n\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [RouterOutlet],\n  template: \"<router-outlet />\",\n})\nexport class AppComponent {\n  constructor() {\n    // A constructor is an injection context — registers on provideTheme()'s runtime.\n    injectDaisyTheme(injectThemeRuntime());\n  }\n}",
-  },
-  "daisyui/Nuxt": {
-    "mountProvider": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/daisyui/daisyui.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
-    "themeSwitchExample": "<!-- components/ThemeControls.vue -->\n<script setup lang=\"ts\">\n// Auto-imported by @themvora/nuxt — no import line needed.\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"d-card\">\n    <div class=\"d-card-body\">\n      <h4 class=\"d-card-title\">Themvora + daisyUI</h4>\n      <button class=\"d-btn d-btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>\n",
-    "completeExample": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/daisyui/daisyui.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});\n\n// ------------------------------------------------- plugins/install-adapter.client.ts\nimport { useDaisyTheme } from \"@themvora/daisyui/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\n// Runs once on the client, after the module has provided the runtime.\nexport default defineNuxtPlugin(() => {\n  useDaisyTheme(useThemeRuntime());\n});",
-  },
-  "daisyui/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/daisyui/daisyui.css\";\n\nexport function Example() {\n  return (\n    <div className=\"d-card\">\n      <div className=\"d-card-body\">\n        <h4 className=\"d-card-title\">Themvora + daisyUI</h4>\n        <button className=\"d-btn d-btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nfunction InstallAdapter() {\n  useDaisyTheme(useThemeRuntime());\n  return null;\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-  },
-  "daisyui/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/daisyui/daisyui.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-    "componentExample": "---\nimport \"@themvora/daisyui/daisyui.css\";\n---\n\n  <div class=\"d-card\">\n    <div class=\"d-card-body\">\n      <h4 class=\"d-card-title\">Themvora + daisyUI</h4>\n      <button class=\"d-btn d-btn-primary\">Primary action</button>\n    </div>\n  </div>\n",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/daisyui/daisyui.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n// ---- src/pages/index.astro\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { InstallAdapter } from \"../components/InstallAdapter\";\n---\n\n<BaseLayout>\n  <InstallAdapter client:only=\"react\" />\n</BaseLayout>\n\n// ---- src/components/InstallAdapter.tsx\n\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\n\nexport function InstallAdapter() {\n  useDaisyTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "open-props/Solid": {
-    "mountProvider": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/solid\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/open-props/open-props.css\";\n\nexport function Example() {\n  return (\n    <div className=\"surface\">\n      <h2>Themvora + Open Props</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);\n\n// src/components/InstallAdapter.tsx\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/solid\";\n\nexport function InstallAdapter() {\n  useOpenPropsTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "open-props/Angular": {
-    "mountProvider": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});",
-    "themeSwitchExample": "import { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n\n@Component({\n  selector: \"theme-controls\",\n  standalone: true,\n  // injectTheme returns a signal, so it is read as state().\n  template: `\n    <button type=\"button\" (click)=\"state().toggleTheme()\">Toggle</button>\n    <button type=\"button\" (click)=\"state().setMode('light')\">Light</button>\n    <button type=\"button\" (click)=\"state().setMode('dark')\">Dark</button>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
-    "componentExample": "import { Component } from \"@angular/core\";\n\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n  <div class=\"surface\">\n    <h2>Themvora + Open Props</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n  `,\n  styles: `\n.surface {\n    background: var(--color-surface);\n    color: var(--color-text);\n    border: 1px solid var(--color-border);\n    border-radius: var(--radius-2);\n    padding: var(--size-3);\n  }\n  .primary {\n    background: var(--color-primary);\n    color: var(--color-primary-foreground);\n    border-radius: var(--radius-2);\n    padding: var(--size-2) var(--size-3);\n  }\n  `,\n})\nexport class ExampleComponent {}",
-    "completeExample": "import { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { AppComponent } from \"./app/app.component\";\n\nbootstrapApplication(AppComponent, {\n  providers: [\n    provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" }),\n  ],\n});\n\n// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { RouterOutlet } from \"@angular/router\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectOpenPropsTheme } from \"@themvora/open-props/angular\";\n\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [RouterOutlet],\n  template: \"<router-outlet />\",\n})\nexport class AppComponent {\n  constructor() {\n    // A constructor is an injection context — registers on provideTheme()'s runtime.\n    injectOpenPropsTheme(injectThemeRuntime());\n  }\n}",
-  },
-  "open-props/Nuxt": {
-    "mountProvider": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/open-props/open-props.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
-    "themeSwitchExample": "<!-- components/ThemeControls.vue -->\n<script setup lang=\"ts\">\n// Auto-imported by @themvora/nuxt — no import line needed.\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"surface\">\n    <h2>Themvora + Open Props</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n</template>\n\n<style scoped>\n.surface {\n    background: var(--color-surface);\n    color: var(--color-text);\n    border: 1px solid var(--color-border);\n    border-radius: var(--radius-2);\n    padding: var(--size-3);\n  }\n  .primary {\n    background: var(--color-primary);\n    color: var(--color-primary-foreground);\n    border-radius: var(--radius-2);\n    padding: var(--size-2) var(--size-3);\n  }\n</style>\n",
-    "completeExample": "import { defineNuxtConfig } from \"nuxt/config\";\n\nexport default defineNuxtConfig({\n  // The module owns the provider — there is no component to mount.\n  modules: [\"@themvora/nuxt\"],\n  css: [\"@themvora/open-props/open-props.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});\n\n// ------------------------------------------------- plugins/install-adapter.client.ts\nimport { useOpenPropsTheme } from \"@themvora/open-props/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\n// Runs once on the client, after the module has provided the runtime.\nexport default defineNuxtPlugin(() => {\n  useOpenPropsTheme(useThemeRuntime());\n});",
-  },
-  "open-props/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/open-props/open-props.css\";\n\nexport function Example() {\n  return (\n    <div className=\"surface\">\n      <h2>Themvora + Open Props</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\nimport \"@themvora/open-props/open-props.css\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nfunction InstallAdapter() {\n  useOpenPropsTheme(useThemeRuntime());\n  return null;\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <InstallAdapter />\n      <Outlet />\n    </ThemeProvider>\n  );\n}",
-  },
-  "open-props/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/open-props/open-props.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-    "componentExample": "---\nimport \"@themvora/open-props/open-props.css\";\n---\n\n  <div class=\"surface\">\n    <h2>Themvora + Open Props</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n\n<style>\n.surface {\n    background: var(--color-surface);\n    color: var(--color-text);\n    border: 1px solid var(--color-border);\n    border-radius: var(--radius-2);\n    padding: var(--size-3);\n  }\n  .primary {\n    background: var(--color-primary);\n    color: var(--color-primary-foreground);\n    border-radius: var(--radius-2);\n    padding: var(--size-2) var(--size-3);\n  }\n</style>\n",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\nimport \"@themvora/open-props/open-props.css\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n// ---- src/pages/index.astro\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { InstallAdapter } from \"../components/InstallAdapter\";\n---\n\n<BaseLayout>\n  <InstallAdapter client:only=\"react\" />\n</BaseLayout>\n\n// ---- src/components/InstallAdapter.tsx\n\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\n\nexport function InstallAdapter() {\n  useOpenPropsTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "bootstrap/Svelte": {
-    "mountProvider": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/bootstrap/bootstrap.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>",
-    "themeSwitchExample": "<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n\n  const { setMode, toggleTheme } = useTheme();\n</script>\n\n<button type=\"button\" onclick={() => toggleTheme()}>Toggle</button>\n<button type=\"button\" onclick={() => setMode(\"light\")}>Light</button>\n<button type=\"button\" onclick={() => setMode(\"dark\")}>Dark</button>",
-    "componentExample": "  <div class=\"card\">\n    <div class=\"card-body\">\n      <h5 class=\"card-title\">Themvora + Bootstrap</h5>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n",
-    "completeExample": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/bootstrap/bootstrap.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>\n\n<!-- src/components/ThemeZone.svelte\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script lang=\"ts\">\n  import { useBootstrapTheme } from \"@themvora/bootstrap/svelte\";\nimport { useThemeRuntime } from \"@themvora/svelte\";\n\n  useBootstrapTheme(useThemeRuntime());\n</script>\n\n<Example />",
-  },
-  "daisyui/Svelte": {
-    "mountProvider": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/daisyui/daisyui.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>",
-    "themeSwitchExample": "<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n\n  const { setMode, toggleTheme } = useTheme();\n</script>\n\n<button type=\"button\" onclick={() => toggleTheme()}>Toggle</button>\n<button type=\"button\" onclick={() => setMode(\"light\")}>Light</button>\n<button type=\"button\" onclick={() => setMode(\"dark\")}>Dark</button>",
-    "componentExample": "  <div class=\"d-card\">\n    <div class=\"d-card-body\">\n      <h4 class=\"d-card-title\">Themvora + daisyUI</h4>\n      <button class=\"d-btn d-btn-primary\">Primary action</button>\n    </div>\n  </div>\n",
-    "completeExample": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/daisyui/daisyui.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>\n\n<!-- src/components/ThemeZone.svelte\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script lang=\"ts\">\n  import { useDaisyTheme } from \"@themvora/daisyui/svelte\";\nimport { useThemeRuntime } from \"@themvora/svelte\";\n\n  useDaisyTheme(useThemeRuntime());\n</script>\n\n<Example />",
-  },
-  "open-props/Svelte": {
-    "mountProvider": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/open-props/open-props.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>",
-    "themeSwitchExample": "<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n\n  const { setMode, toggleTheme } = useTheme();\n</script>\n\n<button type=\"button\" onclick={() => toggleTheme()}>Toggle</button>\n<button type=\"button\" onclick={() => setMode(\"light\")}>Light</button>\n<button type=\"button\" onclick={() => setMode(\"dark\")}>Dark</button>",
-    "componentExample": "  <div class=\"surface\">\n    <h2>Themvora + Open Props</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n\n<style>\n.surface {\n    background: var(--color-surface);\n    color: var(--color-text);\n    border: 1px solid var(--color-border);\n    border-radius: var(--radius-2);\n    padding: var(--size-3);\n  }\n  .primary {\n    background: var(--color-primary);\n    color: var(--color-primary-foreground);\n    border-radius: var(--radius-2);\n    padding: var(--size-2) var(--size-3);\n  }\n</style>\n",
-    "completeExample": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/open-props/open-props.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>\n\n<!-- src/components/ThemeZone.svelte\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script lang=\"ts\">\n  import { useOpenPropsTheme } from \"@themvora/open-props/svelte\";\nimport { useThemeRuntime } from \"@themvora/svelte\";\n\n  useOpenPropsTheme(useThemeRuntime());\n</script>\n\n<Example />",
-  },
-  "chakra/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport { Box, Button, Heading } from \"@chakra-ui/react\";\n\nexport function Example() {\n  return (\n    <Box p=\"6\" borderWidth=\"1px\" borderRadius=\"lg\">\n      <Heading size=\"md\">Themvora + Chakra UI</Heading>\n      <Button colorPalette=\"primary\">Primary action</Button>\n    </Box>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <ChakraThemeProvider runtime={runtime}>\n      <Example />\n    </ChakraThemeProvider>\n  );\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Stack } from \"@chakra-ui/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "chakra/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\n\nimport { ThemeZone } from \"./components/theme-zone\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <ThemeZone>\n        <Outlet />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Box, Button, Heading } from \"@chakra-ui/react\";\n\nexport function Example() {\n  return (\n    <Box p=\"6\" borderWidth=\"1px\" borderRadius=\"lg\">\n      <Heading size=\"md\">Themvora + Chakra UI</Heading>\n      <Button colorPalette=\"primary\">Primary action</Button>\n    </Box>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n  const runtime = useThemeRuntime();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <ChakraThemeProvider runtime={runtime}>\n        <Outlet />\n      </ChakraThemeProvider>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\nimport { Button, Stack } from \"@chakra-ui/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "chakra/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "componentExample": "// src/components/Example.tsx — a React island, because Chakra UI is React-only.\nimport { Box, Button, Heading } from \"@chakra-ui/react\";\n\nexport function Example() {\n  return (\n    <Box p=\"6\" borderWidth=\"1px\" borderRadius=\"lg\">\n      <Heading size=\"md\">Themvora + Chakra UI</Heading>\n      <Button colorPalette=\"primary\">Primary action</Button>\n    </Box>\n  );\n}",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n<!-- src/pages/index.astro\n     Chakra UI is a React component library, so its tree runs as an island. -->\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { ThemeZone } from \"../components/ThemeZone\";\n---\n\n<BaseLayout>\n  <ThemeZone client:only=\"react\" />\n</BaseLayout>\n\n<!-- src/components/ThemeZone.tsx\n     The island. The bridge sits inside it, below ThemeProvider. -->\n---\n\"use client\";\n\nimport { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n\nimport { Example } from \"./Example\";\n\nfunction Bridge() {\n  const runtime = useThemeRuntime();\n  return (\n    <ChakraThemeProvider runtime={runtime}>\n      <Example />\n    </ChakraThemeProvider>\n  );\n}\n\nexport function ThemeZone() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <Bridge />\n    </ThemeProvider>\n  );\n}\n-->",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
+export const FRAMEWORK_RECIPES: Record<string, Record<string, string | string[] | RecipePrerequisite[]>> = {
+  "antd/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"6.1.0"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add antd"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/antd"],
+    "setup": "// ---- src/styles/global.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction Bridged({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <AntdThemeProvider runtime={runtime}>{children}</AntdThemeProvider>;\n}\n// Astro cannot hand React children to a client:only island, so the island\n// renders the example and the controls inside the provider itself.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <Bridged>\n        <Example />\n        <ThemeControls />\n      </Bridged>\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport { Button, Card, Space, Typography } from \"antd\";\nexport function Example() {\n  return (\n    <Card>\n      <Space direction=\"vertical\" size=\"middle\">\n        <Typography.Title level={5} style={{ margin: 0 }}>\n          Themvora + Ant Design\n        </Typography.Title>\n        <Typography.Text type=\"secondary\">\n          These are Ant Design's own components — the tokens come from the theme.\n        </Typography.Text>\n        <Button type=\"primary\">Primary action</Button>\n      </Space>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nimport { Button, Space, Typography } from \"antd\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Space size=\"small\" align=\"center\">\n      <Typography.Text type=\"secondary\">Mode: {mode}</Typography.Text>\n      <Button type=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Space>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
   },
   "antd/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport { Button, Card, Typography } from \"antd\";\n\nexport function Example() {\n  return (\n    <Card>\n      <Typography.Title level={5}>Themvora + Ant Design</Typography.Title>\n      <Button type=\"primary\">Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <AntdThemeProvider runtime={runtime}>\n      <Example />\n    </AntdThemeProvider>\n  );\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Stack } from \"antd\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "antd/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\n\nimport { ThemeZone } from \"./components/theme-zone\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <ThemeZone>\n        <Outlet />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Button, Card, Typography } from \"antd\";\n\nexport function Example() {\n  return (\n    <Card>\n      <Typography.Title level={5}>Themvora + Ant Design</Typography.Title>\n      <Button type=\"primary\">Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n  const runtime = useThemeRuntime();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <AntdThemeProvider runtime={runtime}>\n        <Outlet />\n      </AntdThemeProvider>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\nimport { Button, Stack } from \"antd\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "antd/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "componentExample": "// src/components/Example.tsx — a React island, because Ant Design is React-only.\nimport { Button, Card, Typography } from \"antd\";\n\nexport function Example() {\n  return (\n    <Card>\n      <Typography.Title level={5}>Themvora + Ant Design</Typography.Title>\n      <Button type=\"primary\">Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n<!-- src/pages/index.astro\n     Ant Design is a React component library, so its tree runs as an island. -->\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { ThemeZone } from \"../components/ThemeZone\";\n---\n\n<BaseLayout>\n  <ThemeZone client:only=\"react\" />\n</BaseLayout>\n\n<!-- src/components/ThemeZone.tsx\n     The island. The bridge sits inside it, below ThemeProvider. -->\n---\n\"use client\";\n\nimport { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n\nimport { Example } from \"./Example\";\n\nfunction Bridge() {\n  const runtime = useThemeRuntime();\n  return (\n    <AntdThemeProvider runtime={runtime}>\n      <Example />\n    </AntdThemeProvider>\n  );\n}\n\nexport function ThemeZone() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <Bridge />\n    </ThemeProvider>\n  );\n}\n-->",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-  },
-  "mantine/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport { Button, Card, Title } from \"@mantine/core\";\n\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\">\n      <Title order={5}>Themvora + Mantine</Title>\n      <Button>Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <MantineThemeProvider runtime={runtime}>\n      <Example />\n    </MantineThemeProvider>\n  );\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Stack } from \"@mantine/core\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "mantine/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\n\nimport { ThemeZone } from \"./components/theme-zone\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <ThemeZone>\n        <Outlet />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Button, Card, Title } from \"@mantine/core\";\n\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\">\n      <Title order={5}>Themvora + Mantine</Title>\n      <Button>Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n  const runtime = useThemeRuntime();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <MantineThemeProvider runtime={runtime}>\n        <Outlet />\n      </MantineThemeProvider>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\nimport { Button, Stack } from \"@mantine/core\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-  },
-  "mantine/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "componentExample": "// src/components/Example.tsx — a React island, because Mantine is React-only.\nimport { Button, Card, Title } from \"@mantine/core\";\n\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\">\n      <Title order={5}>Themvora + Mantine</Title>\n      <Button>Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n<!-- src/pages/index.astro\n     Mantine is a React component library, so its tree runs as an island. -->\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { ThemeZone } from \"../components/ThemeZone\";\n---\n\n<BaseLayout>\n  <ThemeZone client:only=\"react\" />\n</BaseLayout>\n\n<!-- src/components/ThemeZone.tsx\n     The island. The bridge sits inside it, below ThemeProvider. -->\n---\n\"use client\";\n\nimport { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n\nimport { Example } from \"./Example\";\n\nfunction Bridge() {\n  const runtime = useThemeRuntime();\n  return (\n    <MantineThemeProvider runtime={runtime}>\n      <Example />\n    </MantineThemeProvider>\n  );\n}\n\nexport function ThemeZone() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <Bridge />\n    </ThemeProvider>\n  );\n}\n-->",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<!-- Astro ships the toggle as a component — no hook, no script. -->\n<ThemeToggle />",
-  },
-  "shadcn/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport \"@themvora/shadcn/shadcn.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <h2>Themvora + shadcn/ui</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  useShadcnTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-  },
-  "bootstrap/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h5 className=\"card-title\">Themvora + Bootstrap</h5>\n        <button type=\"button\" className=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  useBootstrapTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-  },
-  "daisyui/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport \"@themvora/daisyui/daisyui.css\";\n\nexport function Example() {\n  return (\n    <div className=\"d-card\">\n      <div className=\"d-card-body\">\n        <h4 className=\"d-card-title\">Themvora + daisyUI</h4>\n        <button className=\"d-btn d-btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  useDaisyTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-  },
-  "open-props/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport \"@themvora/open-props/open-props.css\";\n\nexport function Example() {\n  return (\n    <div className=\"surface\">\n      <h2>Themvora + Open Props</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  useOpenPropsTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-  },
-  "mui/Next.js": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone>{children}</ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Stack } from \"@mui/material\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-    "componentExample": "\"use client\";\n\nimport { Button, Card, CardContent, Typography } from \"@mui/material\";\n\nexport default function Page() {\n  return (\n    <Card>\n      <CardContent>\n        <Typography variant=\"h6\">Themvora + Material UI</Typography>\n        <Button variant=\"contained\">Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
-    "completeExample": "\"use client\";\n\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n\nimport { Example } from \"./example\";\n\nexport function ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <MuiThemeProvider runtime={runtime}>\n      <Example />\n    </MuiThemeProvider>\n  );\n}\n\n// ---------------------------------------------------------------- app/layout.tsx\nimport { ThemeProvider } from \"@themvora/next\";\n\nimport { ThemeZone } from \"./theme-zone\";\n\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <ThemeProvider lang=\"en\" defaultTheme=\"plum-light\">\n      <ThemeZone />\n      {children}\n    </ThemeProvider>\n  );\n}",
-  },
-  "mui/Remix": {
-    "mountProvider": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\n\nimport { ThemeZone } from \"./components/theme-zone\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <ThemeZone>\n        <Outlet />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/remix\";\nimport { Button, Stack } from \"@mui/material\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-    "componentExample": "import { Button, Card, CardContent, Typography } from \"@mui/material\";\n\nexport function Example() {\n  return (\n    <Card>\n      <CardContent>\n        <Typography variant=\"h6\">Themvora + Material UI</Typography>\n        <Button variant=\"contained\">Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
-    "completeExample": "import type { ReactNode } from \"react\";\nimport { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { ThemeHead, ThemeProvider, useThemeRuntime } from \"@themvora/remix\";\nimport { getInitialThemeState } from \"@themvora/remix/server\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n\nconst themes = getBuiltInThemes();\nconst INITIAL_MODE = \"system\";\n\n// Resolve the selection server-side so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return {\n    initial: await getInitialThemeState(request, {\n      themes,\n      defaultTheme: \"light\",\n      mode: INITIAL_MODE,\n    }),\n  };\n}\n\nexport function Layout({ children }: { children: ReactNode }) {\n  const { initial } = useLoaderData<typeof loader>();\n\n  return (\n    <html lang=\"en\" data-theme={initial.theme.name} data-theme-ready=\"true\">\n      <head>\n        <meta charSet=\"utf-8\" />\n        <Meta />\n        <Links />\n        <ThemeHead themes={themes} defaultTheme=\"light\" mode={INITIAL_MODE} />\n      </head>\n      <body>\n        {children}\n        <ScrollRestoration />\n        <Scripts />\n      </body>\n    </html>\n  );\n}\n\nexport default function App() {\n  const { initial } = useLoaderData<typeof loader>();\n  const runtime = useThemeRuntime();\n\n  return (\n    <ThemeProvider initial={initial} themes={themes} defaultTheme=\"light\">\n      <MuiThemeProvider runtime={runtime}>\n        <Outlet />\n      </MuiThemeProvider>\n    </ThemeProvider>\n  );\n}",
-  },
-  "mui/Astro": {
-    "mountProvider": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>",
-    "themeSwitchExample": "---\nimport ThemeToggle from \"@themvora/astro/ThemeToggle.astro\";\n---\n\n<ThemeToggle />",
-    "componentExample": "---\nimport MuiIsland from \"../components/MuiIsland\";\n---\n\n<!-- MUI is React-only, so it runs as an island. -->\n<MuiIsland client:only=\"react\" />",
-    "completeExample": "---\nimport Provider from \"@themvora/astro/provider.astro\";\nimport themeConfig from \"../../theme.config\";\n---\n\n<Provider config={themeConfig} lang=\"en\">\n  <slot />\n</Provider>\n\n<!-- src/pages/index.astro\n     Material UI is a React component library, so its tree runs as an island. -->\n---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\nimport { ThemeZone } from \"../components/ThemeZone\";\n---\n\n<BaseLayout>\n  <ThemeZone client:only=\"react\" />\n</BaseLayout>\n\n<!-- src/components/ThemeZone.tsx\n     The island. The bridge sits inside it, below ThemeProvider. -->\n---\n\"use client\";\n\nimport { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n\nimport { Example } from \"./Example\";\n\nfunction Bridge() {\n  const runtime = useThemeRuntime();\n  return (\n    <MuiThemeProvider runtime={runtime}>\n      <Example />\n    </MuiThemeProvider>\n  );\n}\n\nexport function ThemeZone() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <Bridge />\n    </ThemeProvider>\n  );\n}\n-->",
-  },
-  "shadcn/Solid": {
-    "mountProvider": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/solid\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "componentExample": "import \"@themvora/shadcn/shadcn.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <h2>Themvora + shadcn/ui</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "completeExample": "import { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { App } from \"./App\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);\n\n// src/components/InstallAdapter.tsx\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useShadcnTheme } from \"@themvora/shadcn/solid\";\n\nexport function InstallAdapter() {\n  useShadcnTheme(useThemeRuntime());\n  return null;\n}",
-  },
-  "shadcn/Vue 3": {
-    "mountProvider": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>",
-    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\n\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"card\">\n    <h2>Themvora + shadcn/ui</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n</template>\n\n<style scoped>\n.card {\n    background: var(--card);\n    color: var(--card-foreground);\n    border: 1px solid var(--border);\n    border-radius: 0.5rem;\n    padding: 1rem;\n  }\n  .primary {\n    background: var(--primary);\n    color: var(--primary-foreground);\n    border-radius: 0.375rem;\n    padding: 0.5rem 1rem;\n  }\n</style>\n",
-    "completeExample": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>\n\n<!-- src/components/ThemeZone.vue\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script setup lang=\"ts\">\nimport { useShadcnTheme } from \"@themvora/shadcn/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\nuseShadcnTheme(useThemeRuntime());\n</script>\n\n<template>\n  <Example />\n</template>",
-  },
-  "shadcn/Svelte": {
-    "mountProvider": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/shadcn/shadcn.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>",
-    "themeSwitchExample": "<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n\n  const { setMode, toggleTheme } = useTheme();\n</script>\n\n<button type=\"button\" onclick={() => toggleTheme()}>Toggle</button>\n<button type=\"button\" onclick={() => setMode(\"light\")}>Light</button>\n<button type=\"button\" onclick={() => setMode(\"dark\")}>Dark</button>",
-    "componentExample": "  <div class=\"card\">\n    <h2>Themvora + shadcn/ui</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n\n<style>\n.card {\n    background: var(--card);\n    color: var(--card-foreground);\n    border: 1px solid var(--border);\n    border-radius: 0.5rem;\n    padding: 1rem;\n  }\n  .primary {\n    background: var(--primary);\n    color: var(--primary-foreground);\n    border-radius: 0.375rem;\n    padding: 0.5rem 1rem;\n  }\n</style>\n",
-    "completeExample": "<script lang=\"ts\">\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"@themvora/shadcn/shadcn.css\";\n\n  import ThemeZone from \"./components/ThemeZone.svelte\";\n</script>\n\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  <ThemeZone />\n</ThemeProvider>\n\n<!-- src/components/ThemeZone.svelte\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script lang=\"ts\">\n  import { useShadcnTheme } from \"@themvora/shadcn/svelte\";\nimport { useThemeRuntime } from \"@themvora/svelte\";\n\n  useShadcnTheme(useThemeRuntime());\n</script>\n\n<Example />",
-  },
-  "bootstrap/Vue 3": {
-    "mountProvider": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>",
-    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\n\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h5 class=\"card-title\">Themvora + Bootstrap</h5>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>\n",
-    "completeExample": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>\n\n<!-- src/components/ThemeZone.vue\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script setup lang=\"ts\">\nimport { useBootstrapTheme } from \"@themvora/bootstrap/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\nuseBootstrapTheme(useThemeRuntime());\n</script>\n\n<template>\n  <Example />\n</template>",
-  },
-  "daisyui/Vue 3": {
-    "mountProvider": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>",
-    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\n\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"d-card\">\n    <div class=\"d-card-body\">\n      <h4 class=\"d-card-title\">Themvora + daisyUI</h4>\n      <button class=\"d-btn d-btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>\n",
-    "completeExample": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>\n\n<!-- src/components/ThemeZone.vue\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script setup lang=\"ts\">\nimport { useDaisyTheme } from \"@themvora/daisyui/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\nuseDaisyTheme(useThemeRuntime());\n</script>\n\n<template>\n  <Example />\n</template>",
-  },
-  "open-props/Vue 3": {
-    "mountProvider": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>",
-    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\n\nconst { setMode, toggleTheme } = useTheme();\n</script>\n\n<template>\n  <button type=\"button\" @click=\"toggleTheme()\">Toggle</button>\n  <button type=\"button\" @click=\"setMode('light')\">Light</button>\n  <button type=\"button\" @click=\"setMode('dark')\">Dark</button>\n</template>",
-    "componentExample": "<template>\n  <div class=\"surface\">\n    <h2>Themvora + Open Props</h2>\n    <button class=\"primary\">Primary action</button>\n  </div>\n</template>\n\n<style scoped>\n.surface {\n    background: var(--color-surface);\n    color: var(--color-text);\n    border: 1px solid var(--color-border);\n    border-radius: var(--radius-2);\n    padding: var(--size-3);\n  }\n  .primary {\n    background: var(--color-primary);\n    color: var(--color-primary-foreground);\n    border-radius: var(--radius-2);\n    padding: var(--size-2) var(--size-3);\n  }\n</style>\n",
-    "completeExample": "<script setup lang=\"ts\">\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport ThemeZone from \"./components/ThemeZone.vue\";\n</script>\n\n<template>\n  <ThemeProvider default-theme=\"plum-light\" initial-mode=\"system\">\n    <ThemeZone />\n  </ThemeProvider>\n</template>\n\n<!-- src/components/ThemeZone.vue\n     Mount inside <ThemeProvider> — the hook reads the runtime from context. -->\n<script setup lang=\"ts\">\nimport { useOpenPropsTheme } from \"@themvora/open-props/vue\";\nimport { useThemeRuntime } from \"@themvora/vue\";\n\nuseOpenPropsTheme(useThemeRuntime());\n</script>\n\n<template>\n  <Example />\n</template>",
-  },
-  "chakra/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\n\nimport { Page } from \"./Page\";\nimport { ThemeZone } from \"./components/ThemeZone\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone>\n        <Page />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Box, Button, Heading } from \"@chakra-ui/react\";\n\nexport function Example() {\n  return (\n    <Box p=\"6\" borderWidth=\"1px\" borderRadius=\"lg\">\n      <Heading size=\"md\">Themvora + Chakra UI</Heading>\n      <Button colorPalette=\"primary\">Primary action</Button>\n    </Box>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n\nimport { Example } from \"./Example\";\n\n// The bridge rebuilds Chakra UI's theme whenever Themvora's active theme changes.\nfunction ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <ChakraThemeProvider runtime={runtime}>\n      <Example />\n    </ChakraThemeProvider>\n  );\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\nimport { Button, Stack } from \"@chakra-ui/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"6.1.0"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add antd"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/antd"],
+    "setup": "// ---- app/globals.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n// Rebuilds Ant Design's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <AntdThemeProvider runtime={runtime}>{children}</AntdThemeProvider>;\n}",
+    "componentExample": "// app/example.tsx\n\"use client\";\n\nimport { Button, Card, Space, Typography } from \"antd\";\nexport function Example() {\n  return (\n    <Card>\n      <Space direction=\"vertical\" size=\"middle\">\n        <Typography.Title level={5} style={{ margin: 0 }}>\n          Themvora + Ant Design\n        </Typography.Title>\n        <Typography.Text type=\"secondary\">\n          These are Ant Design's own components — the tokens come from the theme.\n        </Typography.Text>\n        <Button type=\"primary\">Primary action</Button>\n      </Space>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Space, Typography } from \"antd\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Space size=\"small\" align=\"center\">\n      <Typography.Text type=\"secondary\">Mode: {mode}</Typography.Text>\n      <Button type=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Space>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
   },
   "antd/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\n\nimport { Page } from \"./Page\";\nimport { ThemeZone } from \"./components/ThemeZone\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone>\n        <Page />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Button, Card, Typography } from \"antd\";\n\nexport function Example() {\n  return (\n    <Card>\n      <Typography.Title level={5}>Themvora + Ant Design</Typography.Title>\n      <Button type=\"primary\">Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n\nimport { Example } from \"./Example\";\n\n// The bridge rebuilds Ant Design's theme whenever Themvora's active theme changes.\nfunction ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <AntdThemeProvider runtime={runtime}>\n      <Example />\n    </AntdThemeProvider>\n  );\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\nimport { Button, Stack } from \"antd\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"6.1.0"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add antd"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/antd"],
+    "setup": "// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n// Rebuilds Ant Design's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <AntdThemeProvider runtime={runtime}>{children}</AntdThemeProvider>;\n}",
+    "componentExample": "// src/Example.tsx\nimport { Button, Card, Space, Typography } from \"antd\";\nexport function Example() {\n  return (\n    <Card>\n      <Space direction=\"vertical\" size=\"middle\">\n        <Typography.Title level={5} style={{ margin: 0 }}>\n          Themvora + Ant Design\n        </Typography.Title>\n        <Typography.Text type=\"secondary\">\n          These are Ant Design's own components — the tokens come from the theme.\n        </Typography.Text>\n        <Button type=\"primary\">Primary action</Button>\n      </Space>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nimport { Button, Space, Typography } from \"antd\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Space size=\"small\" align=\"center\">\n      <Typography.Text type=\"secondary\">Mode: {mode}</Typography.Text>\n      <Button type=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Space>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
   },
-  "mantine/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\n\nimport { Page } from \"./Page\";\nimport { ThemeZone } from \"./components/ThemeZone\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone>\n        <Page />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import { Button, Card, Title } from \"@mantine/core\";\n\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\">\n      <Title order={5}>Themvora + Mantine</Title>\n      <Button>Primary action</Button>\n    </Card>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n\nimport { Example } from \"./Example\";\n\n// The bridge rebuilds Mantine's theme whenever Themvora's active theme changes.\nfunction ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <MantineThemeProvider runtime={runtime}>\n      <Example />\n    </MantineThemeProvider>\n  );\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\nimport { Button, Stack } from \"@mantine/core\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+  "antd/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"6.1.0"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add antd"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/antd"],
+    "setup": "// ---- app/styles.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { AntdThemeProvider } from \"@themvora/antd\";\n// Rebuilds Ant Design's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <AntdThemeProvider runtime={runtime}>{children}</AntdThemeProvider>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport { Button, Card, Space, Typography } from \"antd\";\nexport function Example() {\n  return (\n    <Card>\n      <Space direction=\"vertical\" size=\"middle\">\n        <Typography.Title level={5} style={{ margin: 0 }}>\n          Themvora + Ant Design\n        </Typography.Title>\n        <Typography.Text type=\"secondary\">\n          These are Ant Design's own components — the tokens come from the theme.\n        </Typography.Text>\n        <Button type=\"primary\">Primary action</Button>\n      </Space>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nimport { Button, Space, Typography } from \"antd\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Space size=\"small\" align=\"center\">\n      <Typography.Text type=\"secondary\">Mode: {mode}</Typography.Text>\n      <Button type=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Space>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
   },
-  "shadcn/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { App as Page } from \"./Page\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <Page />\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import \"@themvora/shadcn/shadcn.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <h2>Themvora + shadcn/ui</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\nimport \"@themvora/shadcn/shadcn.css\";\n\nimport { Example } from \"./Example\";\n\n// No provider to mount: the hook registers the adapter, which writes\n// shadcn/ui's own CSS variables. The stylesheet import above applies them.\nfunction ThemeZone() {\n  useShadcnTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
+  "bootstrap/Angular": {
+    "lang": "ts",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Angular","value":"22.2.5 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Angular 20+ standalone application. Global styles live in `src/styles.css`, referenced by `angular.json`."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/angular @themvora/bootstrap"],
+    "setup": "// ---- src/styles.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport { AppComponent } from \"./app/app.component\";\nbootstrapApplication(AppComponent, {\n  providers: [provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" })],\n});",
+    "code": "// src/app/theme-zone.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectBootstrapTheme } from \"@themvora/bootstrap/angular\";\n@Component({\n  selector: \"app-theme-zone\",\n  standalone: true,\n  template: \"<ng-content />\",\n})\nexport class ThemeZoneComponent {\n  constructor() {\n    // A constructor is an injection context, so the adapter attaches to the\n    // runtime `provideTheme()` created in src/main.ts.\n    injectBootstrapTheme(injectThemeRuntime());\n  }\n}",
+    "componentExample": "// src/app/example.component.ts\nimport { Component } from \"@angular/core\";\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n    <div class=\"card\">\n      <div class=\"card-body\">\n        <h2 class=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p class=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  `,\n})\nexport class ExampleComponent {}",
+    "themeSwitchExample": "// src/app/theme-controls.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n@Component({\n  selector: \"app-theme-controls\",\n  standalone: true,\n  // injectTheme returns a signal, so it is read as state().\n  template: `\n    <div class=\"d-flex gap-2 align-items-center\">\n      <span class=\"text-body-secondary small\">Mode: {{ state().mode }}</span>\n      <button type=\"button\" class=\"btn btn-primary\" (click)=\"state().toggleTheme()\">Toggle</button>\n      <button type=\"button\" class=\"btn btn-outline-secondary\" (click)=\"state().setMode('light')\">Light</button>\n      <button type=\"button\" class=\"btn btn-outline-secondary\" (click)=\"state().setMode('dark')\">Dark</button>\n    </div>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
+    "completeExample": "// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { ThemeZoneComponent } from \"./theme-zone.component\";\nimport { ExampleComponent } from \"./example.component\";\nimport { ThemeControlsComponent } from \"./theme-controls.component\";\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [ThemeZoneComponent, ExampleComponent, ThemeControlsComponent],\n  template: `\n    <app-theme-zone>\n      <app-example />\n      <app-theme-controls />\n    </app-theme-zone>\n  `,\n})\nexport class AppComponent {}",
+  },
+  "bootstrap/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/bootstrap"],
+    "setup": "// ---- src/styles/global.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction InstallAdapter() {\n  useBootstrapTheme(useThemeRuntime());\n  return null;\n}\n// One client island owns the runtime, the adapter and the UI. Astro cannot\n// hand React children to a client:only island, so the island renders the\n// example itself rather than receiving it from the page.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <InstallAdapter />\n      <Example />\n      <ThemeControls />\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p className=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" className=\"btn btn-primary\">\n          Primary action\n        </button>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"d-flex gap-2 align-items-center\">\n      <span className=\"text-body-secondary small\">Mode: {mode}</span>\n      <button type=\"button\" className=\"btn btn-primary\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "bootstrap/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/bootstrap"],
+    "setup": "// ---- app/globals.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useBootstrapTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/example.tsx\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p className=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" className=\"btn btn-primary\">\n          Primary action\n        </button>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"d-flex gap-2 align-items-center\">\n      <span className=\"text-body-secondary small\">Mode: {mode}</span>\n      <button type=\"button\" className=\"btn btn-primary\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "bootstrap/Nuxt": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Nuxt","value":"4.2.0 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Nuxt 4 project. Install `@themvora/vue` alongside `@themvora/nuxt`."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/nuxt @themvora/bootstrap @themvora/vue"],
+    "setup": "// ---- app/assets/css/main.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  modules: [\"@themvora/nuxt\"],\n  // Nuxt loads this stylesheet globally; it is where the library's CSS and\n  // the adapter's variable map are imported, in that order.\n  css: [\"~/assets/css/main.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
+    "code": "<!-- app/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\n// `useThemeRuntime` is auto-imported by @themvora/nuxt.\nimport { useBootstrapTheme } from \"@themvora/bootstrap/vue\";\nuseBootstrapTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- app/components/Example.vue -->\n<template>\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h2 class=\"card-title h5\">Themvora + Bootstrap</h2>\n      <p class=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>",
+    "themeSwitchExample": "<!-- app/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"d-flex gap-2 align-items-center\">\n    <span class=\"text-body-secondary small\">Mode: {{ mode }}</span>\n    <button type=\"button\" class=\"btn btn-primary\" @click=\"toggleTheme\">Toggle</button>\n    <button type=\"button\" class=\"btn btn-outline-secondary\" @click=\"setMode('light')\">Light</button>\n    <button type=\"button\" class=\"btn btn-outline-secondary\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>",
+    "completeExample": "<!-- app/app.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
   },
   "bootstrap/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { App as Page } from \"./Page\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <Page />\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import \"@themvora/bootstrap/bootstrap.css\";\n\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h5 className=\"card-title\">Themvora + Bootstrap</h5>\n        <button type=\"button\" className=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\nimport \"@themvora/bootstrap/bootstrap.css\";\n\nimport { Example } from \"./Example\";\n\n// No provider to mount: the hook registers the adapter, which writes\n// Bootstrap's own CSS variables. The stylesheet import above applies them.\nfunction ThemeZone() {\n  useBootstrapTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/bootstrap"],
+    "setup": "// ---- src/index.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\n// Registers the adapter on the runtime from the provider above.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useBootstrapTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p className=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" className=\"btn btn-primary\">\n          Primary action\n        </button>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"d-flex gap-2 align-items-center\">\n      <span className=\"text-body-secondary small\">Mode: {mode}</span>\n      <button type=\"button\" className=\"btn btn-primary\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "bootstrap/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/bootstrap"],
+    "setup": "// ---- app/styles.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useBootstrapTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/components/example.tsx\nexport function Example() {\n  return (\n    <div className=\"card\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p className=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" className=\"btn btn-primary\">\n          Primary action\n        </button>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"d-flex gap-2 align-items-center\">\n      <span className=\"text-body-secondary small\">Mode: {mode}</span>\n      <button type=\"button\" className=\"btn btn-primary\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button type=\"button\" className=\"btn btn-outline-secondary\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "bootstrap/Solid": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Solid","value":"1.9.18 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Solid + Vite project (`npm create vite@latest -- --template solid-ts`)."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/solid @themvora/bootstrap"],
+    "setup": "// ---- src/index.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/index.tsx\nimport { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"./index.css\";\nimport { App } from \"./App\";\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { JSX } from \"solid-js\";\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/solid\";\nexport function ThemeZone(props: { children: JSX.Element }) {\n  useBootstrapTheme(useThemeRuntime());\n  return <>{props.children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nexport function Example() {\n  return (\n    <div class=\"card\">\n      <div class=\"card-body\">\n        <h2 class=\"card-title h5\">Themvora + Bootstrap</h2>\n        <p class=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n        <button type=\"button\" class=\"btn btn-primary\">\n          Primary action\n        </button>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/solid\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div class=\"d-flex gap-2 align-items-center\">\n      <span class=\"text-body-secondary small\">Mode: {mode()}</span>\n      <button type=\"button\" class=\"btn btn-primary\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" class=\"btn btn-outline-secondary\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" class=\"btn btn-outline-secondary\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "bootstrap/Svelte": {
+    "lang": "svelte",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Svelte","value":"5.57.3 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Svelte 5 + Vite project (`npm create vite@latest -- --template svelte-ts`)."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/svelte @themvora/bootstrap"],
+    "setup": "// ---- src/index.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "<!-- src/lib/ThemeRoot.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"../index.css\";\n  let { children }: { children: Snippet } = $props();\n</script>\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  {@render children()}\n</ThemeProvider>\n// ---- src/main.ts\nimport { mount } from \"svelte\";\nimport App from \"./App.svelte\";\nmount(App, { target: document.getElementById(\"app\")! });",
+    "code": "<!-- src/lib/ThemeZone.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { getThemeRuntime } from \"@themvora/svelte\";\n  import { useBootstrapTheme } from \"@themvora/bootstrap/svelte\";\n  let { children }: { children: Snippet } = $props();\n  // Runs during component initialisation, so the variables exist before paint.\n  useBootstrapTheme(getThemeRuntime());\n</script>\n{@render children()}",
+    "componentExample": "<!-- src/lib/Example.svelte -->\n<script lang=\"ts\">\n  // Markup only — but a Svelte component without a script block emits no\n  // module declaration, so importing it fails `svelte-check` under strict.\n</script>\n<div class=\"card\">\n  <div class=\"card-body\">\n    <h2 class=\"card-title h5\">Themvora + Bootstrap</h2>\n    <p class=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n    <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n  </div>\n</div>",
+    "themeSwitchExample": "<!-- src/lib/ThemeControls.svelte -->\n<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n  const { mode, setMode, toggleTheme } = useTheme();\n</script>\n<div class=\"d-flex gap-2 align-items-center\">\n  <span class=\"text-body-secondary small\">Mode: {$mode}</span>\n  <button type=\"button\" class=\"btn btn-primary\" onclick={toggleTheme}>Toggle</button>\n  <button type=\"button\" class=\"btn btn-outline-secondary\" onclick={() => setMode(\"light\")}>Light</button>\n  <button type=\"button\" class=\"btn btn-outline-secondary\" onclick={() => setMode(\"dark\")}>Dark</button>\n</div>",
+    "completeExample": "<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import ThemeRoot from \"./lib/ThemeRoot.svelte\";\n  import ThemeZone from \"./lib/ThemeZone.svelte\";\n  import Example from \"./lib/Example.svelte\";\n  import ThemeControls from \"./lib/ThemeControls.svelte\";\n</script>\n<ThemeRoot>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</ThemeRoot>",
+  },
+  "bootstrap/Vue 3": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Vue 3","value":"3.5.44 (verified)"},{"label":"Library","value":"5.3.8"},{"label":"Project","value":"Vite + Vue 3 project (`npm create vite@latest -- --template vue-ts`)."}],
+    "install": ["pnpm add bootstrap"],
+    "themvora": ["pnpm add @themvora/core @themvora/vue @themvora/bootstrap"],
+    "setup": "// ---- src/index.css\n@import \"bootstrap/dist/css/bootstrap.min.css\";\n@import \"@themvora/bootstrap/bootstrap.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { createApp, h } from \"vue\";\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"./index.css\";\nimport App from \"./App.vue\";\ncreateApp({\n  render: () =>\n    h(\n      ThemeProvider,\n      { defaultTheme: \"plum-light\", initialMode: \"system\" },\n      () => h(App),\n    ),\n}).mount(\"#app\");",
+    "code": "<!-- src/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\nimport { useThemeRuntime } from \"@themvora/vue\";\nimport { useBootstrapTheme } from \"@themvora/bootstrap/vue\";\n// Installs on mount, disposes on unmount.\nuseBootstrapTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- src/components/Example.vue -->\n<template>\n  <div class=\"card\">\n    <div class=\"card-body\">\n      <h2 class=\"card-title h5\">Themvora + Bootstrap</h2>\n      <p class=\"card-text text-body-secondary\">This card is a plain Bootstrap 5 card. Its colours come from the theme.</p>\n      <button type=\"button\" class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n</template>",
+    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"d-flex gap-2 align-items-center\">\n    <span class=\"text-body-secondary small\">Mode: {{ mode }}</span>\n    <button type=\"button\" class=\"btn btn-primary\" @click=\"toggleTheme\">Toggle</button>\n    <button type=\"button\" class=\"btn btn-outline-secondary\" @click=\"setMode('light')\">Light</button>\n    <button type=\"button\" class=\"btn btn-outline-secondary\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>",
+    "completeExample": "<!-- src/App.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
+  },
+  "chakra/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"3.30.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add @chakra-ui/react @emotion/react"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/chakra"],
+    "setup": "// ---- src/styles/global.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction Bridged({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <ChakraThemeProvider runtime={runtime}>{children}</ChakraThemeProvider>;\n}\n// Astro cannot hand React children to a client:only island, so the island\n// renders the example and the controls inside the provider itself.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <Bridged>\n        <Example />\n        <ThemeControls />\n      </Bridged>\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport { Box, Button, Card, Heading, Stack, Text } from \"@chakra-ui/react\";\nexport function Example() {\n  return (\n    <Card.Root variant=\"outline\">\n      <Card.Body>\n        <Stack gap=\"3\">\n          <Heading size=\"md\">Themvora + Chakra UI</Heading>\n          <Text color=\"fg.muted\">\n            These are Chakra's own components — the system comes from the theme.\n          </Text>\n          <Box>\n            <Button colorPalette=\"primary\">Primary action</Button>\n          </Box>\n        </Stack>\n      </Card.Body>\n    </Card.Root>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nimport { Button, HStack, Text } from \"@chakra-ui/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <HStack gap=\"2\">\n      <Text color=\"fg.muted\" fontSize=\"sm\">\n        Mode: {mode}\n      </Text>\n      <Button colorPalette=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </HStack>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "chakra/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"3.30.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add @chakra-ui/react @emotion/react @emotion/cache"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/chakra"],
+    "setup": "// ---- app/globals.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// ---- app/emotion-registry.tsx\n\"use client\";\nimport createCache from \"@emotion/cache\";\nimport { CacheProvider } from \"@emotion/react\";\nimport { useServerInsertedHTML } from \"next/navigation\";\nimport { useState, type ReactNode } from \"react\";\n// Chakra UI renders its Emotion styles inline while streaming. Flushing them\n// into <head> is what lets the client hydrate without re-rendering the tree\n// (React error #418). This is Chakra's registry, not MUI's cache provider.\nexport function EmotionRegistry({ children }: { children: ReactNode }) {\n  const [{ cache, flush }] = useState(() => {\n    const cache = createCache({ key: \"css\" });\n    cache.compat = true;\n    const insert = cache.insert;\n    let inserted: string[] = [];\n    cache.insert = (...args) => {\n      const serialized = args[1];\n      if (cache.inserted[serialized.name] === undefined) {\n        inserted.push(serialized.name);\n      }\n      return insert(...args);\n    };\n    const flush = () => {\n      const names = inserted;\n      inserted = [];\n      return names;\n    };\n    return { cache, flush };\n  });\n  useServerInsertedHTML(() => {\n    const names = flush();\n    if (names.length === 0) return null;\n    return (\n      <style\n        data-emotion={`${cache.key} ${names.join(\" \")}`}\n        dangerouslySetInnerHTML={{\n          __html: names.map((name) => cache.inserted[name]).join(\"\"),\n        }}\n      />\n    );\n  });\n  return <CacheProvider value={cache}>{children}</CacheProvider>;\n}\n// ---- app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport { EmotionRegistry } from \"./emotion-registry\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\n// Chakra needs its own Emotion registry around the streamed subtree so the\n// styles it generates during SSR are emitted into <head>.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      <EmotionRegistry>{children}</EmotionRegistry>\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n// Rebuilds Chakra UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <ChakraThemeProvider runtime={runtime}>{children}</ChakraThemeProvider>;\n}",
+    "componentExample": "// app/example.tsx\n\"use client\";\n\nimport { Box, Button, Card, Heading, Stack, Text } from \"@chakra-ui/react\";\nexport function Example() {\n  return (\n    <Card.Root variant=\"outline\">\n      <Card.Body>\n        <Stack gap=\"3\">\n          <Heading size=\"md\">Themvora + Chakra UI</Heading>\n          <Text color=\"fg.muted\">\n            These are Chakra's own components — the system comes from the theme.\n          </Text>\n          <Box>\n            <Button colorPalette=\"primary\">Primary action</Button>\n          </Box>\n        </Stack>\n      </Card.Body>\n    </Card.Root>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, HStack, Text } from \"@chakra-ui/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <HStack gap=\"2\">\n      <Text color=\"fg.muted\" fontSize=\"sm\">\n        Mode: {mode}\n      </Text>\n      <Button colorPalette=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </HStack>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "chakra/React": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"3.30.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add @chakra-ui/react @emotion/react"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/chakra"],
+    "setup": "// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n// Rebuilds Chakra UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <ChakraThemeProvider runtime={runtime}>{children}</ChakraThemeProvider>;\n}",
+    "componentExample": "// src/Example.tsx\nimport { Box, Button, Card, Heading, Stack, Text } from \"@chakra-ui/react\";\nexport function Example() {\n  return (\n    <Card.Root variant=\"outline\">\n      <Card.Body>\n        <Stack gap=\"3\">\n          <Heading size=\"md\">Themvora + Chakra UI</Heading>\n          <Text color=\"fg.muted\">\n            These are Chakra's own components — the system comes from the theme.\n          </Text>\n          <Box>\n            <Button colorPalette=\"primary\">Primary action</Button>\n          </Box>\n        </Stack>\n      </Card.Body>\n    </Card.Root>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nimport { Button, HStack, Text } from \"@chakra-ui/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <HStack gap=\"2\">\n      <Text color=\"fg.muted\" fontSize=\"sm\">\n        Mode: {mode}\n      </Text>\n      <Button colorPalette=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </HStack>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "chakra/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"3.30.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add @chakra-ui/react @emotion/react"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/chakra"],
+    "setup": "// ---- app/styles.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { ChakraThemeProvider } from \"@themvora/chakra\";\n// Rebuilds Chakra UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <ChakraThemeProvider runtime={runtime}>{children}</ChakraThemeProvider>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport { Box, Button, Card, Heading, Stack, Text } from \"@chakra-ui/react\";\nexport function Example() {\n  return (\n    <Card.Root variant=\"outline\">\n      <Card.Body>\n        <Stack gap=\"3\">\n          <Heading size=\"md\">Themvora + Chakra UI</Heading>\n          <Text color=\"fg.muted\">\n            These are Chakra's own components — the system comes from the theme.\n          </Text>\n          <Box>\n            <Button colorPalette=\"primary\">Primary action</Button>\n          </Box>\n        </Stack>\n      </Card.Body>\n    </Card.Root>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nimport { Button, HStack, Text } from \"@chakra-ui/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <HStack gap=\"2\">\n      <Text color=\"fg.muted\" fontSize=\"sm\">\n        Mode: {mode}\n      </Text>\n      <Button colorPalette=\"primary\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </HStack>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "daisyui/Angular": {
+    "lang": "ts",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Angular","value":"22.2.5 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Angular 20+ standalone application. Global styles live in `src/styles.css`, referenced by `angular.json`."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/postcss"],
+    "themvora": ["pnpm add @themvora/core @themvora/angular @themvora/daisyui"],
+    "setup": "// .postcssrc.json\n// ---- .postcssrc.json\n{ \"plugins\": { \"@tailwindcss/postcss\": {} } }\n// ---- src/styles.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport { AppComponent } from \"./app/app.component\";\nbootstrapApplication(AppComponent, {\n  providers: [provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" })],\n});",
+    "code": "// src/app/theme-zone.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectDaisyTheme } from \"@themvora/daisyui/angular\";\n@Component({\n  selector: \"app-theme-zone\",\n  standalone: true,\n  template: \"<ng-content />\",\n})\nexport class ThemeZoneComponent {\n  constructor() {\n    // A constructor is an injection context, so the adapter attaches to the\n    // runtime `provideTheme()` created in src/main.ts.\n    injectDaisyTheme(injectThemeRuntime());\n  }\n}",
+    "componentExample": "// src/app/example.component.ts\nimport { Component } from \"@angular/core\";\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n    <div class=\"card bg-base-100 shadow-sm\">\n      <div class=\"card-body\">\n        <h2 class=\"card-title\">Themvora + daisyUI</h2>\n        <p class=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div class=\"card-actions justify-end\">\n          <button class=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  `,\n})\nexport class ExampleComponent {}",
+    "themeSwitchExample": "// src/app/theme-controls.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n@Component({\n  selector: \"app-theme-controls\",\n  standalone: true,\n  template: `\n    <div class=\"flex items-center gap-2\">\n      <span class=\"text-sm text-base-content/70\">Mode: {{ state().mode }}</span>\n      <button class=\"btn btn-primary btn-sm\" (click)=\"state().toggleTheme()\">Toggle</button>\n      <button class=\"btn btn-ghost btn-sm\" (click)=\"state().setMode('light')\">Light</button>\n      <button class=\"btn btn-ghost btn-sm\" (click)=\"state().setMode('dark')\">Dark</button>\n    </div>\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
+    "completeExample": "// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { ThemeZoneComponent } from \"./theme-zone.component\";\nimport { ExampleComponent } from \"./example.component\";\nimport { ThemeControlsComponent } from \"./theme-controls.component\";\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [ThemeZoneComponent, ExampleComponent, ThemeControlsComponent],\n  template: `\n    <app-theme-zone>\n      <app-example />\n      <app-theme-controls />\n    </app-theme-zone>\n  `,\n})\nexport class AppComponent {}",
+  },
+  "daisyui/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/daisyui"],
+    "setup": "// ---- astro.config.mjs\nimport { defineConfig } from \"astro/config\";\nimport react from \"@astrojs/react\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  integrations: [react()],\n  vite: { plugins: [tailwindcss()] },\n});\n// ---- src/styles/global.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction InstallAdapter() {\n  useDaisyTheme(useThemeRuntime());\n  return null;\n}\n// One client island owns the runtime, the adapter and the UI. Astro cannot\n// hand React children to a client:only island, so the island renders the\n// example itself rather than receiving it from the page.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <InstallAdapter />\n      <Example />\n      <ThemeControls />\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"card bg-base-100 shadow-sm\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title\">Themvora + daisyUI</h2>\n        <p className=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div className=\"card-actions justify-end\">\n          <button className=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-base-content/70\">Mode: {mode}</span>\n      <button className=\"btn btn-primary btn-sm\" onClick={toggleTheme}>Toggle</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"light\")}>Light</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "daisyui/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/postcss"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/daisyui"],
+    "setup": "// ---- postcss.config.mjs\nexport default {\n  plugins: { \"@tailwindcss/postcss\": {} },\n};\n// ---- app/globals.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useDaisyTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/example.tsx\nexport function Example() {\n  return (\n    <div className=\"card bg-base-100 shadow-sm\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title\">Themvora + daisyUI</h2>\n        <p className=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div className=\"card-actions justify-end\">\n          <button className=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-base-content/70\">Mode: {mode}</span>\n      <button className=\"btn btn-primary btn-sm\" onClick={toggleTheme}>Toggle</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"light\")}>Light</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "daisyui/Nuxt": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Nuxt","value":"4.2.0 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Nuxt 4 project. Install `@themvora/vue` alongside `@themvora/nuxt`."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/nuxt @themvora/daisyui @themvora/vue"],
+    "setup": "// ---- nuxt.config.ts\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineNuxtConfig({\n  css: [\"~/assets/css/main.css\"],\n  vite: { plugins: [tailwindcss()] },\n});\n// ---- app/assets/css/main.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  modules: [\"@themvora/nuxt\"],\n  // Nuxt loads this stylesheet globally; it is where the library's CSS and\n  // the adapter's variable map are imported, in that order.\n  css: [\"~/assets/css/main.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
+    "code": "<!-- app/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\n// `useThemeRuntime` is auto-imported by @themvora/nuxt.\nimport { useDaisyTheme } from \"@themvora/daisyui/vue\";\nuseDaisyTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- app/components/Example.vue -->\n<template>\n  <div class=\"card bg-base-100 shadow-sm\">\n    <div class=\"card-body\">\n      <h2 class=\"card-title\">Themvora + daisyUI</h2>\n      <p class=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n      <div class=\"card-actions justify-end\">\n        <button class=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  </div>\n</template>",
+    "themeSwitchExample": "<!-- app/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"flex items-center gap-2\">\n    <span class=\"text-sm text-base-content/70\">Mode: {{ mode }}</span>\n    <button class=\"btn btn-primary btn-sm\" @click=\"toggleTheme\">Toggle</button>\n    <button class=\"btn btn-ghost btn-sm\" @click=\"setMode('light')\">Light</button>\n    <button class=\"btn btn-ghost btn-sm\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>",
+    "completeExample": "<!-- app/app.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
   },
   "daisyui/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { App as Page } from \"./Page\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <Page />\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import \"@themvora/daisyui/daisyui.css\";\n\nexport function Example() {\n  return (\n    <div className=\"d-card\">\n      <div className=\"d-card-body\">\n        <h4 className=\"d-card-title\">Themvora + daisyUI</h4>\n        <button className=\"d-btn d-btn-primary\">Primary action</button>\n      </div>\n    </div>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\nimport \"@themvora/daisyui/daisyui.css\";\n\nimport { Example } from \"./Example\";\n\n// No provider to mount: the hook registers the adapter, which writes\n// daisyUI's own CSS variables. The stylesheet import above applies them.\nfunction ThemeZone() {\n  useDaisyTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/daisyui"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport react from \"@vitejs/plugin-react\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  plugins: [react(), tailwindcss()],\n});\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\n// Registers the adapter on the runtime from the provider above.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useDaisyTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"card bg-base-100 shadow-sm\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title\">Themvora + daisyUI</h2>\n        <p className=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div className=\"card-actions justify-end\">\n          <button className=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-base-content/70\">Mode: {mode}</span>\n      <button className=\"btn btn-primary btn-sm\" onClick={toggleTheme}>Toggle</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"light\")}>Light</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
   },
-  "open-props/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { App as Page } from \"./Page\";\nimport { InstallAdapter } from \"./components/InstallAdapter\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <InstallAdapter />\n      <Page />\n    </ThemeProvider>\n  );\n}",
-    "componentExample": "import \"@themvora/open-props/open-props.css\";\n\nexport function Example() {\n  return (\n    <div className=\"surface\">\n      <h2>Themvora + Open Props</h2>\n      <button className=\"primary\">Primary action</button>\n    </div>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <>\n      <button type=\"button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\nimport \"@themvora/open-props/open-props.css\";\n\nimport { Example } from \"./Example\";\n\n// No provider to mount: the hook registers the adapter, which writes\n// Open Props's own CSS variables. The stylesheet import above applies them.\nfunction ThemeZone() {\n  useOpenPropsTheme(useThemeRuntime());\n\n  return <Example />;\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
+  "daisyui/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/daisyui"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport { vitePlugin as remix } from \"@remix-run/dev\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  plugins: [remix(), tailwindcss()],\n});\n// ---- app/styles.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { useDaisyTheme } from \"@themvora/daisyui/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useDaisyTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/components/example.tsx\nexport function Example() {\n  return (\n    <div className=\"card bg-base-100 shadow-sm\">\n      <div className=\"card-body\">\n        <h2 className=\"card-title\">Themvora + daisyUI</h2>\n        <p className=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div className=\"card-actions justify-end\">\n          <button className=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-base-content/70\">Mode: {mode}</span>\n      <button className=\"btn btn-primary btn-sm\" onClick={toggleTheme}>Toggle</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"light\")}>Light</button>\n      <button className=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "daisyui/Solid": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Solid","value":"1.9.18 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Solid + Vite project (`npm create vite@latest -- --template solid-ts`)."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/solid @themvora/daisyui"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport solid from \"vite-plugin-solid\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  plugins: [solid(), tailwindcss()],\n});\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/index.tsx\nimport { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"./index.css\";\nimport { App } from \"./App\";\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { JSX } from \"solid-js\";\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useDaisyTheme } from \"@themvora/daisyui/solid\";\nexport function ThemeZone(props: { children: JSX.Element }) {\n  useDaisyTheme(useThemeRuntime());\n  return <>{props.children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nexport function Example() {\n  return (\n    <div class=\"card bg-base-100 shadow-sm\">\n      <div class=\"card-body\">\n        <h2 class=\"card-title\">Themvora + daisyUI</h2>\n        <p class=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n        <div class=\"card-actions justify-end\">\n          <button class=\"btn btn-primary\">Primary action</button>\n        </div>\n      </div>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/solid\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div class=\"flex items-center gap-2\">\n      <span class=\"text-sm text-base-content/70\">Mode: {mode()}</span>\n      <button class=\"btn btn-primary btn-sm\" onClick={() => toggleTheme()}>Toggle</button>\n      <button class=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"light\")}>Light</button>\n      <button class=\"btn btn-ghost btn-sm\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "daisyui/Svelte": {
+    "lang": "svelte",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Svelte","value":"5.57.3 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Svelte 5 + Vite project (`npm create vite@latest -- --template svelte-ts`)."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/svelte @themvora/daisyui"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport { svelte } from \"@sveltejs/vite-plugin-svelte\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  plugins: [svelte(), tailwindcss()],\n});\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "<!-- src/lib/ThemeRoot.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"../index.css\";\n  let { children }: { children: Snippet } = $props();\n</script>\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  {@render children()}\n</ThemeProvider>\n// ---- src/main.ts\nimport { mount } from \"svelte\";\nimport App from \"./App.svelte\";\nmount(App, { target: document.getElementById(\"app\")! });",
+    "code": "<!-- src/lib/ThemeZone.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { getThemeRuntime } from \"@themvora/svelte\";\n  import { useDaisyTheme } from \"@themvora/daisyui/svelte\";\n  let { children }: { children: Snippet } = $props();\n  // Runs during component initialisation, so the variables exist before paint.\n  useDaisyTheme(getThemeRuntime());\n</script>\n{@render children()}",
+    "componentExample": "<!-- src/lib/Example.svelte -->\n<script lang=\"ts\">\n  // Markup only — but a Svelte component without a script block emits no\n  // module declaration, so importing it fails `svelte-check` under strict.\n</script>\n<div class=\"card bg-base-100 shadow-sm\">\n  <div class=\"card-body\">\n    <h2 class=\"card-title\">Themvora + daisyUI</h2>\n    <p class=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n    <div class=\"card-actions justify-end\">\n      <button class=\"btn btn-primary\">Primary action</button>\n    </div>\n  </div>\n</div>",
+    "themeSwitchExample": "<!-- src/lib/ThemeControls.svelte -->\n<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n  const { mode, setMode, toggleTheme } = useTheme();\n</script>\n<div class=\"flex items-center gap-2\">\n  <span class=\"text-sm text-base-content/70\">Mode: {$mode}</span>\n  <button class=\"btn btn-primary btn-sm\" onclick={toggleTheme}>Toggle</button>\n  <button class=\"btn btn-ghost btn-sm\" onclick={() => setMode(\"light\")}>Light</button>\n  <button class=\"btn btn-ghost btn-sm\" onclick={() => setMode(\"dark\")}>Dark</button>\n</div>",
+    "completeExample": "<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import ThemeRoot from \"./lib/ThemeRoot.svelte\";\n  import ThemeZone from \"./lib/ThemeZone.svelte\";\n  import Example from \"./lib/Example.svelte\";\n  import ThemeControls from \"./lib/ThemeControls.svelte\";\n</script>\n<ThemeRoot>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</ThemeRoot>",
+  },
+  "daisyui/Vue 3": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Vue 3","value":"3.5.44 (verified)"},{"label":"Library","value":"5.1.10"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3"},{"label":"Project","value":"Vite + Vue 3 project (`npm create vite@latest -- --template vue-ts`)."}],
+    "install": ["pnpm add daisyui","pnpm add -D tailwindcss @tailwindcss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/vue @themvora/daisyui"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport vue from \"@vitejs/plugin-vue\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  plugins: [vue(), tailwindcss()],\n});\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/daisyui/daisyui.css\";\n@plugin \"daisyui\";\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { createApp, h } from \"vue\";\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"./index.css\";\nimport App from \"./App.vue\";\ncreateApp({\n  render: () =>\n    h(\n      ThemeProvider,\n      { defaultTheme: \"plum-light\", initialMode: \"system\" },\n      () => h(App),\n    ),\n}).mount(\"#app\");",
+    "code": "<!-- src/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\nimport { useThemeRuntime } from \"@themvora/vue\";\nimport { useDaisyTheme } from \"@themvora/daisyui/vue\";\n// Installs on mount, disposes on unmount.\nuseDaisyTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- src/components/Example.vue -->\n<template>\n  <div class=\"card bg-base-100 shadow-sm\">\n    <div class=\"card-body\">\n      <h2 class=\"card-title\">Themvora + daisyUI</h2>\n      <p class=\"text-base-content/70\">This card is a plain daisyUI card. Its colours come from the theme.</p>\n      <div class=\"card-actions justify-end\">\n        <button class=\"btn btn-primary\">Primary action</button>\n      </div>\n    </div>\n  </div>\n</template>",
+    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"flex items-center gap-2\">\n    <span class=\"text-sm text-base-content/70\">Mode: {{ mode }}</span>\n    <button class=\"btn btn-primary btn-sm\" @click=\"toggleTheme\">Toggle</button>\n    <button class=\"btn btn-ghost btn-sm\" @click=\"setMode('light')\">Light</button>\n    <button class=\"btn btn-ghost btn-sm\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>",
+    "completeExample": "<!-- src/App.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
+  },
+  "mantine/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"7.17.0"},{"label":"Peer dependencies","value":"@mantine/hooks 7.17.0"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add @mantine/core @mantine/hooks"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/mantine"],
+    "setup": "// ---- src/styles/global.css\n@import \"@mantine/core/styles.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction Bridged({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MantineThemeProvider runtime={runtime}>{children}</MantineThemeProvider>;\n}\n// Astro cannot hand React children to a client:only island, so the island\n// renders the example and the controls inside the provider itself.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <Bridged>\n        <Example />\n        <ThemeControls />\n      </Bridged>\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport { Button, Card, Group, Stack, Text, Title } from \"@mantine/core\";\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\" radius=\"md\">\n      <Stack gap=\"sm\">\n        <Title order={5}>Themvora + Mantine</Title>\n        <Text c=\"dimmed\" size=\"sm\">\n          These are Mantine's own components — the theme comes from Themvora.\n        </Text>\n        <Group>\n          <Button>Primary action</Button>\n        </Group>\n      </Stack>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nimport { Button, Group, Text } from \"@mantine/core\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Group gap=\"xs\">\n      <Text size=\"sm\" c=\"dimmed\">Mode: {mode}</Text>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Group>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "mantine/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"7.17.0"},{"label":"Peer dependencies","value":"@mantine/hooks 7.17.0"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add @mantine/core @mantine/hooks"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/mantine"],
+    "setup": "// ---- app/globals.css\n@import \"@mantine/core/styles.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n// Rebuilds Mantine's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MantineThemeProvider runtime={runtime}>{children}</MantineThemeProvider>;\n}",
+    "componentExample": "// app/example.tsx\n\"use client\";\n\nimport { Button, Card, Group, Stack, Text, Title } from \"@mantine/core\";\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\" radius=\"md\">\n      <Stack gap=\"sm\">\n        <Title order={5}>Themvora + Mantine</Title>\n        <Text c=\"dimmed\" size=\"sm\">\n          These are Mantine's own components — the theme comes from Themvora.\n        </Text>\n        <Group>\n          <Button>Primary action</Button>\n        </Group>\n      </Stack>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Group, Text } from \"@mantine/core\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Group gap=\"xs\">\n      <Text size=\"sm\" c=\"dimmed\">Mode: {mode}</Text>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Group>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "mantine/React": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"7.17.0"},{"label":"Peer dependencies","value":"@mantine/hooks 7.17.0"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add @mantine/core @mantine/hooks"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/mantine"],
+    "setup": "// ---- src/index.css\n@import \"@mantine/core/styles.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n// Rebuilds Mantine's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MantineThemeProvider runtime={runtime}>{children}</MantineThemeProvider>;\n}",
+    "componentExample": "// src/Example.tsx\nimport { Button, Card, Group, Stack, Text, Title } from \"@mantine/core\";\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\" radius=\"md\">\n      <Stack gap=\"sm\">\n        <Title order={5}>Themvora + Mantine</Title>\n        <Text c=\"dimmed\" size=\"sm\">\n          These are Mantine's own components — the theme comes from Themvora.\n        </Text>\n        <Group>\n          <Button>Primary action</Button>\n        </Group>\n      </Stack>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nimport { Button, Group, Text } from \"@mantine/core\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Group gap=\"xs\">\n      <Text size=\"sm\" c=\"dimmed\">Mode: {mode}</Text>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Group>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "mantine/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"7.17.0"},{"label":"Peer dependencies","value":"@mantine/hooks 7.17.0"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add @mantine/core @mantine/hooks"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/mantine"],
+    "setup": "// ---- app/styles.css\n@import \"@mantine/core/styles.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { MantineThemeProvider } from \"@themvora/mantine\";\n// Rebuilds Mantine's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MantineThemeProvider runtime={runtime}>{children}</MantineThemeProvider>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport { Button, Card, Group, Stack, Text, Title } from \"@mantine/core\";\nexport function Example() {\n  return (\n    <Card withBorder padding=\"lg\" radius=\"md\">\n      <Stack gap=\"sm\">\n        <Title order={5}>Themvora + Mantine</Title>\n        <Text c=\"dimmed\" size=\"sm\">\n          These are Mantine's own components — the theme comes from Themvora.\n        </Text>\n        <Group>\n          <Button>Primary action</Button>\n        </Group>\n      </Stack>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nimport { Button, Group, Text } from \"@mantine/core\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Group gap=\"xs\">\n      <Text size=\"sm\" c=\"dimmed\">Mode: {mode}</Text>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"light\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Group>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "mui/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"9.0.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0, @emotion/styled 11.14.0"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add @mui/material @emotion/react @emotion/styled"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/mui"],
+    "setup": "// ---- src/styles/global.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction Bridged({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MuiThemeProvider runtime={runtime}>{children}</MuiThemeProvider>;\n}\n// Astro cannot hand React children to a client:only island, so the island\n// renders the example and the controls inside the provider itself.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <Bridged>\n        <Example />\n        <ThemeControls />\n      </Bridged>\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport { Button, Card, CardContent, Stack, Typography } from \"@mui/material\";\nexport function Example() {\n  return (\n    <Card variant=\"outlined\">\n      <CardContent>\n        <Stack spacing={1.5}>\n          <Typography variant=\"h6\">Themvora + Material UI</Typography>\n          <Typography variant=\"body2\" color=\"text.secondary\">\n            These are MUI's own components — the palette comes from the theme.\n          </Typography>\n          <Button variant=\"contained\">Primary action</Button>\n        </Stack>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nimport { Button, Stack, Typography } from \"@mui/material\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Stack direction=\"row\" spacing={1} sx={{ alignItems: \"center\" }}>\n      <Typography variant=\"body2\" color=\"text.secondary\">\n        Mode: {mode}\n      </Typography>\n      <Button variant=\"contained\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "mui/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"9.0.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0, @emotion/styled 11.14.0"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add @mui/material @emotion/react @emotion/styled","pnpm add @mui/material-nextjs @emotion/cache @emotion/server"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/mui"],
+    "setup": "// ---- app/globals.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\n// The subpath follows the Next.js major: v15-appRouter for Next 15,\n// v16-appRouter for Next 16.\nimport { AppRouterCacheProvider } from \"@mui/material-nextjs/v15-appRouter\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\n// AppRouterCacheProvider collects the Emotion styles MUI generates during\n// streaming SSR and flushes them into <head>; without it they arrive in\n// the streamed body chunk and hydration fails with React error #418.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      <AppRouterCacheProvider options={{ key: \"mui\" }}>\n        {children}\n      </AppRouterCacheProvider>\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n// Rebuilds Material UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MuiThemeProvider runtime={runtime}>{children}</MuiThemeProvider>;\n}",
+    "componentExample": "// app/example.tsx\n\"use client\";\n\nimport { Button, Card, CardContent, Stack, Typography } from \"@mui/material\";\nexport function Example() {\n  return (\n    <Card variant=\"outlined\">\n      <CardContent>\n        <Stack spacing={1.5}>\n          <Typography variant=\"h6\">Themvora + Material UI</Typography>\n          <Typography variant=\"body2\" color=\"text.secondary\">\n            These are MUI's own components — the palette comes from the theme.\n          </Typography>\n          <Button variant=\"contained\">Primary action</Button>\n        </Stack>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button, Stack, Typography } from \"@mui/material\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Stack direction=\"row\" spacing={1} sx={{ alignItems: \"center\" }}>\n      <Typography variant=\"body2\" color=\"text.secondary\">\n        Mode: {mode}\n      </Typography>\n      <Button variant=\"contained\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
   },
   "mui/React": {
-    "mountProvider": "import { ThemeProvider } from \"@themvora/react\";\n\nimport { Page } from \"./Page\";\nimport { ThemeZone } from \"./components/ThemeZone\";\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone>\n        <Page />\n      </ThemeZone>\n    </ThemeProvider>\n  );\n}",
-    "themeSwitchExample": "import { useTheme } from \"@themvora/react\";\nimport { Button, Stack } from \"@mui/material\";\n\nexport function ThemeControls() {\n  const { setMode, toggleTheme } = useTheme();\n\n  return (\n    <Stack direction=\"row\" spacing={1}>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button onClick={() => setMode(\"light\")}>Light</Button>\n      <Button onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
-    "componentExample": "import { Button, Card, CardContent, Typography } from \"@mui/material\";\n\nexport function Example() {\n  return (\n    <Card>\n      <CardContent>\n        <Typography variant=\"h6\">Themvora + Material UI</Typography>\n        <Button variant=\"contained\">Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
-    "completeExample": "import { ThemeProvider, useThemeRuntime } from \"@themvora/react\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n\nimport { Example } from \"./Example\";\n\n// The bridge rebuilds Material UI's theme whenever Themvora's active theme changes.\nfunction ThemeZone() {\n  const runtime = useThemeRuntime();\n\n  return (\n    <MuiThemeProvider runtime={runtime}>\n      <Example />\n    </MuiThemeProvider>\n  );\n}\n\nexport default function App() {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <ThemeZone />\n    </ThemeProvider>\n  );\n}",
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"9.0.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0, @emotion/styled 11.14.0"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add @mui/material @emotion/react @emotion/styled"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/mui"],
+    "setup": "// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n// Rebuilds Material UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MuiThemeProvider runtime={runtime}>{children}</MuiThemeProvider>;\n}",
+    "componentExample": "// src/Example.tsx\nimport { Button, Card, CardContent, Stack, Typography } from \"@mui/material\";\nexport function Example() {\n  return (\n    <Card variant=\"outlined\">\n      <CardContent>\n        <Stack spacing={1.5}>\n          <Typography variant=\"h6\">Themvora + Material UI</Typography>\n          <Typography variant=\"body2\" color=\"text.secondary\">\n            These are MUI's own components — the palette comes from the theme.\n          </Typography>\n          <Button variant=\"contained\">Primary action</Button>\n        </Stack>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nimport { Button, Stack, Typography } from \"@mui/material\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Stack direction=\"row\" spacing={1} sx={{ alignItems: \"center\" }}>\n      <Typography variant=\"body2\" color=\"text.secondary\">\n        Mode: {mode}\n      </Typography>\n      <Button variant=\"contained\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "mui/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"9.0.0"},{"label":"Peer dependencies","value":"@emotion/react 11.14.0, @emotion/styled 11.14.0"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add @mui/material @emotion/react @emotion/styled"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/mui"],
+    "setup": "// ---- app/styles.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { MuiThemeProvider } from \"@themvora/mui\";\n// Rebuilds Material UI's own theme object on every selection change.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  const runtime = useThemeRuntime();\n  return <MuiThemeProvider runtime={runtime}>{children}</MuiThemeProvider>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport { Button, Card, CardContent, Stack, Typography } from \"@mui/material\";\nexport function Example() {\n  return (\n    <Card variant=\"outlined\">\n      <CardContent>\n        <Stack spacing={1.5}>\n          <Typography variant=\"h6\">Themvora + Material UI</Typography>\n          <Typography variant=\"body2\" color=\"text.secondary\">\n            These are MUI's own components — the palette comes from the theme.\n          </Typography>\n          <Button variant=\"contained\">Primary action</Button>\n        </Stack>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nimport { Button, Stack, Typography } from \"@mui/material\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <Stack direction=\"row\" spacing={1} sx={{ alignItems: \"center\" }}>\n      <Typography variant=\"body2\" color=\"text.secondary\">\n        Mode: {mode}\n      </Typography>\n      <Button variant=\"contained\" onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"light\")}>Light</Button>\n      <Button variant=\"outlined\" onClick={() => setMode(\"dark\")}>Dark</Button>\n    </Stack>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "open-props/Angular": {
+    "lang": "ts",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Angular","value":"22.2.5 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Angular 20+ standalone application. Global styles live in `src/styles.css`, referenced by `angular.json`."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/angular @themvora/open-props"],
+    "setup": "// ---- src/styles.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { bootstrapApplication } from \"@angular/platform-browser\";\nimport { provideTheme } from \"@themvora/angular\";\nimport { AppComponent } from \"./app/app.component\";\nbootstrapApplication(AppComponent, {\n  providers: [provideTheme({ defaultTheme: \"plum-light\", initialMode: \"system\" })],\n});",
+    "code": "// src/app/theme-zone.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectThemeRuntime } from \"@themvora/angular\";\nimport { injectOpenPropsTheme } from \"@themvora/open-props/angular\";\n@Component({\n  selector: \"app-theme-zone\",\n  standalone: true,\n  template: \"<ng-content />\",\n})\nexport class ThemeZoneComponent {\n  constructor() {\n    // A constructor is an injection context, so the adapter attaches to the\n    // runtime `provideTheme()` created in src/main.ts.\n    injectOpenPropsTheme(injectThemeRuntime());\n  }\n}",
+    "componentExample": "// src/app/example.component.ts\nimport { Component } from \"@angular/core\";\n@Component({\n  selector: \"app-example\",\n  standalone: true,\n  template: `\n    <section class=\"op-card\">\n      <h2 class=\"op-title\">Themvora + Open Props</h2>\n      <p class=\"op-text\">Open Props ships design tokens, not components — this is ordinary markup.</p>\n      <button class=\"op-button\" type=\"button\">Primary action</button>\n    </section>\n  `,\n  styles: `\n    .op-card { background: var(--color-canvas); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-3); padding: var(--size-5); display: grid; gap: var(--size-3); box-shadow: var(--shadow-2); }\n    .op-title { margin: 0; font-size: var(--font-size-3); font-weight: 600; }\n    .op-text { margin: 0; color: var(--color-muted-foreground); font-size: var(--font-size-1); }\n    .op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-4); font: inherit; cursor: pointer; }\n  `,\n})\nexport class ExampleComponent {}",
+    "themeSwitchExample": "// src/app/theme-controls.component.ts\nimport { Component } from \"@angular/core\";\nimport { injectTheme } from \"@themvora/angular\";\n@Component({\n  selector: \"app-theme-controls\",\n  standalone: true,\n  template: `\n    <div class=\"op-bar\">\n      <span class=\"op-muted\">Mode: {{ state().mode }}</span>\n      <button type=\"button\" class=\"op-button\" (click)=\"state().toggleTheme()\">Toggle</button>\n      <button type=\"button\" class=\"op-button op-button-quiet\" (click)=\"state().setMode('light')\">Light</button>\n      <button type=\"button\" class=\"op-button op-button-quiet\" (click)=\"state().setMode('dark')\">Dark</button>\n    </div>\n  `,\n  styles: `\n    .op-bar { display: flex; align-items: center; gap: var(--size-2); font-size: var(--font-size-0); }\n    .op-muted { color: var(--color-muted-foreground); }\n    .op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-3); font: inherit; cursor: pointer; }\n    .op-button-quiet { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }\n  `,\n})\nexport class ThemeControlsComponent {\n  state = injectTheme();\n}",
+    "completeExample": "// src/app/app.component.ts\nimport { Component } from \"@angular/core\";\nimport { ThemeZoneComponent } from \"./theme-zone.component\";\nimport { ExampleComponent } from \"./example.component\";\nimport { ThemeControlsComponent } from \"./theme-controls.component\";\n@Component({\n  selector: \"app-root\",\n  standalone: true,\n  imports: [ThemeZoneComponent, ExampleComponent, ThemeControlsComponent],\n  template: `\n    <app-theme-zone>\n      <app-example />\n      <app-theme-controls />\n    </app-theme-zone>\n  `,\n})\nexport class AppComponent {}",
+  },
+  "open-props/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/open-props"],
+    "setup": "// ---- src/styles/global.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction InstallAdapter() {\n  useOpenPropsTheme(useThemeRuntime());\n  return null;\n}\n// One client island owns the runtime, the adapter and the UI. Astro cannot\n// hand React children to a client:only island, so the island renders the\n// example itself rather than receiving it from the page.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <InstallAdapter />\n      <Example />\n      <ThemeControls />\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport type { CSSProperties } from \"react\";\n// Open Props is a token set, so the styling is a stylesheet — inline here\n// only to keep the example to one file.\nconst card: CSSProperties = { \"background\": \"var(--color-canvas)\", \"color\": \"var(--color-text)\", \"border\": \"1px solid var(--color-border)\", \"borderRadius\": \"var(--radius-3)\", \"padding\": \"var(--size-5)\", \"display\": \"grid\", \"gap\": \"var(--size-3)\", \"boxShadow\": \"var(--shadow-2)\" };\nconst title: CSSProperties = { \"margin\": \"0\", \"fontSize\": \"var(--font-size-3)\", \"fontWeight\": \"600\" };\nconst text: CSSProperties = { \"margin\": \"0\", \"color\": \"var(--color-muted-foreground)\", \"fontSize\": \"var(--font-size-1)\" };\nconst button: CSSProperties = { \"background\": \"var(--color-primary)\", \"color\": \"var(--color-primary-foreground)\", \"border\": \"0\", \"borderRadius\": \"var(--radius-2)\", \"padding\": \"var(--size-2) var(--size-4)\", \"font\": \"inherit\", \"cursor\": \"pointer\" };\nexport function Example() {\n  return (\n    <section style={card}>\n      <h2 style={title}>Themvora + Open Props</h2>\n      <p style={text}>Open Props ships design tokens, not components — this is ordinary markup.</p>\n      <button type=\"button\" style={button}>\n        Primary action\n      </button>\n    </section>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"op-bar\">\n      <span className=\"op-muted\">Mode: {mode}</span>\n      <button type=\"button\" className=\"op-button\" onClick={toggleTheme}>Toggle</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "open-props/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/open-props"],
+    "setup": "// ---- app/globals.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useOpenPropsTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/example.tsx\nimport type { CSSProperties } from \"react\";\n// Open Props is a token set, so the styling is a stylesheet — inline here\n// only to keep the example to one file.\nconst card: CSSProperties = { \"background\": \"var(--color-canvas)\", \"color\": \"var(--color-text)\", \"border\": \"1px solid var(--color-border)\", \"borderRadius\": \"var(--radius-3)\", \"padding\": \"var(--size-5)\", \"display\": \"grid\", \"gap\": \"var(--size-3)\", \"boxShadow\": \"var(--shadow-2)\" };\nconst title: CSSProperties = { \"margin\": \"0\", \"fontSize\": \"var(--font-size-3)\", \"fontWeight\": \"600\" };\nconst text: CSSProperties = { \"margin\": \"0\", \"color\": \"var(--color-muted-foreground)\", \"fontSize\": \"var(--font-size-1)\" };\nconst button: CSSProperties = { \"background\": \"var(--color-primary)\", \"color\": \"var(--color-primary-foreground)\", \"border\": \"0\", \"borderRadius\": \"var(--radius-2)\", \"padding\": \"var(--size-2) var(--size-4)\", \"font\": \"inherit\", \"cursor\": \"pointer\" };\nexport function Example() {\n  return (\n    <section style={card}>\n      <h2 style={title}>Themvora + Open Props</h2>\n      <p style={text}>Open Props ships design tokens, not components — this is ordinary markup.</p>\n      <button type=\"button\" style={button}>\n        Primary action\n      </button>\n    </section>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nconst bar: React.CSSProperties = {\n  display: \"flex\",\n  alignItems: \"center\",\n  gap: \"var(--size-2)\",\n  fontSize: \"var(--font-size-0)\",\n};\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div style={bar}>\n      <span style={{ color: \"var(--color-muted-foreground)\" }}>Mode: {mode}</span>\n      <button type=\"button\" className=\"op-button\" onClick={toggleTheme}>Toggle</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "open-props/Nuxt": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Nuxt","value":"4.2.0 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Nuxt 4 project. Install `@themvora/vue` alongside `@themvora/nuxt`."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/nuxt @themvora/open-props @themvora/vue"],
+    "setup": "// ---- app/assets/css/main.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  modules: [\"@themvora/nuxt\"],\n  // Nuxt loads this stylesheet globally; it is where the library's CSS and\n  // the adapter's variable map are imported, in that order.\n  css: [\"~/assets/css/main.css\"],\n  themvora: {\n    defaultTheme: \"plum-light\",\n    initialMode: \"system\",\n  },\n});",
+    "code": "<!-- app/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\n// `useThemeRuntime` is auto-imported by @themvora/nuxt.\nimport { useOpenPropsTheme } from \"@themvora/open-props/vue\";\nuseOpenPropsTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- app/components/Example.vue -->\n<template>\n  <section class=\"op-card\">\n    <h2 class=\"op-title\">Themvora + Open Props</h2>\n    <p class=\"op-text\">Open Props ships design tokens, not components — this is ordinary markup.</p>\n    <button class=\"op-button\" type=\"button\">Primary action</button>\n  </section>\n</template>\n<style scoped>\n.op-card { background: var(--color-canvas); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-3); padding: var(--size-5); display: grid; gap: var(--size-3); box-shadow: var(--shadow-2); }\n.op-title { margin: 0; font-size: var(--font-size-3); font-weight: 600; }\n.op-text { margin: 0; color: var(--color-muted-foreground); font-size: var(--font-size-1); }\n.op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-4); font: inherit; cursor: pointer; }\n</style>",
+    "themeSwitchExample": "<!-- app/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"op-bar\">\n    <span class=\"op-muted\">Mode: {{ mode }}</span>\n    <button type=\"button\" class=\"op-button\" @click=\"toggleTheme\">Toggle</button>\n    <button type=\"button\" class=\"op-button op-button-quiet\" @click=\"setMode('light')\">Light</button>\n    <button type=\"button\" class=\"op-button op-button-quiet\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>\n<style scoped>\n.op-bar { display: flex; align-items: center; gap: var(--size-2); font-size: var(--font-size-0); }\n.op-muted { color: var(--color-muted-foreground); }\n.op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-3); font: inherit; cursor: pointer; }\n.op-button-quiet { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }\n</style>",
+    "completeExample": "<!-- app/app.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
+  },
+  "open-props/React": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/open-props"],
+    "setup": "// ---- src/index.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\n// Registers the adapter on the runtime from the provider above.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useOpenPropsTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nimport type { CSSProperties } from \"react\";\n// Open Props is a token set, so the styling is a stylesheet — inline here\n// only to keep the example to one file.\nconst card: CSSProperties = { \"background\": \"var(--color-canvas)\", \"color\": \"var(--color-text)\", \"border\": \"1px solid var(--color-border)\", \"borderRadius\": \"var(--radius-3)\", \"padding\": \"var(--size-5)\", \"display\": \"grid\", \"gap\": \"var(--size-3)\", \"boxShadow\": \"var(--shadow-2)\" };\nconst title: CSSProperties = { \"margin\": \"0\", \"fontSize\": \"var(--font-size-3)\", \"fontWeight\": \"600\" };\nconst text: CSSProperties = { \"margin\": \"0\", \"color\": \"var(--color-muted-foreground)\", \"fontSize\": \"var(--font-size-1)\" };\nconst button: CSSProperties = { \"background\": \"var(--color-primary)\", \"color\": \"var(--color-primary-foreground)\", \"border\": \"0\", \"borderRadius\": \"var(--radius-2)\", \"padding\": \"var(--size-2) var(--size-4)\", \"font\": \"inherit\", \"cursor\": \"pointer\" };\nexport function Example() {\n  return (\n    <section style={card}>\n      <h2 style={title}>Themvora + Open Props</h2>\n      <p style={text}>Open Props ships design tokens, not components — this is ordinary markup.</p>\n      <button type=\"button\" style={button}>\n        Primary action\n      </button>\n    </section>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nconst bar: React.CSSProperties = {\n  display: \"flex\",\n  alignItems: \"center\",\n  gap: \"var(--size-2)\",\n  fontSize: \"var(--font-size-0)\",\n};\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div style={bar}>\n      <span style={{ color: \"var(--color-muted-foreground)\" }}>Mode: {mode}</span>\n      <button type=\"button\" className=\"op-button\" onClick={toggleTheme}>Toggle</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "open-props/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/open-props"],
+    "setup": "// ---- app/styles.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useOpenPropsTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport type { CSSProperties } from \"react\";\n// Open Props is a token set, so the styling is a stylesheet — inline here\n// only to keep the example to one file.\nconst card: CSSProperties = { \"background\": \"var(--color-canvas)\", \"color\": \"var(--color-text)\", \"border\": \"1px solid var(--color-border)\", \"borderRadius\": \"var(--radius-3)\", \"padding\": \"var(--size-5)\", \"display\": \"grid\", \"gap\": \"var(--size-3)\", \"boxShadow\": \"var(--shadow-2)\" };\nconst title: CSSProperties = { \"margin\": \"0\", \"fontSize\": \"var(--font-size-3)\", \"fontWeight\": \"600\" };\nconst text: CSSProperties = { \"margin\": \"0\", \"color\": \"var(--color-muted-foreground)\", \"fontSize\": \"var(--font-size-1)\" };\nconst button: CSSProperties = { \"background\": \"var(--color-primary)\", \"color\": \"var(--color-primary-foreground)\", \"border\": \"0\", \"borderRadius\": \"var(--radius-2)\", \"padding\": \"var(--size-2) var(--size-4)\", \"font\": \"inherit\", \"cursor\": \"pointer\" };\nexport function Example() {\n  return (\n    <section style={card}>\n      <h2 style={title}>Themvora + Open Props</h2>\n      <p style={text}>Open Props ships design tokens, not components — this is ordinary markup.</p>\n      <button type=\"button\" style={button}>\n        Primary action\n      </button>\n    </section>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nconst bar: React.CSSProperties = {\n  display: \"flex\",\n  alignItems: \"center\",\n  gap: \"var(--size-2)\",\n  fontSize: \"var(--font-size-0)\",\n};\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div style={bar}>\n      <span style={{ color: \"var(--color-muted-foreground)\" }}>Mode: {mode}</span>\n      <button type=\"button\" className=\"op-button\" onClick={toggleTheme}>Toggle</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" className=\"op-button op-button-quiet\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "open-props/Solid": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Solid","value":"1.9.18 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Solid + Vite project (`npm create vite@latest -- --template solid-ts`)."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/solid @themvora/open-props"],
+    "setup": "// ---- src/index.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/index.tsx\nimport { render } from \"solid-js/web\";\nimport { ThemeProvider } from \"@themvora/solid\";\nimport \"./index.css\";\nimport { App } from \"./App\";\nrender(\n  () => (\n    <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n      <App />\n    </ThemeProvider>\n  ),\n  document.getElementById(\"root\")!,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { JSX } from \"solid-js\";\nimport { useThemeRuntime } from \"@themvora/solid\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/solid\";\nexport function ThemeZone(props: { children: JSX.Element }) {\n  useOpenPropsTheme(useThemeRuntime());\n  return <>{props.children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nimport type { JSX } from \"solid-js\";\nconst card: JSX.CSSProperties = { \"background\": \"var(--color-canvas)\", \"color\": \"var(--color-text)\", \"border\": \"1px solid var(--color-border)\", \"border-radius\": \"var(--radius-3)\", \"padding\": \"var(--size-5)\", \"display\": \"grid\", \"gap\": \"var(--size-3)\", \"box-shadow\": \"var(--shadow-2)\" };\nconst title: JSX.CSSProperties = { \"margin\": \"0\", \"font-size\": \"var(--font-size-3)\", \"font-weight\": \"600\" };\nconst text: JSX.CSSProperties = { \"margin\": \"0\", \"color\": \"var(--color-muted-foreground)\", \"font-size\": \"var(--font-size-1)\" };\nconst button: JSX.CSSProperties = { \"background\": \"var(--color-primary)\", \"color\": \"var(--color-primary-foreground)\", \"border\": \"0\", \"border-radius\": \"var(--radius-2)\", \"padding\": \"var(--size-2) var(--size-4)\", \"font\": \"inherit\", \"cursor\": \"pointer\" };\nexport function Example() {\n  return (\n    <section style={card}>\n      <h2 style={title}>Themvora + Open Props</h2>\n      <p style={text}>\n        Open Props ships design tokens, not components — this is ordinary markup.\n      </p>\n      <button type=\"button\" style={button}>\n        Primary action\n      </button>\n    </section>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/solid\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div class=\"op-bar\">\n      <span class=\"op-muted\">Mode: {mode()}</span>\n      <button type=\"button\" class=\"op-button\" onClick={() => toggleTheme()}>Toggle</button>\n      <button type=\"button\" class=\"op-button op-button-quiet\" onClick={() => setMode(\"light\")}>Light</button>\n      <button type=\"button\" class=\"op-button op-button-quiet\" onClick={() => setMode(\"dark\")}>Dark</button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "open-props/Svelte": {
+    "lang": "svelte",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Svelte","value":"5.57.3 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Svelte 5 + Vite project (`npm create vite@latest -- --template svelte-ts`)."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/svelte @themvora/open-props"],
+    "setup": "// ---- src/index.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "<!-- src/lib/ThemeRoot.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"../index.css\";\n  let { children }: { children: Snippet } = $props();\n</script>\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  {@render children()}\n</ThemeProvider>\n// ---- src/main.ts\nimport { mount } from \"svelte\";\nimport App from \"./App.svelte\";\nmount(App, { target: document.getElementById(\"app\")! });",
+    "code": "<!-- src/lib/ThemeZone.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { getThemeRuntime } from \"@themvora/svelte\";\n  import { useOpenPropsTheme } from \"@themvora/open-props/svelte\";\n  let { children }: { children: Snippet } = $props();\n  // Runs during component initialisation, so the variables exist before paint.\n  useOpenPropsTheme(getThemeRuntime());\n</script>\n{@render children()}",
+    "componentExample": "<!-- src/lib/Example.svelte -->\n<script lang=\"ts\">\n  // Markup only — but a Svelte component without a script block emits no\n  // module declaration, so importing it fails `svelte-check` under strict.\n</script>\n<section class=\"op-card\">\n  <h2 class=\"op-title\">Themvora + Open Props</h2>\n  <p class=\"op-text\">Open Props ships design tokens, not components — this is ordinary markup.</p>\n  <button class=\"op-button\" type=\"button\">Primary action</button>\n</section>\n<style>\n  .op-card { background: var(--color-canvas); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-3); padding: var(--size-5); display: grid; gap: var(--size-3); box-shadow: var(--shadow-2); }\n  .op-title { margin: 0; font-size: var(--font-size-3); font-weight: 600; }\n  .op-text { margin: 0; color: var(--color-muted-foreground); font-size: var(--font-size-1); }\n  .op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-4); font: inherit; cursor: pointer; }\n</style>",
+    "themeSwitchExample": "<!-- src/lib/ThemeControls.svelte -->\n<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n  const { mode, setMode, toggleTheme } = useTheme();\n</script>\n<div class=\"op-bar\">\n  <span class=\"op-muted\">Mode: {$mode}</span>\n  <button type=\"button\" class=\"op-button\" onclick={toggleTheme}>Toggle</button>\n  <button type=\"button\" class=\"op-button op-button-quiet\" onclick={() => setMode(\"light\")}>Light</button>\n  <button type=\"button\" class=\"op-button op-button-quiet\" onclick={() => setMode(\"dark\")}>Dark</button>\n</div>\n<style>\n  .op-bar { display: flex; align-items: center; gap: var(--size-2); font-size: var(--font-size-0); }\n  .op-muted { color: var(--color-muted-foreground); }\n  .op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-3); font: inherit; cursor: pointer; }\n  .op-button-quiet { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }\n</style>",
+    "completeExample": "<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import ThemeRoot from \"./lib/ThemeRoot.svelte\";\n  import ThemeZone from \"./lib/ThemeZone.svelte\";\n  import Example from \"./lib/Example.svelte\";\n  import ThemeControls from \"./lib/ThemeControls.svelte\";\n</script>\n<ThemeRoot>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</ThemeRoot>",
+  },
+  "open-props/Vue 3": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Vue 3","value":"3.5.44 (verified)"},{"label":"Library","value":"1.7.23"},{"label":"Project","value":"Vite + Vue 3 project (`npm create vite@latest -- --template vue-ts`)."}],
+    "install": ["pnpm add open-props"],
+    "themvora": ["pnpm add @themvora/core @themvora/vue @themvora/open-props"],
+    "setup": "// ---- src/index.css\n@import \"open-props/style\";\n@import \"@themvora/open-props/open-props.css\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { createApp, h } from \"vue\";\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"./index.css\";\nimport App from \"./App.vue\";\ncreateApp({\n  render: () =>\n    h(\n      ThemeProvider,\n      { defaultTheme: \"plum-light\", initialMode: \"system\" },\n      () => h(App),\n    ),\n}).mount(\"#app\");",
+    "code": "<!-- src/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\nimport { useThemeRuntime } from \"@themvora/vue\";\nimport { useOpenPropsTheme } from \"@themvora/open-props/vue\";\n// Installs on mount, disposes on unmount.\nuseOpenPropsTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- src/components/Example.vue -->\n<template>\n  <section class=\"op-card\">\n    <h2 class=\"op-title\">Themvora + Open Props</h2>\n    <p class=\"op-text\">Open Props ships design tokens, not components — this is ordinary markup.</p>\n    <button class=\"op-button\" type=\"button\">Primary action</button>\n  </section>\n</template>\n<style scoped>\n.op-card { background: var(--color-canvas); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-3); padding: var(--size-5); display: grid; gap: var(--size-3); box-shadow: var(--shadow-2); }\n.op-title { margin: 0; font-size: var(--font-size-3); font-weight: 600; }\n.op-text { margin: 0; color: var(--color-muted-foreground); font-size: var(--font-size-1); }\n.op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-4); font: inherit; cursor: pointer; }\n</style>",
+    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"op-bar\">\n    <span class=\"op-muted\">Mode: {{ mode }}</span>\n    <button type=\"button\" class=\"op-button\" @click=\"toggleTheme\">Toggle</button>\n    <button type=\"button\" class=\"op-button op-button-quiet\" @click=\"setMode('light')\">Light</button>\n    <button type=\"button\" class=\"op-button op-button-quiet\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>\n<style scoped>\n.op-bar { display: flex; align-items: center; gap: var(--size-2); font-size: var(--font-size-0); }\n.op-muted { color: var(--color-muted-foreground); }\n.op-button { background: var(--color-primary); color: var(--color-primary-foreground); border: 0; border-radius: var(--radius-2); padding: var(--size-2) var(--size-3); font: inherit; cursor: pointer; }\n.op-button-quiet { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }\n</style>",
+    "completeExample": "<!-- src/App.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
+  },
+  "shadcn/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/vite","pnpm dlx shadcn@latest init","pnpm dlx shadcn@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- astro.config.mjs\nimport { defineConfig } from \"astro/config\";\nimport { fileURLToPath } from \"node:url\";\nimport react from \"@astrojs/react\";\nimport tailwindcss from \"@tailwindcss/vite\";\nexport default defineConfig({\n  integrations: [react()],\n  vite: {\n    plugins: [tailwindcss()],\n    resolve: {\n      alias: { \"@\": fileURLToPath(new URL(\"./src\", import.meta.url)) },\n    },\n  },\n});\n// ---- tsconfig.json\n{\n  \"extends\": \"astro/tsconfigs/strict\",\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": { \"@/*\": [\"./src/*\"] }\n  }\n}\n// ---- src/styles/global.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport { ThemeProviderClient, useThemeRuntime } from \"@themvora/astro/client\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nfunction InstallAdapter() {\n  useShadcnTheme(useThemeRuntime());\n  return null;\n}\n// Astro cannot pass React children to a client:only island — the children\n// become static HTML. The island therefore renders the example and the\n// controls itself, inside the same client tree as the runtime.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <InstallAdapter />\n      <Example />\n      <ThemeControls />\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\nexport function Example() {\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>Themvora + shadcn/ui</CardTitle>\n        <CardDescription>\n          These are the components the CLI generated into your project.\n        </CardDescription>\n      </CardHeader>\n      <CardContent>\n        <Button>Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nimport { Button } from \"@/components/ui/button\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>\n        Light\n      </Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </Button>\n    </div>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "shadcn/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/postcss","pnpm dlx shadcn@latest init","pnpm dlx shadcn@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- postcss.config.mjs\nexport default { plugins: { \"@tailwindcss/postcss\": {} } };\n// ---- tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": { \"@/*\": [\"./*\"] }\n  }\n}\n// ---- app/globals.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/next/client\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useShadcnTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/example.tsx\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\nexport function Example() {\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>Themvora + shadcn/ui</CardTitle>\n        <CardDescription>\n          These are the components the CLI generated into your project.\n        </CardDescription>\n      </CardHeader>\n      <CardContent>\n        <Button>Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nimport { Button } from \"@/components/ui/button\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>\n        Light\n      </Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </Button>\n    </div>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "shadcn/React": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/vite","pnpm dlx shadcn@latest init","pnpm dlx shadcn@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport react from \"@vitejs/plugin-react\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport path from \"node:path\";\nexport default defineConfig({\n  plugins: [react(), tailwindcss()],\n  resolve: { alias: { \"@\": path.resolve(__dirname, \"./src\") } },\n});\n// ---- tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": { \"@/*\": [\"./src/*\"] }\n  }\n}\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/react\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\n// Registers the adapter on the runtime from the provider above.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useShadcnTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\nexport function Example() {\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>Themvora + shadcn/ui</CardTitle>\n        <CardDescription>\n          These are the components the CLI generated into your project.\n        </CardDescription>\n      </CardHeader>\n      <CardContent>\n        <Button>Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nimport { Button } from \"@/components/ui/button\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>\n        Light\n      </Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </Button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "shadcn/Remix": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Remix","value":"2.17.0 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Remix (Vite) project. The recipe edits `app/root.tsx`."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/vite","pnpm dlx shadcn@latest init","pnpm dlx shadcn@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/remix @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport { vitePlugin as remix } from \"@remix-run/dev\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport path from \"node:path\";\nexport default defineConfig({\n  plugins: [remix(), tailwindcss()],\n  resolve: { alias: { \"@\": path.resolve(__dirname, \"./src\") } },\n});\n// ---- tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": { \"@/*\": [\"./src/*\"] }\n  }\n}\n// ---- app/styles.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/root.tsx\nimport type { ReactNode } from \"react\";\nimport type { LinksFunction } from \"@remix-run/node\";\nimport {\n  Links,\n  Meta,\n  Outlet,\n  Scripts,\n  ScrollRestoration,\n  useLoaderData,\n} from \"@remix-run/react\";\nimport { getBuiltInThemes } from \"@themvora/core\";\nimport { createThemeDocument } from \"@themvora/remix\";\nimport styles from \"./styles.css?url\";\nexport const links: LinksFunction = () => [\n  { rel: \"stylesheet\", href: styles },\n];\nconst themes = getBuiltInThemes();\nconst theming = createThemeDocument({\n  themes,\n  defaultTheme: \"plum-light\",\n  mode: \"system\",\n});\n// Resolve the selection on the server so hydration matches exactly.\nexport async function loader({ request }: { request: Request }) {\n  return { theme: await theming.resolveInitial(request) };\n}\nexport function Layout({ children }: { children: ReactNode }) {\n  const { theme } = useLoaderData<typeof loader>();\n  return (\n    // Remix owns the document; Document supplies the theme-owned parts: the\n    // blocking bootstrap, the matching <html> shell and the runtime provider.\n    <theming.Document\n      initial={theme}\n      htmlProps={{ lang: \"en\" }}\n      head={[\n        <meta key=\"charset\" charSet=\"utf-8\" />,\n        <Meta key=\"meta\" />,\n        <Links key=\"links\" />,\n      ]}\n      afterContent={\n        <>\n          <ScrollRestoration />\n          <Scripts />\n        </>\n      }\n    >\n      {children}\n    </theming.Document>\n  );\n}\nexport default function App() {\n  return <Outlet />;\n}",
+    "code": "// app/components/theme-zone.tsx\nimport type { ReactNode } from \"react\";\nimport { useThemeRuntime } from \"@themvora/remix\";\nimport { useShadcnTheme } from \"@themvora/shadcn/react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  useShadcnTheme(useThemeRuntime());\n  return <>{children}</>;\n}",
+    "componentExample": "// app/components/example.tsx\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\nexport function Example() {\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>Themvora + shadcn/ui</CardTitle>\n        <CardDescription>\n          These are the components the CLI generated into your project.\n        </CardDescription>\n      </CardHeader>\n      <CardContent>\n        <Button>Primary action</Button>\n      </CardContent>\n    </Card>\n  );\n}",
+    "themeSwitchExample": "// app/components/theme-controls.tsx\nimport { useTheme } from \"@themvora/remix\";\nimport { Button } from \"@/components/ui/button\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <Button onClick={toggleTheme}>Toggle</Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"light\")}>\n        Light\n      </Button>\n      <Button variant=\"outline\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </Button>\n    </div>\n  );\n}",
+    "completeExample": "// app/routes/_index.tsx\nimport { ThemeZone } from \"../components/theme-zone\";\nimport { Example } from \"../components/example\";\nimport { ThemeControls } from \"../components/theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "shadcn/Svelte": {
+    "lang": "svelte",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Svelte","value":"5.57.3 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Svelte 5 + Vite project (`npm create vite@latest -- --template svelte-ts`)."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/vite","pnpm dlx shadcn-svelte@latest init","pnpm dlx shadcn-svelte@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/svelte @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport { svelte } from \"@sveltejs/vite-plugin-svelte\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport path from \"node:path\";\nexport default defineConfig({\n  plugins: [svelte(), tailwindcss()],\n  resolve: { alias: { $lib: path.resolve(__dirname, \"./src/lib\") } },\n});\n// ---- tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"$lib\": [\"./src/lib\"],\n      \"$lib/*\": [\"./src/lib/*\"]\n    }\n  }\n}\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "<!-- src/lib/ThemeRoot.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"../index.css\";\n  let { children }: { children: Snippet } = $props();\n</script>\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  {@render children()}\n</ThemeProvider>\n// ---- src/main.ts\nimport { mount } from \"svelte\";\nimport App from \"./App.svelte\";\nmount(App, { target: document.getElementById(\"app\")! });",
+    "code": "<!-- src/lib/ThemeZone.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { getThemeRuntime } from \"@themvora/svelte\";\n  import { useShadcnTheme } from \"@themvora/shadcn/svelte\";\n  let { children }: { children: Snippet } = $props();\n  // Runs during component initialisation, so the variables exist before paint.\n  useShadcnTheme(getThemeRuntime());\n</script>\n{@render children()}",
+    "componentExample": "<!-- src/lib/Example.svelte -->\n<script lang=\"ts\">\n  import * as Card from \"$lib/components/ui/card/index.js\";\n  import { Button } from \"$lib/components/ui/button/index.js\";\n</script>\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Themvora + shadcn/ui</Card.Title>\n    <Card.Description>\n      These are the components the CLI generated into your project.\n    </Card.Description>\n  </Card.Header>\n  <Card.Content>\n    <Button>Primary action</Button>\n  </Card.Content>\n</Card.Root>",
+    "themeSwitchExample": "<!-- src/lib/ThemeControls.svelte -->\n<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n  import { Button } from \"$lib/components/ui/button/index.js\";\n  const { mode, setMode, toggleTheme } = useTheme();\n</script>\n<div class=\"flex items-center gap-2\">\n  <span class=\"text-sm text-muted-foreground\">Mode: {$mode}</span>\n  <Button onclick={toggleTheme}>Toggle</Button>\n  <Button variant=\"outline\" onclick={() => setMode(\"light\")}>Light</Button>\n  <Button variant=\"outline\" onclick={() => setMode(\"dark\")}>Dark</Button>\n</div>",
+    "completeExample": "<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import ThemeRoot from \"./lib/ThemeRoot.svelte\";\n  import ThemeZone from \"./lib/ThemeZone.svelte\";\n  import Example from \"./lib/Example.svelte\";\n  import ThemeControls from \"./lib/ThemeControls.svelte\";\n</script>\n<ThemeRoot>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</ThemeRoot>",
+  },
+  "shadcn/Vue 3": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Vue 3","value":"3.5.44 (verified)"},{"label":"Library","value":"CLI-generated"},{"label":"Peer dependencies","value":"tailwindcss 4.3.3, class-variance-authority 0.7.1, tailwind-variants 3.3.1"},{"label":"Project","value":"Vite + Vue 3 project (`npm create vite@latest -- --template vue-ts`)."}],
+    "install": ["pnpm add -D tailwindcss @tailwindcss/vite","pnpm dlx shadcn-vue@latest init","pnpm dlx shadcn-vue@latest add button card"],
+    "themvora": ["pnpm add @themvora/core @themvora/vue @themvora/shadcn @themvora/tailwind"],
+    "setup": "// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport vue from \"@vitejs/plugin-vue\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport path from \"node:path\";\nexport default defineConfig({\n  plugins: [vue(), tailwindcss()],\n  resolve: { alias: { \"@\": path.resolve(__dirname, \"./src\") } },\n});\n// ---- tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": { \"@/*\": [\"./src/*\"] }\n  }\n}\n// ---- src/index.css\n@import \"tailwindcss\";\n@import \"@themvora/shadcn/shadcn.css\";\n@import \"@themvora/tailwind\";\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { createApp, h } from \"vue\";\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"./index.css\";\nimport App from \"./App.vue\";\ncreateApp({\n  render: () =>\n    h(\n      ThemeProvider,\n      { defaultTheme: \"plum-light\", initialMode: \"system\" },\n      () => h(App),\n    ),\n}).mount(\"#app\");",
+    "code": "<!-- src/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\nimport { useThemeRuntime } from \"@themvora/vue\";\nimport { useShadcnTheme } from \"@themvora/shadcn/vue\";\n// Installs on mount, disposes on unmount.\nuseShadcnTheme(useThemeRuntime());\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- src/components/Example.vue -->\n<script setup lang=\"ts\">\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\n</script>\n<template>\n  <Card>\n    <CardHeader>\n      <CardTitle>Themvora + shadcn/ui</CardTitle>\n      <CardDescription>\n        These are the components the CLI generated into your project.\n      </CardDescription>\n    </CardHeader>\n    <CardContent>\n      <Button>Primary action</Button>\n    </CardContent>\n  </Card>\n</template>",
+    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nimport { Button } from \"@/components/ui/button\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"flex items-center gap-2\">\n    <span class=\"text-sm text-muted-foreground\">Mode: {{ mode }}</span>\n    <Button @click=\"toggleTheme\">Toggle</Button>\n    <Button variant=\"outline\" @click=\"setMode('light')\">Light</Button>\n    <Button variant=\"outline\" @click=\"setMode('dark')\">Dark</Button>\n  </div>\n</template>",
+    "completeExample": "<!-- src/App.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
+  },
+  "unocss/Astro": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Astro","value":"5.14.1 (verified)"},{"label":"Library","value":"66.7.5"},{"label":"Project","value":"Astro project with the React integration (`npx astro add react`). The adapter runs in a `client:only=\"react\"` island."}],
+    "install": ["pnpm add -D unocss @unocss/astro"],
+    "themvora": ["pnpm add @themvora/core @themvora/astro @themvora/unocss"],
+    "setup": "// ---- uno.config.ts\nimport { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n// ---- astro.config.mjs\nimport { defineConfig } from \"astro/config\";\nimport react from \"@astrojs/react\";\nimport UnoCSS from \"unocss/astro\";\nexport default defineConfig({ integrations: [UnoCSS(), react()] });\n// ---- src/styles/global.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "---\n// src/layouts/BaseLayout.astro\nimport ThemeIsland from \"../components/ThemeIsland\";\nimport \"../styles/global.css\";\n---\n<html lang=\"en\">\n  <body>\n    <ThemeIsland client:only=\"react\" />\n    <slot />\n  </body>\n</html>",
+    "code": "// src/components/ThemeIsland.tsx\nimport { ThemeProviderClient } from \"@themvora/astro/client\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\n// No adapter to install — the preset's utilities already read the live\n// variables, so the runtime alone is enough. The island renders the UI\n// because Astro cannot pass React children to a client:only island.\nexport default function ThemeIsland() {\n  return (\n    <>\n      <ThemeProviderClient defaultTheme=\"plum-light\" initialMode=\"system\" />\n      <Example />\n      <ThemeControls />\n    </>\n  );\n}",
+    "componentExample": "// src/components/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"bg-card text-card-foreground border border-border rounded-lg p-4 flex flex-col gap-3\">\n      <h2 className=\"text-lg font-semibold\">Themvora + UnoCSS</h2>\n      <p className=\"text-sm text-muted-foreground\">\n        Every utility resolves to a live --theme-* variable.\n      </p>\n      <button className=\"bg-primary text-primary-foreground rounded px-4 py-2 self-start\">\n        Primary action\n      </button>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/components/ThemeControls.tsx\nimport { useTheme } from \"@themvora/astro/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <button className=\"bg-primary text-primary-foreground rounded px-3 py-1.5\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "---\nimport BaseLayout from \"../layouts/BaseLayout.astro\";\n---\n<BaseLayout>\n  <h1>Themvora</h1>\n  <p>Every colour on this page comes from the active theme.</p>\n</BaseLayout>",
+  },
+  "unocss/Next.js": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Next.js","value":"15.5.28 (verified)"},{"label":"Library","value":"66.7.5"},{"label":"Project","value":"Next.js App Router project. The recipe edits `app/layout.tsx`."}],
+    "install": ["pnpm add -D unocss @unocss/postcss"],
+    "themvora": ["pnpm add @themvora/core @themvora/next @themvora/unocss"],
+    "setup": "// ---- uno.config.ts\nimport { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n// ---- postcss.config.mjs\n// The PostCSS plugin expands the @unocss at-rule in the global sheet.\nexport default { plugins: { \"@unocss/postcss\": {} } };\n// ---- app/globals.css\n@unocss all;\n\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// app/layout.tsx\nimport type { ReactNode } from \"react\";\nimport { ThemeProvider } from \"@themvora/next\";\nimport \"./globals.css\";\n// ThemeProvider renders <html> and <body> itself — do not wrap it in them.\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ThemeProvider defaultTheme=\"plum-light\">\n      {children}\n    </ThemeProvider>\n  );\n}",
+    "code": "// app/theme-zone.tsx\n\"use client\";\nimport type { ReactNode } from \"react\";\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  return <>{children}</>;\n}",
+    "componentExample": "// app/example.tsx\nexport function Example() {\n  return (\n    <div className=\"bg-card text-card-foreground border border-border rounded-lg p-4 flex flex-col gap-3\">\n      <h2 className=\"text-lg font-semibold\">Themvora + UnoCSS</h2>\n      <p className=\"text-sm text-muted-foreground\">\n        Every utility resolves to a live --theme-* variable.\n      </p>\n      <button className=\"bg-primary text-primary-foreground rounded px-4 py-2 self-start\">\n        Primary action\n      </button>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// app/theme-controls.tsx\n\"use client\";\n\nimport { useTheme } from \"@themvora/next/client\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <button className=\"bg-primary text-primary-foreground rounded px-3 py-1.5\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "// app/page.tsx\nimport { ThemeZone } from \"./theme-zone\";\nimport { Example } from \"./example\";\nimport { ThemeControls } from \"./theme-controls\";\nexport default function Page() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "unocss/React": {
+    "lang": "tsx",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"React","value":"19.3.1 (verified)"},{"label":"Library","value":"66.7.5"},{"label":"Project","value":"Vite + React project (`npm create vite@latest -- --template react-ts`)."}],
+    "install": ["pnpm add -D unocss @unocss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/react @themvora/unocss"],
+    "setup": "// ---- uno.config.ts\nimport { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport react from \"@vitejs/plugin-react\";\nimport UnoCSS from \"unocss/vite\";\nexport default defineConfig({ plugins: [react(), UnoCSS()] });\n// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.tsx\nimport { createRoot } from \"react-dom/client\";\nimport { ThemeProvider } from \"@themvora/react\";\nimport \"./index.css\";\nimport \"virtual:uno.css\";\nimport { App } from \"./App\";\ncreateRoot(document.getElementById(\"root\")!).render(\n  <ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n    <App />\n  </ThemeProvider>,\n);",
+    "code": "// src/ThemeZone.tsx\nimport type { ReactNode } from \"react\";\n// UnoCSS needs no adapter: the preset emits utilities whose values are\n// var(--theme-*), so the runtime's own writes are enough.\nexport function ThemeZone({ children }: { children: ReactNode }) {\n  return <>{children}</>;\n}",
+    "componentExample": "// src/Example.tsx\nexport function Example() {\n  return (\n    <div className=\"bg-card text-card-foreground border border-border rounded-lg p-4 flex flex-col gap-3\">\n      <h2 className=\"text-lg font-semibold\">Themvora + UnoCSS</h2>\n      <p className=\"text-sm text-muted-foreground\">\n        Every utility resolves to a live --theme-* variable.\n      </p>\n      <button className=\"bg-primary text-primary-foreground rounded px-4 py-2 self-start\">\n        Primary action\n      </button>\n    </div>\n  );\n}",
+    "themeSwitchExample": "// src/ThemeControls.tsx\nimport { useTheme } from \"@themvora/react\";\nexport function ThemeControls() {\n  const { mode, setMode, toggleTheme } = useTheme();\n  return (\n    <div className=\"flex items-center gap-2\">\n      <span className=\"text-sm text-muted-foreground\">Mode: {mode}</span>\n      <button className=\"bg-primary text-primary-foreground rounded px-3 py-1.5\" onClick={toggleTheme}>\n        Toggle\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"light\")}>\n        Light\n      </button>\n      <button className=\"border border-border rounded px-3 py-1.5\" onClick={() => setMode(\"dark\")}>\n        Dark\n      </button>\n    </div>\n  );\n}",
+    "completeExample": "// src/App.tsx\nimport { ThemeZone } from \"./ThemeZone\";\nimport { Example } from \"./Example\";\nimport { ThemeControls } from \"./ThemeControls\";\nexport function App() {\n  return (\n    <ThemeZone>\n      <Example />\n      <ThemeControls />\n    </ThemeZone>\n  );\n}",
+  },
+  "unocss/Svelte": {
+    "lang": "svelte",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Svelte","value":"5.57.3 (verified)"},{"label":"Library","value":"66.7.5"},{"label":"Project","value":"Svelte 5 + Vite project (`npm create vite@latest -- --template svelte-ts`)."}],
+    "install": ["pnpm add -D unocss @unocss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/svelte @themvora/unocss"],
+    "setup": "// ---- uno.config.ts\nimport { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport { svelte } from \"@sveltejs/vite-plugin-svelte\";\nimport UnoCSS from \"unocss/vite\";\nexport default defineConfig({ plugins: [svelte(), UnoCSS()] });\n// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "<!-- src/lib/ThemeRoot.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  import { ThemeProvider } from \"@themvora/svelte\";\n  import \"../index.css\";\n  let { children }: { children: Snippet } = $props();\n</script>\n<ThemeProvider defaultTheme=\"plum-light\" initialMode=\"system\">\n  {@render children()}\n</ThemeProvider>\n// ---- src/main.ts\nimport { mount } from \"svelte\";\nimport App from \"./App.svelte\";\nimport \"virtual:uno.css\";\nmount(App, { target: document.getElementById(\"app\")! });",
+    "code": "<!-- src/lib/ThemeZone.svelte -->\n<script lang=\"ts\">\n  import type { Snippet } from \"svelte\";\n  let { children }: { children: Snippet } = $props();\n</script>\n{@render children()}",
+    "componentExample": "<!-- src/lib/Example.svelte -->\n<script lang=\"ts\">\n  // Markup only — but a Svelte component without a script block emits no\n  // module declaration, so importing it fails `svelte-check` under strict.\n</script>\n<div class=\"bg-card text-card-foreground border border-border rounded-lg p-4 flex flex-col gap-3\">\n  <h2 class=\"text-lg font-semibold\">Themvora + UnoCSS</h2>\n  <p class=\"text-sm text-muted-foreground\">\n    Every utility resolves to a live --theme-* variable.\n  </p>\n  <button class=\"bg-primary text-primary-foreground rounded px-4 py-2 self-start\">\n    Primary action\n  </button>\n</div>",
+    "themeSwitchExample": "<!-- src/lib/ThemeControls.svelte -->\n<script lang=\"ts\">\n  import { useTheme } from \"@themvora/svelte\";\n  const { mode, setMode, toggleTheme } = useTheme();\n</script>\n<div class=\"flex items-center gap-2\">\n  <span class=\"text-sm text-muted-foreground\">Mode: {$mode}</span>\n  <button class=\"bg-primary text-primary-foreground rounded px-3 py-1.5\" onclick={toggleTheme}>Toggle</button>\n  <button class=\"border border-border rounded px-3 py-1.5\" onclick={() => setMode(\"light\")}>Light</button>\n  <button class=\"border border-border rounded px-3 py-1.5\" onclick={() => setMode(\"dark\")}>Dark</button>\n</div>",
+    "completeExample": "<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import ThemeRoot from \"./lib/ThemeRoot.svelte\";\n  import ThemeZone from \"./lib/ThemeZone.svelte\";\n  import Example from \"./lib/Example.svelte\";\n  import ThemeControls from \"./lib/ThemeControls.svelte\";\n</script>\n<ThemeRoot>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</ThemeRoot>",
+  },
+  "unocss/Vue 3": {
+    "lang": "vue",
+    "prereqs": [{"label":"Node.js","value":"22.22.2 (verified)"},{"label":"Vue 3","value":"3.5.44 (verified)"},{"label":"Library","value":"66.7.5"},{"label":"Project","value":"Vite + Vue 3 project (`npm create vite@latest -- --template vue-ts`)."}],
+    "install": ["pnpm add -D unocss @unocss/vite"],
+    "themvora": ["pnpm add @themvora/core @themvora/vue @themvora/unocss"],
+    "setup": "// ---- uno.config.ts\nimport { defineConfig, presetWind3 } from \"unocss\";\nimport { presetThemvora } from \"@themvora/unocss\";\nexport default defineConfig({\n  presets: [presetWind3(), presetThemvora()],\n});\n// ---- vite.config.ts\nimport { defineConfig } from \"vite\";\nimport vue from \"@vitejs/plugin-vue\";\nimport UnoCSS from \"unocss/vite\";\nexport default defineConfig({ plugins: [vue(), UnoCSS()] });\n// ---- src/index.css\nhtml,\nbody {\n  margin: 0;\n  background: var(--theme-color-background);\n  color: var(--theme-color-foreground);\n}",
+    "mountProvider": "// src/main.ts\nimport { createApp, h } from \"vue\";\nimport { ThemeProvider } from \"@themvora/vue\";\nimport \"./index.css\";\nimport \"virtual:uno.css\";\nimport App from \"./App.vue\";\ncreateApp({\n  render: () =>\n    h(\n      ThemeProvider,\n      { defaultTheme: \"plum-light\", initialMode: \"system\" },\n      () => h(App),\n    ),\n}).mount(\"#app\");",
+    "code": "<!-- src/components/ThemeZone.vue -->\n<script setup lang=\"ts\">\n// UnoCSS needs no adapter: the generated utilities reference var(--theme-*).\n</script>\n<template>\n  <slot />\n</template>",
+    "componentExample": "<!-- src/components/Example.vue -->\n<script setup lang=\"ts\">\n// Utility classes only — UnoCSS generates them from the preset.\n</script>\n<template>\n  <div class=\"bg-card text-card-foreground border border-border rounded-lg p-4 flex flex-col gap-3\">\n    <h2 class=\"text-lg font-semibold\">Themvora + UnoCSS</h2>\n    <p class=\"text-sm text-muted-foreground\">\n      Every utility resolves to a live --theme-* variable.\n    </p>\n    <button class=\"bg-primary text-primary-foreground rounded px-4 py-2 self-start\">\n      Primary action\n    </button>\n  </div>\n</template>",
+    "themeSwitchExample": "<!-- src/components/ThemeControls.vue -->\n<script setup lang=\"ts\">\nimport { useTheme } from \"@themvora/vue\";\nconst { mode, setMode, toggleTheme } = useTheme();\n</script>\n<template>\n  <div class=\"flex items-center gap-2\">\n    <span class=\"text-sm text-muted-foreground\">Mode: {{ mode }}</span>\n    <button class=\"bg-primary text-primary-foreground rounded px-3 py-1.5\" @click=\"toggleTheme\">Toggle</button>\n    <button class=\"border border-border rounded px-3 py-1.5\" @click=\"setMode('light')\">Light</button>\n    <button class=\"border border-border rounded px-3 py-1.5\" @click=\"setMode('dark')\">Dark</button>\n  </div>\n</template>",
+    "completeExample": "<!-- src/App.vue -->\n<script setup lang=\"ts\">\nimport ThemeZone from \"./components/ThemeZone.vue\";\nimport Example from \"./components/Example.vue\";\nimport ThemeControls from \"./components/ThemeControls.vue\";\n</script>\n<template>\n  <ThemeZone>\n    <Example />\n    <ThemeControls />\n  </ThemeZone>\n</template>",
   },
 };
 
-
-/**
- * The runtime package each framework needs, keyed by the framework label used in
- * the picker.
- *
- * `@themvora/react` is what the install commands are authored with, so a
- * framework whose package is that one needs no swap. The rest are substituted at
- * render time — see `installForFramework`.
- */
 /** Syntax-highlighting language for a framework's snippets. */
-export const FRAMEWORK_LANG: Record<string, string> = {
-  "Vue 3": "vue",
-  Nuxt: "vue",
-  Svelte: "svelte",
-  Angular: "ts",
-  Astro: "astro",
-};
 
+export const FRAMEWORK_LANG: Record<string, string> = {
+  "React": "tsx",
+  "Next.js": "tsx",
+  "Remix": "tsx",
+  "Astro": "tsx",
+  "Vue 3": "vue",
+  "Nuxt": "vue",
+  "Svelte": "svelte",
+  "Solid": "tsx",
+  "Angular": "ts",
+};
 export const FRAMEWORK_PACKAGE: Record<string, string> = {
   React: "@themvora/react",
   "Next.js": "@themvora/next",
@@ -2051,23 +1528,78 @@ export function installForFramework(
   return commands.map((cmd) => cmd.replace(/@themvora\/react\b/g, pkg));
 }
 
-export const libraries: LibraryItem[] = rawLibraries.map((lib) => ({
-  ...lib,
-  // Merge in any per-framework recipe content, keyed by library + label.
-  frameworks: lib.frameworks?.map((f) => {
-    const recipe = FRAMEWORK_RECIPES[`${lib.slug}/${f.label}`] ?? {};
-    // Snippet language follows the framework, not a fixed "tsx".
-    const lang = FRAMEWORK_LANG[f.label] ?? "tsx";
-    const asSnippet = (code?: string): FrameworkSnippet | undefined =>
-      code ? { lang, code } : undefined;
-    return {
-      ...f,
-      mountProvider: asSnippet(recipe.mountProvider),
-      completeExample: asSnippet(recipe.completeExample),
-      componentExample: asSnippet(recipe.componentExample),
-      themeSwitchExample: asSnippet(recipe.themeSwitchExample),
-      beforeExample: asSnippet(recipe.beforeExample),
-    };
-  }),
-  featureCount: lib.groups.reduce((sum, g) => sum + g.features.length, 0),
-}));
+/**
+ * The order frameworks appear in the picker.
+ *
+ * React first because it is the reference integration for every library here;
+ * then the other React-based frameworks, then the rest. A recipe that is not in
+ * this list would still render, but at the end — which is a signal that the
+ * public matrix and the recipes have drifted apart.
+ */
+const FRAMEWORK_ORDER = [
+  "React",
+  "Next.js",
+  "Remix",
+  "Astro",
+  "Vue 3",
+  "Nuxt",
+  "Svelte",
+  "Solid",
+  "Angular",
+] as const;
+
+function asSnippet(
+  value: string | string[] | RecipePrerequisite[] | undefined,
+  lang: string,
+): FrameworkSnippet | undefined {
+  if (typeof value !== "string") return undefined;
+  return { lang, code: value };
+}
+
+export const libraries: LibraryItem[] = rawLibraries.map((lib) => {
+  // The picker is derived from the recipes, not from a second hand-written
+  // list: a framework can only be offered if there is a recipe behind it, and
+  // `audit-library-docs.mjs` checks that set against `PUBLIC_FRAMEWORKS`.
+  const frameworks: LibraryFrameworkExample[] = Object.entries(FRAMEWORK_RECIPES)
+    .filter(([key]) => key.startsWith(`${lib.slug}/`))
+    .map(([key, recipe]) => {
+      const label = key.slice(lib.slug.length + 1);
+      const lang = FRAMEWORK_LANG[label] ?? "tsx";
+      return {
+        label,
+        lang,
+        code: recipe.code as string,
+        install: recipe.install as string[],
+        themvora: recipe.themvora as string[],
+        ...(typeof recipe.setup === "string"
+          ? { setup: { lang: "css", code: recipe.setup } }
+          : {}),
+        ...(asSnippet(recipe.mountProvider, lang)
+          ? { mountProvider: asSnippet(recipe.mountProvider, lang) }
+          : {}),
+        ...(asSnippet(recipe.componentExample, lang)
+          ? { componentExample: asSnippet(recipe.componentExample, lang) }
+          : {}),
+        ...(asSnippet(recipe.themeSwitchExample, lang)
+          ? { themeSwitchExample: asSnippet(recipe.themeSwitchExample, lang) }
+          : {}),
+        ...(asSnippet(recipe.completeExample, lang)
+          ? { completeExample: asSnippet(recipe.completeExample, lang) }
+          : {}),
+        ...(Array.isArray(recipe.prereqs)
+          ? { prereqs: recipe.prereqs as RecipePrerequisite[] }
+          : {}),
+      } satisfies LibraryFrameworkExample;
+    })
+    .sort(
+      (a, b) =>
+        FRAMEWORK_ORDER.indexOf(a.label as never) -
+        FRAMEWORK_ORDER.indexOf(b.label as never),
+    );
+
+  return {
+    ...lib,
+    frameworks,
+    featureCount: lib.groups.reduce((sum, g) => sum + g.features.length, 0),
+  };
+});

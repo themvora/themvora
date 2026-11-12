@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Themvora · Vanilla</title>
+    <meta
+      name="description"
+      content="Themvora with no framework and no bundler: plain HTML, CSS and JavaScript, themed before the first paint."
+    />
+    <link rel="icon" href="data:," />
+
+    <!-- 1. The application stylesheet. Render-blocking on purpose: every surface
+            below reads a `--theme-*` variable, and a stylesheet injected by
+            JavaScript would let the page paint unstyled first. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+
+    <!-- 2. The configuration. One declaration, read by both the pre-paint
+            bootstrap and the runtime — there is no second copy of these values
+            in app.js. `themes` is omitted, which means the built-in catalog. -->
+    <script type="application/json" id="themvora-config">
+      {
+        "defaultTheme": "light",
+        "initialMode": "system"
+      }
+    </script>
+
+    <!-- 3. The pre-paint bootstrap, straight out of the package. A classic
+            script in <head> is parser-blocking, so it runs before the first
+            paint: it reads the element above, resolves the saved selection, and
+            writes the theme's variables and root attributes onto <html>. -->
+    <script src="/node_modules/@themvora/core/dist/prepaint.js"></script>
+
+    <!-- 4. Module resolution for a browser with no bundler. A bare specifier is
+            not resolvable on its own, so it is mapped to the package's real
+            entry file. Nothing else here needs an import map. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@themvora/core/vanilla": "/node_modules/@themvora/core/dist/vanilla.js"
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">T</span>
+          <span class="brand-text">
+            <strong>Themvora</strong>
+            <span class="brand-sub">Vanilla</span>
+          </span>
+        </a>
+
+        <div class="controls">
+          <!--
+            The pressed state is written by the pre-paint bootstrap through
+            `data-tv-pressed` / `data-tv-value`, so the control is already
+            correct in the first frame. The stylesheet keys off aria-pressed.
+          -->
+          <div class="segmented" role="group" aria-label="Color mode">
+            <button
+              type="button"
+              data-mode="light"
+              data-tv-pressed="mode"
+              data-tv-value="light"
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              data-mode="dark"
+              data-tv-pressed="mode"
+              data-tv-value="dark"
+            >
+              Dark
+            </button>
+            <button
+              type="button"
+              data-mode="system"
+              data-tv-pressed="mode"
+              data-tv-value="system"
+            >
+              System
+            </button>
+          </div>
+
+          <label class="field">
+            <span class="field-label">Family</span>
+            <select id="family" data-tv-select="family">
+              <option value="default">Default</option>
+              <option value="plum">Plum</option>
+              <option value="mint">Mint</option>
+              <option value="oat">Oat</option>
+              <option value="cocoa">Cocoa</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <p class="eyebrow">No framework · no bundler · no build step</p>
+          <h1>Plain HTML, themed before the first paint.</h1>
+          <p class="lede">
+            Two package files and one configuration element. The blocking script
+            in the head restores the saved selection and paints it; the module
+            below only wires the controls to the runtime that adopts that state.
+          </p>
+
+          <!--
+            `data-tv-readout` is the same attribute contract the Vite plugin
+            uses. The bootstrap fills these from what it just applied, so they
+            read the real theme before the module runs.
+          -->
+          <dl class="readouts">
+            <div class="readout">
+              <dt>theme</dt>
+              <dd data-tv-readout="theme">—</dd>
+            </div>
+            <div class="readout">
+              <dt>mode</dt>
+              <dd data-tv-readout="mode">—</dd>
+            </div>
+            <div class="readout">
+              <dt>resolved</dt>
+              <dd data-tv-readout="effective-mode">—</dd>
+            </div>
+            <div class="readout">
+              <dt>family</dt>
+              <dd data-tv-readout="family">—</dd>
+            </div>
+          </dl>
+
+          <p class="hero-actions">
+            <button id="toggle" class="button button-primary" type="button">
+              <span class="when-light">Switch to dark</span>
+              <span class="when-dark">Switch to light</span>
+            </button>
+            <a class="button button-secondary" href="#tokens">See the tokens</a>
+          </p>
+        </section>
+
+        <section class="card" id="tokens" aria-labelledby="tokens-title">
+          <header class="card-head">
+            <h2 id="tokens-title">Surfaces and type</h2>
+            <p>
+              Every color below is a <code>--theme-*</code> custom property.
+              There is no per-theme CSS, so a family or mode change repaints all
+              of it.
+            </p>
+          </header>
+
+          <ul class="swatches">
+            <li><span class="swatch swatch-background"></span>background</li>
+            <li><span class="swatch swatch-card"></span>card</li>
+            <li><span class="swatch swatch-primary"></span>primary</li>
+            <li><span class="swatch swatch-secondary"></span>secondary</li>
+            <li><span class="swatch swatch-muted"></span>muted</li>
+            <li><span class="swatch swatch-accent"></span>accent</li>
+          </ul>
+
+          <div class="prose">
+            <h3>A heading in the theme's foreground</h3>
+            <p>
+              Body copy uses the foreground token, and the muted line under it
+              uses <code>--theme-color-mutedForeground</code>. Both are resolved
+              from the active theme, so contrast is a property of the theme
+              rather than of this stylesheet.
+            </p>
+            <p class="muted">
+              Muted supporting text, one step down in emphasis.
+            </p>
+          </div>
+        </section>
+
+        <section class="card" id="controls" aria-labelledby="controls-title">
+          <header class="card-head">
+            <h2 id="controls-title">Controls and status</h2>
+            <p>
+              Form controls and status badges read the same tokens, so they stay
+              legible across every family and both modes.
+            </p>
+          </header>
+
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Workspace name</span>
+              <input type="text" value="Northwind" autocomplete="off" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Density</span>
+              <select>
+                <option>Comfortable</option>
+                <option>Compact</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" checked />
+            <span
+              >Follow the operating system when the mode is
+              <code>system</code></span
+            >
+          </label>
+
+          <ul class="statuses">
+            <li class="status status-success">Synced</li>
+            <li class="status status-muted">Queued</li>
+            <li class="status status-danger">Failed</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>
+          <code>@themvora/core/prepaint.js</code> paints the first frame;
+          <code>@themvora/core/vanilla</code> owns the runtime.
+        </p>
+        <p class="muted">
+          Try reloading after a change — the saved mode and family come back
+          with no flash of the default theme.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

@@ -432,7 +432,7 @@ created with.
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling. Enables `useThemeSchedule()`; without it that hook returns `null`. `autoDetectLocation` resolves coordinates from the browser, and `timeZone` overrides the detected one. |
 | `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted selection. Applied once per value and never written to persistence. Pass the same value to the integration's `provider.astro` / `createBlockingScript` for a flash-free override — the island alone can only correct it after mount. |
 | `themes` (optional) | `readonly T[]` | The theme registry the client runtime resolves against. |
-| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Animate theme changes. `true` uses the defaults; pass `{ enabled, duration, easing }` to tune, or `false` to disable. The transition itself is applied by the DOM/CSS bindings, so it also needs `dom`/`cssVariables` to be left at their defaults (they are). |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Animate theme changes. Omit it to use the `transition` declared in `theme.config.ts` (the transported configuration); `true` uses the defaults, `{ enabled, duration, easing }` tunes it, and `false` disables it for this island. The transition itself is applied by the DOM/CSS bindings, so it also needs `dom`/`cssVariables` to be left at their defaults (they are). |
 
 ---
 

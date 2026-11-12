@@ -19,7 +19,7 @@ export function NextStepCard({
   return (
     <Link
       href={href}
-      className={`block rounded-xl border border-border bg-muted/20 hover:bg-muted/30 transition-colors p-4 no-underline group ${className ?? ""}`.trim()}
+      className={`block rounded-xl border border-border bg-card text-card-foreground hover:border-(--theme-color-ring) transition-colors p-4 no-underline group ${className ?? ""}`.trim()}
     >
       <div className="flex items-start gap-3">
         {icon && (
@@ -35,10 +35,12 @@ export function NextStepCard({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold mb-0.5 group-hover:underline">
+          <div className="text-sm font-semibold mb-0.5 text-card-foreground group-hover:underline">
             {title}
           </div>
-          <div className="text-xs opacity-60 leading-relaxed">{description}</div>
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            {description}
+          </div>
         </div>
         <div
           className="shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"

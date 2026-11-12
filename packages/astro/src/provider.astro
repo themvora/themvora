@@ -13,6 +13,7 @@ import {
 import { computeFingerprint } from "./fingerprint";
 import { publishTransportedConfig } from "./transport";
 import { createScrollbarHidingGuardScript } from "./scrollbar-guard";
+import { createScrollRestorationScript } from "./scroll-restoration";
 import {
   buildThemeBootstrapPayload,
   systemModeCSSTemplate,
@@ -297,6 +298,19 @@ const ssrStyle = (
   </head>
   <body>
     <slot />
+    {/*
+      Restore Astro's own saved scroll position before the deferred router
+      module runs and before the first paint. `<ClientRouter />` sets
+      `history.scrollRestoration = "manual"` and restores from `history.state`
+      only when its module executes — in dev, and on slow load, the document
+      paints at `scrollY === 0` first. This inline script runs as soon as the
+      server-rendered body has been parsed, so it closes that window. It is a
+      no-op without Astro-managed state (see `scroll-restoration.ts`).
+
+      It must stay after `<slot />`: before the slot, there is no content to
+      scroll, and the position would clamp to the top.
+    */}
+    <script is:inline set:html={createScrollRestorationScript()} />
     {scrollbarGuardScript && <script is:inline set:html={scrollbarGuardScript} />}
     {/*
       Bootstrap readouts, patched from the end of the body.

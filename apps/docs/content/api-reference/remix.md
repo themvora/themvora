@@ -3,8 +3,8 @@ Themvora Remix integration.
 
 Provides the SSR-safe `ThemeProvider`, the `ThemeHead` blocking script
 for zero-flash bootstrapping, `getThemeShellProps` for the `<html>` element
-Remix owns, and the cookie-backed
-`createRemixThemePersistence`, plus the React `ThemeScope`,
+Remix owns, `createThemeDocument` for a single-source document setup, and
+the cookie-backed `createRemixThemePersistence`, plus the React `ThemeScope`,
 `ThemeScrollbar`, and `ThemeInspector` re-exports.
 
 > Generated from `packages/remix/src` by `apps/docs/scripts/generate-api-reference.mjs`. Do not edit by hand — run `pnpm --filter @themvora/docs api:generate`.
@@ -42,6 +42,71 @@ import { createRemixThemePersistence } from "@themvora/remix";
 const persistence = createRemixThemePersistence(myThemes, "light", {
   key: "my-theme-selection",
 });
+```
+
+---
+
+
+### `createThemeDocument<T extends ThemeDefinition<string>>(config): ThemeDocumentHandle<T>`
+Create a single-source theme configuration for a server-rendered document.
+
+The returned `Document` renders the blocking bootstrap in `<head>`, the
+matching theme attributes and CSS variables on `<html>`, the scrollbar class
+and pre-paint stylesheet when configured, and the runtime provider around the
+application tree. `resolveInitial` derives the request-specific state from the
+same configuration, so the loader, the script, the shell and the provider
+cannot drift apart.
+
+**See also:** `ThemeDocumentConfig`
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `config` | `ThemeDocumentConfig<T>` | The registry, fallback selection, static runtime options (`transition`, `scheduled`, `themeOverride`) and document options. |
+
+**Returns** `ThemeDocumentHandle<T>` — The document handle: `resolveInitial`, `Document`, `Provider`,
+  `config` and the static `fallback`.
+
+The configuration is copied and frozen, so changing the caller's `themes`
+array later cannot change what an already-created document renders. Request
+state is never stored on the handle: `resolveInitial` derives it from the
+`Request` it is given, which keeps concurrent requests isolated.
+
+The handler imports the server resolver lazily. The client bundle therefore
+does not include the cookie parser, while the loader still gets a synchronous
+configuration it can call.
+
+```ts
+// app/root.tsx — React Router Framework Mode
+import { createThemeDocument } from "@themvora/remix/react-router";
+import { getBuiltInThemes } from "@themvora/core";
+import type { Route } from "./+types/root";
+
+const themes = getBuiltInThemes();
+
+const theming = createThemeDocument({
+  themes,
+  defaultTheme: "light",
+  mode: "system",
+  transition: { enabled: true, preset: "smooth" },
+  scrollbar: true,
+});
+
+export async function loader({ request }: Route.LoaderArgs) {
+  return { theme: await theming.resolveInitial(request) };
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  return (
+    <theming.Document
+      initial={data?.theme}
+      head={[<Meta key="meta" />, <Links key="links" />]}
+      afterContent={<><ScrollRestoration /><Scripts /></>}
+    >
+      {children}
+    </theming.Document>
+  );
+}
 ```
 
 ---
@@ -573,6 +638,657 @@ the selection to cookies.
 ---
 
 
+### `ThemeDocumentBodyProps`
+
+**Extends** `Omit<HTMLAttributes<HTMLBodyElement>, "className" | "style">`
+Extra props for the document body rendered by `<theming.Document>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `about` (optional) | `string` | — |
+| `accessKey` (optional) | `string` | — |
+| `aria-activedescendant` (optional) | `string` | Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. |
+| `aria-atomic` (optional) | `Booleanish` | Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. |
+| `aria-autocomplete` (optional) | `"none" \| "list" \| "inline" \| "both"` | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
+| `aria-braillelabel` (optional) | `string` | Defines a string value that labels the current element, which is intended to be converted into Braille. |
+| `aria-brailleroledescription` (optional) | `string` | Defines a human-readable, author-localized abbreviated description for the role of an element, which is intended to be converted into Braille. |
+| `aria-busy` (optional) | `Booleanish` | — |
+| `aria-checked` (optional) | `boolean \| "true" \| "false" \| "mixed"` | Indicates the current "checked" state of checkboxes, radio buttons, and other widgets. |
+| `aria-colcount` (optional) | `number` | Defines the total number of columns in a table, grid, or treegrid. |
+| `aria-colindex` (optional) | `number` | Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid. |
+| `aria-colindextext` (optional) | `string` | Defines a human readable text alternative of aria-colindex. |
+| `aria-colspan` (optional) | `number` | Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid. |
+| `aria-controls` (optional) | `string` | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
+| `aria-current` (optional) | `boolean \| "true" \| "false" \| "page" \| "step" \| "location" \| "date" \| "time"` | Indicates the element that represents the current item within a container or set of related elements. |
+| `aria-describedby` (optional) | `string` | Identifies the element (or elements) that describes the object. |
+| `aria-description` (optional) | `string` | Defines a string value that describes or annotates the current element. |
+| `aria-details` (optional) | `string` | Identifies the element that provides a detailed, extended description for the object. |
+| `aria-disabled` (optional) | `Booleanish` | Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. |
+| `aria-dropeffect` (optional) | `"none" \| "link" \| "copy" \| "execute" \| "move" \| "popup"` | Indicates what functions can be performed when a dragged object is released on the drop target. |
+| `aria-errormessage` (optional) | `string` | Identifies the element that provides an error message for the object. |
+| `aria-expanded` (optional) | `Booleanish` | Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. |
+| `aria-flowto` (optional) | `string` | Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. |
+| `aria-grabbed` (optional) | `Booleanish` | Indicates an element's "grabbed" state in a drag-and-drop operation. |
+| `aria-haspopup` (optional) | `boolean \| "true" \| "false" \| "dialog" \| "grid" \| "listbox" \| "menu" \| "tree"` | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
+| `aria-hidden` (optional) | `Booleanish` | Indicates whether the element is exposed to an accessibility API. |
+| `aria-invalid` (optional) | `boolean \| "true" \| "false" \| "grammar" \| "spelling"` | Indicates the entered value does not conform to the format expected by the application. |
+| `aria-keyshortcuts` (optional) | `string` | Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. |
+| `aria-label` (optional) | `string` | Defines a string value that labels the current element. |
+| `aria-labelledby` (optional) | `string` | Identifies the element (or elements) that labels the current element. |
+| `aria-level` (optional) | `number` | Defines the hierarchical level of an element within a structure. |
+| `aria-live` (optional) | `"off" \| "assertive" \| "polite"` | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
+| `aria-modal` (optional) | `Booleanish` | Indicates whether an element is modal when displayed. |
+| `aria-multiline` (optional) | `Booleanish` | Indicates whether a text box accepts multiple lines of input or only a single line. |
+| `aria-multiselectable` (optional) | `Booleanish` | Indicates that the user may select more than one item from the current selectable descendants. |
+| `aria-orientation` (optional) | `"horizontal" \| "vertical"` | Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. |
+| `aria-owns` (optional) | `string` | Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship between DOM elements where the DOM hierarchy cannot be used to represent the relationship. |
+| `aria-placeholder` (optional) | `string` | Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value. A hint could be a sample value or a brief description of the expected format. |
+| `aria-posinset` (optional) | `number` | Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
+| `aria-pressed` (optional) | `boolean \| "true" \| "false" \| "mixed"` | Indicates the current "pressed" state of toggle buttons. |
+| `aria-readonly` (optional) | `Booleanish` | Indicates that the element is not editable, but is otherwise operable. |
+| `aria-relevant` (optional) | `"text" \| "additions" \| "additions removals" \| "additions text" \| "all" \| "removals" \| "removals additions" \| "removals text" \| "text additions" \| "text removals"` | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
+| `aria-required` (optional) | `Booleanish` | Indicates that user input is required on the element before a form may be submitted. |
+| `aria-roledescription` (optional) | `string` | Defines a human-readable, author-localized description for the role of an element. |
+| `aria-rowcount` (optional) | `number` | Defines the total number of rows in a table, grid, or treegrid. |
+| `aria-rowindex` (optional) | `number` | Defines an element's row index or position with respect to the total number of rows within a table, grid, or treegrid. |
+| `aria-rowindextext` (optional) | `string` | Defines a human readable text alternative of aria-rowindex. |
+| `aria-rowspan` (optional) | `number` | Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid. |
+| `aria-selected` (optional) | `Booleanish` | Indicates the current "selected" state of various widgets. |
+| `aria-setsize` (optional) | `number` | Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
+| `aria-sort` (optional) | `"none" \| "ascending" \| "descending" \| "other"` | Indicates if items in a table or grid are sorted in ascending or descending order. |
+| `aria-valuemax` (optional) | `number` | Defines the maximum allowed value for a range widget. |
+| `aria-valuemin` (optional) | `number` | Defines the minimum allowed value for a range widget. |
+| `aria-valuenow` (optional) | `number` | Defines the current value for a range widget. |
+| `aria-valuetext` (optional) | `string` | Defines the human readable text alternative of aria-valuenow for a range widget. |
+| `autoCapitalize` (optional) | `string & object \| "off" \| "none" \| "on" \| "sentences" \| "words" \| "characters"` | — |
+| `autoCorrect` (optional) | `string` | — |
+| `autoFocus` (optional) | `boolean` | — |
+| `autoSave` (optional) | `string` | — |
+| `children` (optional) | `ReactNode` | — |
+| `className` (optional) | `string` | Classes merged with the configuration's `bodyClassName`. |
+| `color` (optional) | `string` | — |
+| `content` (optional) | `string` | — |
+| `contentEditable` (optional) | `Booleanish \| "inherit" \| "plaintext-only"` | — |
+| `contextMenu` (optional) | `string` | — |
+| `dangerouslySetInnerHTML` (optional) | `{ }` | — |
+| `datatype` (optional) | `string` | — |
+| `defaultChecked` (optional) | `boolean` | — |
+| `defaultValue` (optional) | `string \| number \| readonly string[]` | — |
+| `dir` (optional) | `string` | — |
+| `draggable` (optional) | `Booleanish` | — |
+| `enterKeyHint` (optional) | `"enter" \| "done" \| "go" \| "next" \| "previous" \| "search" \| "send"` | — |
+| `exportparts` (optional) | `string` | — |
+| `hidden` (optional) | `boolean` | — |
+| `id` (optional) | `string` | — |
+| `inert` (optional) | `boolean` | — |
+| `inlist` (optional) | `any` | — |
+| `inputMode` (optional) | `"none" \| "search" \| "text" \| "tel" \| "url" \| "email" \| "numeric" \| "decimal"` | Hints at the type of data that might be entered by the user while editing the element or its contents |
+| `is` (optional) | `string` | Specify that a standard HTML element should behave like a defined custom built-in element |
+| `itemID` (optional) | `string` | — |
+| `itemProp` (optional) | `string` | — |
+| `itemRef` (optional) | `string` | — |
+| `itemScope` (optional) | `boolean` | — |
+| `itemType` (optional) | `string` | — |
+| `lang` (optional) | `string` | — |
+| `nonce` (optional) | `string` | — |
+| `onAbort` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onAbortCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onAnimationEnd` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAnimationEndCapture` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAnimationIteration` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAnimationIterationCapture` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAnimationStart` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAnimationStartCapture` (optional) | `AnimationEventHandler<HTMLBodyElement>` | — |
+| `onAuxClick` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onAuxClickCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onBeforeInput` (optional) | `InputEventHandler<HTMLBodyElement>` | — |
+| `onBeforeInputCapture` (optional) | `InputEventHandler<HTMLBodyElement>` | — |
+| `onBeforeToggle` (optional) | `ToggleEventHandler<HTMLBodyElement>` | — |
+| `onBlur` (optional) | `FocusEventHandler<HTMLBodyElement>` | — |
+| `onBlurCapture` (optional) | `FocusEventHandler<HTMLBodyElement>` | — |
+| `onCanPlay` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onCanPlayCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onCanPlayThrough` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onCanPlayThroughCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onChange` (optional) | `ChangeEventHandler<HTMLBodyElement, Element>` | — |
+| `onChangeCapture` (optional) | `ChangeEventHandler<HTMLBodyElement, Element>` | — |
+| `onClick` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onClickCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onCompositionEnd` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onCompositionEndCapture` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onCompositionStart` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onCompositionStartCapture` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onCompositionUpdate` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onCompositionUpdateCapture` (optional) | `CompositionEventHandler<HTMLBodyElement>` | — |
+| `onContextMenu` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onContextMenuCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onCopy` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onCopyCapture` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onCut` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onCutCapture` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onDoubleClick` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onDoubleClickCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onDrag` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragEnd` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragEndCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragEnter` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragEnterCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragExit` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragExitCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragLeave` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragLeaveCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragOver` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragOverCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragStart` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDragStartCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDrop` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDropCapture` (optional) | `DragEventHandler<HTMLBodyElement>` | — |
+| `onDurationChange` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onDurationChangeCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEmptied` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEmptiedCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEncrypted` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEncryptedCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEnded` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onEndedCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onError` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onErrorCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onFocus` (optional) | `FocusEventHandler<HTMLBodyElement>` | — |
+| `onFocusCapture` (optional) | `FocusEventHandler<HTMLBodyElement>` | — |
+| `onGotPointerCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onGotPointerCaptureCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onInput` (optional) | `InputEventHandler<HTMLBodyElement>` | — |
+| `onInputCapture` (optional) | `InputEventHandler<HTMLBodyElement>` | — |
+| `onInvalid` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onInvalidCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onKeyDown` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onKeyDownCapture` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onKeyPress` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onKeyPressCapture` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onKeyUp` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onKeyUpCapture` (optional) | `KeyboardEventHandler<HTMLBodyElement>` | — |
+| `onLoad` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadedData` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadedDataCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadedMetadata` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadedMetadataCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadStart` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLoadStartCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onLostPointerCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onLostPointerCaptureCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onMouseDown` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseDownCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseEnter` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseLeave` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseMove` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseMoveCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseOut` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseOutCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseOver` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseOverCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseUp` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onMouseUpCapture` (optional) | `MouseEventHandler<HTMLBodyElement>` | — |
+| `onPaste` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onPasteCapture` (optional) | `ClipboardEventHandler<HTMLBodyElement>` | — |
+| `onPause` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPauseCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPlay` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPlayCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPlaying` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPlayingCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onPointerCancel` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerCancelCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerDown` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerDownCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerEnter` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerLeave` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerMove` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerMoveCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerOut` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerOutCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerOver` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerOverCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerUp` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onPointerUpCapture` (optional) | `PointerEventHandler<HTMLBodyElement>` | — |
+| `onProgress` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onProgressCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onRateChange` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onRateChangeCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onReset` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onResetCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onScroll` (optional) | `UIEventHandler<HTMLBodyElement>` | — |
+| `onScrollCapture` (optional) | `UIEventHandler<HTMLBodyElement>` | — |
+| `onScrollEnd` (optional) | `UIEventHandler<HTMLBodyElement>` | — |
+| `onScrollEndCapture` (optional) | `UIEventHandler<HTMLBodyElement>` | — |
+| `onSeeked` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSeekedCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSeeking` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSeekingCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSelect` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSelectCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onStalled` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onStalledCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSubmit` (optional) | `SubmitEventHandler<HTMLBodyElement>` | — |
+| `onSubmitCapture` (optional) | `SubmitEventHandler<HTMLBodyElement>` | — |
+| `onSuspend` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onSuspendCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onTimeUpdate` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onTimeUpdateCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onToggle` (optional) | `ToggleEventHandler<HTMLBodyElement>` | — |
+| `onTouchCancel` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchCancelCapture` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchEnd` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchEndCapture` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchMove` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchMoveCapture` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchStart` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTouchStartCapture` (optional) | `TouchEventHandler<HTMLBodyElement>` | — |
+| `onTransitionCancel` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionCancelCapture` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionEnd` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionEndCapture` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionRun` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionRunCapture` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionStart` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onTransitionStartCapture` (optional) | `TransitionEventHandler<HTMLBodyElement>` | — |
+| `onVolumeChange` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onVolumeChangeCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onWaiting` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onWaitingCapture` (optional) | `ReactEventHandler<HTMLBodyElement>` | — |
+| `onWheel` (optional) | `WheelEventHandler<HTMLBodyElement>` | — |
+| `onWheelCapture` (optional) | `WheelEventHandler<HTMLBodyElement>` | — |
+| `part` (optional) | `string` | — |
+| `popover` (optional) | `"" \| "auto" \| "manual" \| "hint"` | — |
+| `popoverTarget` (optional) | `string` | — |
+| `popoverTargetAction` (optional) | `"toggle" \| "show" \| "hide"` | — |
+| `prefix` (optional) | `string` | — |
+| `property` (optional) | `string` | — |
+| `radioGroup` (optional) | `string` | — |
+| `rel` (optional) | `string` | — |
+| `resource` (optional) | `string` | — |
+| `results` (optional) | `number` | — |
+| `rev` (optional) | `string` | — |
+| `role` (optional) | `AriaRole` | — |
+| `security` (optional) | `string` | — |
+| `slot` (optional) | `string` | — |
+| `spellCheck` (optional) | `Booleanish` | — |
+| `style` (optional) | `CSSProperties` | Inline styles merged after the configuration's `bodyStyle`. |
+| `suppressContentEditableWarning` (optional) | `boolean` | — |
+| `suppressHydrationWarning` (optional) | `boolean` | — |
+| `tabIndex` (optional) | `number` | — |
+| `title` (optional) | `string` | — |
+| `translate` (optional) | `"yes" \| "no"` | — |
+| `typeof` (optional) | `string` | — |
+| `unselectable` (optional) | `"off" \| "on"` | — |
+| `vocab` (optional) | `string` | — |
+
+---
+
+
+### `ThemeDocumentConfig<T extends ThemeDefinition>`
+The one description of a document-level theme installation.
+
+Every value here is static: it does not depend on the incoming request, so a
+module can declare one configuration and use it for the pre-paint script, the
+server-rendered `<html>` element and the client runtime. The request-specific
+result is the `initial` state produced by ThemeDocumentHandle.resolveInitial.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `bodyClassName` (optional) | `string` | Classes rendered on `<body>`. |
+| `bodyStyle` (optional) | `CSSProperties` | Inline styles rendered on `<body>`. |
+| `className` (optional) | `string` | Classes merged onto the `<html>` element alongside the theme's own. |
+| `defaultTheme` (optional) | `ThemeIdentifier<T>` | Fallback theme when no selection is persisted. Accepts a theme **name** or a **family**; a family resolves to the variant for the mode in effect. |
+| `family` (optional) | `ThemeIdentifier<T>` | Family used when nothing is persisted and `defaultTheme` names no family. A variant name is normalised to its family. |
+| `initialFamily` (optional) | `ThemeIdentifier<T>` | Alias for ThemeDocumentConfig.family, matching the name the Remix provider prop has always used. `family` wins when both are supplied. |
+| `initialMode` (optional) | `ThemeMode` | Alias for ThemeDocumentConfig.mode, matching the name the Remix provider prop has always used. `mode` wins when both are supplied. |
+| `mode` (optional) | `ThemeMode` | Mode used when neither a persisted selection nor `themeOverride` applies. Defaults to the fallback theme's own mode. Pass `"system"` to follow `prefers-color-scheme` instead. |
+| `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | The solar schedule passed to the runtime, so light/dark can follow the visitor's sunrise and sunset. The document still resolves and paints the persisted selection; the schedule takes over once the runtime mounts. |
+| `scrollbar` (optional) | `boolean` | Hide the native scrollbar from the very first paint. Adds the `tv-scrollbar` class to `<html>` and emits the pre-paint hiding stylesheet. The application still imports `@themvora/core/scrollbar.css` itself: a CSS import is a bundler concern, not something a component can inject. |
+| `style` (optional) | `CSSProperties` | Inline styles merged after the theme's CSS variables on `<html>`. |
+| `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted selection. The pre-paint script, the shell and the runtime all receive the same value. |
+| `themes` | `readonly T[]` | The theme registry the selection is resolved against. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration passed to the runtime: `true`, `false`, or `{ enabled, duration, easing, preset, … }`. Same contract as the Remix provider's `transition` prop, so a document-level setup can express animations without falling back to the lower-level `ThemeProvider`. |
+
+---
+
+
+### `ThemeDocumentHandle<T extends ThemeDefinition>`
+The object returned by createThemeDocument.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| readonly `config` | `Readonly<ThemeDocumentConfig<T>>` | The frozen configuration every part of the integration reads. |
+| readonly `fallback` | `InitialThemeResolution<T>` | The static fallback resolution — the answer when no request state is available. Used by `Document` when `initial` is missing or `null`. |
+| `Document` | `ReactElement` | — |
+| `Provider` | `ReactElement` | — |
+| `resolveInitial` | `Promise<InitialThemeResolution<T>>` | — |
+
+---
+
+
+### `ThemeDocumentHtmlProps`
+
+**Extends** `Omit<HTMLAttributes<HTMLHtmlElement>, "lang" | "className" | "style">`
+Extra props for the document element rendered by `<theming.Document>`.
+
+The theme-owned attributes (`data-theme*`, the merged `className`, the
+`style` containing the CSS variables, and `suppressHydrationWarning`) are
+written after these props, so they cannot be overridden by a caller.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `about` (optional) | `string` | — |
+| `accessKey` (optional) | `string` | — |
+| `aria-activedescendant` (optional) | `string` | Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. |
+| `aria-atomic` (optional) | `Booleanish` | Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. |
+| `aria-autocomplete` (optional) | `"none" \| "list" \| "inline" \| "both"` | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
+| `aria-braillelabel` (optional) | `string` | Defines a string value that labels the current element, which is intended to be converted into Braille. |
+| `aria-brailleroledescription` (optional) | `string` | Defines a human-readable, author-localized abbreviated description for the role of an element, which is intended to be converted into Braille. |
+| `aria-busy` (optional) | `Booleanish` | — |
+| `aria-checked` (optional) | `boolean \| "true" \| "false" \| "mixed"` | Indicates the current "checked" state of checkboxes, radio buttons, and other widgets. |
+| `aria-colcount` (optional) | `number` | Defines the total number of columns in a table, grid, or treegrid. |
+| `aria-colindex` (optional) | `number` | Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid. |
+| `aria-colindextext` (optional) | `string` | Defines a human readable text alternative of aria-colindex. |
+| `aria-colspan` (optional) | `number` | Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid. |
+| `aria-controls` (optional) | `string` | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
+| `aria-current` (optional) | `boolean \| "true" \| "false" \| "page" \| "step" \| "location" \| "date" \| "time"` | Indicates the element that represents the current item within a container or set of related elements. |
+| `aria-describedby` (optional) | `string` | Identifies the element (or elements) that describes the object. |
+| `aria-description` (optional) | `string` | Defines a string value that describes or annotates the current element. |
+| `aria-details` (optional) | `string` | Identifies the element that provides a detailed, extended description for the object. |
+| `aria-disabled` (optional) | `Booleanish` | Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. |
+| `aria-dropeffect` (optional) | `"none" \| "link" \| "copy" \| "execute" \| "move" \| "popup"` | Indicates what functions can be performed when a dragged object is released on the drop target. |
+| `aria-errormessage` (optional) | `string` | Identifies the element that provides an error message for the object. |
+| `aria-expanded` (optional) | `Booleanish` | Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. |
+| `aria-flowto` (optional) | `string` | Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. |
+| `aria-grabbed` (optional) | `Booleanish` | Indicates an element's "grabbed" state in a drag-and-drop operation. |
+| `aria-haspopup` (optional) | `boolean \| "true" \| "false" \| "dialog" \| "grid" \| "listbox" \| "menu" \| "tree"` | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
+| `aria-hidden` (optional) | `Booleanish` | Indicates whether the element is exposed to an accessibility API. |
+| `aria-invalid` (optional) | `boolean \| "true" \| "false" \| "grammar" \| "spelling"` | Indicates the entered value does not conform to the format expected by the application. |
+| `aria-keyshortcuts` (optional) | `string` | Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. |
+| `aria-label` (optional) | `string` | Defines a string value that labels the current element. |
+| `aria-labelledby` (optional) | `string` | Identifies the element (or elements) that labels the current element. |
+| `aria-level` (optional) | `number` | Defines the hierarchical level of an element within a structure. |
+| `aria-live` (optional) | `"off" \| "assertive" \| "polite"` | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
+| `aria-modal` (optional) | `Booleanish` | Indicates whether an element is modal when displayed. |
+| `aria-multiline` (optional) | `Booleanish` | Indicates whether a text box accepts multiple lines of input or only a single line. |
+| `aria-multiselectable` (optional) | `Booleanish` | Indicates that the user may select more than one item from the current selectable descendants. |
+| `aria-orientation` (optional) | `"horizontal" \| "vertical"` | Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. |
+| `aria-owns` (optional) | `string` | Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship between DOM elements where the DOM hierarchy cannot be used to represent the relationship. |
+| `aria-placeholder` (optional) | `string` | Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value. A hint could be a sample value or a brief description of the expected format. |
+| `aria-posinset` (optional) | `number` | Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
+| `aria-pressed` (optional) | `boolean \| "true" \| "false" \| "mixed"` | Indicates the current "pressed" state of toggle buttons. |
+| `aria-readonly` (optional) | `Booleanish` | Indicates that the element is not editable, but is otherwise operable. |
+| `aria-relevant` (optional) | `"text" \| "additions" \| "additions removals" \| "additions text" \| "all" \| "removals" \| "removals additions" \| "removals text" \| "text additions" \| "text removals"` | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
+| `aria-required` (optional) | `Booleanish` | Indicates that user input is required on the element before a form may be submitted. |
+| `aria-roledescription` (optional) | `string` | Defines a human-readable, author-localized description for the role of an element. |
+| `aria-rowcount` (optional) | `number` | Defines the total number of rows in a table, grid, or treegrid. |
+| `aria-rowindex` (optional) | `number` | Defines an element's row index or position with respect to the total number of rows within a table, grid, or treegrid. |
+| `aria-rowindextext` (optional) | `string` | Defines a human readable text alternative of aria-rowindex. |
+| `aria-rowspan` (optional) | `number` | Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid. |
+| `aria-selected` (optional) | `Booleanish` | Indicates the current "selected" state of various widgets. |
+| `aria-setsize` (optional) | `number` | Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
+| `aria-sort` (optional) | `"none" \| "ascending" \| "descending" \| "other"` | Indicates if items in a table or grid are sorted in ascending or descending order. |
+| `aria-valuemax` (optional) | `number` | Defines the maximum allowed value for a range widget. |
+| `aria-valuemin` (optional) | `number` | Defines the minimum allowed value for a range widget. |
+| `aria-valuenow` (optional) | `number` | Defines the current value for a range widget. |
+| `aria-valuetext` (optional) | `string` | Defines the human readable text alternative of aria-valuenow for a range widget. |
+| `autoCapitalize` (optional) | `string & object \| "off" \| "none" \| "on" \| "sentences" \| "words" \| "characters"` | — |
+| `autoCorrect` (optional) | `string` | — |
+| `autoFocus` (optional) | `boolean` | — |
+| `autoSave` (optional) | `string` | — |
+| `children` (optional) | `ReactNode` | — |
+| `className` (optional) | `string` | Classes merged with the configuration's `className` and, when enabled, `tv-scrollbar`. The combined value is rendered once, so the server and the hydrated client agree on the attribute. |
+| `color` (optional) | `string` | — |
+| `content` (optional) | `string` | — |
+| `contentEditable` (optional) | `Booleanish \| "inherit" \| "plaintext-only"` | — |
+| `contextMenu` (optional) | `string` | — |
+| `dangerouslySetInnerHTML` (optional) | `{ }` | — |
+| `datatype` (optional) | `string` | — |
+| `defaultChecked` (optional) | `boolean` | — |
+| `defaultValue` (optional) | `string \| number \| readonly string[]` | — |
+| `dir` (optional) | `"auto" \| "ltr" \| "rtl"` | The document text direction, rendered as `<html dir="…">`. |
+| `draggable` (optional) | `Booleanish` | — |
+| `enterKeyHint` (optional) | `"enter" \| "done" \| "go" \| "next" \| "previous" \| "search" \| "send"` | — |
+| `exportparts` (optional) | `string` | — |
+| `hidden` (optional) | `boolean` | — |
+| `id` (optional) | `string` | — |
+| `inert` (optional) | `boolean` | — |
+| `inlist` (optional) | `any` | — |
+| `inputMode` (optional) | `"none" \| "search" \| "text" \| "tel" \| "url" \| "email" \| "numeric" \| "decimal"` | Hints at the type of data that might be entered by the user while editing the element or its contents |
+| `is` (optional) | `string` | Specify that a standard HTML element should behave like a defined custom built-in element |
+| `itemID` (optional) | `string` | — |
+| `itemProp` (optional) | `string` | — |
+| `itemRef` (optional) | `string` | — |
+| `itemScope` (optional) | `boolean` | — |
+| `itemType` (optional) | `string` | — |
+| `lang` (optional) | `string` | The document language, rendered as `<html lang="…">`. |
+| `nonce` (optional) | `string` | — |
+| `onAbort` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onAbortCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationEnd` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationEndCapture` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationIteration` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationIterationCapture` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationStart` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAnimationStartCapture` (optional) | `AnimationEventHandler<HTMLHtmlElement>` | — |
+| `onAuxClick` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onAuxClickCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onBeforeInput` (optional) | `InputEventHandler<HTMLHtmlElement>` | — |
+| `onBeforeInputCapture` (optional) | `InputEventHandler<HTMLHtmlElement>` | — |
+| `onBeforeToggle` (optional) | `ToggleEventHandler<HTMLHtmlElement>` | — |
+| `onBlur` (optional) | `FocusEventHandler<HTMLHtmlElement>` | — |
+| `onBlurCapture` (optional) | `FocusEventHandler<HTMLHtmlElement>` | — |
+| `onCanPlay` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onCanPlayCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onCanPlayThrough` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onCanPlayThroughCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onChange` (optional) | `ChangeEventHandler<HTMLHtmlElement, Element>` | — |
+| `onChangeCapture` (optional) | `ChangeEventHandler<HTMLHtmlElement, Element>` | — |
+| `onClick` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onClickCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionEnd` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionEndCapture` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionStart` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionStartCapture` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionUpdate` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onCompositionUpdateCapture` (optional) | `CompositionEventHandler<HTMLHtmlElement>` | — |
+| `onContextMenu` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onContextMenuCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onCopy` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onCopyCapture` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onCut` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onCutCapture` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onDoubleClick` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onDoubleClickCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onDrag` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragEnd` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragEndCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragEnter` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragEnterCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragExit` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragExitCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragLeave` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragLeaveCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragOver` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragOverCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragStart` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDragStartCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDrop` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDropCapture` (optional) | `DragEventHandler<HTMLHtmlElement>` | — |
+| `onDurationChange` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onDurationChangeCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEmptied` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEmptiedCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEncrypted` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEncryptedCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEnded` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onEndedCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onError` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onErrorCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onFocus` (optional) | `FocusEventHandler<HTMLHtmlElement>` | — |
+| `onFocusCapture` (optional) | `FocusEventHandler<HTMLHtmlElement>` | — |
+| `onGotPointerCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onGotPointerCaptureCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onInput` (optional) | `InputEventHandler<HTMLHtmlElement>` | — |
+| `onInputCapture` (optional) | `InputEventHandler<HTMLHtmlElement>` | — |
+| `onInvalid` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onInvalidCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onKeyDown` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onKeyDownCapture` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onKeyPress` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onKeyPressCapture` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onKeyUp` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onKeyUpCapture` (optional) | `KeyboardEventHandler<HTMLHtmlElement>` | — |
+| `onLoad` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadedData` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadedDataCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadedMetadata` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadedMetadataCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadStart` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLoadStartCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onLostPointerCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onLostPointerCaptureCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onMouseDown` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseDownCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseEnter` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseLeave` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseMove` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseMoveCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseOut` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseOutCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseOver` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseOverCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseUp` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onMouseUpCapture` (optional) | `MouseEventHandler<HTMLHtmlElement>` | — |
+| `onPaste` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onPasteCapture` (optional) | `ClipboardEventHandler<HTMLHtmlElement>` | — |
+| `onPause` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPauseCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPlay` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPlayCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPlaying` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPlayingCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onPointerCancel` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerCancelCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerDown` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerDownCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerEnter` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerLeave` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerMove` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerMoveCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerOut` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerOutCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerOver` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerOverCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerUp` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onPointerUpCapture` (optional) | `PointerEventHandler<HTMLHtmlElement>` | — |
+| `onProgress` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onProgressCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onRateChange` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onRateChangeCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onReset` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onResetCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onScroll` (optional) | `UIEventHandler<HTMLHtmlElement>` | — |
+| `onScrollCapture` (optional) | `UIEventHandler<HTMLHtmlElement>` | — |
+| `onScrollEnd` (optional) | `UIEventHandler<HTMLHtmlElement>` | — |
+| `onScrollEndCapture` (optional) | `UIEventHandler<HTMLHtmlElement>` | — |
+| `onSeeked` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSeekedCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSeeking` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSeekingCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSelect` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSelectCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onStalled` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onStalledCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSubmit` (optional) | `SubmitEventHandler<HTMLHtmlElement>` | — |
+| `onSubmitCapture` (optional) | `SubmitEventHandler<HTMLHtmlElement>` | — |
+| `onSuspend` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onSuspendCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onTimeUpdate` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onTimeUpdateCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onToggle` (optional) | `ToggleEventHandler<HTMLHtmlElement>` | — |
+| `onTouchCancel` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchCancelCapture` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchEnd` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchEndCapture` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchMove` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchMoveCapture` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchStart` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTouchStartCapture` (optional) | `TouchEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionCancel` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionCancelCapture` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionEnd` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionEndCapture` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionRun` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionRunCapture` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionStart` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onTransitionStartCapture` (optional) | `TransitionEventHandler<HTMLHtmlElement>` | — |
+| `onVolumeChange` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onVolumeChangeCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onWaiting` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onWaitingCapture` (optional) | `ReactEventHandler<HTMLHtmlElement>` | — |
+| `onWheel` (optional) | `WheelEventHandler<HTMLHtmlElement>` | — |
+| `onWheelCapture` (optional) | `WheelEventHandler<HTMLHtmlElement>` | — |
+| `part` (optional) | `string` | — |
+| `popover` (optional) | `"" \| "auto" \| "manual" \| "hint"` | — |
+| `popoverTarget` (optional) | `string` | — |
+| `popoverTargetAction` (optional) | `"toggle" \| "show" \| "hide"` | — |
+| `prefix` (optional) | `string` | — |
+| `property` (optional) | `string` | — |
+| `radioGroup` (optional) | `string` | — |
+| `rel` (optional) | `string` | — |
+| `resource` (optional) | `string` | — |
+| `results` (optional) | `number` | — |
+| `rev` (optional) | `string` | — |
+| `role` (optional) | `AriaRole` | — |
+| `security` (optional) | `string` | — |
+| `slot` (optional) | `string` | — |
+| `spellCheck` (optional) | `Booleanish` | — |
+| `style` (optional) | `CSSProperties` | Inline styles merged after the theme's CSS variables. Use it for layout properties; the resolved `color-scheme` and `--theme-*` variables are owned by the shell. |
+| `suppressContentEditableWarning` (optional) | `boolean` | — |
+| `suppressHydrationWarning` (optional) | `boolean` | — |
+| `tabIndex` (optional) | `number` | — |
+| `title` (optional) | `string` | — |
+| `translate` (optional) | `"yes" \| "no"` | — |
+| `typeof` (optional) | `string` | — |
+| `unselectable` (optional) | `"off" \| "on"` | — |
+| `vocab` (optional) | `string` | — |
+
+---
+
+
+### `ThemeDocumentProps<T extends ThemeDefinition>`
+Props for the document component created by
+createThemeDocument.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `afterContent` (optional) | `ReactNode` | Framework body-end content (for example `<ScrollRestoration />` and `<Scripts />`). |
+| `bodyProps` (optional) | `ThemeDocumentBodyProps` | Extra props for `<body>`; see ThemeDocumentBodyProps. |
+| `children` | `ReactNode` | The application tree rendered inside the theme provider. |
+| `head` (optional) | `readonly ThemeDocumentHeadContent[]` | Framework head content, as an array of head elements. Only head-valid intrinsic elements (`meta`, `link`, `title`, `style`, `script`, `base`, `noscript`, `template`) and components such as React Router's `<Meta />`/`<Links />` are accepted. The array is deliberate: React 19 types every JSX expression as `ReactElement<any, any>`, so invalid children inside `<>…</>` would slip through. The array rejects a fragment at the prop boundary; an invalid intrinsic element that reaches the array is rejected with a clear error when the document renders. |
+| `htmlProps` (optional) | `ThemeDocumentHtmlProps` | Extra props for `<html>`. Theme-owned attributes win over the same keys here. See ThemeDocumentHtmlProps for the documented `lang`, `className`, `style` and `dir` behaviour. |
+| `initial` (optional) | `InitialThemeResolution<T> \| null` | The request-resolved state from ThemeDocumentHandle.resolveInitial. Optional on purpose: React Router can render the root `Layout` while the root loader is unavailable (an error response, a hydration fallback). When it is missing or `null`, the document renders the configuration's static fallback instead of throwing a second error inside the boundary. |
+
+---
+
+
+### `ThemeDocumentProviderProps<T extends ThemeDefinition>`
+Props for the provider created by createThemeDocument.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `children` | `ReactNode` | The application tree rendered inside the provider. |
+| `initial` (optional) | `InitialThemeResolution<T> \| null` | The request-resolved state from ThemeDocumentHandle.resolveInitial. |
+
+---
+
+
 ### `ThemeHeadProps<T extends ThemeDefinition>`
 Props for the Remix `ThemeHead` component. Describes the theme registry and
 the fallback selection used to build the blocking bootstrap script and the
@@ -617,8 +1333,10 @@ fallback selection, and the optional SSR-resolved initial state.
 | `initial` (optional) | `InitialThemeResolution<T>` | The SSR-resolved initial theme state (from `getInitialThemeState`). When provided, it wins on first paint so hydration matches exactly and the selection is mirrored back to cookies. |
 | `initialFamily` (optional) | `ThemeIdentifier<T>` | Family used when neither `initial` nor a persisted selection is available. Pair it with `initialMode` for the same reason. Constrained to the identifiers in `themes` when they are statically known. A variant name is accepted and normalised to its family; its mode applies only when `initialMode` is absent. |
 | `initialMode` (optional) | `ThemeMode` | Mode used when neither `initial` nor a persisted selection is available. Optional: the runtime and `ThemeHead`'s script both derive the fallback mode from `defaultTheme` by default, so they already agree. Set this to pin a mode the script would not derive — e.g. `"system"` to follow `prefers-color-scheme` — and pass the same value to `ThemeHead`. Ignored when `initial` is provided, since the SSR resolution wins. |
+| `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset schedule forwarded to the runtime. Same contract as `@themvora/react`'s provider; `createThemeDocument()` forwards its `scheduled` option through this prop. |
 | `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme override applied over any persisted selection. Applied once per value, never written to the theme cookies, and it does not fight a later manual selection. For a flash-free override, pass the same value to ThemeHead so the pre-paint script resolves it too. |
 | `themes` (optional) | `readonly T[]` | The theme registry the selection is resolved against. |
+| `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration forwarded to the runtime: `true`, `false`, or `{ enabled, duration, easing, preset, … }`. Same contract as `@themvora/react`'s provider. `createThemeDocument()` forwards its `transition` option through this prop, so the new single-configuration API can express everything the provider accepts. |
 
 ---
 
@@ -676,6 +1394,41 @@ the app's own props (`lang`, a `className`) around it.
 
 ---
 
+## Type Aliases
+
+### `ThemeDocumentHeadContent`
+Framework head content accepted by `<theming.Document head={[…]}>`.
+
+`head` is an **array**, not a fragment. React 19 types every JSX expression
+as `ReactElement<any, any>`, so TypeScript cannot distinguish `<div>` from
+`<meta>` by element type. The array rejects fragments at the prop boundary;
+the document then validates the rendered tree and throws a descriptive error
+for an invalid intrinsic element such as `<div>`.
+
+`ThemeDocumentHeadElement | readonly ThemeDocumentHeadContent[] | string | number | boolean | null | undefined`
+
+---
+
+
+### `ThemeDocumentHeadElement`
+One element accepted in the document `<head>`.
+
+Intrinsic elements are restricted to ThemeDocumentHeadTag; components
+such as React Router's `<Meta />` and `<Links />` are allowed because their
+output is a documented head fragment.
+
+`React.ReactElement<unknown, ThemeDocumentHeadTag> | React.ReactElement<unknown, React.JSXElementConstructor<any>>`
+
+---
+
+
+### `ThemeDocumentHeadTag`
+Intrinsic elements React permits inside `<head>`.
+
+`"base" | "link" | "meta" | "title" | "style" | "script" | "noscript" | "template"`
+
+---
+
 ## Related docs
 
 - [Families & Modes](/core-concepts) — A selection is a family (which palette) plus a mode (light/dark/system); every framework exposes the same read/write surface for it.
@@ -688,4 +1441,4 @@ the app's own props (`lang`, a `className`) around it.
 - [Zero-flash bootstrap](/zero-flash) — Paint the correct theme on the first frame: a blocking script plus server-resolved initial state, with a Vite plugin for SPA builds.
 - [Custom scrollbar](/custom-scrollbar) — Themed overlay scrollbars that match the active theme and pre-paint before hydration.
 - [DevTools](/devtools) — Inspect and drive the live runtime from a panel: adapters, history, snapshots and performance entries.
-- [Remix](/framework-guides/remix) — the framework integration
+- [Remix v2](/framework-guides/remix) — the framework integration

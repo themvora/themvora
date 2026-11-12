@@ -429,9 +429,11 @@ does not destroy it on unmount.
 | `initialMode` (optional) | `ThemeMode` | Initial mode used when nothing else is given. |
 | `persistence` (optional) | `ThemeSelectionPersistenceAdapter \| null` | Persistence adapter for the theme selection. Pass `null` to disable persistence entirely. |
 | `plugins` (optional) | `ThemePlugin<T>[]` | Runtime plugins installed at creation. |
+| `prefix` (optional) | `string` | CSS custom property prefix used by the CSS-variables binding. |
 | `readPersistenceOnInit` (optional) | `boolean` | Whether a persisted selection is read at runtime creation. |
 | `runtime` (optional) | `ThemeRuntime<T>` | A runtime owned by the caller. When provided, the provider does not create or destroy it. When omitted, the provider creates its own runtime from the other props and destroys it on unmount. |
 | `scheduled` (optional) | `false \| ScheduledThemeOptions<T>` | Sunrise/sunset scheduling configuration. `false` disables scheduling. |
+| `storageKey` (optional) | `string` | The `localStorage` key the default persistence adapter reads and writes. |
 | `themeOverride` (optional) | `ThemeOverride<ThemeIdentifier<T>>` | An explicit theme to apply, outranking a saved selection. Unlike defaultTheme, which is only a fallback, an override is applied even when `localStorage` or a cookie already names another theme — which is what makes "preview this theme" expressible as a prop. It is a one-shot signal, not a controlled selection: it is applied when its value changes, it is never re-asserted on later renders, and it does not write to persistence. See ThemeOverride. |
 | `themes` (optional) | `readonly T[]` | Initial theme definitions. Duplicate names are dropped (first wins). When omitted, the registry starts empty. |
 | `transition` (optional) | `boolean \| ThemeTransitionOptions` | Transition configuration. `true` enables transitions with defaults, `false` disables them, and an object provides explicit options. |

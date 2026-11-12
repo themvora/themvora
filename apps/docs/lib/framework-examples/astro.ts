@@ -263,7 +263,7 @@ import ThemeFamilySelect from "@themvora/astro/ThemeFamilySelect.astro";
 
 <label>
   Theme family
-  <ThemeFamilySelect class="select" />
+  <ThemeFamilySelect />
 </label>
 
 <label>
@@ -518,7 +518,6 @@ export const runtime = createThemeRuntime({
               code: `<ThemeScope
   theme="plum-dark"
   as="section"
-  class="rounded-lg p-6"
   transition={false}
 >
   <h3>Plum, dark, no transition</h3>
@@ -538,12 +537,12 @@ export const runtime = createThemeRuntime({
             {
               title: "Two themes on one page",
               lang: "astro",
-              code: `<main class="surface">
+              code: `<main>
   <h1>Page theme</h1>
 </main>
 
 <ThemeScope theme="cocoa-dark">
-  <div class="surface">Always cocoa, whatever the page does.</div>
+  <div>Always cocoa, whatever the page does.</div>
 </ThemeScope>`,
             },
           ],
@@ -591,11 +590,11 @@ import ThemeScope from "@themvora/astro/ThemeScope.astro";
 const families = ["mint", "plum", "cocoa"];
 ---
 
-<div class="grid grid-cols-2 gap-4">
+<div>
   {families.map((family) => (
-    <ThemeScope theme={family} class="p-4 rounded-lg">
+    <ThemeScope theme={family}>
       <strong>{family}</strong>
-      <p class="muted">The quick brown fox</p>
+      <p>The quick brown fox</p>
     </ThemeScope>
   ))}
 </div>`,
@@ -796,7 +795,7 @@ import Provider from "@themvora/astro/provider.astro";
 
 <!-- Themed on the server. No toggle, no controller, no client script. -->
 <Provider>
-  <main class="surface">
+  <main>
     <h1>Server-themed, zero JavaScript</h1>
   </main>
 </Provider>`,
@@ -809,28 +808,31 @@ import Provider from "@themvora/astro/provider.astro";
       id: "transition",
       label: "Transition",
       intro:
-        "The island provider accepts a transition option; the native path relies on the runtime the page already has. Per-update suppression works the same way in both.",
+        "Declare `transition` once in `theme.config.ts`: the runtime is built from the transported config, so native controls, the overlay scrollbar and an island all animate with one declaration. The island provider still accepts a per-island override, and per-update suppression works the same way in both.",
       entries: [
         {
           id: "astro-transition",
           name: "transition",
-          covers: ["transition prop"],
-          what: "Pass `transition` to the island provider (`@themvora/astro/client`) to enable CSS transitions on theme changes.",
-          when: "The page has an island and should cross-fade. A page with only native controls has no provider prop to set — configure the transition on the runtime the controller creates.",
-          effect: "Theme changes animate with the configured duration and easing; the DOM writes still happen in one flush.",
+          covers: ["transition in theme.config.ts"],
+          what: "Set `transition` in `theme.config.ts` — `{ enabled, duration, easing, useViewTransition }`, or `true` / `false`. The integration transports it to `window.__THEMVORA_CONFIG__`, and every runtime the page creates adopts it. The transported config is captured when the dev server starts, so restart `astro dev` after editing this file.",
+          when: "The app should cross-fade theme changes. Declaring it here covers a page with only native controls, one with the overlay scrollbar, and one with a React island — no per-island prop is needed.",
+          effect: "Theme changes cross-fade over the configured duration and easing. The browser uses a native View Transition when available and falls back to CSS custom-property interpolation; the DOM writes stay in one flush either way.",
           related: ["astro-suppress-transition", "astro-client"],
           code: [
             {
-              title: "src/pages/index.astro",
-              lang: "astro",
-              code: `---
-import { ThemeProviderClient } from "@themvora/astro/client";
-import { ThemePanel } from "../components/ThemePanel";
----
+              title: "theme.config.ts",
+              lang: "ts",
+              code: `import { defineTheme, defineThemvoraConfig } from "@themvora/core";
 
-<ThemeProviderClient client:load transition={{ enabled: true, duration: 250 }}>
-  <ThemePanel />
-</ThemeProviderClient>`,
+export default defineThemvoraConfig({
+  themes,
+  defaultTheme: "mint-light",
+  transition: {
+    enabled: true,
+    duration: 300,
+    easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+  },
+});`,
             },
           ],
         },
@@ -855,6 +857,46 @@ import { ThemePanel } from "../components/ThemePanel";
     suppressTransition: true,
   });
 </script>`,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "scrolling",
+      label: "Scrolling",
+      intro:
+        "The document keeps native scrolling. On a hard load, the saved position is restored before the first paint — with or without the overlay scrollbar, and with nothing to add to your layout.",
+      entries: [
+        {
+          id: "astro-scroll-restoration",
+          name: "scroll restoration",
+          covers: [
+            "Zero-flash scroll restoration",
+            "ThemeScrollbar keeps native scrolling",
+          ],
+          what: "A full reload (or cross-document back/forward) restores the position Astro saved in `history.state` from an inline script at the end of `<body>`, before the deferred router module and the first paint. No `scrollRestoration` override, `sessionStorage` key or user script is involved.",
+          when: "Any Themvora Astro page that uses `<ClientRouter />` — the router owns restoration and otherwise applies it only when its module runs, which on a slow load is after the page has painted at the top.",
+          effect: "The first visible frame is already at the saved position. Ordinary navigation still starts at the top, back/forward still restores, and client-side navigation is untouched.",
+          related: ["astro-scrollbar-component", "astro-transition"],
+          code: [
+            {
+              title: "src/layouts/BaseLayout.astro",
+              lang: "astro",
+              code: `---
+import Provider from "@themvora/astro/provider.astro";
+import ThemeScrollbar from "@themvora/astro/ThemeScrollbar.astro";
+import { ClientRouter } from "astro:transitions";
+import themeConfig from "../../theme.config";
+---
+
+{/* No scroll-restoration script is needed: the provider emits it. */}
+<Provider config={themeConfig} scrollbar>
+  <title slot="head">My site</title>
+  <ClientRouter slot="head" />
+  <ThemeScrollbar />
+  <slot />
+</Provider>`,
             },
           ],
         },
@@ -935,11 +977,11 @@ import ThemeScope from "@themvora/astro/ThemeScope.astro";
 const families = ["mint", "plum", "cocoa"];
 ---
 
-<div class="grid grid-cols-2 gap-4">
+<div>
   {families.map((family) => (
-    <ThemeScope theme={family} class="p-4 rounded-lg">
+    <ThemeScope theme={family}>
       <strong>{family}</strong>
-      <p class="muted">The quick brown fox</p>
+      <p>The quick brown fox</p>
     </ThemeScope>
   ))}
 </div>`,

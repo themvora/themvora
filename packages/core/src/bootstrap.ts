@@ -415,7 +415,7 @@ export function readBootstrapState<T extends ThemeDefinition>(
  *
  * | Attribute | Written | Meaning |
  * | --------- | ------- | ------- |
- * | `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"family"`, or `"var:<custom-property>"` |
+ * | `data-tv-readout` | `textContent` | `"theme"`, `"label"`, `"mode"`, `"effective-mode"`, `"family"`, or `"var:<custom-property>"` |
  * | `data-tv-pressed` + `data-tv-value` | `aria-pressed` | this element represents that option of `"mode"` / `"family"` |
  * | `data-tv-select` | `value` | this `<select>` edits `"mode"` / `"family"` |
  *
@@ -471,13 +471,14 @@ export function createThemeReadoutScript(): string {
     // state there, so it is more recent than anything a page was built with.
     "function attr(n){var v=de.getAttribute(n);return v===null||v===''?null:v;}" +
     "var t=attr('data-theme')||(b?b.theme:null);" +
+    "var em=attr('data-theme-mode')||(b?b.mode:null);" +
     "var m=attr('data-theme-selection-mode')||(b&&b.selection?b.selection.mode:null);" +
     "var f=attr('data-theme-selection-family')||(b&&b.selection?b.selection.family:null);" +
     // The label belongs to the *resolved* theme, which is the one `data-theme`
     // names, so it travels in the payload rather than being looked up here — a
     // script emitted at the end of the body has no registry to look it up in.
     "var lb=b?b.label:null;" +
-    "if(t==null&&m==null&&f==null)return;" +
+    "if(t==null&&m==null&&f==null&&em==null)return;" +
     // Write into the existing text node when there is exactly one. Assigning
     // `textContent` replaces every child, and when the element is React-rendered
     // (an island's readout) the framework's fiber still points at the node that
@@ -491,7 +492,7 @@ export function createThemeReadoutScript(): string {
     "var n=els[i];" +
     "var k=n.getAttribute('data-tv-readout');" +
     "if(k){" +
-    "var v=k==='theme'?t:(k==='label'?lb:(k==='mode'?m:(k==='family'?f:null)));" +
+    "var v=k==='theme'?t:(k==='label'?lb:(k==='mode'?m:(k==='family'?f:(k==='effective-mode'?em:null))));" +
     // `var:<name>` reads a resolved variable. The bootstrap applied the resolved
     // theme's variables to <html> before this script runs, so they are readable
     // here without publishing the whole variable map to the payload.
@@ -836,6 +837,7 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     "var __tvPatch=function(){" +
     "try{" +
     "var t2=el.getAttribute('data-theme')||name;" +
+    "var em2=el.getAttribute('data-theme-mode')||eff;" +
     "var m2=el.getAttribute('data-theme-selection-mode')||mode;" +
     "var f3=el.getAttribute('data-theme-selection-family')||family||fam;" +
     // Single-text-node write, for the same reason as the end-of-body script:
@@ -862,7 +864,7 @@ export function serializeThemeBootstrapScript<T extends ThemeDefinition>(
     // are not marked: their writes are already conditional, and a `<select>`
     // marked before its options were parsed could never be corrected.
     "if(n0.getAttribute('data-tv-patched')==='1'){continue;}" +
-    "var v2=rd==='theme'?t2:(rd==='label'?(lbl[t2]||null):(rd==='mode'?m2:(rd==='family'?f3:null)));" +
+    "var v2=rd==='theme'?t2:(rd==='label'?(lbl[t2]||null):(rd==='mode'?m2:(rd==='family'?f3:(rd==='effective-mode'?em2:null))));" +
     "if(v2==null&&rd.slice(0,4)==='var:'){" +
     "try{v2=getComputedStyle(el).getPropertyValue(rd.slice(4)).trim()||null;}catch(e3){v2=null;}" +
     "}" +

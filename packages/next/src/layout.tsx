@@ -8,6 +8,7 @@ import React, {
 import {
   buildBootstrapPlan,
   createPrePaintScrollbarCSS,
+  createThemePrePaintCss,
   darkModeCSSTemplate,
   getBuiltInThemes,
   resolveInitialTheme,
@@ -156,6 +157,21 @@ export interface ThemeProviderProps<
    * `@themvora/core/scrollbar.css` for the pre-paint styles.
    */
   scrollbar?: boolean | PrePaintScrollbarOptions;
+  /**
+   * Extra CSS rendered into `<head>` before the blocking bootstrap script.
+   *
+   * @remarks
+   * Some library adapters cannot express their theme through `--theme-*` alone:
+   * Bootstrap writes `--bs-*`, Mantine writes `--mantine-*`. Those adapters
+   * expose a `…/prepaint` builder that returns the same variables as a
+   * stylesheet. Passing it here puts them in the server-rendered document, so
+   * the first frame is already styled instead of waiting for the adapter's
+   * runtime write.
+   *
+   * The value is a string, not a component, so this package stays unaware of
+   * which library is in use.
+   */
+  prePaintCss?: string;
 }
 
 // The dark-mode fallback stylesheet is core's `darkModeCSSTemplate`, not a
@@ -340,6 +356,7 @@ export function ThemeProvider<T extends ThemeDefinition>({
   transition,
   scheduled,
   scrollbar,
+  prePaintCss: adapterPrePaintCss,
   ...htmlProps
 }: ThemeProviderProps<T>) {
   const resolvedThemes = themes?.length
@@ -378,6 +395,22 @@ export function ThemeProvider<T extends ThemeDefinition>({
       />
     );
   }
+
+  // The pre-paint stylesheet, not just the script.
+  //
+  // The blocking bootstrap writes `--theme-*` as an inline `style` on `<html>`.
+  // That is enough for the *first* paint, but not for the one after hydration:
+  // this layout renders `<html style={…}>`, so when React hydrates it reconciles
+  // that attribute and drops the properties the script added. The variables then
+  // disappear until the provider writes them again — a few frames in which every
+  // library falls back to its own colours (Bootstrap's white cards, Mantine's
+  // grey, shadcn's defaults). A stylesheet keeps the values present through that
+  // window, because hydration cannot remove a rule.
+  const prePaintCss = createThemePrePaintCss({
+    themes: resolvedThemes,
+    ...(defaultTheme !== undefined ? { defaultTheme } : {}),
+    initialMode: themeMode,
+  });
 
   // The blocking bootstrap is the shell's pre-paint resolution. It reads the
   // persisted cookies in the browser and writes the resolved theme onto
@@ -439,6 +472,10 @@ export function ThemeProvider<T extends ThemeDefinition>({
       style={{ ...style, ...ssrStyle }}
     >
       <head>
+        <style data-themvora-pre-paint="css" dangerouslySetInnerHTML={{ __html: prePaintCss }} />
+        {adapterPrePaintCss ? (
+          <style data-themvora-pre-paint="adapter" dangerouslySetInnerHTML={{ __html: adapterPrePaintCss }} />
+        ) : null}
         <script dangerouslySetInnerHTML={{ __html: blockingScript }} />
         {scrollbar && (
           <style
@@ -453,6 +490,11 @@ export function ThemeProvider<T extends ThemeDefinition>({
         style={{ ...bodyStyle, ...bodyFontStyle }}
         {...bodyProps}
       >
+        {/* `ResolvedThemeProvider` awaits `cookies()`, which is request data.
+            Without this boundary that read is part of the shell itself, so the
+            hosting route cannot prerender and Next reports it as blocking. Under
+            the boundary the read streams into the already-painted shell, which
+            is the whole point of the document being request-independent. */}
         <Suspense fallback={<ThemeShellFallback />}>
           <ResolvedThemeProvider
             themes={resolvedThemes}

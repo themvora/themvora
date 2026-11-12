@@ -135,44 +135,75 @@ describe("init --plan", () => {
     expect(result.stdout).not.toContain("Install");
   });
 
-  it("forwards --skip-install to create-next-app under --no-install", async () => {
-    // `create-next-app` installs its own dependencies by default. `--no-install`
-    // must install nothing at all, so the generator needs its own flag — and
-    // Themvora's install step must be planned away too.
-    const result = await cli(
-      "init",
-      "my-app",
-      "--framework",
-      "next",
-      "--no-install",
-      "--plan",
-      "--json",
-    );
-    const plan = result.json<{
-      scaffold: { args: string[] } | null;
-      installStep: unknown;
-    }>();
+  it("always forwards --skip-install to create-next-app", async () => {
+    // `create-next-app` installs its own dependencies by default. Themvora
+    // installs once, after the integration has edited `package.json`, so the
+    // generator's install is suppressed in *every* run — not only under
+    // `--no-install`. Otherwise a normal run would install the tree twice.
+    for (const extra of [[], ["--no-install"]]) {
+      const result = await cli(
+        "init",
+        "my-app",
+        "--framework",
+        "next",
+        "--plan",
+        "--json",
+        ...extra,
+      );
+      const plan = result.json<{ scaffold: { args: string[] } | null }>();
 
-    expect(plan.scaffold?.args).toContain("--skip-install");
-    expect(plan.installStep).toBeNull();
+      expect(plan.scaffold?.args, `args with ${extra.join(" ")}`).toContain("--skip-install");
+    }
   });
 
-  it("lets the generator install when dependencies are wanted", async () => {
+  it("plans exactly one install step for a normal new project", async () => {
+    const result = await cli("init", "my-app", "--framework", "next", "--plan", "--json");
+    const plan = result.json<{
+      scaffold: { args: string[] } | null;
+      installStep: { command: string } | null;
+      devDependencies: Record<string, string>;
+    }>();
+
+    expect(plan.installStep).not.toBeNull();
+    // Plain CSS is the default, so there are no build-time packages to add.
+    expect(plan.devDependencies).toEqual({});
+  });
+
+  it("pins the package manager create-next-app would otherwise infer", async () => {
     const result = await cli(
       "init",
       "my-app",
       "--framework",
       "next",
+      "--tool",
+      "pnpm",
       "--plan",
       "--json",
     );
-    const plan = result.json<{
-      scaffold: { args: string[] } | null;
-      installStep: unknown;
-    }>();
+    const plan = result.json<{ scaffold: { args: string[] } | null }>();
 
-    expect(plan.scaffold?.args).not.toContain("--skip-install");
-    expect(plan.installStep).not.toBeNull();
+    expect(plan.scaffold?.args).toContain("--use-pnpm");
+    expect(plan.scaffold?.args).not.toContain("--use-npm");
+  });
+
+  it("suppresses create-vite's own install-and-start question", async () => {
+    // `create-vite` asks "Install with npm and start now?" when it is
+    // interactive, and answering either way conflicts with Themvora's own
+    // install step. `--no-interactive` is Vite's documented switch.
+    for (const framework of ["react", "vue", "svelte", "solid"]) {
+      const result = await cli(
+        "init",
+        "my-app",
+        "--framework",
+        framework,
+        "--plan",
+        "--json",
+      );
+      const plan = result.json<{ scaffold: { args: string[] } | null }>();
+
+      expect(plan.scaffold?.args, framework).toContain("--no-interactive");
+      expect(plan.scaffold?.args, framework).not.toContain("--immediate");
+    }
   });
 
   it("emits the plan as JSON", async () => {

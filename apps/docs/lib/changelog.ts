@@ -18,7 +18,7 @@
 import { PKG_VERSION } from "./version";
 
 export const CURRENT_RELEASE = PKG_VERSION;
-export const LAST_UPDATED = "2026-09-24";
+export const LAST_UPDATED = "2026-11-12";
 
 export type ChangeKind = "major" | "minor" | "patch";
 
@@ -180,7 +180,7 @@ export const releases: Release[] = [
       },
       {
         area: "Frameworks",
-        text: "React, Next.js, Vue 3, Nuxt 3, Svelte 5, SolidJS, Angular, Astro, Remix, and Web Components — each with a native `ThemeProvider`, `useTheme`, and framework-specific hooks.",
+        text: "React, Next.js, Vue 3, Nuxt 4, Svelte 5, SolidJS, Angular, Astro, Remix, and Web Components — each with a native `ThemeProvider`, `useTheme`, and framework-specific hooks.",
       },
       {
         area: "SSR-first zero-flash",

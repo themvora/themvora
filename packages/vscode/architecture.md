@@ -7,7 +7,7 @@ of current behaviour; where the two disagree, this document and the code win.
 
 - Package: `themvora-for-vscode` (private, not published to npm)
 - Extension identifier: `themvora.themvora-for-vscode`
-- Version: `0.1.1`
+- Version: `0.1.2`
 - Minimum engine: VS Code `^1.94.0`
 - Entry point: `dist/index.js` (ESM)
 
@@ -411,7 +411,7 @@ Packaging:
 
 ```bash
 pnpm --filter themvora-for-vscode build
-cd packages/vscode && pnpm package   # -> themvora-for-vscode-0.1.1.vsix
+cd packages/vscode && pnpm package   # -> themvora-for-vscode-0.1.2.vsix
 node scripts/verify-vsix.mjs         # self-containment check
 ```
 

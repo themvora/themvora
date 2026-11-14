@@ -1,5 +1,22 @@
 # themvora-for-vscode
 
+## 0.1.2 — the listing screenshot loses the desktop chrome
+
+A packaging-only republish. The Marketplace renders the `README.md` that ships
+inside the `.vsix`, and that README embeds the listing capture from
+`apps/docs/public/vscode/marketplace-listing.png`. The capture had been taken
+from the whole desktop, so it carried the Windows taskbar and clock, the
+editor's title bar with its menus and window controls, and the activity bar.
+
+### Changed
+
+- The listing screenshot is cropped to the extension's own UI: the taskbar,
+  desktop clock, title bar and activity bar are gone, matching the window-only
+  framing of the `studio-*.png` shots beside it.
+
+No runtime behaviour changed. Version 0.1.2 exists because the Marketplace will
+not accept a second upload of 0.1.1.
+
 ## 0.1.1 — the published README catches up
 
 A documentation-only republish. The 0.1.0 binary already contained the save

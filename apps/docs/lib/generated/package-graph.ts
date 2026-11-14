@@ -322,7 +322,7 @@ export const PACKAGE_GRAPH: PackageGraphEntry[] = [
   },
   {
     name: "themvora-for-vscode",
-    version: "0.1.1",
+    version: "0.1.2",
     dir: "vscode",
     repoDir: "packages/vscode",
     description: "Explore, preview, create and validate your Themvora themes without leaving VS Code.",

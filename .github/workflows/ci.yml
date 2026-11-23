@@ -51,7 +51,7 @@ jobs:
       # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
       # `allowBuilds`) that older majors ignore — which would make
       # `--frozen-lockfile` fail on a clean checkout.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # pnpm/action-setup v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # pnpm/action-setup v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # actions/setup-node v7.1.0
         with:
@@ -108,7 +108,7 @@ jobs:
       # lockfile, and `pnpm-workspace.yaml` uses settings (`overrides`,
       # `allowBuilds`) that older majors ignore — which would make
       # `--frozen-lockfile` fail on a clean checkout.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # pnpm/action-setup v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # pnpm/action-setup v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # actions/setup-node v7.1.0
         with:
@@ -145,7 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
 
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # actions/dependency-review-action v5.0.0
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # actions/dependency-review-action v5.0.1
         with:
           # Match the production audit: a high or critical advisory in a
           # dependency this change introduces fails the pull request.

@@ -14,8 +14,8 @@
     "@themvora/core": "workspace:*",
     "@themvora/nuxt": "workspace:*",
     "nuxt": "^4.6.4",
-    "vue": "^3.5.44",
-    "vue-router": "^5.4.0"
+    "vue": "^3.5.45",
+    "vue-router": "^5.5.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

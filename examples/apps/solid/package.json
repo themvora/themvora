@@ -10,13 +10,13 @@
     "preview": "vite preview --port 5193 --strictPort"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@themvora/app-shared": "workspace:*",
     "@themvora/core": "workspace:*",
     "@themvora/solid": "workspace:*",
     "@themvora/tailwind": "workspace:*",
     "solid-js": "^1.9.18",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
